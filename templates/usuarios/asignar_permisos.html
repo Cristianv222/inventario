@@ -1,0 +1,1409 @@
+{% extends 'base.html' %}
+
+{% block title %}Asignar Permisos - {{ rol.nombre }} - VPMOTOS{% endblock %}
+
+{% block styles %}
+<style>
+    /* Estilos generales */
+    :root {
+        --primary: #4361ee;
+        --primary-light: #4895ef;
+        --secondary: #3f37c9;
+        --accent: #f72585;
+        --success: #4cc9f0;
+        --warning: #f8961e;
+        --danger: #f94144;
+        --light-bg: #f8f9fa;
+        --border-color: #e9ecef;
+        --text-muted: #6c757d;
+        --transition: all 0.3s ease;
+    }
+
+    /* Tarjeta de rol */
+    .rol-card {
+        border-radius: 0.5rem;
+        background-color: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .rol-card-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--light-bg);
+    }
+
+    .rol-card-body {
+        padding: 1.5rem;
+    }
+
+    /* Permisos Container - Layout Principal */
+    .permisos-container {
+        display: flex;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        min-height: 600px;
+        margin-bottom: 2rem;
+    }
+
+    /* Panel lateral de módulos */
+    .modulos-sidebar {
+        width: 280px;
+        background-color: var(--light-bg);
+        border-right: 1px solid var(--border-color);
+        overflow-y: auto;
+        padding: 0;
+    }
+
+    .sidebar-header {
+        padding: 1rem;
+        background-color: var(--primary);
+        color: white;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+
+    .sidebar-header i {
+        margin-right: 0.5rem;
+    }
+
+    .search-box {
+        position: relative;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .search-box input {
+        padding-left: 2.5rem;
+        border-radius: 0.5rem;
+        height: 38px;
+        width: 100%;
+        border: 1px solid var(--border-color);
+    }
+
+    .search-box .search-icon {
+        position: absolute;
+        left: 1.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+    }
+
+    /* Árbol de módulos */
+    .modulos-tree {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .modulo-item {
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .modulo-link {
+        display: flex;
+        align-items: center;
+        padding: 0.85rem 1rem;
+        color: #495057;
+        text-decoration: none;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+
+    .modulo-link:hover {
+        background-color: rgba(67, 97, 238, 0.05);
+        color: var(--primary);
+    }
+
+    .modulo-link.active {
+        background-color: rgba(67, 97, 238, 0.1);
+        color: var(--primary);
+        font-weight: 500;
+        border-left: 3px solid var(--primary);
+    }
+
+    .modulo-icon {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        margin-right: 10px;
+    }
+
+    .modulo-title {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .modulo-count {
+        background-color: var(--border-color);
+        border-radius: 20px;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        min-width: 24px;
+        text-align: center;
+    }
+
+    .modulo-count.has-selected {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .toggle-expand {
+        margin-right: 8px;
+        width: 16px;
+        text-align: center;
+        transition: transform 0.2s;
+    }
+
+    .toggle-expand.expanded {
+        transform: rotate(90deg);
+    }
+
+    /* Contenido de modelos */
+    .modelos-content {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .modelos-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background-color: white;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .modelos-header h4 {
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .modelos-header i {
+        margin-right: 0.75rem;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background-color: rgba(67, 97, 238, 0.1);
+        color: var(--primary);
+    }
+
+    .modelos-body {
+        padding: 1.5rem;
+    }
+
+    /* Panel de modelos */
+    .modelo-card {
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .modelo-header {
+        padding: 1rem;
+        background-color: var(--light-bg);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+    }
+
+    .modelo-header-info {
+        display: flex;
+        align-items: center;
+    }
+
+    .modelo-header-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background-color: rgba(67, 97, 238, 0.1);
+        color: var(--primary);
+        margin-right: 12px;
+    }
+
+    .modelo-header-title {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .modelo-body {
+        padding: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .modelo-body.expanded {
+        max-height: 1000px;
+        transition: max-height 0.5s ease;
+    }
+
+    /* Grupos de permisos */
+    .permisos-group {
+        border-bottom: 1px solid var(--border-color);
+        padding: 0;
+    }
+
+    .permisos-group:last-child {
+        border-bottom: none;
+    }
+
+    .permisos-group-header {
+        padding: 0.75rem 1rem;
+        background-color: rgba(0,0,0,0.02);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+    }
+
+    .permisos-group-header:hover {
+        background-color: rgba(0,0,0,0.04);
+    }
+
+    .permisos-group-info {
+        display: flex;
+        align-items: center;
+    }
+
+    .permisos-group-icon {
+        margin-right: 8px;
+    }
+
+    .permisos-group-title {
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .permisos-list {
+        padding: 0.5rem 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .permisos-list.expanded {
+        max-height: 500px;
+        transition: max-height 0.5s ease;
+    }
+
+    .permiso-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1.5rem;
+        transition: background-color 0.2s;
+        cursor: pointer;
+    }
+
+    .permiso-item:hover {
+        background-color: rgba(67, 97, 238, 0.05);
+    }
+
+    .permiso-icon {
+        width: 24px;
+        height: 24px;
+        min-width: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        margin-right: 10px;
+    }
+
+    .icon-view { background-color: rgba(76, 201, 240, 0.1); color: #4cc9f0; }
+    .icon-add { background-color: rgba(72, 149, 239, 0.1); color: #4895ef; }
+    .icon-change { background-color: rgba(248, 150, 30, 0.1); color: #f8961e; }
+    .icon-delete { background-color: rgba(249, 65, 68, 0.1); color: #f94144; }
+
+    .permiso-details {
+        flex: 1;
+        padding-right: 1rem;
+    }
+
+    .permiso-name {
+        font-size: 0.9rem;
+        margin-bottom: 0.1rem;
+    }
+
+    .permiso-description {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    /* Barra de acciones y resumen */
+    .actions-bar {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        padding: 1rem 1.5rem;
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        bottom: 20px;
+        z-index: 10;
+    }
+
+    .permissions-summary {
+        display: flex;
+        align-items: center;
+    }
+
+    .permissions-badge {
+        background-color: var(--primary);
+        color: white;
+        border-radius: 20px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        margin-right: 0.75rem;
+    }
+
+    .permissions-info {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    /* Modal de resumen */
+    .permisos-summary-modal .modal-header {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .permisos-summary-modal .modal-title {
+        display: flex;
+        align-items: center;
+    }
+
+    .permisos-summary-modal .modal-title i {
+        margin-right: 0.75rem;
+    }
+
+    .permisos-summary-modal .permissions-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .permisos-summary-modal .permissions-table th,
+    .permisos-summary-modal .permissions-table td {
+        padding: 10px 15px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .permisos-summary-modal .permissions-table thead th {
+        background-color: var(--light-bg);
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .permisos-summary-modal .permissions-table tbody tr:hover {
+        background-color: rgba(67, 97, 238, 0.03);
+    }
+    
+    .permisos-summary-modal .permissions-table .permission-type {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .permisos-summary-modal .permissions-table .type-view {
+        background-color: rgba(76, 201, 240, 0.1);
+        color: #4cc9f0;
+    }
+    
+    .permisos-summary-modal .permissions-table .type-add {
+        background-color: rgba(72, 149, 239, 0.1);
+        color: #4895ef;
+    }
+    
+    .permisos-summary-modal .permissions-table .type-change {
+        background-color: rgba(248, 150, 30, 0.1);
+        color: #f8961e;
+    }
+    
+    .permisos-summary-modal .permissions-table .type-delete {
+        background-color: rgba(249, 65, 68, 0.1);
+        color: #f94144;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <form method="post" id="permisosForm">
+        {% csrf_token %}
+        
+        <!-- Tarjeta de información del rol -->
+        <div class="rol-card">
+            <div class="rol-card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-tag me-2 text-primary"></i>
+                    Información del Rol
+                </h4>
+            </div>
+            <div class="rol-card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label">{{ form.nombre.label }}</label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                        <div class="text-danger small">{{ form.nombre.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-7">
+                        <label for="{{ form.descripcion.id_for_label }}" class="form-label">{{ form.descripcion.label }}</label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                        <div class="text-danger small">{{ form.descripcion.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label d-block">Estado</label>
+                        <div class="form-check form-switch">
+                            {{ form.activo }}
+                            <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                Activo
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contenedor principal de permisos -->
+        <div class="permisos-container">
+            <!-- Panel lateral de módulos -->
+            <div class="modulos-sidebar">
+                <div class="sidebar-header">
+                    <i class="fas fa-folder"></i>
+                    <span>Módulos del Sistema</span>
+                </div>
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="form-control" id="searchModulos" placeholder="Buscar módulos...">
+                </div>
+                <ul class="modulos-tree" id="modulosTree">
+                    <!-- Módulo de Administración -->
+                    <li class="modulo-item">
+                        <div class="modulo-link" data-modulo="admin">
+                            <div class="modulo-icon" style="background-color: rgba(63, 55, 201, 0.1); color: #3f37c9;">
+                                <i class="fas fa-cogs"></i>
+                            </div>
+                            <div class="modulo-title">Administración</div>
+                            <div class="modulo-count" id="modulo-count-admin">0</div>
+                        </div>
+                    </li>
+                    
+                    <!-- Módulo de Autenticación -->
+                    <li class="modulo-item">
+                        <div class="modulo-link" data-modulo="auth">
+                            <div class="modulo-icon" style="background-color: rgba(67, 97, 238, 0.1); color: #4361ee;">
+                                <i class="fas fa-user-lock"></i>
+                            </div>
+                            <div class="modulo-title">Autenticación</div>
+                            <div class="modulo-count" id="modulo-count-auth">0</div>
+                        </div>
+                    </li>
+                    
+                    <!-- Módulo de Usuarios -->
+                    <li class="modulo-item">
+                        <div class="modulo-link" data-modulo="usuarios">
+                            <div class="modulo-icon" style="background-color: rgba(76, 201, 240, 0.1); color: #4cc9f0;">
+                                <i class="fas fa-users-cog"></i>
+                            </div>
+                            <div class="modulo-title">Usuarios</div>
+                            <div class="modulo-count" id="modulo-count-usuarios">0</div>
+                        </div>
+                    </li>
+                    
+                    <!-- Módulo de Ventas -->
+                    <li class="modulo-item">
+                        <div class="modulo-link" data-modulo="ventas">
+                            <div class="modulo-icon" style="background-color: rgba(247, 37, 133, 0.1); color: #f72585;">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="modulo-title">Ventas</div>
+                            <div class="modulo-count" id="modulo-count-ventas">0</div>
+                        </div>
+                    </li>
+                    
+                    <!-- Módulo de Inventario -->
+                    <li class="modulo-item">
+                        <div class="modulo-link" data-modulo="inventario">
+                            <div class="modulo-icon" style="background-color: rgba(114, 9, 183, 0.1); color: #7209b7;">
+                                <i class="fas fa-boxes"></i>
+                            </div>
+                            <div class="modulo-title">Inventario</div>
+                            <div class="modulo-count" id="modulo-count-inventario">0</div>
+                        </div>
+                    </li>
+                    
+                    <!-- Módulo de Taller -->
+                    <li class="modulo-item">
+                        <div class="modulo-link" data-modulo="taller">
+                            <div class="modulo-icon" style="background-color: rgba(248, 150, 30, 0.1); color: #f8961e;">
+                                <i class="fas fa-motorcycle"></i>
+                            </div>
+                            <div class="modulo-title">Taller</div>
+                            <div class="modulo-count" id="modulo-count-taller">0</div>
+                        </div>
+                    </li>
+                    
+                    <!-- Módulo de Clientes -->
+                    <li class="modulo-item">
+                        <div class="modulo-link" data-modulo="clientes">
+                            <div class="modulo-icon" style="background-color: rgba(42, 157, 143, 0.1); color: #2a9d8f;">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="modulo-title">Clientes</div>
+                            <div class="modulo-count" id="modulo-count-clientes">0</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Contenido de modelos y permisos -->
+            <div class="modelos-content" id="modelosContent">
+                <div class="modelos-header">
+                    <h4>
+                        <i class="fas fa-folder-open"></i>
+                        <span id="currentModulo">Seleccione un módulo</span>
+                    </h4>
+                </div>
+                <div class="modelos-body" id="modelosBody">
+                    <div class="text-center text-muted p-5">
+                        <i class="fas fa-folder-open fa-3x mb-3"></i>
+                        <h5>Seleccione un módulo para ver sus permisos</h5>
+                        <p>Haga clic en uno de los módulos disponibles en el panel izquierdo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Barra de acciones -->
+        <div class="actions-bar">
+            <div class="permissions-summary">
+                <div class="permissions-badge" id="totalSeleccionados">0</div>
+                <div class="permissions-info" id="permisosInfo">permisos seleccionados</div>
+            </div>
+            <div class="d-flex">
+                <button type="button" class="btn btn-info me-2" id="btnResumenPermisos" data-bs-toggle="modal" data-bs-target="#modalResumenPermisos">
+                    <i class="fas fa-list-check me-1"></i>Ver resumen
+                </button>
+                <a href="{% url 'usuarios:lista_roles' %}" class="btn btn-light me-2">
+                    <i class="fas fa-arrow-left me-1"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Guardar cambios
+                </button>
+            </div>
+        </div>
+        
+        <!-- Contenedor para permisos ocultos -->
+        <div id="permisosHidden" style="display: none;"></div>
+    </form>
+    
+    <!-- Modal de resumen de permisos -->
+    <div class="modal fade permisos-summary-modal" id="modalResumenPermisos" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-clipboard-list"></i>
+                        Resumen de Permisos Seleccionados
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-box mb-3">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="form-control" id="searchResumenPermisos" placeholder="Buscar en el resumen...">
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="permissions-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 20%">Módulo</th>
+                                    <th style="width: 25%">Modelo</th>
+                                    <th style="width: 15%">Tipo</th>
+                                    <th style="width: 40%">Permiso</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resumen-permisos-table">
+                                <!-- Se llenará dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="text-muted me-auto">
+                        <span id="total-resumen">0</span> permisos seleccionados
+                    </div>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // Referencias globales
+    const permisosForm = document.getElementById('permisosForm');
+    const totalSeleccionados = document.getElementById('totalSeleccionados');
+    const permisosInfo = document.getElementById('permisosInfo');
+    const permisosHidden = document.getElementById('permisosHidden');
+    const searchModulos = document.getElementById('searchModulos');
+    const modulosTree = document.getElementById('modulosTree');
+    const modelosContent = document.getElementById('modelosContent');
+    const modelosBody = document.getElementById('modelosBody');
+    const currentModulo = document.getElementById('currentModulo');
+    
+    // Referencias para resumen
+    const modalResumenPermisos = document.getElementById('modalResumenPermisos');
+    
+    // Almacenar todos los permisos para búsqueda global
+    let permisosGlobales = [];
+    
+    // Mapeo de iconos para modelos
+    const modelosIconos = {
+        'user': 'fa-user',
+        'group': 'fa-users',
+        'permission': 'fa-key',
+        'logentry': 'fa-history',
+        'contenttype': 'fa-cube',
+        'session': 'fa-hourglass',
+        'rol': 'fa-user-tag',
+        'producto': 'fa-box',
+        'categoria': 'fa-tags',
+        'marca': 'fa-trademark',
+        'cliente': 'fa-user-tie',
+        'venta': 'fa-shopping-cart',
+        'factura': 'fa-file-invoice',
+        'ordenservicio': 'fa-tools',
+        'default': 'fa-table'
+    };
+    
+    // Mapeo de colores para módulos
+    const modulosColores = {
+        'admin': { bg: 'rgba(63, 55, 201, 0.1)', color: '#3f37c9' },
+        'auth': { bg: 'rgba(67, 97, 238, 0.1)', color: '#4361ee' },
+        'usuarios': { bg: 'rgba(76, 201, 240, 0.1)', color: '#4cc9f0' },
+        'ventas': { bg: 'rgba(247, 37, 133, 0.1)', color: '#f72585' },
+        'inventario': { bg: 'rgba(114, 9, 183, 0.1)', color: '#7209b7' },
+        'taller': { bg: 'rgba(248, 150, 30, 0.1)', color: '#f8961e' },
+        'clientes': { bg: 'rgba(42, 157, 143, 0.1)', color: '#2a9d8f' },
+        'default': { bg: 'rgba(67, 97, 238, 0.1)', color: '#4361ee' }
+    };
+    
+    // Mapeo de tipos de permisos
+    const tiposPermisos = {
+        'view': { nombre: 'Visualización', icono: 'fa-eye', clase: 'text-info', bg: 'rgba(76, 201, 240, 0.1)', color: '#4cc9f0' },
+        'add': { nombre: 'Creación', icono: 'fa-plus', clase: 'text-primary', bg: 'rgba(72, 149, 239, 0.1)', color: '#4895ef' },
+        'change': { nombre: 'Modificación', icono: 'fa-edit', clase: 'text-warning', bg: 'rgba(248, 150, 30, 0.1)', color: '#f8961e' },
+        'delete': { nombre: 'Eliminación', icono: 'fa-trash-alt', clase: 'text-danger', bg: 'rgba(249, 65, 68, 0.1)', color: '#f94144' }
+    };
+    
+    // Mapeo de nombres de módulos
+    const modulosNombres = {
+        'auth': 'Autenticación',
+        'admin': 'Administración',
+        'contenttypes': 'Tipos de Contenido',
+        'sessions': 'Sesiones',
+        'usuarios': 'Usuarios',
+        'ventas': 'Ventas',
+        'inventario': 'Inventario',
+        'taller': 'Taller',
+        'clientes': 'Clientes'
+    };
+    
+    // Inicializar permisos (simulación - deberías cargar esto desde tu backend)
+    // Aquí estamos simulando algunos permisos de ejemplo
+    function cargarPermisosEjemplo() {
+        // Auth permisos
+        crearPermiso('auth', 'user', 'Ver usuario', 'Puede ver información de usuarios', 'view');
+        crearPermiso('auth', 'user', 'Añadir usuario', 'Puede crear nuevos usuarios', 'add');
+        crearPermiso('auth', 'user', 'Modificar usuario', 'Puede editar usuarios existentes', 'change');
+        crearPermiso('auth', 'user', 'Eliminar usuario', 'Puede eliminar usuarios', 'delete');
+        
+        crearPermiso('auth', 'group', 'Ver grupo', 'Puede ver información de grupos', 'view');
+        crearPermiso('auth', 'group', 'Añadir grupo', 'Puede crear nuevos grupos', 'add');
+        crearPermiso('auth', 'group', 'Modificar grupo', 'Puede editar grupos existentes', 'change');
+        crearPermiso('auth', 'group', 'Eliminar grupo', 'Puede eliminar grupos', 'delete');
+        
+        crearPermiso('auth', 'permission', 'Ver permiso', 'Puede ver información de permisos', 'view');
+        crearPermiso('auth', 'permission', 'Añadir permiso', 'Puede crear nuevos permisos', 'add');
+        crearPermiso('auth', 'permission', 'Modificar permiso', 'Puede editar permisos existentes', 'change');
+        crearPermiso('auth', 'permission', 'Eliminar permiso', 'Puede eliminar permisos', 'delete');
+        
+        // Admin permisos
+        crearPermiso('admin', 'logentry', 'Ver registro', 'Puede ver registros de actividad administrativa', 'view');
+        crearPermiso('admin', 'logentry', 'Añadir registro', 'Puede añadir registros de actividad administrativa', 'add');
+        crearPermiso('admin', 'logentry', 'Modificar registro', 'Puede modificar registros de actividad administrativa', 'change');
+        crearPermiso('admin', 'logentry', 'Eliminar registro', 'Puede eliminar registros de actividad administrativa', 'delete');
+        
+        // Usuarios permisos
+        crearPermiso('usuarios', 'rol', 'Ver rol', 'Puede ver roles de usuario', 'view');
+        crearPermiso('usuarios', 'rol', 'Añadir rol', 'Puede crear nuevos roles', 'add');
+        crearPermiso('usuarios', 'rol', 'Modificar rol', 'Puede editar roles existentes', 'change');
+        crearPermiso('usuarios', 'rol', 'Eliminar rol', 'Puede eliminar roles', 'delete');
+        
+        // Inventario permisos
+        crearPermiso('inventario', 'producto', 'Ver producto', 'Puede ver productos', 'view');
+        crearPermiso('inventario', 'producto', 'Añadir producto', 'Puede añadir nuevos productos', 'add');
+        crearPermiso('inventario', 'producto', 'Modificar producto', 'Puede editar productos existentes', 'change');
+        crearPermiso('inventario', 'producto', 'Eliminar producto', 'Puede eliminar productos', 'delete');
+        
+        crearPermiso('inventario', 'categoria', 'Ver categoría', 'Puede ver categorías', 'view');
+        crearPermiso('inventario', 'categoria', 'Añadir categoría', 'Puede añadir nuevas categorías', 'add');
+        crearPermiso('inventario', 'categoria', 'Modificar categoría', 'Puede editar categorías existentes', 'change');
+        crearPermiso('inventario', 'categoria', 'Eliminar categoría', 'Puede eliminar categorías', 'delete');
+        
+        crearPermiso('inventario', 'marca', 'Ver marca', 'Puede ver marcas', 'view');
+        crearPermiso('inventario', 'marca', 'Añadir marca', 'Puede añadir nuevas marcas', 'add');
+        crearPermiso('inventario', 'marca', 'Modificar marca', 'Puede editar marcas existentes', 'change');
+        crearPermiso('inventario', 'marca', 'Eliminar marca', 'Puede eliminar marcas', 'delete');
+        
+        // Ventas permisos
+        crearPermiso('ventas', 'venta', 'Ver venta', 'Puede ver ventas', 'view');
+        crearPermiso('ventas', 'venta', 'Añadir venta', 'Puede registrar nuevas ventas', 'add');
+        crearPermiso('ventas', 'venta', 'Modificar venta', 'Puede editar ventas existentes', 'change');
+        crearPermiso('ventas', 'venta', 'Eliminar venta', 'Puede anular ventas', 'delete');
+        
+        crearPermiso('ventas', 'factura', 'Ver factura', 'Puede ver facturas', 'view');
+        crearPermiso('ventas', 'factura', 'Añadir factura', 'Puede generar nuevas facturas', 'add');
+        crearPermiso('ventas', 'factura', 'Modificar factura', 'Puede editar facturas existentes', 'change');
+        crearPermiso('ventas', 'factura', 'Eliminar factura', 'Puede anular facturas', 'delete');
+        
+        // Taller permisos
+        crearPermiso('taller', 'ordenservicio', 'Ver orden de servicio', 'Puede ver órdenes de servicio', 'view');
+        crearPermiso('taller', 'ordenservicio', 'Añadir orden de servicio', 'Puede crear nuevas órdenes de servicio', 'add');
+        crearPermiso('taller', 'ordenservicio', 'Modificar orden de servicio', 'Puede editar órdenes de servicio existentes', 'change');
+        crearPermiso('taller', 'ordenservicio', 'Eliminar orden de servicio', 'Puede anular órdenes de servicio', 'delete');
+        
+        // Clientes permisos
+        crearPermiso('clientes', 'cliente', 'Ver cliente', 'Puede ver información de clientes', 'view');
+        crearPermiso('clientes', 'cliente', 'Añadir cliente', 'Puede registrar nuevos clientes', 'add');
+        crearPermiso('clientes', 'cliente', 'Modificar cliente', 'Puede editar información de clientes', 'change');
+        crearPermiso('clientes', 'cliente', 'Eliminar cliente', 'Puede eliminar clientes', 'delete');
+        
+        // Actualizar contadores iniciales
+        actualizarContadoresGlobal();
+    }
+    
+    // Función auxiliar para crear permisos
+    function crearPermiso(appId, modelId, nombre, descripcion, tipo) {
+        const permisoId = `${appId}.${tipo}_${modelId}`;
+        const appName = modulosNombres[appId] || appId.charAt(0).toUpperCase() + appId.slice(1);
+        
+        let modelName = modelId;
+        if (modelId === 'logentry') modelName = 'Registro de actividad';
+        else if (modelId === 'user') modelName = 'Usuario';
+        else if (modelId === 'group') modelName = 'Grupo';
+        else if (modelId === 'permission') modelName = 'Permiso';
+        else if (modelId === 'contenttype') modelName = 'Tipo de contenido';
+        else if (modelId === 'session') modelName = 'Sesión';
+        else if (modelId === 'rol') modelName = 'Rol';
+        else modelName = modelId.charAt(0).toUpperCase() + modelId.slice(1);
+        
+        permisosGlobales.push({
+            id: permisoId,
+            app: appId,
+            appName: appName,
+            model: modelId,
+            modelName: modelName,
+            nombre: nombre,
+            descripcion: descripcion,
+            tipo: tipo,
+            seleccionado: false
+        });
+    }
+    
+    // Carga inicial de datos de ejemplo
+    cargarPermisosEjemplo();
+    
+    // Evento para seleccionar un módulo
+    document.querySelectorAll('.modulo-link').forEach(link => {
+        link.addEventListener('click', function() {
+            const moduloId = this.getAttribute('data-modulo');
+            
+            // Desactivar todos los links
+            document.querySelectorAll('.modulo-link').forEach(l => l.classList.remove('active'));
+            
+            // Activar este link
+            this.classList.add('active');
+            
+            // Cargar permisos del módulo
+            cargarPermisosModulo(moduloId);
+        });
+    });
+    
+    // Función para cargar permisos de un módulo
+    function cargarPermisosModulo(moduloId) {
+        // Actualizar título
+        const moduloNombre = modulosNombres[moduloId] || moduloId.charAt(0).toUpperCase() + moduloId.slice(1);
+        currentModulo.textContent = moduloNombre;
+        
+        // Obtener color del módulo
+        const moduloColor = modulosColores[moduloId] || modulosColores.default;
+        
+        // Obtener permisos del módulo
+        const permisosModulo = permisosGlobales.filter(p => p.app === moduloId);
+        
+        // Agrupar por modelos
+        const modelosMap = {};
+        
+        permisosModulo.forEach(permiso => {
+            if (!modelosMap[permiso.model]) {
+                modelosMap[permiso.model] = {
+                    id: permiso.model,
+                    nombre: permiso.modelName,
+                    permisos: []
+                };
+            }
+            
+            modelosMap[permiso.model].permisos.push(permiso);
+        });
+        
+        // Convertir a array y ordenar
+        const modelos = Object.values(modelosMap).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        
+        // Limpiar contenido
+        modelosBody.innerHTML = '';
+        
+        // Si no hay modelos
+        if (modelos.length === 0) {
+            modelosBody.innerHTML = `
+                <div class="text-center text-muted p-5">
+                    <i class="fas fa-folder-open fa-3x mb-3"></i>
+                    <h5>No hay modelos disponibles</h5>
+                    <p>Este módulo no tiene modelos con permisos configurables</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Crear tarjetas de modelo
+        modelos.forEach(modelo => {
+            // Determinar icono
+            const iconoClass = modelosIconos[modelo.id] || modelosIconos.default;
+            
+            // Contar permisos seleccionados
+            const totalPermisos = modelo.permisos.length;
+            const seleccionados = modelo.permisos.filter(p => p.seleccionado).length;
+            
+            // Crear tarjeta de modelo
+            const modeloCard = document.createElement('div');
+            modeloCard.className = 'modelo-card';
+            modeloCard.innerHTML = `
+                <div class="modelo-header" data-modelo="${modelo.id}">
+                    <div class="modelo-header-info">
+                        <div class="modelo-header-icon">
+                            <i class="fas ${iconoClass}"></i>
+                        </div>
+                        <div class="modelo-header-title">${modelo.nombre}</div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="small text-muted me-3">
+                            <span id="modelo-counter-${modelo.id}">${seleccionados} de ${totalPermisos}</span> seleccionados
+                        </div>
+                        <div class="form-check mb-0">
+                            <input class="form-check-input select-all-modelo" type="checkbox" 
+                                id="selectAllModelo-${modelo.id}" 
+                                data-modulo="${moduloId}"
+                                data-modelo="${modelo.id}"
+                                ${seleccionados === totalPermisos && totalPermisos > 0 ? 'checked' : ''}
+                                ${seleccionados > 0 && seleccionados < totalPermisos ? 'indeterminate="true"' : ''}>
+                            <label class="form-check-label" for="selectAllModelo-${modelo.id}">
+                                Seleccionar todos
+                            </label>
+                        </div>
+                        <i class="fas fa-chevron-down ms-3 toggle-icon"></i>
+                    </div>
+                </div>
+                <div class="modelo-body" id="modelo-body-${modelo.id}">
+                    <!-- Grupos de permisos se agregarán aquí -->
+                </div>
+            `;
+            
+            modelosBody.appendChild(modeloCard);
+            
+            // Agrupar permisos por tipo
+            const permisosAgrupados = {
+                view: [],
+                add: [],
+                change: [],
+                delete: []
+            };
+            
+            modelo.permisos.forEach(permiso => {
+                permisosAgrupados[permiso.tipo].push(permiso);
+            });
+            
+            // Contenedor de permisos
+            const modeloBodyEl = modeloCard.querySelector(`#modelo-body-${modelo.id}`);
+            
+            // Crear grupos por tipo de permiso
+            Object.keys(permisosAgrupados).forEach(tipo => {
+                const permisosTipo = permisosAgrupados[tipo];
+                
+                // Omitir tipos sin permisos
+                if (permisosTipo.length === 0) return;
+                
+                const tipoInfo = tiposPermisos[tipo];
+                const seleccionadosTipo = permisosTipo.filter(p => p.seleccionado).length;
+                
+                // Crear grupo de permisos
+                const grupoPermisos = document.createElement('div');
+                grupoPermisos.className = 'permisos-group';
+                grupoPermisos.innerHTML = `
+                    <div class="permisos-group-header" data-tipo="${tipo}" data-modelo="${modelo.id}">
+                        <div class="permisos-group-info">
+                            <div class="permisos-group-icon">
+                                <i class="fas ${tipoInfo.icono} ${tipoInfo.clase}"></i>
+                            </div>
+                            <div class="permisos-group-title">Permisos de ${tipoInfo.nombre}</div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input select-group" type="checkbox" 
+                                    id="selectGroup-${modelo.id}-${tipo}" 
+                                    data-grupo="${tipo}"
+                                    data-modelo="${modelo.id}"
+                                    data-modulo="${moduloId}"
+                                    ${seleccionadosTipo === permisosTipo.length && permisosTipo.length > 0 ? 'checked' : ''}
+                                    ${seleccionadosTipo > 0 && seleccionadosTipo < permisosTipo.length ? 'indeterminate="true"' : ''}>
+                            </div>
+                            <i class="fas fa-chevron-down ms-2 toggle-icon-mini"></i>
+                        </div>
+                    </div>
+                    <div class="permisos-list" id="permisos-list-${modelo.id}-${tipo}">
+                        <!-- Permisos se agregarán aquí -->
+                    </div>
+                `;
+                
+                modeloBodyEl.appendChild(grupoPermisos);
+                
+                // Lista de permisos
+                const permisosListEl = grupoPermisos.querySelector(`#permisos-list-${modelo.id}-${tipo}`);
+                
+                // Crear items de permisos
+                permisosTipo.forEach(permiso => {
+                    const permisoItem = document.createElement('div');
+                    permisoItem.className = 'permiso-item';
+                    permisoItem.dataset.permisoId = permiso.id;
+                    permisoItem.innerHTML = `
+                        <div class="permiso-icon icon-${tipo}">
+                            <i class="fas ${tipoInfo.icono}"></i>
+                        </div>
+                        <div class="permiso-details">
+                            <div class="permiso-name">${permiso.nombre}</div>
+                            <div class="permiso-description">${permiso.descripcion}</div>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input permiso-checkbox" 
+                                id="perm_${permiso.id}" 
+                                value="${permiso.id}"
+                                data-modulo="${moduloId}"
+                                data-modelo="${modelo.id}"
+                                data-tipo="${permiso.tipo}"
+                                ${permiso.seleccionado ? 'checked' : ''}>
+                        </div>
+                    `;
+                    
+                    permisosListEl.appendChild(permisoItem);
+                    
+                    // Evento para hacer clic en el item
+                    permisoItem.addEventListener('click', function(e) {
+                        if (e.target.classList.contains('form-check-input')) return;
+                        
+                        const checkbox = this.querySelector('.permiso-checkbox');
+                        checkbox.checked = !checkbox.checked;
+                        
+                        const event = new Event('change');
+                        checkbox.dispatchEvent(event);
+                    });
+                });
+            });
+            
+            // Eventos para expandir/colapsar grupos de permisos
+            modeloCard.querySelectorAll('.permisos-group-header').forEach(header => {
+                header.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('form-check-input')) return;
+                    
+                    const listEl = this.nextElementSibling;
+                    
+                    if (listEl.classList.contains('expanded')) {
+                        listEl.classList.remove('expanded');
+                        this.querySelector('.toggle-icon-mini').classList.remove('fa-chevron-up');
+                        this.querySelector('.toggle-icon-mini').classList.add('fa-chevron-down');
+                    } else {
+                        listEl.classList.add('expanded');
+                        this.querySelector('.toggle-icon-mini').classList.remove('fa-chevron-down');
+                        this.querySelector('.toggle-icon-mini').classList.add('fa-chevron-up');
+                    }
+                });
+            });
+            
+            // Evento para expandir/colapsar tarjeta de modelo
+            const modeloHeader = modeloCard.querySelector('.modelo-header');
+            const modeloBody = modeloCard.querySelector('.modelo-body');
+            
+            modeloHeader.addEventListener('click', function(e) {
+                if (e.target.classList.contains('form-check-input')) return;
+                
+                if (modeloBody.classList.contains('expanded')) {
+                    modeloBody.classList.remove('expanded');
+                    this.querySelector('.toggle-icon').classList.remove('fa-chevron-up');
+                    this.querySelector('.toggle-icon').classList.add('fa-chevron-down');
+                } else {
+                    modeloBody.classList.add('expanded');
+                    this.querySelector('.toggle-icon').classList.remove('fa-chevron-down');
+                    this.querySelector('.toggle-icon').classList.add('fa-chevron-up');
+                }
+            });
+        });
+        
+        // Eventos para seleccionar todos los permisos de un modelo
+        document.querySelectorAll('.select-all-modelo').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const moduloId = this.getAttribute('data-modulo');
+                const modeloId = this.getAttribute('data-modelo');
+                const checkboxes = document.querySelectorAll(`.permiso-checkbox[data-modelo="${modeloId}"]`);
+                
+                checkboxes.forEach(check => {
+                    check.checked = this.checked;
+                    
+                    // Actualizar en memoria
+                    const permisoId = check.value;
+                    const permiso = permisosGlobales.find(p => p.id === permisoId);
+                    if (permiso) {
+                        permiso.seleccionado = this.checked;
+                    }
+                });
+                
+                // Actualizar grupos
+                document.querySelectorAll(`.select-group[data-modelo="${modeloId}"]`).forEach(group => {
+                    group.checked = this.checked;
+                    group.indeterminate = false;
+                });
+                
+                // Actualizar contadores
+                actualizarContadorModelo(moduloId, modeloId);
+                actualizarContadorApp(moduloId);
+                actualizarContadorTotal();
+                actualizarResumenPermisos();
+            });
+        });
+        
+        // Eventos para seleccionar todos los permisos de un grupo
+        document.querySelectorAll('.select-group').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const moduloId = this.getAttribute('data-modulo');
+                const modeloId = this.getAttribute('data-modelo');
+                const grupoTipo = this.getAttribute('data-grupo');
+                const checkboxes = document.querySelectorAll(`.permiso-checkbox[data-modelo="${modeloId}"][data-tipo="${grupoTipo}"]`);
+                
+                checkboxes.forEach(check => {
+                    check.checked = this.checked;
+                    
+                    // Actualizar en memoria
+                    const permisoId = check.value;
+                    const permiso = permisosGlobales.find(p => p.id === permisoId);
+                    if (permiso) {
+                        permiso.seleccionado = this.checked;
+                    }
+                });
+                
+                // Actualizar seleccionar todos del modelo
+                actualizarSelectAllModelo(moduloId, modeloId);
+                
+                // Actualizar contadores
+                actualizarContadorModelo(moduloId, modeloId);
+                actualizarContadorApp(moduloId);
+                actualizarContadorTotal();
+                actualizarResumenPermisos();
+            });
+        });
+        
+        // Eventos para checkboxes individuales
+        modelosBody.addEventListener('change', function(e) {
+            if (e.target.classList.contains('permiso-checkbox')) {
+                const moduloId = e.target.getAttribute('data-modulo');
+                const modeloId = e.target.getAttribute('data-modelo');
+                const tipoPermiso = e.target.getAttribute('data-tipo');
+                const permisoId = e.target.value;
+                
+                // Actualizar en memoria
+                const permiso = permisosGlobales.find(p => p.id === permisoId);
+                if (permiso) {
+                    permiso.seleccionado = e.target.checked;
+                }
+                
+                // Actualizar grupo
+                actualizarSelectGroup(moduloId, modeloId, tipoPermiso);
+                
+                // Actualizar seleccionar todos del modelo
+                actualizarSelectAllModelo(moduloId, modeloId);
+                
+                // Actualizar contadores
+                actualizarContadorModelo(moduloId, modeloId);
+                actualizarContadorApp(moduloId);
+                actualizarContadorTotal();
+                actualizarResumenPermisos();
+            }
+        });
+        
+        // Expandir primera tarjeta automáticamente
+        if (modelos.length > 0) {
+            const primerModeloBody = document.getElementById(`modelo-body-${modelos[0].id}`);
+            if (primerModeloBody) {
+                primerModeloBody.classList.add('expanded');
+                const toggleIcon = primerModeloBody.previousElementSibling.querySelector('.toggle-icon');
+                if (toggleIcon) {
+                    toggleIcon.classList.remove('fa-chevron-down');
+                    toggleIcon.classList.add('fa-chevron-up');
+                }
+                
+                // Expandir primer grupo de permisos
+                const primerGrupo = primerModeloBody.querySelector('.permisos-list');
+                if (primerGrupo) {
+                    primerGrupo.classList.add('expanded');
+                    const toggleIconMini = primerGrupo.previousElementSibling.querySelector('.toggle-icon-mini');
+                    if (toggleIconMini) {
+                        toggleIconMini.classList.remove('fa-chevron-down');
+                        toggleIconMini.classList.add('fa-chevron-up');
+                    }
+                }
+            }
+        }
+    }
+    
+    // Función para actualizar el estado del checkbox de grupo
+    function actualizarSelectGroup(moduloId, modeloId, tipoPermiso) {
+        const groupCheck = document.getElementById(`selectGroup-${modeloId}-${tipoPermiso}`);
+        
+        if (groupCheck) {
+            const checkboxesTipo = document.querySelectorAll(`.permiso-checkbox[data-modelo="${modeloId}"][data-tipo="${tipoPermiso}"]`);
+            const totalTipo = checkboxesTipo.length;
+            const seleccionadosTipo = Array.from(checkboxesTipo).filter(cb => cb.checked).length;
+            
+            groupCheck.checked = seleccionadosTipo === totalTipo && totalTipo > 0;
+            groupCheck.indeterminate = seleccionadosTipo > 0 && seleccionadosTipo < totalTipo;
+        }
+    }
+    
+    // Función para actualizar el estado del checkbox de seleccionar todos del modelo
+    function actualizarSelectAllModelo(moduloId, modeloId) {
+        const selectAllModelo = document.getElementById(`selectAllModelo-${modeloId}`);
+        
+        if (selectAllModelo) {
+            const checkboxesModelo = document.querySelectorAll(`.permiso-checkbox[data-modelo="${modeloId}"]`);
+            const totalModelo = checkboxesModelo.length;
+            const seleccionadosModelo = Array.from(checkboxesModelo).filter(cb => cb.checked).length;
+            
+            selectAllModelo.checked = seleccionadosModelo === totalModelo && totalModelo > 0;
+            selectAllModelo.indeterminate = seleccionadosModelo > 0 && seleccionadosModelo < totalModelo;
+        }
+    }
+    
+    // Función para actualizar contador de un modelo
+    function actualizarContadorModelo(moduloId, modeloId) {
+        // Filtrar permisos del modelo
+        const permisosModelo = permisosGlobales.filter(p => p.app === moduloId && p.model === modeloId);
+        const totalModelo = permisosModelo.length;
+        const seleccionadosModelo = permisosModelo.filter(p => p.seleccionado).length;
+        
+        // Actualizar contador
+        const counter = document.getElementById(`modelo-counter-${modeloId}`);
+        if (counter) {
+            counter.textContent = `${seleccionadosModelo} de ${totalModelo}`;
+        }
+    }
+    
+    // Función para actualizar contadores de un módulo específico
+    function actualizarContadoresGlobal() {
+        // Obtener módulos únicos
+        const modulosUnicos = [...new Set(permisosGlobales.map(p => p.app))];
+        
+        // Actualizar contadores de cada módulo
+        modulosUnicos.forEach(moduloId => {
+            actualizarContadorApp(moduloId);
+        });
+        
+        // Actualizar contador total
+        actualizarContadorTotal();
+        
+        // Actualizar resumen de permisos en el formulario
+        actualizarResumenPermisos();
+    }
+    
+    // Función para actualizar contador de una aplicación/módulo
+    function actualizarContadorApp(appId) {
+        const appPermisos = permisosGlobales.filter(p => p.app === appId);
+        const seleccionados = appPermisos.filter(p => p.seleccionado).length;
+        
+        // Actualizar contador en la tarjeta del módulo
+        const countElement = document.getElementById(`modulo-count-${appId}`);
+        if (countElement) {
+            countElement.textContent = seleccionados;
+            countElement.classList.toggle('has-selected', seleccionados > 0);
+        }
+    }
+    
+    // Función para actualizar contador total
+    function actualizarContadorTotal() {
+        const seleccionadosTotal = permisosGlobales.filter(p => p.seleccionado).length;
+        
+        // Actualizar badge con el total
+        totalSeleccionados.textContent = seleccionadosTotal;
+        
+        // Actualizar texto descriptivo
+        let textoInfo = "permisos seleccionados";
+        if (seleccionadosTotal === 1) {
+            textoInfo = "permiso seleccionado";
+        } else if (seleccionadosTotal === permisosGlobales.length) {
+            textoInfo = "todos los permisos seleccionados";
+        }
+        permisosInfo.textContent = textoInfo;
+    }
+    
+    // Función para actualizar el resumen de permisos en el formulario
+    function actualizarResumenPermisos() {
+        // Limpiar contenedor de permisos ocultos
+        permisosHidden.innerHTML = '';
+        
+        // Crear inputs ocultos para los permisos seleccionados
+        permisosGlobales.filter(p => p.seleccionado).forEach(permiso => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'permisos';
+            input.value = permiso.id;
+            permisosHidden.appendChild(input);
+        });
+    }
+    
+    // Búsqueda global de módulos
+    searchModulos.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        document.querySelectorAll('.modulo-item').forEach(item => {
+            const moduloLink = item.querySelector('.modulo-link');
+            const moduloTitle = moduloLink.querySelector('.modulo-title').textContent.toLowerCase();
+            
+            if (searchTerm === '' || moduloTitle.includes(searchTerm)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+    
+    // Evento para mostrar resumen de permisos
+    document.getElementById('btnResumenPermisos').addEventListener('click', function() {
+        // Filtrar permisos seleccionados
+        const permisosSeleccionados = permisosGlobales.filter(p => p.seleccionado);
+        
+        // Limpiar tabla de resumen
+        const resumenTable = document.getElementById('resumen-permisos-table');
+        resumenTable.innerHTML = '';
+        
+        // Ordenar permisos por módulo y modelo
+        permisosSeleccionados.sort((a, b) => {
+            if (a.app !== b.app) return a.appName.localeCompare(b.appName);
+            if (a.model !== b.model) return a.modelName.localeCompare(b.modelName);
+            return a.tipo.localeCompare(b.tipo);
+        });
+        
+        // Llenar tabla con permisos seleccionados
+        permisosSeleccionados.forEach(permiso => {
+            const tr = document.createElement('tr');
+            
+            // Determinar clase de tipo
+            const tipoInfo = tiposPermisos[permiso.tipo];
+            
+            tr.innerHTML = `
+                <td>${permiso.appName}</td>
+                <td>${permiso.modelName}</td>
+                <td><span class="permission-type type-${permiso.tipo}">${tipoInfo.nombre}</span></td>
+                <td>${permiso.nombre}</td>
+            `;
+            
+            resumenTable.appendChild(tr);
+        });
+        
+        // Actualizar contador total
+        document.getElementById('total-resumen').textContent = permisosSeleccionados.length;
+        
+        // Configurar búsqueda en resumen
+        const searchResumenPermisos = document.getElementById('searchResumenPermisos');
+        searchResumenPermisos.value = '';
+    });
+    
+    // Búsqueda en el resumen de permisos
+    document.getElementById('searchResumenPermisos').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        document.querySelectorAll('#resumen-permisos-table tr').forEach(row => {
+            const text = row.textContent.toLowerCase();
+            
+            if (searchTerm === '' || text.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    
+    // Manejar el envío del formulario
+    permisosForm.addEventListener('submit', function(e) {
+        // Verificar que se haya ingresado un nombre de rol
+        const nombreRol = document.getElementById('id_nombre').value.trim();
+        
+        if (nombreRol === '') {
+            e.preventDefault();
+            alert('Por favor, ingrese un nombre para el rol.');
+            document.getElementById('id_nombre').focus();
+            return;
+        }
+        
+        // Actualizar permisos ocultos antes de enviar
+        actualizarResumenPermisos();
+    });
+    
+    // Simular selección del primer módulo al cargar
+    const primerModulo = document.querySelector('.modulo-link');
+    if (primerModulo) {
+        primerModulo.click();
+    }
+});
+</script>
+{% endblock %}

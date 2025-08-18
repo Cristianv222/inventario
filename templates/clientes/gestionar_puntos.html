@@ -1,0 +1,1240 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestionar Puntos - {{ cliente.get_nombre_completo }} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2563eb;
+        --primary-light: #3b82f6;
+        --success-color: #059669;
+        --warning-color: #d97706;
+        --danger-color: #dc2626;
+        --secondary-color: #6b7280;
+        --background-light: #f8fafc;
+        --border-color: #e2e8f0;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        --border-radius: 12px;
+        --border-radius-lg: 16px;
+    }
+
+    body {
+        background-color: var(--background-light);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* Header Hero Section */
+    .points-hero {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+        color: white;
+        border-radius: var(--border-radius-lg);
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .points-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 200%;
+        height: 200%;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill-opacity='0.03'%3E%3Cpolygon fill='%23ffffff' points='50 0 60 40 100 50 60 60 50 100 40 60 0 50 40 40'/%3E%3C/g%3E%3C/svg%3E") center/80px;
+    }
+
+    .hero-stats {
+        position: relative;
+        z-index: 2;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+
+    /* Main Content Cards */
+    .content-card {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .card-header-custom {
+        background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1.5rem 2rem;
+    }
+
+    .card-header-custom h5 {
+        margin: 0;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    /* Custom Tabs */
+    .nav-pills-custom {
+        background: var(--background-light);
+        padding: 0.5rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+    }
+
+    .nav-pills-custom .nav-link {
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        margin: 0 0.25rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: none;
+        background: transparent;
+    }
+
+    .nav-pills-custom .nav-link:hover {
+        background: white;
+        color: var(--primary-color);
+    }
+
+    .nav-pills-custom .nav-link.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* Form Styling */
+    .form-group-modern {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label-modern {
+        font-weight: 600;
+        color: var(--secondary-color);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .form-control-modern {
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 0.875rem 1rem;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .form-control-modern:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        outline: none;
+    }
+
+    .form-select-modern {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    }
+
+    /* Buttons */
+    .btn-modern {
+        padding: 0.875rem 2rem;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary-modern {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary-modern:hover {
+        background: var(--primary-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .btn-success-modern {
+        background: var(--success-color);
+        color: white;
+    }
+
+    .btn-success-modern:hover {
+        background: #047857;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .btn-warning-modern {
+        background: var(--warning-color);
+        color: white;
+    }
+
+    .btn-warning-modern:hover {
+        background: #b45309;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .btn-secondary-modern {
+        background: var(--secondary-color);
+        color: white;
+    }
+
+    .btn-secondary-modern:hover {
+        background: #4b5563;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Prize Cards */
+    .prize-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .prize-card {
+        background: white;
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .prize-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .prize-card.selected {
+        border-color: var(--primary-color);
+        background: rgba(37, 99, 235, 0.05);
+    }
+
+    .prize-card.insufficient {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .prize-points {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* Timeline/History */
+    .timeline-container {
+        max-height: 500px;
+        overflow-y: auto;
+        padding-right: 1rem;
+    }
+
+    .timeline-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .timeline-container::-webkit-scrollbar-track {
+        background: var(--background-light);
+        border-radius: 3px;
+    }
+
+    .timeline-container::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+    }
+
+    .timeline-container::-webkit-scrollbar-thumb:hover {
+        background: var(--secondary-color);
+    }
+
+    .timeline-item {
+        position: relative;
+        padding: 1.5rem;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .timeline-item:hover {
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        border-radius: 2px;
+    }
+
+    .timeline-item.gained::before { background: var(--success-color); }
+    .timeline-item.redeemed::before { background: var(--danger-color); }
+    .timeline-item.adjusted::before { background: var(--warning-color); }
+    .timeline-item.expired::before { background: var(--secondary-color); }
+
+    .timeline-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge-gained { background: #d1fae5; color: var(--success-color); }
+    .badge-redeemed { background: #fee2e2; color: var(--danger-color); }
+    .badge-adjusted { background: #fef3c7; color: var(--warning-color); }
+
+    /* Calculator Card */
+    .calculator-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #1e40af 100%);
+        color: white;
+        border-radius: var(--border-radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .calculator-input {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 0.875rem 1rem;
+        width: 100%;
+    }
+
+    .calculator-input::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .calculator-result {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+    /* Progress Bar */
+    .progress-modern {
+        height: 8px;
+        background: var(--border-color);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-bar-modern {
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+
+    /* Alerts */
+    .alert-modern {
+        border: none;
+        border-radius: var(--border-radius);
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .alert-info-modern {
+        background: #eff6ff;
+        color: #1e40af;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .alert-warning-modern {
+        background: #fffbeb;
+        color: #92400e;
+        border-left: 4px solid var(--warning-color);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .points-hero {
+            padding: 1.5rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+        }
+        
+        .prize-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .nav-pills-custom {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .nav-pills-custom .nav-link {
+            margin: 0.25rem 0;
+        }
+    }
+
+    /* Loading States */
+    .loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Empty States */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: var(--secondary-color);
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'clientes:lista_clientes' %}" class="text-decoration-none">
+                    <i class="fas fa-users me-1"></i>Clientes
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'clientes:detalle_cliente' cliente.id %}" class="text-decoration-none">
+                    {{ cliente.get_nombre_completo }}
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Gestionar Puntos</li>
+        </ol>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="points-hero">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="h2 mb-3">
+                    <i class="fas fa-star me-3"></i>
+                    Sistema de Puntos de Fidelidad
+                </h1>
+                <p class="mb-0 opacity-90 fs-5">
+                    Gestiona los puntos de <strong>{{ cliente.get_nombre_completo }}</strong>
+                </p>
+            </div>
+            <div class="col-lg-4">
+                <div class="row hero-stats">
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <span class="stat-number">{{ cliente.puntos_disponibles }}</span>
+                            <div class="stat-label">Puntos Disponibles</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <span class="stat-number">{{ cliente.puntos_acumulados }}</span>
+                            <div class="stat-label">Total Acumulados</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-xl-8">
+            <!-- Action Cards -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h5>
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Gestionar Puntos
+                    </h5>
+                </div>
+                <div class="p-3">
+                    <!-- Custom Tabs -->
+                    <ul class="nav nav-pills nav-pills-custom" id="actionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="add-tab" data-bs-toggle="pill" 
+                                    data-bs-target="#add-content" type="button" role="tab">
+                                <i class="fas fa-plus me-2"></i>Agregar Puntos
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="redeem-tab" data-bs-toggle="pill" 
+                                    data-bs-target="#redeem-content" type="button" role="tab">
+                                <i class="fas fa-gift me-2"></i>Canjear Puntos
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="adjust-tab" data-bs-toggle="pill" 
+                                    data-bs-target="#adjust-content" type="button" role="tab">
+                                <i class="fas fa-sliders-h me-2"></i>Ajuste Manual
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="actionTabContent">
+                        <!-- Add Points Tab -->
+                        <div class="tab-pane fade show active" id="add-content" role="tabpanel">
+                            <form method="post" id="formAddPoints">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="agregar">
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern" for="pointsToAdd">
+                                                Cantidad de Puntos
+                                            </label>
+                                            <input type="number" id="pointsToAdd" name="puntos" 
+                                                   class="form-control-modern" min="1" required 
+                                                   placeholder="Ej: 100">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern" for="reasonSelect">
+                                                Motivo
+                                            </label>
+                                            <select class="form-control-modern form-select-modern" 
+                                                    id="reasonSelect" onchange="updateConcept()">
+                                                <option value="">Seleccionar motivo</option>
+                                                <option value="Compra">Compra realizada</option>
+                                                <option value="Promocion">Promoción especial</option>
+                                                <option value="Referido">Cliente referido</option>
+                                                <option value="Compensacion">Compensación</option>
+                                                <option value="Otro">Otro motivo</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group-modern">
+                                    <label class="form-label-modern" for="conceptAdd">
+                                        Concepto/Descripción
+                                    </label>
+                                    <textarea id="conceptAdd" name="concepto" 
+                                              class="form-control-modern" rows="3" required 
+                                              placeholder="Describe el motivo de agregar estos puntos"></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn-modern btn-success-modern w-100">
+                                    <i class="fas fa-plus"></i>
+                                    Agregar Puntos al Cliente
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Redeem Points Tab -->
+                        <div class="tab-pane fade" id="redeem-content" role="tabpanel">
+                            <h6 class="mb-3 text-secondary">Premios Disponibles</h6>
+                            
+                            <div class="prize-grid">
+                                <div class="prize-card" onclick="selectPrize(100, 'Descuento $1.00')" 
+                                     data-points="100" id="prize-100">
+                                    <div class="prize-points">100 pts</div>
+                                    <h6 class="mb-2">Descuento $1.00</h6>
+                                    <p class="text-muted small mb-0">En próxima compra</p>
+                                </div>
+                                
+                                <div class="prize-card" onclick="selectPrize(500, 'Descuento $5.00')" 
+                                     data-points="500" id="prize-500">
+                                    <div class="prize-points">500 pts</div>
+                                    <h6 class="mb-2">Descuento $5.00</h6>
+                                    <p class="text-muted small mb-0">En próxima compra</p>
+                                </div>
+                                
+                                <div class="prize-card" onclick="selectPrize(1000, 'Cambio de aceite gratuito')" 
+                                     data-points="1000" id="prize-1000">
+                                    <div class="prize-points">1000 pts</div>
+                                    <h6 class="mb-2">Cambio de aceite gratuito</h6>
+                                    <p class="text-muted small mb-0">Servicio completo</p>
+                                </div>
+                                
+                                <div class="prize-card" onclick="selectPrize(1500, 'Kit de limpieza')" 
+                                     data-points="1500" id="prize-1500">
+                                    <div class="prize-points">1500 pts</div>
+                                    <h6 class="mb-2">Kit de limpieza</h6>
+                                    <p class="text-muted small mb-0">Productos de cuidado</p>
+                                </div>
+                            </div>
+                            
+                            <form method="post" id="formRedeemPoints">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="canjear">
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern" for="pointsToRedeem">
+                                                Puntos a Canjear
+                                            </label>
+                                            <input type="number" id="pointsToRedeem" name="puntos" 
+                                                   class="form-control-modern" min="1" 
+                                                   max="{{ cliente.puntos_disponibles }}" required 
+                                                   placeholder="Cantidad de puntos">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern" for="conceptRedeem">
+                                                Concepto del Canje
+                                            </label>
+                                            <input type="text" id="conceptRedeem" name="concepto" 
+                                                   class="form-control-modern" required 
+                                                   placeholder="Descripción del premio">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert-modern alert-info-modern">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Puntos disponibles:</strong> {{ cliente.puntos_disponibles }}
+                                </div>
+                                
+                                <button type="submit" class="btn-modern btn-warning-modern w-100" 
+                                        {% if cliente.puntos_disponibles == 0 %}disabled{% endif %}>
+                                    <i class="fas fa-gift"></i>
+                                    Confirmar Canje
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Adjust Points Tab -->
+                        <div class="tab-pane fade" id="adjust-content" role="tabpanel">
+                            <div class="alert-modern alert-warning-modern">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Precaución:</strong> Los ajustes manuales deben realizarse solo para correcciones necesarias.
+                            </div>
+                            
+                            <form method="post" id="formAdjustPoints">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="ajustar">
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern" for="adjustType">
+                                                Tipo de Ajuste
+                                            </label>
+                                            <select class="form-control-modern form-select-modern" 
+                                                    id="adjustType" name="tipo_ajuste" required>
+                                                <option value="">Seleccionar tipo</option>
+                                                <option value="agregar">Agregar puntos</option>
+                                                <option value="quitar">Quitar puntos</option>
+                                                <option value="establecer">Establecer cantidad exacta</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern" for="adjustPoints">
+                                                Cantidad
+                                            </label>
+                                            <input type="number" id="adjustPoints" name="puntos" 
+                                                   class="form-control-modern" min="0" required 
+                                                   placeholder="Cantidad de puntos">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern">
+                                                Puntos Actuales
+                                            </label>
+                                            <div class="form-control-modern d-flex align-items-center">
+                                                <strong>{{ cliente.puntos_disponibles }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group-modern">
+                                    <label class="form-label-modern" for="adjustConcept">
+                                        Justificación del Ajuste
+                                    </label>
+                                    <textarea id="adjustConcept" name="concepto" 
+                                              class="form-control-modern" rows="3" required 
+                                              placeholder="Explica el motivo del ajuste manual"></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn-modern btn-secondary-modern w-100">
+                                    <i class="fas fa-sliders-h"></i>
+                                    Realizar Ajuste
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h5>
+                        <i class="fas fa-history me-2"></i>
+                        Historial de Movimientos
+                    </h5>
+                </div>
+                <div class="p-3">
+                    <div class="timeline-container">
+                        {% if movimientos %}
+                            {% for movimiento in movimientos %}
+                            <div class="timeline-item {% if movimiento.tipo == 'GANADO' %}gained{% elif movimiento.tipo == 'CANJEADO' %}redeemed{% elif movimiento.tipo == 'AJUSTE' %}adjusted{% else %}expired{% endif %}">
+                                <div class="timeline-badge {% if movimiento.tipo == 'GANADO' %}badge-gained{% elif movimiento.tipo == 'CANJEADO' %}badge-redeemed{% elif movimiento.tipo == 'AJUSTE' %}badge-adjusted{% endif %}">
+                                    {% if movimiento.tipo == 'GANADO' %}+{% elif movimiento.tipo == 'CANJEADO' %}-{% endif %}{{ movimiento.puntos }} pts
+                                </div>
+                                
+                                <h6 class="mb-2">{{ movimiento.concepto }}</h6>
+                                <p class="text-muted mb-2">{{ movimiento.get_tipo_display }}</p>
+                                
+                                <div class="d-flex flex-wrap gap-3 text-sm text-muted">
+                                    <span>
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {{ movimiento.fecha|date:"d/m/Y H:i" }}
+                                    </span>
+                                    {% if movimiento.usuario %}
+                                    <span>
+                                        <i class="fas fa-user me-1"></i>
+                                        {{ movimiento.usuario.get_full_name|default:movimiento.usuario.username }}
+                                    </span>
+                                    {% endif %}
+                                    {% if movimiento.venta %}
+                                    <span>
+                                        <i class="fas fa-receipt me-1"></i>
+                                        Factura #{{ movimiento.venta.numero_factura }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <h5>No hay movimientos de puntos</h5>
+                                <p>Los movimientos aparecerán aquí cuando se realicen transacciones.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-xl-4">
+            <!-- Points Calculator -->
+            <div class="calculator-card">
+                <h6 class="mb-3">
+                    <i class="fas fa-calculator me-2"></i>
+                    Calculadora de Descuentos
+                </h6>
+                
+                <div class="form-group-modern">
+                    <label class="form-label-modern text-white" for="purchaseTotal">
+                        Total de Compra ($)
+                    </label>
+                    <input type="number" id="purchaseTotal" class="calculator-input" 
+                           placeholder="100.00" value="100" step="0.01" min="0">
+                </div>
+                
+                <div class="calculator-result">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="stat-number" id="availableDiscount">$0.00</div>
+                            <div class="stat-label">Descuento Disponible</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-number" id="equivalentPoints">0</div>
+                            <div class="stat-label">Puntos Equivalentes</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <small class="opacity-75 d-block mt-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    1 punto = $0.01 de descuento (máximo 50% del total)
+                </small>
+            </div>
+
+            <!-- Customer Stats -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Estadísticas del Cliente
+                    </h6>
+                </div>
+                <div class="p-3">
+                    <div class="row text-center mb-3">
+                        <div class="col-12 mb-3">
+                            <div class="stat-card" style="background: var(--background-light);">
+                                <span class="stat-number text-primary">{{ cliente.puntos_acumulados }}</span>
+                                <div class="stat-label text-secondary">Total Acumulados</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-card" style="background: var(--background-light);">
+                                <span class="stat-number text-success">{{ cliente.puntos_disponibles }}</span>
+                                <div class="stat-label text-secondary">Disponibles</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-card" style="background: var(--background-light);">
+                                <span class="stat-number text-warning" id="pointsUsed">0</span>
+                                <div class="stat-label text-secondary">Canjeados</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-modern">
+                        <div class="progress-bar-modern" 
+                             style="width: 0%; background: var(--success-color);" 
+                             id="availableProgress"></div>
+                        <div class="progress-bar-modern" 
+                             style="width: 0%; background: var(--warning-color);" 
+                             id="usedProgress"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-success">
+                            <i class="fas fa-circle me-1" style="font-size: 0.6rem;"></i>
+                            Disponibles
+                        </small>
+                        <small class="text-warning">
+                            <i class="fas fa-circle me-1" style="font-size: 0.6rem;"></i>
+                            Canjeados
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Acciones Rápidas
+                    </h6>
+                </div>
+                <div class="p-3">
+                    <div class="d-grid gap-3">
+                        <a href="{% url 'ventas:punto_venta' %}?cliente={{ cliente.id }}" 
+                           class="btn-modern btn-success-modern text-decoration-none">
+                            <i class="fas fa-cash-register"></i>
+                            Nueva Venta
+                        </a>
+                        
+                        <a href="{% url 'clientes:detalle_cliente' cliente.id %}" 
+                           class="btn-modern btn-secondary-modern text-decoration-none">
+                            <i class="fas fa-user"></i>
+                            Ver Perfil del Cliente
+                        </a>
+                        
+                        <a href="{% url 'clientes:lista_clientes' %}" 
+                           class="btn-modern btn-primary-modern text-decoration-none">
+                            <i class="fas fa-arrow-left"></i>
+                            Volver a Clientes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global Variables
+const POINTS_PER_DOLLAR = 0.01;
+const MAX_DISCOUNT_PERCENTAGE = 0.5;
+
+const clienteData = {
+    id: {{ cliente.id }},
+    availablePoints: {{ cliente.puntos_disponibles }},
+    totalPoints: {{ cliente.puntos_acumulados }},
+    usedPoints: {{ cliente.puntos_acumulados|default:0 }} - {{ cliente.puntos_disponibles|default:0 }}
+};
+
+// Initialize on DOM load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCalculator();
+    initializeForms();
+    initializePrizeCards();
+    updateStatistics();
+});
+
+// ========== CALCULATOR FUNCTIONS ==========
+function initializeCalculator() {
+    const purchaseInput = document.getElementById('purchaseTotal');
+    if (purchaseInput) {
+        purchaseInput.addEventListener('input', calculateDiscount);
+        calculateDiscount(); // Initial calculation
+    }
+}
+
+function calculateDiscount() {
+    const purchaseTotal = parseFloat(document.getElementById('purchaseTotal').value) || 0;
+    const availablePoints = clienteData.availablePoints;
+    
+    // Calculate maximum discount (50% of total)
+    const maxDiscount = purchaseTotal * MAX_DISCOUNT_PERCENTAGE;
+    
+    // Calculate available discount from points
+    const discountFromPoints = availablePoints * POINTS_PER_DOLLAR;
+    
+    // Take the minimum between both
+    const availableDiscount = Math.min(maxDiscount, discountFromPoints);
+    const equivalentPoints = Math.floor(availableDiscount / POINTS_PER_DOLLAR);
+    
+    // Update display
+    document.getElementById('availableDiscount').textContent = `${availableDiscount.toFixed(2)}`;
+    document.getElementById('equivalentPoints').textContent = equivalentPoints;
+}
+
+// ========== PRIZE MANAGEMENT ==========
+function initializePrizeCards() {
+    const prizeCards = document.querySelectorAll('.prize-card');
+    prizeCards.forEach(card => {
+        const requiredPoints = parseInt(card.dataset.points);
+        if (requiredPoints > clienteData.availablePoints) {
+            card.classList.add('insufficient');
+            card.onclick = null;
+        }
+    });
+}
+
+function selectPrize(points, description) {
+    // Check if user has enough points
+    if (points > clienteData.availablePoints) {
+        showToast('Puntos insuficientes para este premio', 'warning');
+        return;
+    }
+    
+    // Clear previous selections
+    document.querySelectorAll('.prize-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Select current card
+    event.currentTarget.classList.add('selected');
+    
+    // Fill form
+    document.getElementById('pointsToRedeem').value = points;
+    document.getElementById('conceptRedeem').value = description;
+    
+    showToast('Premio seleccionado correctamente', 'success');
+}
+
+// ========== FORM HANDLING ==========
+function initializeForms() {
+    // Add points form
+    const addForm = document.getElementById('formAddPoints');
+    if (addForm) {
+        addForm.addEventListener('submit', function(e) {
+            if (!validateAddForm()) {
+                e.preventDefault();
+                return false;
+            }
+            showLoading(e.target);
+        });
+    }
+    
+    // Redeem points form
+    const redeemForm = document.getElementById('formRedeemPoints');
+    if (redeemForm) {
+        redeemForm.addEventListener('submit', function(e) {
+            if (!validateRedeemForm()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            if (!confirmRedeem()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            showLoading(e.target);
+        });
+    }
+    
+    // Adjust points form
+    const adjustForm = document.getElementById('formAdjustPoints');
+    if (adjustForm) {
+        adjustForm.addEventListener('submit', function(e) {
+            if (!validateAdjustForm()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            if (!confirmAdjust()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            showLoading(e.target);
+        });
+    }
+}
+
+function validateAddForm() {
+    const points = parseInt(document.getElementById('pointsToAdd').value);
+    const concept = document.getElementById('conceptAdd').value.trim();
+    
+    if (!points || points <= 0) {
+        showToast('Ingrese una cantidad válida de puntos', 'error');
+        return false;
+    }
+    
+    if (!concept) {
+        showToast('Ingrese un concepto para agregar los puntos', 'error');
+        return false;
+    }
+    
+    return true;
+}
+
+function validateRedeemForm() {
+    const points = parseInt(document.getElementById('pointsToRedeem').value);
+    const concept = document.getElementById('conceptRedeem').value.trim();
+    
+    if (!points || points <= 0) {
+        showToast('Ingrese una cantidad válida de puntos', 'error');
+        return false;
+    }
+    
+    if (points > clienteData.availablePoints) {
+        showToast('No hay suficientes puntos disponibles', 'error');
+        return false;
+    }
+    
+    if (!concept) {
+        showToast('Ingrese un concepto para el canje', 'error');
+        return false;
+    }
+    
+    return true;
+}
+
+function validateAdjustForm() {
+    const adjustType = document.getElementById('adjustType').value;
+    const points = parseInt(document.getElementById('adjustPoints').value);
+    const concept = document.getElementById('adjustConcept').value.trim();
+    
+    if (!adjustType) {
+        showToast('Seleccione el tipo de ajuste', 'error');
+        return false;
+    }
+    
+    if (!points || points < 0) {
+        showToast('Ingrese una cantidad válida de puntos', 'error');
+        return false;
+    }
+    
+    if (!concept) {
+        showToast('Ingrese una justificación para el ajuste', 'error');
+        return false;
+    }
+    
+    return true;
+}
+
+function confirmRedeem() {
+    const points = document.getElementById('pointsToRedeem').value;
+    const concept = document.getElementById('conceptRedeem').value;
+    
+    return confirm(`¿Confirma el canje de ${points} puntos por "${concept}"?\n\nEsta acción no se puede deshacer.`);
+}
+
+function confirmAdjust() {
+    const adjustType = document.getElementById('adjustType').value;
+    const points = document.getElementById('adjustPoints').value;
+    const concept = document.getElementById('adjustConcept').value;
+    
+    return confirm(`¿Confirma el ajuste manual?\n\nTipo: ${adjustType}\nPuntos: ${points}\nMotivo: ${concept}\n\nEsta acción quedará registrada en el historial.`);
+}
+
+// ========== UTILITY FUNCTIONS ==========
+function updateConcept() {
+    const reason = document.getElementById('reasonSelect').value;
+    const conceptInput = document.getElementById('conceptAdd');
+    
+    const templates = {
+        'Compra': 'Puntos ganados por compra realizada',
+        'Promocion': 'Puntos de promoción especial',
+        'Referido': 'Puntos por referir nuevo cliente',
+        'Compensacion': 'Puntos de compensación por inconveniente'
+    };
+    
+    conceptInput.value = templates[reason] || '';
+}
+
+function updateStatistics() {
+    const totalPoints = clienteData.totalPoints;
+    const availablePoints = clienteData.availablePoints;
+    const usedPoints = totalPoints - availablePoints;
+    
+    // Update used points display
+    const usedPointsElement = document.getElementById('pointsUsed');
+    if (usedPointsElement) {
+        usedPointsElement.textContent = usedPoints;
+    }
+    
+    if (totalPoints > 0) {
+        // Calculate percentages
+        const availablePercentage = (availablePoints / totalPoints) * 100;
+        const usedPercentage = (usedPoints / totalPoints) * 100;
+        
+        // Update progress bars
+        const availableProgress = document.getElementById('availableProgress');
+        const usedProgress = document.getElementById('usedProgress');
+        
+        if (availableProgress) {
+            availableProgress.style.width = `${availablePercentage}%`;
+        }
+        if (usedProgress) {
+            usedProgress.style.width = `${usedPercentage}%`;
+        }
+    }
+}
+
+function showLoading(form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<div class="spinner"></div> Procesando...';
+        
+        // Restore after 3 seconds as fallback
+        setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }, 3000);
+    }
+}
+
+function showToast(message, type = 'info') {
+    const icons = {
+        'success': 'check-circle',
+        'error': 'exclamation-circle',
+        'warning': 'exclamation-triangle',
+        'info': 'info-circle'
+    };
+    
+    const colors = {
+        'success': 'success',
+        'error': 'danger',
+        'warning': 'warning',
+        'info': 'info'
+    };
+    
+    const toastHtml = `
+        <div class="toast align-items-center text-bg-${colors[type]} border-0" 
+             role="alert" style="min-width: 300px;">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-${icons[type]} me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    const container = document.querySelector('.toast-container');
+    container.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toast = container.querySelector('.toast:last-child');
+    const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
+    bsToast.show();
+    
+    // Remove from DOM after hiding
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+// Tab change handler
+document.addEventListener('shown.bs.tab', function(e) {
+    if (e.target.id === 'redeem-tab') {
+        initializePrizeCards();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,723 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar Servicio{% else %}Nuevo Servicio{% endif %} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos para formulario de servicio */
+    .content-wrapper {
+        padding: 1rem;
+    }
+    
+    .form-container {
+        background: linear-gradient(135deg, var(--light) 0%, #f8f9fa 100%);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--gray-200);
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-card {
+        background-color: var(--light);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--gray-200);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: var(--transition);
+    }
+    
+    .section-card:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .section-header {
+        border-bottom: 2px solid var(--gray-200);
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .section-title {
+        font-weight: 600;
+        color: var(--gray-800);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0;
+    }
+    
+    .form-floating label {
+        color: var(--gray-600);
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+    }
+    
+    .preview-card {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        position: sticky;
+        top: 20px;
+    }
+    
+    .preview-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        margin-bottom: 1rem;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .price-calculator {
+        background-color: #f8f9fa;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        border: 1px solid var(--gray-200);
+    }
+    
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--gray-300);
+    }
+    
+    .price-row:last-child {
+        border-bottom: none;
+        font-size: 1.2rem;
+        font-weight: 700;
+        padding-top: 1rem;
+        border-top: 2px solid var(--gray-400);
+    }
+    
+    .btn-action {
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        transition: var(--transition);
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .required-field {
+        position: relative;
+    }
+    
+    .required-field::after {
+        content: '*';
+        color: #dc3545;
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        font-weight: bold;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-top: 0.25rem;
+    }
+    
+    .validation-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #dc3545;
+    }
+    
+    .difficulty-preview {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-left: 0.5rem;
+    }
+    
+    .difficulty-basico {
+        background-color: rgba(25, 135, 84, 0.1);
+        color: #0f5132;
+        border: 1px solid rgba(25, 135, 84, 0.3);
+    }
+    
+    .difficulty-intermedio {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #856404;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+    
+    .difficulty-avanzado {
+        background-color: rgba(255, 107, 0, 0.1);
+        color: #cc5500;
+        border: 1px solid rgba(255, 107, 0, 0.3);
+    }
+    
+    .difficulty-experto {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #842029;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+    
+    .code-generator {
+        background-color: rgba(67, 97, 238, 0.1);
+        border: 1px solid rgba(67, 97, 238, 0.2);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
+    
+    .feature-toggle {
+        background-color: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+    }
+    
+    .feature-toggle:hover {
+        border-color: var(--primary);
+        background-color: rgba(67, 97, 238, 0.02);
+    }
+    
+    .feature-toggle.active {
+        border-color: var(--primary);
+        background-color: rgba(67, 97, 238, 0.05);
+    }
+    
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+    
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+        background-color: var(--primary);
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid content-wrapper">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="section-title animate-fade-in">
+                        <i class="fas fa-cog text-primary"></i>
+                        {% if object %}Editar Servicio - {{ object.nombre }}{% else %}Nuevo Tipo de Servicio{% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">Configure los detalles del servicio para taller y ventas</p>
+                </div>
+                <div class="animate-fade-in">
+                    <a href="{% url 'taller:tipo_servicio_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <form method="post" id="servicioForm">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Columna Principal -->
+            <div class="col-lg-8">
+                <!-- Información Básica -->
+                <div class="section-card animate-fade-in">
+                    <div class="section-header">
+                        <h4 class="section-title">
+                            <i class="fas fa-info-circle text-primary"></i>
+                            Información Básica
+                        </h4>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating required-field">
+                                {{ form.nombre }}
+                                <label for="{{ form.nombre.id_for_label }}">Nombre del Servicio</label>
+                            </div>
+                            {% if form.nombre.errors %}
+                                <div class="validation-feedback">{{ form.nombre.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-floating required-field">
+                                {{ form.codigo }}
+                                <label for="{{ form.codigo.id_for_label }}">Código del Servicio</label>
+                            </div>
+                            <div class="code-generator">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Sugerencia: Use un código como "MANT001", "REP002", etc.
+                                </small>
+                                <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="generarCodigo()">
+                                    <i class="fas fa-magic me-1"></i>Auto-generar
+                                </button>
+                            </div>
+                            {% if form.codigo.errors %}
+                                <div class="validation-feedback">{{ form.codigo.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form.categoria }}
+                                <label for="{{ form.categoria.id_for_label }}">Categoría</label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form.nivel_dificultad }}
+                                <label for="{{ form.nivel_dificultad.id_for_label }}">Nivel de Dificultad</label>
+                            </div>
+                            <div class="help-text">
+                                <span id="difficultyPreview">Nivel de complejidad técnica</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="form-floating">
+                                {{ form.descripcion }}
+                                <label for="{{ form.descripcion.id_for_label }}">Descripción</label>
+                            </div>
+                            <div class="help-text">Describe qué incluye este servicio y sus beneficios</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Precios y Tiempo -->
+                <div class="section-card animate-fade-in">
+                    <div class="section-header">
+                        <h4 class="section-title">
+                            <i class="fas fa-dollar-sign text-primary"></i>
+                            Precios y Tiempo
+                        </h4>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-floating required-field">
+                                {{ form.precio_base }}
+                                <label for="{{ form.precio_base.id_for_label }}">Precio Base</label>
+                            </div>
+                            <div class="help-text">Precio base del servicio (sin mano de obra)</div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-floating required-field">
+                                {{ form.precio_mano_obra }}
+                                <label for="{{ form.precio_mano_obra.id_for_label }}">Precio Mano de Obra</label>
+                            </div>
+                            <div class="help-text">Costo de la mano de obra técnica</div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-floating required-field">
+                                {{ form.tiempo_estimado_horas }}
+                                <label for="{{ form.tiempo_estimado_horas.id_for_label }}">Tiempo Estimado (horas)</label>
+                            </div>
+                            <div class="help-text">Tiempo promedio de ejecución</div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="price-calculator">
+                                <h6 class="mb-3">
+                                    <i class="fas fa-calculator me-2"></i>Calculadora de Precios
+                                </h6>
+                                
+                                <div class="price-row">
+                                    <span>Precio Base:</span>
+                                    <span id="calc-precio-base">$0.00</span>
+                                </div>
+                                
+                                <div class="price-row">
+                                    <span>Mano de Obra:</span>
+                                    <span id="calc-mano-obra">$0.00</span>
+                                </div>
+                                
+                                <div class="price-row">
+                                    <span>Subtotal:</span>
+                                    <span id="calc-subtotal">$0.00</span>
+                                </div>
+                                
+                                <div class="price-row">
+                                    <span>IVA (12%):</span>
+                                    <span id="calc-iva">$0.00</span>
+                                </div>
+                                
+                                <div class="price-row">
+                                    <span>PRECIO TOTAL:</span>
+                                    <span id="calc-total">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="feature-toggle" id="ivaToggle">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">¿Incluye IVA?</h6>
+                                        <small class="text-muted">El precio ya incluye el IVA</small>
+                                    </div>
+                                    <label class="switch">
+                                        {{ form.incluye_iva }}
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="feature-toggle" id="activoToggle">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">Servicio Activo</h6>
+                                        <small class="text-muted">Disponible para venta</small>
+                                    </div>
+                                    <label class="switch">
+                                        {{ form.activo }}
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Requisitos Técnicos -->
+                <div class="section-card animate-fade-in">
+                    <div class="section-header">
+                        <h4 class="section-title">
+                            <i class="fas fa-tools text-primary"></i>
+                            Requisitos Técnicos
+                        </h4>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form.requiere_especialidad }}
+                                <label for="{{ form.requiere_especialidad.id_for_label }}">Especialidad Requerida</label>
+                            </div>
+                            <div class="help-text">Especialización técnica necesaria</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="feature-toggle" id="repuestosToggle">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">¿Requiere Repuestos?</h6>
+                                        <small class="text-muted">El servicio necesita repuestos adicionales</small>
+                                    </div>
+                                    <label class="switch">
+                                        {{ form.requiere_repuestos }}
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Columna Lateral -->
+            <div class="col-lg-4">
+                <!-- Preview del Servicio -->
+                <div class="preview-card animate-fade-in">
+                    <h6 class="mb-3">
+                        <i class="fas fa-eye me-2"></i>
+                        Vista Previa
+                    </h6>
+                    
+                    <div class="preview-icon" id="previewIcon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    
+                    <h5 id="previewNombre">{{ object.nombre|default:"Nombre del Servicio" }}</h5>
+                    <p class="mb-2" id="previewCodigo">{{ object.codigo|default:"CODIGO" }}</p>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Precio Total:</span>
+                            <strong id="previewPrecio">${{ object.get_precio_total|default:"0.00" }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Tiempo:</span>
+                            <span id="previewTiempo">{{ object.tiempo_estimado_horas|default:"0" }}h</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Dificultad:</span>
+                            <span id="previewDificultad">{{ object.get_nivel_dificultad_display|default:"Básico" }}</span>
+                        </div>
+                    </div>
+                    
+                    <p class="small opacity-75" id="previewDescripcion">
+                        {{ object.descripcion|default:"Descripción del servicio..." }}
+                    </p>
+                </div>
+                
+                <!-- Botones de Acción -->
+                <div class="d-grid gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary btn-action">
+                        <i class="fas fa-save me-2"></i>
+                        {% if object %}Actualizar Servicio{% else %}Crear Servicio{% endif %}
+                    </button>
+                    
+                    {% if object %}
+                    <button type="button" class="btn btn-outline-success" onclick="probarEnPOS()">
+                        <i class="fas fa-cash-register me-2"></i>Probar en POS
+                    </button>
+                    {% endif %}
+                    
+                    <button type="button" class="btn btn-outline-info" onclick="previsualizarFactura()">
+                        <i class="fas fa-eye me-2"></i>Previsualizar
+                    </button>
+                    
+                    <a href="{% url 'taller:tipo_servicio_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar calculadora
+    updateCalculator();
+    updatePreview();
+    
+    // Event listeners para cálculo automático
+    document.getElementById('id_precio_base').addEventListener('input', updateCalculator);
+    document.getElementById('id_precio_mano_obra').addEventListener('input', updateCalculator);
+    document.getElementById('id_incluye_iva').addEventListener('change', updateCalculator);
+    
+    // Event listeners para preview
+    document.getElementById('id_nombre').addEventListener('input', updatePreview);
+    document.getElementById('id_codigo').addEventListener('input', updatePreview);
+    document.getElementById('id_descripcion').addEventListener('input', updatePreview);
+    document.getElementById('id_tiempo_estimado_horas').addEventListener('input', updatePreview);
+    document.getElementById('id_nivel_dificultad').addEventListener('change', updatePreview);
+    document.getElementById('id_categoria').addEventListener('change', updatePreview);
+    
+    // Toggle switches
+    document.querySelectorAll('.feature-toggle input[type="checkbox"]').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const parent = this.closest('.feature-toggle');
+            if (this.checked) {
+                parent.classList.add('active');
+            } else {
+                parent.classList.remove('active');
+            }
+        });
+        
+        // Inicializar estado
+        if (toggle.checked) {
+            toggle.closest('.feature-toggle').classList.add('active');
+        }
+    });
+});
+
+function updateCalculator() {
+    const precioBase = parseFloat(document.getElementById('id_precio_base').value) || 0;
+    const manoObra = parseFloat(document.getElementById('id_precio_mano_obra').value) || 0;
+    const incluyeIva = document.getElementById('id_incluye_iva').checked;
+    
+    const subtotal = precioBase + manoObra;
+    const iva = incluyeIva ? 0 : subtotal * 0.12;
+    const total = subtotal + iva;
+    
+    // Actualizar display
+    document.getElementById('calc-precio-base').textContent = `$${precioBase.toFixed(2)}`;
+    document.getElementById('calc-mano-obra').textContent = `$${manoObra.toFixed(2)}`;
+    document.getElementById('calc-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('calc-iva').textContent = `$${iva.toFixed(2)}`;
+    document.getElementById('calc-total').textContent = `$${total.toFixed(2)}`;
+    
+    // Actualizar preview
+    document.getElementById('previewPrecio').textContent = `$${total.toFixed(2)}`;
+}
+
+function updatePreview() {
+    const nombre = document.getElementById('id_nombre').value || 'Nombre del Servicio';
+    const codigo = document.getElementById('id_codigo').value || 'CODIGO';
+    const descripcion = document.getElementById('id_descripcion').value || 'Descripción del servicio...';
+    const tiempo = document.getElementById('id_tiempo_estimado_horas').value || '0';
+    const dificultad = document.getElementById('id_nivel_dificultad').selectedOptions[0]?.text || 'Básico';
+    const categoria = document.getElementById('id_categoria').selectedOptions[0]?.text || '';
+    
+    // Actualizar textos
+    document.getElementById('previewNombre').textContent = nombre;
+    document.getElementById('previewCodigo').textContent = codigo;
+    document.getElementById('previewDescripcion').textContent = descripcion;
+    document.getElementById('previewTiempo').textContent = `${tiempo}h`;
+    document.getElementById('previewDificultad').textContent = dificultad;
+    
+    // Actualizar icono basado en categoría
+    const iconElement = document.querySelector('#previewIcon i');
+    if (categoria.toUpperCase().includes('MANTENIMIENTO')) {
+        iconElement.className = 'fas fa-tools';
+    } else if (categoria.toUpperCase().includes('REPARACION')) {
+        iconElement.className = 'fas fa-wrench';
+    } else if (categoria.toUpperCase().includes('DIAGNOSTICO')) {
+        iconElement.className = 'fas fa-search';
+    } else if (categoria.toUpperCase().includes('ELECTRICO')) {
+        iconElement.className = 'fas fa-bolt';
+    } else {
+        iconElement.className = 'fas fa-cog';
+    }
+    
+    // Actualizar preview de dificultad
+    const difficultyValue = document.getElementById('id_nivel_dificultad').value;
+    const difficultyPreview = document.getElementById('difficultyPreview');
+    difficultyPreview.className = `difficulty-preview difficulty-${difficultyValue.toLowerCase()}`;
+    difficultyPreview.textContent = dificultad;
+}
+
+function generarCodigo() {
+    const nombre = document.getElementById('id_nombre').value;
+    const categoria = document.getElementById('id_categoria').selectedOptions[0]?.text || '';
+    
+    if (!nombre) {
+        alert('Primero ingrese el nombre del servicio');
+        return;
+    }
+    
+    // Generar código basado en categoría y nombre
+    let prefijo = 'SERV';
+    
+    if (categoria.toUpperCase().includes('MANTENIMIENTO')) {
+        prefijo = 'MANT';
+    } else if (categoria.toUpperCase().includes('REPARACION')) {
+        prefijo = 'REP';
+    } else if (categoria.toUpperCase().includes('DIAGNOSTICO')) {
+        prefijo = 'DIAG';
+    } else if (categoria.toUpperCase().includes('ELECTRICO')) {
+        prefijo = 'ELEC';
+    }
+    
+    // Tomar primeras letras del nombre
+    const nombreCorto = nombre.substring(0, 3).toUpperCase();
+    
+    // Generar número aleatorio
+    const numero = Math.floor(Math.random() * 900) + 100;
+    
+    const codigoGenerado = `${prefijo}-${nombreCorto}${numero}`;
+    
+    document.getElementById('id_codigo').value = codigoGenerado;
+    updatePreview();
+}
+
+function probarEnPOS() {
+    const servicioId = '{{ object.pk }}';
+    if (servicioId) {
+        const posUrl = `/ventas/punto-venta/?servicio=${servicioId}`;
+        window.open(posUrl, 'pos', 'width=1400,height=900');
+    }
+}
+
+function previsualizarFactura() {
+    // Crear preview modal o abrir en nueva ventana
+    const previewData = {
+        nombre: document.getElementById('id_nombre').value,
+        codigo: document.getElementById('id_codigo').value,
+        precio: document.getElementById('calc-total').textContent,
+        tiempo: document.getElementById('id_tiempo_estimado_horas').value
+    };
+    
+    // Aquí podrías abrir un modal o nueva ventana con preview
+    alert(`Preview: ${previewData.nombre} - ${previewData.precio} - ${previewData.tiempo}h`);
+}
+
+// Validación antes de enviar
+document.getElementById('servicioForm').addEventListener('submit', function(e) {
+    const requiredFields = ['id_nombre', 'id_codigo', 'id_precio_base', 'id_precio_mano_obra', 'id_tiempo_estimado_horas'];
+    let isValid = true;
+    
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    if (!isValid) {
+        e.preventDefault();
+        alert('Por favor complete todos los campos requeridos.');
+    }
+});
+</script>
+{% endblock %}

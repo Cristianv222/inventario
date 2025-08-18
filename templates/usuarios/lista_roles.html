@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Roles - VPMOTOS{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-users-cog me-2"></i>Gestión de Roles</h5>
+            <a href="{% url 'usuarios:crear_rol' %}" class="btn btn-light btn-sm">
+                <i class="fas fa-plus me-1"></i>Nuevo Rol
+            </a>
+        </div>
+        <div class="card-body">
+            {% if messages %}
+            <div class="messages mb-3">
+                {% for message in messages %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if roles %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rol in roles %}
+                        <tr>
+                            <td>{{ rol.nombre }}</td>
+                            <td>{{ rol.descripcion|default:"-" }}</td>
+                            <td>
+                                {% if rol.activo %}
+                                <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'usuarios:editar_rol' rol.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'usuarios:asignar_permisos_rol' rol.id %}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-key"></i>
+                                    </a>
+                                    <a href="{% url 'usuarios:activar_desactivar_rol' rol.id %}" class="btn btn-sm btn-outline-danger">
+                                        {% if rol.activo %}
+                                        <i class="fas fa-times"></i>
+                                        {% else %}
+                                        <i class="fas fa-check"></i>
+                                        {% endif %}
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No hay roles registrados.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

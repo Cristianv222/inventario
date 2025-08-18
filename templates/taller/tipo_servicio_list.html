@@ -1,0 +1,993 @@
+{% extends 'base.html' %}
+
+{% block title %}Catálogo de Servicios - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos para catálogo de servicios */
+    .content-wrapper {
+        padding: 1rem;
+    }
+    
+    .service-card {
+        cursor: pointer;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--gray-200);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+        background: linear-gradient(135deg, var(--light) 0%, #f8f9fa 100%);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+    }
+    
+    .service-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+    }
+    
+    .service-card:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        transform: translateY(-5px);
+        border-color: var(--primary-light);
+    }
+    
+    .service-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Estilos para categorías de servicios */
+    .category-mantenimiento {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    
+    .category-reparacion {
+        background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    }
+    
+    .category-diagnostico {
+        background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+    }
+    
+    .category-electrico {
+        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    }
+    
+    .category-default {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    }
+    
+    /* Estilos adicionales para más tipos de servicios */
+    .category-motor {
+        background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+    }
+    
+    .category-frenos {
+        background: linear-gradient(135deg, #fd7e14 0%, #dc3545 100%);
+    }
+    
+    .category-revision {
+        background: linear-gradient(135deg, #20c997 0%, #0dcaf0 100%);
+    }
+    
+    .filters-container {
+        background: linear-gradient(135deg, var(--light) 0%, #f8f9fa 100%);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--gray-200);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .category-filter-pills {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    
+    .category-pill {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        border: 1px solid var(--gray-300);
+        background-color: white;
+        color: var(--gray-700);
+        text-decoration: none;
+        transition: var(--transition);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .category-pill:hover,
+    .category-pill.active {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        border-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+    }
+    
+    .stats-summary {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-radius: var(--border-radius);
+        color: white;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stats-item {
+        text-align: center;
+        padding: 0.5rem;
+    }
+    
+    .stats-number {
+        font-size: 1.8rem;
+        font-weight: 700;
+        display: block;
+    }
+    
+    .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .price-display {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 0.75rem;
+        border-radius: var(--border-radius);
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .price-main {
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: block;
+    }
+    
+    .price-breakdown {
+        font-size: 0.8rem;
+        opacity: 0.9;
+        margin-top: 0.25rem;
+    }
+    
+    .service-code {
+        background-color: rgba(67, 97, 238, 0.1);
+        color: var(--primary);
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: 1px solid rgba(67, 97, 238, 0.2);
+        display: inline-block;
+        margin-bottom: 0.5rem;
+    }
+    
+    .time-badge {
+        background-color: rgba(13, 110, 253, 0.1);
+        color: #084298;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        border: 1px solid rgba(13, 110, 253, 0.3);
+        display: inline-block;
+    }
+    
+    .difficulty-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: inline-block;
+        margin-left: 0.5rem;
+    }
+    
+    .difficulty-basico {
+        background-color: rgba(25, 135, 84, 0.1);
+        color: #0f5132;
+        border: 1px solid rgba(25, 135, 84, 0.3);
+    }
+    
+    .difficulty-intermedio {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #856404;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+    
+    .difficulty-avanzado {
+        background-color: rgba(255, 107, 0, 0.1);
+        color: #cc5500;
+        border: 1px solid rgba(255, 107, 0, 0.3);
+    }
+    
+    .difficulty-experto {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #842029;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+    
+    .service-actions {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        opacity: 0;
+        transition: var(--transition);
+    }
+    
+    .service-card:hover .service-actions {
+        opacity: 1;
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .section-title {
+        font-weight: 600;
+        color: var(--gray-800);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .active-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 0.5rem;
+    }
+    
+    .active-true {
+        background-color: #28a745;
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+    }
+    
+    .active-false {
+        background-color: #dc3545;
+        box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
+    }
+    
+    .quick-add-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+        transition: var(--transition);
+        z-index: 1000;
+    }
+    
+    .quick-add-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 35px rgba(67, 97, 238, 0.6);
+    }
+    
+    .add-to-cart-btn {
+        width: 100%;
+        padding: 0.5rem;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border: none;
+        color: white;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        transition: var(--transition);
+        margin-top: auto;
+    }
+    
+    .add-to-cart-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+    }
+    
+    .service-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .service-info-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .requires-parts-badge {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #856404;
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+    
+    .specialty-required {
+        background-color: rgba(102, 16, 242, 0.1);
+        color: #5a0e91;
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        border: 1px solid rgba(102, 16, 242, 0.3);
+    }
+    
+    .view-toggle {
+        background-color: var(--gray-100);
+        border-radius: var(--border-radius);
+        padding: 0.25rem;
+        display: flex;
+        gap: 0.25rem;
+    }
+    
+    .view-btn {
+        padding: 0.5rem 0.75rem;
+        border: none;
+        background: transparent;
+        border-radius: calc(var(--border-radius) - 0.25rem);
+        color: var(--gray-600);
+        transition: var(--transition);
+    }
+    
+    .view-btn.active {
+        background-color: var(--primary);
+        color: white;
+    }
+    
+    .table-view .service-card {
+        margin-bottom: 0;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        padding: 1rem 1.5rem;
+    }
+    
+    .table-view .service-card:first-child {
+        border-top: 1px solid var(--gray-200);
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    
+    .table-view .service-card:last-child {
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+    
+    .table-view .service-card::before {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid content-wrapper">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="section-title animate-fade-in">
+                        <i class="fas fa-clipboard-list text-primary"></i>
+                        Catálogo de Servicios
+                    </h2>
+                    <p class="text-muted mb-0">Gestionar servicios disponibles para venta y taller</p>
+                </div>
+                <div class="d-flex gap-2 animate-fade-in">
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="grid">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button class="view-btn" data-view="table">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                    {% url 'taller:tipo_servicio_create' as create_url %}
+                    <a href="{{ create_url|default:'/taller/tipos-servicio/crear/' }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Nuevo Servicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resumen de Estadísticas -->
+    <div class="stats-summary animate-fade-in">
+        <div class="row g-0">
+            <div class="col-md-3">
+                <div class="stats-item">
+                    <span class="stats-number">{{ tipos_servicio.count }}</span>
+                    <span class="stats-label">Total Servicios</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-item">
+                    <span class="stats-number">{{ tipos_servicio|length|floatformat:0 }}</span>
+                    <span class="stats-label">Disponibles</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-item">
+                    <span class="stats-number">{{ categorias.count }}</span>
+                    <span class="stats-label">Categorías</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-item">
+                    <span class="stats-number">${{ tipos_servicio|length|default:0|floatformat:0 }}</span>
+                    <span class="stats-label">Precio Promedio</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="filters-container animate-fade-in">
+        <!-- Pills de Categorías -->
+        <div class="category-filter-pills">
+            <a href="?categoria=" class="category-pill {% if not categoria_filtro %}active{% endif %}">
+                <i class="fas fa-list-ul me-1"></i>Todos
+            </a>
+            {% for categoria in categorias %}
+            <a href="?categoria={{ categoria.id }}" 
+               class="category-pill {% if categoria_filtro == categoria.id|stringformat:'s' %}active{% endif %}">
+                <i class="fas fa-tag me-1"></i>{{ categoria.nombre }}
+            </a>
+            {% endfor %}
+        </div>
+        
+        <!-- Filtros Avanzados -->
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="busqueda" class="form-label">
+                    <i class="fas fa-search me-1"></i>Búsqueda
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" name="busqueda" 
+                           value="{{ busqueda }}" placeholder="Buscar por nombre o código...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label for="categoria" class="form-label">
+                    <i class="fas fa-folder me-1"></i>Categoría
+                </label>
+                <select class="form-select" name="categoria">
+                    <option value="">Todas las categorías</option>
+                    {% for categoria in categorias %}
+                    <option value="{{ categoria.id }}" {% if categoria_filtro == categoria.id|stringformat:'s' %}selected{% endif %}>
+                        {{ categoria.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="activo" class="form-label">
+                    <i class="fas fa-toggle-on me-1"></i>Estado
+                </label>
+                <select class="form-select" name="activo">
+                    <option value="">Todos</option>
+                    <option value="true">Disponibles</option>
+                    <option value="false">No Disponibles</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="precio_orden" class="form-label">
+                    <i class="fas fa-sort-amount-down me-1"></i>Ordenar por
+                </label>
+                <select class="form-select" name="precio_orden">
+                    <option value="">Nombre</option>
+                    <option value="precio_asc">Precio: Menor a Mayor</option>
+                    <option value="precio_desc">Precio: Mayor a Menor</option>
+                    <option value="tiempo_asc">Tiempo: Menor a Mayor</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Lista de Servicios -->
+    <div id="servicios-container" class="grid-view">
+        <div class="row g-4 animate-fade-in">
+            {% for servicio in tipos_servicio %}
+            <div class="col-xl-4 col-lg-6 col-md-6">
+                <div class="service-card" 
+                     data-servicio-id="{{ servicio.pk }}" 
+                     data-codigo="{{ servicio.codigo }}" 
+                     data-nombre="{{ servicio.nombre }}"
+                     data-precio="{{ servicio.get_precio_total }}"
+                     data-activo="{{ servicio.activo|yesno:'true,false' }}"
+                     data-categoria="{{ servicio.categoria.nombre|default:'GENERAL' }}"
+                     data-tipo="servicio">
+                    
+                    <!-- Acciones -->
+                    <div class="service-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                    type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item btn-editar" href="#" data-servicio-id="{{ servicio.pk }}">
+                                        <i class="fas fa-edit me-2"></i>Editar
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item btn-duplicar" href="#" data-servicio-id="{{ servicio.pk }}">
+                                        <i class="fas fa-copy me-2"></i>Duplicar
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item btn-historial" href="#" data-servicio-id="{{ servicio.pk }}">
+                                        <i class="fas fa-chart-line me-2"></i>Ver Ventas
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item btn-toggle-estado {% if servicio.activo %}text-warning{% else %}text-success{% endif %}" 
+                                       href="#" data-servicio-id="{{ servicio.pk }}" data-activo="{{ servicio.activo|yesno:'true,false' }}">
+                                        <i class="fas fa-toggle-{% if servicio.activo %}off{% else %}on{% endif %} me-2"></i>
+                                        {% if servicio.activo %}Desactivar{% else %}Activar{% endif %}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Contenido -->
+                    <div class="d-flex align-items-start mb-2">
+                        <div class="service-icon" data-categoria="{{ servicio.categoria.nombre|default:'GENERAL' }}">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1 fw-bold">{{ servicio.nombre }}</h6>
+                                    <span class="service-code">{{ servicio.codigo }}</span>
+                                </div>
+                                <span class="active-indicator active-{{ servicio.activo|yesno:'true,false' }}"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Precio Principal -->
+                    <div class="price-display">
+                        <span class="price-main">${{ servicio.get_precio_total|floatformat:2 }}</span>
+                        <div class="price-breakdown">
+                            Base: ${{ servicio.precio_base|floatformat:2 }} + 
+                            M.Obra: ${{ servicio.precio_mano_obra|floatformat:2 }}
+                            {% if servicio.incluye_iva %} (IVA incl.){% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Información del Servicio -->
+                    <div class="mb-3">
+                        <div class="service-info-row">
+                            <span class="text-muted small">Tiempo estimado:</span>
+                            <span class="time-badge">{{ servicio.tiempo_estimado_horas }}h</span>
+                        </div>
+                        
+                        <div class="service-info-row">
+                            <span class="text-muted small">Dificultad:</span>
+                            <span class="difficulty-badge difficulty-{{ servicio.nivel_dificultad|lower }}">
+                                {{ servicio.get_nivel_dificultad_display }}
+                            </span>
+                        </div>
+                        
+                        {% if servicio.categoria %}
+                        <div class="service-info-row">
+                            <span class="text-muted small">Categoría:</span>
+                            <span class="small">{{ servicio.categoria.nombre }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if servicio.requiere_repuestos %}
+                        <div class="service-info-row">
+                            <span class="text-muted small">Repuestos:</span>
+                            <span class="requires-parts-badge">
+                                <i class="fas fa-tools me-1"></i>Requeridos
+                            </span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if servicio.requiere_especialidad %}
+                        <div class="service-info-row">
+                            <span class="text-muted small">Especialidad:</span>
+                            <span class="specialty-required">
+                                <i class="fas fa-user-graduate me-1"></i>{{ servicio.requiere_especialidad.nombre }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Descripción -->
+                    {% if servicio.descripcion %}
+                    <p class="text-muted small mb-3" style="max-height: 60px; overflow: hidden;">
+                        {{ servicio.descripcion|truncatewords:12 }}
+                    </p>
+                    {% endif %}
+                    
+                    <!-- Botón para agregar al carrito (POS) -->
+                    <button class="add-to-cart-btn btn-agregar-pos" data-servicio-id="{{ servicio.pk }}">
+                        <i class="fas fa-plus me-2"></i>Agregar al POS
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No hay servicios disponibles</h5>
+                    <p class="text-muted">No se encontraron servicios que coincidan con los filtros aplicados.</p>
+                    {% url 'taller:tipo_servicio_create' as create_fallback_url %}
+                    <a href="{{ create_fallback_url|default:'/taller/tipos-servicio/crear/' }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Agregar Primer Servicio
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Navegación de páginas">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Botón flotante -->
+<button class="quick-add-btn btn-crear-servicio" title="Agregar Servicio">
+    <i class="fas fa-plus"></i>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para determinar clase e icono de categoría basado en la base de datos
+function aplicarEstiloCategoriaServicio() {
+    document.querySelectorAll('.service-icon').forEach(icon => {
+        const categoria = icon.dataset.categoria?.toUpperCase() || 'GENERAL';
+        
+        // Determinar clase CSS e icono basado en palabras clave
+        if (categoria.includes('MANTENIMIENTO') || categoria.includes('MANTE')) {
+            icon.className = 'service-icon category-mantenimiento';
+            icon.innerHTML = '<i class="fas fa-tools"></i>';
+        } else if (categoria.includes('REPARACION') || categoria.includes('REPARA')) {
+            icon.className = 'service-icon category-reparacion';
+            icon.innerHTML = '<i class="fas fa-wrench"></i>';
+        } else if (categoria.includes('DIAGNOSTICO') || categoria.includes('DIAGNOS')) {
+            icon.className = 'service-icon category-diagnostico';
+            icon.innerHTML = '<i class="fas fa-search"></i>';
+        } else if (categoria.includes('ELECTRICO') || categoria.includes('ELECTRIC')) {
+            icon.className = 'service-icon category-electrico';
+            icon.innerHTML = '<i class="fas fa-bolt"></i>';
+        } else if (categoria.includes('MOTOR') || categoria.includes('ENGINE')) {
+            icon.className = 'service-icon category-motor';
+            icon.innerHTML = '<i class="fas fa-cog"></i>';
+        } else if (categoria.includes('FRENO') || categoria.includes('BRAKE')) {
+            icon.className = 'service-icon category-frenos';
+            icon.innerHTML = '<i class="fas fa-stop-circle"></i>';
+        } else if (categoria.includes('REVISION') || categoria.includes('INSPECCION') || categoria.includes('CHECK')) {
+            icon.className = 'service-icon category-revision';
+            icon.innerHTML = '<i class="fas fa-clipboard-check"></i>';
+        } else {
+            icon.className = 'service-icon category-default';
+            icon.innerHTML = '<i class="fas fa-cog"></i>';
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Aplicar estilos de categoría basados en la base de datos
+    aplicarEstiloCategoriaServicio();
+    
+    // Event Listeners para botones de crear servicio
+    document.querySelectorAll('.btn-crear-servicio').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = '/taller/tipos-servicio/crear/';
+        });
+    });
+    
+    // Event Listeners para botones de editar
+    document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const servicioId = this.dataset.servicioId;
+            window.location.href = `/taller/tipos-servicio/${servicioId}/editar/`;
+        });
+    });
+    
+    // Event Listeners para botones de duplicar
+    document.querySelectorAll('.btn-duplicar').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const servicioId = this.dataset.servicioId;
+            duplicarServicio(servicioId);
+        });
+    });
+    
+    // Event Listeners para botones de historial
+    document.querySelectorAll('.btn-historial').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const servicioId = this.dataset.servicioId;
+            verHistorialVentas(servicioId);
+        });
+    });
+    
+    // Event Listeners para botones de toggle estado
+    document.querySelectorAll('.btn-toggle-estado').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const servicioId = this.dataset.servicioId;
+            toggleEstadoServicio(servicioId);
+        });
+    });
+    
+    // Event Listeners para botones de agregar al POS
+    document.querySelectorAll('.btn-agregar-pos').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            agregarServicioAlCarrito(this);
+        });
+    });
+    
+    // Toggle de vista (grid/table)
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Quitar clase active de todos
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            // Agregar active al actual
+            this.classList.add('active');
+            
+            // Cambiar vista
+            const view = this.dataset.view;
+            const container = document.getElementById('servicios-container');
+            
+            if (view === 'table') {
+                container.classList.remove('grid-view');
+                container.classList.add('table-view');
+                // Reorganizar para vista de tabla
+                const cards = container.querySelectorAll('.service-card');
+                cards.forEach(card => {
+                    card.parentElement.className = 'col-12';
+                });
+            } else {
+                container.classList.remove('table-view');
+                container.classList.add('grid-view');
+                // Reorganizar para vista de grid
+                const cards = container.querySelectorAll('.service-card');
+                cards.forEach(card => {
+                    card.parentElement.className = 'col-xl-4 col-lg-6 col-md-6';
+                });
+            }
+        });
+    });
+    
+    // Manejar clics en tarjetas de servicios (para editar)
+    document.querySelectorAll('.service-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Solo navegar para editar si no se hizo clic en botones
+            if (!e.target.closest('.dropdown') && 
+                !e.target.closest('.service-actions') && 
+                !e.target.closest('.add-to-cart-btn')) {
+                const servicioId = this.dataset.servicioId;
+                if (servicioId) {
+                    window.location.href = `/taller/tipos-servicio/${servicioId}/editar/`;
+                }
+            }
+        });
+    });
+    
+    // Prevenir propagación en dropdowns
+    document.querySelectorAll('.dropdown').forEach(dropdown => {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+});
+
+function agregarServicioAlCarrito(btn) {
+    const card = btn.closest('.service-card');
+    const servicioData = {
+        id: card.dataset.servicioId,
+        codigo: card.dataset.codigo,
+        nombre: card.dataset.nombre,
+        precio: parseFloat(card.dataset.precio),
+        tipo: 'servicio'
+    };
+    
+    // Si estamos en una ventana del POS, agregar al carrito
+    if (window.opener && window.opener.agregarItemAlCarrito) {
+        window.opener.agregarItemAlCarrito(
+            servicioData.id, 
+            servicioData.nombre, 
+            servicioData.precio, 
+            servicioData.tipo
+        );
+        // Mostrar mensaje de confirmación
+        btn.innerHTML = '<i class="fas fa-check me-2"></i>Agregado';
+        btn.classList.add('btn-success');
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-plus me-2"></i>Agregar al POS';
+            btn.classList.remove('btn-success');
+        }, 2000);
+    } else {
+        // Corregir la URL del POS
+        const posUrl = '/ventas/pos/';
+        const posWindow = window.open(posUrl, 'pos', 'width=1400,height=900');
+        
+        // Cuando se carga el POS, agregar el servicio
+        posWindow.addEventListener('load', function() {
+            setTimeout(() => {
+                if (posWindow.agregarItemAlCarrito) {
+                    posWindow.agregarItemAlCarrito(
+                        servicioData.id, 
+                        servicioData.nombre, 
+                        servicioData.precio, 
+                        servicioData.tipo
+                    );
+                }
+            }, 1000);
+        });
+    }
+}
+
+function toggleEstadoServicio(servicioId) {
+    // Encontrar la tarjeta del servicio para obtener el estado actual
+    const serviceCard = document.querySelector(`[data-servicio-id="${servicioId}"]`);
+    const estadoActual = serviceCard.dataset.activo === 'true';
+    
+    // Invertir el estado actual
+    const nuevoEstado = !estadoActual;
+    const accion = nuevoEstado ? 'activar' : 'desactivar';
+    
+    if (confirm(`¿Está seguro de ${accion} este servicio?`)) {
+        fetch(`/taller/tipos-servicio/${servicioId}/toggle-estado/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                activo: nuevoEstado
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al cambiar el estado: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+    }
+}
+
+function duplicarServicio(servicioId) {
+    if (confirm('¿Desea crear una copia de este servicio?')) {
+        fetch(`/taller/tipos-servicio/${servicioId}/duplicar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = `/taller/tipos-servicio/${data.nuevo_servicio_id}/editar/`;
+            } else {
+                alert('Error al duplicar el servicio: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+    }
+}
+
+function verHistorialVentas(servicioId) {
+    window.open(`/taller/tipos-servicio/${servicioId}/historial-ventas/`, '_blank');
+}
+
+// Función para obtener CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

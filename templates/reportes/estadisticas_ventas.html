@@ -1,0 +1,693 @@
+{% extends 'base.html' %}
+
+{% block title %}Estadísticas de Ventas - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========== VARIABLES CSS ========== */
+    :root {
+        --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
+        --success-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        --warning-gradient: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        --danger-gradient: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        --card-shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.15);
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --border-radius-lg: 12px;
+    }
+
+    /* ========== LAYOUT GENERAL ========== */
+    .content-wrapper {
+        padding: 1.5rem;
+        background-color: var(--light);
+        min-height: 100vh;
+    }
+
+    /* ========== FILTERS CARD ========== */
+    .filters-card {
+        background: var(--primary-gradient);
+        color: white;
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .filters-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+        animation: move 20s linear infinite;
+        opacity: 0.1;
+    }
+
+    @keyframes move {
+        0% { transform: translate(-50%, -50%); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .filters-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .filters-card .form-control,
+    .filters-card .form-select {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: var(--gray-800);
+    }
+
+    .filters-card .form-control:focus,
+    .filters-card .form-select:focus {
+        background: white;
+        border-color: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+    }
+
+    .filters-card .btn-light {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .filters-card .btn-light:hover {
+        background: white;
+        transform: translateY(-2px);
+    }
+
+    /* ========== STATS OVERVIEW ========== */
+    .stats-overview {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 2rem;
+        border: 1px solid var(--gray-200);
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #f8f9fa 0%, white 100%);
+        transition: var(--transition-smooth);
+    }
+
+    .stat-item:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--card-shadow);
+    }
+
+    .stat-item h4 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-item.revenue h4 { color: var(--primary); }
+    .stat-item.profit h4 { color: var(--success); }
+    .stat-item.count h4 { color: var(--info); }
+    .stat-item.average h4 { color: var(--warning); }
+
+    /* ========== COMPARISON CARD ========== */
+    .comparison-card {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(33, 150, 243, 0.2);
+    }
+
+    .comparison-item {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        transition: var(--transition-smooth);
+    }
+
+    .comparison-item:hover {
+        background: rgba(255, 255, 255, 0.9);
+        transform: translateY(-2px);
+    }
+
+    .growth-positive {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .growth-negative {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    /* ========== CHART CONTAINERS ========== */
+    .chart-container {
+        position: relative;
+        height: 350px;
+        background: white;
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* ========== TOP LISTS ========== */
+    .top-list {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    .top-list .list-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, white 100%);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        font-weight: 600;
+        color: var(--gray-700);
+    }
+
+    .top-item {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        transition: var(--transition-smooth);
+        display: flex;
+        justify-content: between;
+        align-items: center;
+    }
+
+    .top-item:hover {
+        background: rgba(67, 97, 238, 0.05);
+        padding-left: 2rem;
+    }
+
+    .top-item:last-child {
+        border-bottom: none;
+    }
+
+    .top-item .rank {
+        background: var(--primary);
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-right: 1rem;
+    }
+
+    .top-item.gold .rank { background: #ffd700; color: #000; }
+    .top-item.silver .rank { background: #c0c0c0; color: #000; }
+    .top-item.bronze .rank { background: #cd7f32; color: #fff; }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+        .content-wrapper {
+            padding: 1rem;
+        }
+
+        .filters-card {
+            padding: 1rem;
+        }
+
+        .stats-overview {
+            padding: 1rem;
+        }
+
+        .chart-container {
+            height: 250px;
+            padding: 1rem;
+        }
+
+        .comparison-card {
+            padding: 1rem;
+        }
+    }
+
+    /* ========== ANIMACIONES ========== */
+    .animate-fade-in {
+        animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ========== UTILIDADES ========== */
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: var(--gray-500);
+    }
+
+    .no-data i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid content-wrapper">
+    <!-- ========== HEADER ========== -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center animate-fade-in">
+                <div>
+                    <h1 class="h3 mb-2">
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        Estadísticas de Ventas
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Análisis detallado del período: {{ fecha_desde|date:"d/m/Y" }} - {{ fecha_hasta|date:"d/m/Y" }}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'reportes:comparativo_ventas' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-balance-scale me-2"></i>Comparativo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FILTROS ========== -->
+    <div class="filters-card animate-fade-in">
+        <div class="filters-content">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label text-white">
+                        <i class="fas fa-calendar me-1"></i>Fecha Desde
+                    </label>
+                    <input type="date" name="fecha_desde" class="form-control" 
+                           value="{{ fecha_desde|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-white">
+                        <i class="fas fa-calendar me-1"></i>Fecha Hasta
+                    </label>
+                    <input type="date" name="fecha_hasta" class="form-control" 
+                           value="{{ fecha_hasta|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-white">
+                        <i class="fas fa-layer-group me-1"></i>Agrupación
+                    </label>
+                    <select name="agrupacion" class="form-select">
+                        <option value="dia" {% if agrupacion == 'dia' %}selected{% endif %}>Por Día</option>
+                        <option value="semana" {% if agrupacion == 'semana' %}selected{% endif %}>Por Semana</option>
+                        <option value="mes" {% if agrupacion == 'mes' %}selected{% endif %}>Por Mes</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-white">
+                        <i class="fas fa-filter me-1"></i>Tipo
+                    </label>
+                    <select name="tipo_reporte" class="form-select">
+                        <option value="general" {% if tipo_reporte == 'general' %}selected{% endif %}>General</option>
+                        <option value="productos" {% if tipo_reporte == 'productos' %}selected{% endif %}>Productos</option>
+                        <option value="servicios" {% if tipo_reporte == 'servicios' %}selected{% endif %}>Servicios</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-light w-100">
+                        <i class="fas fa-search me-1"></i>Analizar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== ESTADÍSTICAS GENERALES ========== -->
+    <div class="stats-overview animate-fade-in">
+        <div class="row g-3">
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-item revenue">
+                    <h4>${{ stats_generales.total_ventas|floatformat:0 }}</h4>
+                    <p class="mb-0">Total Ventas</p>
+                    <small class="text-muted">Incluye IVA</small>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-item count">
+                    <h4>{{ stats_generales.cantidad_ventas }}</h4>
+                    <p class="mb-0">Transacciones</p>
+                    <small class="text-muted">Ventas realizadas</small>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-item average">
+                    <h4>${{ stats_generales.promedio_venta|floatformat:0 }}</h4>
+                    <p class="mb-0">Promedio por Venta</p>
+                    <small class="text-muted">Ticket promedio</small>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-item profit">
+                    <h4>${{ stats_generales.venta_mayor|floatformat:0 }}</h4>
+                    <p class="mb-0">Venta Mayor</p>
+                    <small class="text-muted">Mejor transacción</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== COMPARATIVO ========== -->
+    {% if comparativo %}
+    <div class="comparison-card animate-fade-in">
+        <h5 class="mb-3">
+            <i class="fas fa-chart-line me-2"></i>
+            Comparativo con Período Anterior
+        </h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="comparison-item">
+                    <h6 class="mb-1">Ventas</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>${{ comparativo.total_anterior|floatformat:0 }}</span>
+                        <i class="fas fa-arrow-right mx-2"></i>
+                        <span>${{ stats_generales.total_ventas|floatformat:0 }}</span>
+                    </div>
+                    <div class="{% if comparativo.diferencia_total >= 0 %}growth-positive{% else %}growth-negative{% endif %} mt-1">
+                        <i class="fas fa-{% if comparativo.diferencia_total >= 0 %}arrow-up{% else %}arrow-down{% endif %} me-1"></i>
+                        {% if comparativo.diferencia_total >= 0 %}+{% endif %}${{ comparativo.diferencia_total|floatformat:0 }}
+                        ({{ comparativo.porcentaje_crecimiento|floatformat:1 }}%)
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="comparison-item">
+                    <h6 class="mb-1">Transacciones</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>{{ comparativo.cantidad_anterior }}</span>
+                        <i class="fas fa-arrow-right mx-2"></i>
+                        <span>{{ stats_generales.cantidad_ventas }}</span>
+                    </div>
+                    <div class="{% if comparativo.diferencia_cantidad >= 0 %}growth-positive{% else %}growth-negative{% endif %} mt-1">
+                        <i class="fas fa-{% if comparativo.diferencia_cantidad >= 0 %}arrow-up{% else %}arrow-down{% endif %} me-1"></i>
+                        {% if comparativo.diferencia_cantidad >= 0 %}+{% endif %}{{ comparativo.diferencia_cantidad }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="comparison-item">
+                    <h6 class="mb-1">Productos vs Servicios</h6>
+                    <div class="row">
+                        <div class="col-6 text-center">
+                            <small class="text-muted">Productos</small>
+                            <div class="fw-bold">${{ productos_vs_servicios.productos.total|floatformat:0|default:"0" }}</div>
+                        </div>
+                        <div class="col-6 text-center">
+                            <small class="text-muted">Servicios</small>
+                            <div class="fw-bold">${{ productos_vs_servicios.servicios.total|floatformat:0|default:"0" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========== GRÁFICOS Y LISTAS ========== -->
+    <div class="row g-4">
+        <!-- Gráfico de Ventas -->
+        <div class="col-lg-8">
+            <div class="chart-container animate-fade-in">
+                <h6 class="chart-title">
+                    <i class="fas fa-chart-area text-primary"></i>
+                    Evolución de Ventas ({{ agrupacion|title }})
+                </h6>
+                <canvas id="ventasChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Distribución Productos vs Servicios -->
+        <div class="col-lg-4">
+            <div class="chart-container animate-fade-in">
+                <h6 class="chart-title">
+                    <i class="fas fa-chart-pie text-primary"></i>
+                    Productos vs Servicios
+                </h6>
+                <canvas id="productosServiciosChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Productos -->
+        <div class="col-lg-6">
+            <div class="top-list animate-fade-in">
+                <div class="list-header">
+                    <i class="fas fa-box text-primary me-2"></i>
+                    Top Productos Más Vendidos
+                </div>
+                {% for producto in top_productos %}
+                <div class="top-item {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                    <div class="rank">{{ forloop.counter }}</div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ producto.producto__nombre }}</h6>
+                        <small class="text-muted">{{ producto.cantidad_vendida }} unidades</small>
+                    </div>
+                    <div class="text-end">
+                        <strong class="text-success">${{ producto.total_vendido|floatformat:0 }}</strong>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="no-data">
+                    <i class="fas fa-box"></i>
+                    <p class="mb-0">No hay datos de productos</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Top Servicios -->
+        <div class="col-lg-6">
+            <div class="top-list animate-fade-in">
+                <div class="list-header">
+                    <i class="fas fa-wrench text-primary me-2"></i>
+                    Top Servicios Más Solicitados
+                </div>
+                {% for servicio in top_servicios %}
+                <div class="top-item {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                    <div class="rank">{{ forloop.counter }}</div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ servicio.tipo_servicio__nombre }}</h6>
+                        <small class="text-muted">{{ servicio.cantidad_vendida }} servicios</small>
+                    </div>
+                    <div class="text-end">
+                        <strong class="text-info">${{ servicio.total_vendido|floatformat:0 }}</strong>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="no-data">
+                    <i class="fas fa-wrench"></i>
+                    <p class="mb-0">No hay datos de servicios</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Métodos de Pago -->
+        <div class="col-12">
+            <div class="top-list animate-fade-in">
+                <div class="list-header">
+                    <i class="fas fa-credit-card text-primary me-2"></i>
+                    Distribución por Método de Pago
+                </div>
+                <div class="p-3">
+                    <div class="row">
+                        {% for metodo in ventas_por_metodo %}
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h5 class="text-primary mb-1">${{ metodo.total|floatformat:0 }}</h5>
+                                <p class="mb-1 fw-bold">{{ metodo.tipo_pago }}</p>
+                                <small class="text-muted">{{ metodo.cantidad }} transacciones</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== DATOS PARA JAVASCRIPT ========== -->
+<script id="ventas-data" type="application/json">
+{
+    "ventas_agrupadas": [
+        {% for venta in ventas_agrupadas %}
+        {
+            "periodo": "{{ venta.periodo|escapejs }}",
+            "total": {{ venta.total|default:0 }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    "productos_vs_servicios": {
+        "productos": {{ productos_vs_servicios.productos.total|default:0 }},
+        "servicios": {{ productos_vs_servicios.servicios.total|default:0 }}
+    }
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ========== CONFIGURACIÓN DE GRÁFICOS ==========
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#6c757d';
+
+// ========== FUNCIONES DE GRÁFICOS ==========
+function initCharts() {
+    const dataScript = document.getElementById('ventas-data');
+    if (!dataScript) {
+        console.warn('No se encontraron datos para los gráficos');
+        return;
+    }
+
+    try {
+        const data = JSON.parse(dataScript.textContent);
+        
+        // Preparar datos para gráfico de ventas
+        const ventasLabels = data.ventas_agrupadas.map(item => item.periodo);
+        const ventasValues = data.ventas_agrupadas.map(item => item.total || 0);
+
+        // Gráfico de evolución de ventas
+        const ventasCtx = document.getElementById('ventasChart');
+        if (ventasCtx) {
+            new Chart(ventasCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ventasLabels,
+                    datasets: [{
+                        label: 'Ventas',
+                        data: ventasValues,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 6,
+                            hoverRadius: 8
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de productos vs servicios
+        const productosCtx = document.getElementById('productosServiciosChart');
+        if (productosCtx) {
+            const productosTotal = data.productos_vs_servicios.productos || 0;
+            const serviciosTotal = data.productos_vs_servicios.servicios || 0;
+            
+            // Solo mostrar gráfico si hay datos
+            if (productosTotal > 0 || serviciosTotal > 0) {
+                new Chart(productosCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Productos', 'Servicios'],
+                        datasets: [{
+                            data: [productosTotal, serviciosTotal],
+                            backgroundColor: ['#28a745', '#17a2b8'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Mostrar mensaje de no hay datos
+                productosCtx.parentElement.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-chart-pie"></i>
+                        <p class="mb-0">No hay datos para mostrar</p>
+                    </div>
+                `;
+            }
+        }
+
+    } catch (error) {
+        console.error('Error al inicializar los gráficos:', error);
+    }
+}
+
+// ========== INICIALIZACIÓN ========== 
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Inicializar gráficos
+        initCharts();
+
+        // Animaciones de entrada
+        const elements = document.querySelectorAll('.animate-fade-in');
+        elements.forEach((el, index) => {
+            el.style.animationDelay = `${index * 0.1}s`;
+        });
+        
+        console.log('Estadísticas de ventas cargadas correctamente');
+    } catch (error) {
+        console.error('Error al inicializar la página:', error);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Agregar Nota - {{ cliente.get_nombre_completo }} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+        margin: -2rem -2rem 2rem -2rem;
+    }
+    
+    .client-info {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    
+    .required::after {
+        content: " *";
+        color: #dc3545;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .btn-save {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: transform 0.2s;
+    }
+    
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .error-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .icon-tipo {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+    }
+    
+    .tipo-venta { background: rgba(40, 167, 69, 0.1); color: #28a745; }
+    .tipo-servicio { background: rgba(23, 162, 184, 0.1); color: #17a2b8; }
+    .tipo-llamada { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
+    .tipo-email { background: rgba(102, 126, 234, 0.1); color: #667eea; }
+    .tipo-reclamo { background: rgba(220, 53, 69, 0.1); color: #dc3545; }
+    .tipo-otro { background: rgba(108, 117, 125, 0.1); color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'clientes:lista_clientes' %}">
+                    <i class="fas fa-users me-1"></i>Clientes
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'clientes:detalle_cliente' cliente.id %}">
+                    {{ cliente.get_nombre_completo }}
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Agregar Nota</li>
+        </ol>
+    </nav>
+
+    <div class="form-container">
+        <div class="form-header text-center">
+            <h2 class="mb-0">
+                <i class="fas fa-plus me-2"></i>
+                Agregar Nota al Historial
+            </h2>
+            <p class="mb-0 mt-2 opacity-75">
+                Registra una nueva interacción o nota sobre el cliente
+            </p>
+        </div>
+
+        <!-- Información del Cliente -->
+        <div class="client-info">
+            <h6 class="text-primary mb-2">
+                <i class="fas fa-user me-2"></i>
+                Información del Cliente
+            </h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Nombre:</strong> {{ cliente.get_nombre_completo }}</p>
+                    <p class="mb-1"><strong>Identificación:</strong> {{ cliente.identificacion }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Teléfono:</strong> {{ cliente.telefono|default:"No registrado" }}</p>
+                    <p class="mb-1"><strong>Email:</strong> {{ cliente.email|default:"No registrado" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="{{ form.tipo.id_for_label }}" class="form-label required">
+                            Tipo de Interacción
+                        </label>
+                        {{ form.tipo }}
+                        {% if form.tipo.errors %}
+                            {% for error in form.tipo.errors %}
+                                <div class="error-message">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                        <div class="form-text">
+                            Selecciona el tipo de interacción o nota
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.importante }}
+                            <label class="form-check-label" for="{{ form.importante.id_for_label }}">
+                                <i class="fas fa-star text-warning me-1"></i>
+                                Marcar como importante
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            Las notas importantes se destacan en el historial
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="{{ form.descripcion.id_for_label }}" class="form-label required">
+                    Descripción
+                </label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}
+                    {% for error in form.descripcion.errors %}
+                        <div class="error-message">{{ error }}</div>
+                    {% endfor %}
+                {% endif %}
+                <div class="form-text">
+                    Describe detalladamente la interacción o situación (mínimo 10 caracteres)
+                </div>
+            </div>
+
+            <!-- Ejemplos de tipos de nota -->
+            <div class="mb-4">
+                <h6 class="text-muted mb-3">Ejemplos por tipo de interacción:</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="icon-tipo tipo-venta">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div>
+                                <strong>Venta:</strong><br>
+                                <small class="text-muted">Compra realizada, productos adquiridos</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="icon-tipo tipo-servicio">
+                                <i class="fas fa-wrench"></i>
+                            </div>
+                            <div>
+                                <strong>Servicio:</strong><br>
+                                <small class="text-muted">Mantenimiento, reparación, revisión</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="icon-tipo tipo-llamada">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div>
+                                <strong>Llamada:</strong><br>
+                                <small class="text-muted">Consulta telefónica, cita programada</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="icon-tipo tipo-email">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <strong>Email:</strong><br>
+                                <small class="text-muted">Correo enviado, información compartida</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="icon-tipo tipo-reclamo">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div>
+                                <strong>Reclamo:</strong><br>
+                                <small class="text-muted">Queja, problema, inconformidad</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="icon-tipo tipo-otro">
+                                <i class="fas fa-sticky-note"></i>
+                            </div>
+                            <div>
+                                <strong>Otro:</strong><br>
+                                <small class="text-muted">Nota general, observación, recordatorio</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="d-flex justify-content-between pt-3">
+                <a href="{% url 'clientes:detalle_cliente' cliente.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Cancelar
+                </a>
+                
+                <button type="submit" class="btn btn-primary btn-save">
+                    <i class="fas fa-save me-2"></i>
+                    Guardar Nota
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-resize del textarea
+    const textarea = document.getElementById('id_descripcion');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    }
+    
+    // Contador de caracteres
+    function updateCharCount() {
+        const current = textarea.value.length;
+        const min = 10;
+        
+        let countElement = document.getElementById('char-counter');
+        if (!countElement) {
+            countElement = document.createElement('div');
+            countElement.id = 'char-counter';
+            countElement.className = 'form-text text-end';
+            textarea.parentNode.appendChild(countElement);
+        }
+        
+        if (current < min) {
+            countElement.innerHTML = `<span class="text-danger">${current} / ${min} caracteres mínimos</span>`;
+            countElement.className = 'form-text text-end text-danger';
+        } else {
+            countElement.innerHTML = `<span class="text-success">${current} caracteres</span>`;
+            countElement.className = 'form-text text-end text-success';
+        }
+    }
+    
+    if (textarea) {
+        textarea.addEventListener('input', updateCharCount);
+        updateCharCount(); // Ejecutar al cargar
+    }
+    
+    // Validación en tiempo real
+    const form = document.querySelector('form');
+    const tipoField = document.getElementById('id_tipo');
+    
+    // Cambiar placeholder según el tipo seleccionado
+    if (tipoField && textarea) {
+        tipoField.addEventListener('change', function() {
+            const tipo = this.value;
+            let placeholder = 'Describe detalladamente la interacción...';
+            
+            switch(tipo) {
+                case 'VENTA':
+                    placeholder = 'Ej: Cliente compró repuestos para su moto, se mostró satisfecho con el servicio...';
+                    break;
+                case 'SERVICIO':
+                    placeholder = 'Ej: Se realizó mantenimiento preventivo, se cambiaron filtros y aceite...';
+                    break;
+                case 'LLAMADA':
+                    placeholder = 'Ej: Cliente llamó para consultar precios de llantas, se le cotizó...';
+                    break;
+                case 'EMAIL':
+                    placeholder = 'Ej: Se envió cotización por email, cliente solicitó descuento...';
+                    break;
+                case 'RECLAMO':
+                    placeholder = 'Ej: Cliente se quejó por demora en entrega, se ofreció compensación...';
+                    break;
+                default:
+                    placeholder = 'Ej: Cliente visitó el taller para conocer servicios disponibles...';
+            }
+            
+            textarea.placeholder = placeholder;
+        });
+    }
+    
+    // Envío del formulario
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Mostrar loading
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+        submitBtn.disabled = true;
+        
+        // Restaurar botón después de 3 segundos si no hay redirección
+        setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 3000);
+    });
+});
+</script>
+{% endblock %}

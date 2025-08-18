@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de Ventas - {{ servicio.nombre }} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: var(--border-radius);
+        border: 1px solid var(--gray-200);
+        padding: 1.5rem;
+        background: var(--light);
+        transition: var(--transition);
+    }
+    
+    .chart-container {
+        height: 300px;
+        background-color: var(--light);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        border: 1px solid var(--gray-200);
+    }
+    
+    .service-card {
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        background: var(--light);
+        transition: var(--transition);
+    }
+    
+    .service-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        Historial de Ventas
+                    </h2>
+                    <p class="text-muted mb-0">{{ servicio.nombre }} - {{ servicio.categoria.nombre }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'taller:tipo_servicio_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha Desde</label>
+                            <input type="date" name="fecha_desde" class="form-control" 
+                                   value="{{ fecha_desde|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha Hasta</label>
+                            <input type="date" name="fecha_hasta" class="form-control" 
+                                   value="{{ fecha_hasta|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-1"></i>Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-list-ol fa-2x text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="mb-0">{{ total_servicios }}</h4>
+                        <p class="text-muted mb-0">Total Servicios</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-dollar-sign fa-2x text-success"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="mb-0">${{ total_facturado|floatformat:2 }}</h4>
+                        <p class="text-muted mb-0">Total Facturado</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="mb-0">{{ tiempo_promedio|floatformat:1 }}h</h4>
+                        <p class="text-muted mb-0">Tiempo Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-calculator fa-2x text-info"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="mb-0">${{ total_facturado|div:total_servicios|floatformat:2|default:'0.00' }}</h4>
+                        <p class="text-muted mb-0">Promedio por Servicio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico de Ventas por Mes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Ventas por Mes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="ventasPorMesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de Servicios Realizados -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Servicios Realizados
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% for servicio_realizado in servicios_realizados %}
+                    <div class="service-card">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <h6 class="mb-1">{{ servicio_realizado.orden.numero_orden }}</h6>
+                                <small class="text-muted">{{ servicio_realizado.orden.fecha_ingreso|date:"d/m/Y" }}</small>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>{{ servicio_realizado.orden.cliente.get_nombre_completo }}</strong><br>
+                                <small class="text-muted">{{ servicio_realizado.orden.moto.placa }} - {{ servicio_realizado.orden.moto.marca }}</small>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="badge bg-info">{{ servicio_realizado.tecnico_asignado.get_nombre_completo|default:'Sin asignar' }}</span>
+                            </div>
+                            <div class="col-md-2">
+                                {% if servicio_realizado.tiempo_real %}
+                                    <small class="text-muted">{{ servicio_realizado.tiempo_real }}h</small>
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <h6 class="mb-0 text-primary">${{ servicio_realizado.precio_total|floatformat:2 }}</h6>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No hay servicios en el período seleccionado</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para pasar datos de Django a JavaScript de forma segura -->
+{{ servicios_por_mes|json_script:"servicios-por-mes-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Obtener datos de forma segura
+        const serviciosPorMesElement = document.getElementById('servicios-por-mes-data');
+        let ventasPorMes = [];
+        
+        if (serviciosPorMesElement) {
+            ventasPorMes = JSON.parse(serviciosPorMesElement.textContent);
+        }
+        
+        // Validar que tenemos datos
+        if (!Array.isArray(ventasPorMes) || ventasPorMes.length === 0) {
+            console.warn('No hay datos disponibles para el gráfico');
+            // Mostrar mensaje en el canvas
+            const ctx = document.getElementById('ventasPorMesChart');
+            if (ctx) {
+                const chartContainer = ctx.parentElement;
+                chartContainer.innerHTML = '<div class="text-center py-4"><p class="text-muted">No hay datos disponibles para mostrar el gráfico</p></div>';
+            }
+            return;
+        }
+        
+        // Procesar datos con validación
+        const labels = ventasPorMes.map(item => {
+            const mes = item.mes || 0;
+            const año = item.año || new Date().getFullYear();
+            return `${mes}/${año}`;
+        });
+        
+        const dataCantidad = ventasPorMes.map(item => parseInt(item.cantidad) || 0);
+        const dataTotal = ventasPorMes.map(item => parseFloat(item.total_mes) || 0);
+        
+        // Crear gráfico
+        const ctx = document.getElementById('ventasPorMesChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cantidad de Servicios',
+                        data: dataCantidad,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Total Facturado ($)',
+                        data: dataTotal,
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        type: 'line',
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Mes/Año'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Cantidad'
+                            },
+                            beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Total ($)'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.datasetIndex === 1) {
+                                        label += '$' + context.parsed.y.toFixed(2);
+                                    } else {
+                                        label += context.parsed.y;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error al crear el gráfico:', error);
+        const ctx = document.getElementById('ventasPorMesChart');
+        if (ctx) {
+            const chartContainer = ctx.parentElement;
+            chartContainer.innerHTML = '<div class="text-center py-4 text-danger"><p>Error al cargar el gráfico</p></div>';
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,518 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========== VARIABLES CSS ========== */
+    :root {
+        --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
+        --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --border-radius-lg: 12px;
+    }
+
+    /* ========== LAYOUT GENERAL ========== */
+    .content-wrapper {
+        padding: 1.5rem;
+        background-color: var(--light);
+        min-height: 100vh;
+    }
+
+    /* ========== FORM CARD ========== */
+    .form-card {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--gray-200);
+        overflow: hidden;
+    }
+
+    .form-card .card-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 1.5rem;
+        border-bottom: none;
+    }
+
+    .form-card .card-body {
+        padding: 2rem;
+    }
+
+    /* ========== FORM STYLES ========== */
+    .form-label {
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 8px;
+        border: 1px solid var(--gray-300);
+        padding: 0.75rem 1rem;
+        transition: var(--transition-smooth);
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+    }
+
+    .form-text {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        margin-top: 0.25rem;
+    }
+
+    /* ========== INPUT GROUPS ========== */
+    .input-group .input-group-text {
+        background: linear-gradient(135deg, #f8f9fa 0%, white 100%);
+        border: 1px solid var(--gray-300);
+        border-right: none;
+        color: var(--gray-600);
+        font-weight: 500;
+    }
+
+    .input-group .form-control {
+        border-left: none;
+    }
+
+    .input-group:focus-within .input-group-text {
+        border-color: var(--primary);
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(67, 97, 238, 0.05) 100%);
+        color: var(--primary);
+    }
+
+    /* ========== FILE INPUT ========== */
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+
+    .file-input-label {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border: 2px dashed var(--gray-300);
+        border-radius: 8px;
+        background: #f8f9fa;
+        transition: var(--transition-smooth);
+        text-align: center;
+        width: 100%;
+    }
+
+    .file-input-label:hover {
+        border-color: var(--primary);
+        background: rgba(67, 97, 238, 0.05);
+        color: var(--primary);
+    }
+
+    .file-input-label.has-file {
+        border-color: var(--success);
+        background: rgba(40, 167, 69, 0.05);
+        color: var(--success);
+    }
+
+    /* ========== BUTTONS ========== */
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: var(--transition-smooth);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(67, 97, 238, 0.3);
+    }
+
+    .btn-outline-secondary {
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: var(--transition-smooth);
+    }
+
+    .btn-outline-secondary:hover {
+        transform: translateY(-2px);
+    }
+
+    /* ========== FORM SECTIONS ========== */
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--gray-200);
+    }
+
+    .form-section h6 {
+        color: var(--gray-700);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+        .content-wrapper {
+            padding: 1rem;
+        }
+
+        .form-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-card .card-header {
+            padding: 1rem;
+        }
+    }
+
+    /* ========== ANIMACIONES ========== */
+    .animate-fade-in {
+        animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid content-wrapper">
+    <!-- ========== HEADER ========== -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center animate-fade-in">
+                <div>
+                    <h1 class="h3 mb-2">
+                        <i class="fas fa-receipt text-primary me-2"></i>
+                        {{ titulo }}
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'reportes:dashboard' %}">Reportes</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'reportes:lista_gastos' %}">Gastos</a>
+                            </li>
+                            <li class="breadcrumb-item active">{{ titulo }}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{% url 'reportes:lista_gastos' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FORMULARIO ========== -->
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <div class="form-card animate-fade-in">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Información del Gasto
+                    </h4>
+                    <p class="mb-0 mt-2 opacity-75">Complete los datos del gasto a registrar</p>
+                </div>
+                
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Información Básica -->
+                        <div class="form-section">
+                            <h6>
+                                <i class="fas fa-info-circle text-primary"></i>
+                                Información Básica
+                            </h6>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="fas fa-calendar text-muted"></i>
+                                        Fecha del Gasto
+                                    </label>
+                                    {{ form.fecha }}
+                                    {% if form.fecha.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.fecha.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="fas fa-tag text-muted"></i>
+                                        Categoría
+                                    </label>
+                                    {{ form.categoria }}
+                                    {% if form.categoria.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.categoria.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label">
+                                        <i class="fas fa-edit text-muted"></i>
+                                        Concepto del Gasto
+                                    </label>
+                                    {{ form.concepto }}
+                                    {% if form.concepto.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.concepto.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Descripción breve y clara del gasto</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label">
+                                        <i class="fas fa-align-left text-muted"></i>
+                                        Descripción Detallada (Opcional)
+                                    </label>
+                                    {{ form.descripcion }}
+                                    {% if form.descripcion.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.descripcion.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Detalles adicionales sobre el gasto</div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="fas fa-dollar-sign text-muted"></i>
+                                        Monto
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.monto }}
+                                    </div>
+                                    {% if form.monto.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.monto.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información del Proveedor -->
+                        <div class="form-section">
+                            <h6>
+                                <i class="fas fa-building text-primary"></i>
+                                Información del Proveedor
+                            </h6>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="fas fa-building text-muted"></i>
+                                        Proveedor (Opcional)
+                                    </label>
+                                    {{ form.proveedor }}
+                                    {% if form.proveedor.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.proveedor.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="fas fa-file-invoice text-muted"></i>
+                                        Número de Factura/Documento
+                                    </label>
+                                    {{ form.numero_factura }}
+                                    {% if form.numero_factura.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.numero_factura.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label">
+                                        <i class="fas fa-paperclip text-muted"></i>
+                                        Archivo de Soporte (Opcional)
+                                    </label>
+                                    <div class="file-input-wrapper">
+                                        {{ form.archivo_factura }}
+                                        <label for="{{ form.archivo_factura.id_for_label }}" 
+                                               class="file-input-label" id="fileLabel">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            <span>Seleccionar archivo (PDF, JPG, PNG)</span>
+                                        </label>
+                                    </div>
+                                    {% if form.archivo_factura.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.archivo_factura.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Suba la factura o comprobante del gasto</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="d-flex gap-3 justify-content-end">
+                            <a href="{% url 'reportes:lista_gastos' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            
+                            <button type="submit" name="save_and_new" class="btn btn-outline-primary">
+                                <i class="fas fa-save me-2"></i>Guardar y Nuevo
+                            </button>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-2"></i>Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ========== FUNCIONES PRINCIPALES ==========
+
+// Manejo del input de archivo
+function setupFileInput() {
+    const fileInput = document.getElementById('{{ form.archivo_factura.id_for_label }}');
+    const fileLabel = document.getElementById('fileLabel');
+    const labelText = fileLabel.querySelector('span');
+    
+    if (fileInput && fileLabel) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                labelText.textContent = file.name;
+                fileLabel.classList.add('has-file');
+                fileLabel.querySelector('i').className = 'fas fa-check-circle';
+            } else {
+                labelText.textContent = 'Seleccionar archivo (PDF, JPG, PNG)';
+                fileLabel.classList.remove('has-file');
+                fileLabel.querySelector('i').className = 'fas fa-cloud-upload-alt';
+            }
+        });
+    }
+}
+
+// Validación del formulario
+function validateForm() {
+    const form = document.querySelector('form');
+    
+    form.addEventListener('submit', function(e) {
+        let hasErrors = false;
+        
+        // Validar monto
+        const montoInput = document.getElementById('{{ form.monto.id_for_label }}');
+        if (montoInput && (parseFloat(montoInput.value) <= 0 || isNaN(parseFloat(montoInput.value)))) {
+            showFieldError(montoInput, 'El monto debe ser mayor a cero');
+            hasErrors = true;
+        }
+        
+        // Validar concepto
+        const conceptoInput = document.getElementById('{{ form.concepto.id_for_label }}');
+        if (conceptoInput && conceptoInput.value.trim().length < 3) {
+            showFieldError(conceptoInput, 'El concepto debe tener al menos 3 caracteres');
+            hasErrors = true;
+        }
+        
+        if (hasErrors) {
+            e.preventDefault();
+        }
+    });
+}
+
+// Mostrar error en campo
+function showFieldError(input, message) {
+    // Remover errores anteriores
+    const existingError = input.parentNode.querySelector('.field-error');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Agregar nuevo error
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'text-danger small mt-1 field-error';
+    errorDiv.textContent = message;
+    input.parentNode.appendChild(errorDiv);
+    
+    // Enfocar el campo
+    input.focus();
+    input.classList.add('is-invalid');
+    
+    // Remover error al escribir
+    input.addEventListener('input', function() {
+        input.classList.remove('is-invalid');
+        if (errorDiv.parentNode) {
+            errorDiv.remove();
+        }
+    }, { once: true });
+}
+
+// ========== EVENT LISTENERS ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar input de archivo
+    setupFileInput();
+    
+    // Configurar validación
+    validateForm();
+    
+    // Animaciones de entrada
+    const elements = document.querySelectorAll('.animate-fade-in');
+    elements.forEach((el, index) => {
+        el.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Auto-focus en primer campo
+    const firstInput = document.querySelector('.form-control:not([readonly])');
+    if (firstInput) {
+        firstInput.focus();
+    }
+    
+    console.log('Formulario de gastos cargado correctamente');
+});
+</script>
+{% endblock %}

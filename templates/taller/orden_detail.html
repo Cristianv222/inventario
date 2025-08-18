@@ -1,0 +1,582 @@
+{% extends 'base.html' %}
+
+{% block title %}Orden {{ orden.numero_orden }} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .orden-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+    }
+    
+    .estado-badge {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-weight: 600;
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+    }
+    
+    .info-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-left: 2rem;
+        padding-bottom: 1.5rem;
+        border-left: 2px solid var(--gray-300);
+    }
+    
+    .timeline-item:last-child {
+        padding-bottom: 0;
+        border-left: none;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--primary);
+        border: 2px solid white;
+    }
+    
+    .service-item {
+        border-left: 3px solid var(--primary);
+        padding-left: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .repuesto-item {
+        border-left: 3px solid var(--warning);
+        padding-left: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .price-summary {
+        background: var(--gray-100);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+    }
+    
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .price-total {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary);
+        border-top: 2px solid var(--gray-300);
+        padding-top: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .moto-info {
+        background: var(--gray-100);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .moto-icon {
+        font-size: 3rem;
+        color: var(--primary);
+    }
+    
+    .evaluacion-stars {
+        color: #ffc107;
+        font-size: 1.2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header de la Orden -->
+    <div class="orden-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2">
+                    <i class="fas fa-clipboard-list me-2"></i>
+                    Orden de Trabajo #{{ orden.numero_orden }}
+                </h2>
+                <p class="mb-0 opacity-75">
+                    Creada el {{ orden.fecha_ingreso|date:"d/m/Y H:i" }} por {{ orden.usuario_creacion.get_full_name|default:orden.usuario_creacion.username }}
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="estado-badge bg-{{ orden.get_color_estado|default:'secondary' }}">
+                    {{ orden.get_estado_display }}
+                </span>
+                <div class="mt-2">
+                    <span class="badge bg-{{ orden.get_color_prioridad }} text-white">
+                        <i class="fas fa-flag me-1"></i>
+                        Prioridad {{ orden.get_prioridad_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Acciones Rápidas -->
+    <div class="action-buttons mb-4">
+        <a href="{% url 'taller:orden_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+        
+        {% if orden.estado != 'CANCELADO' %}
+            <a href="{% url 'taller:orden_update' orden.pk %}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i>Editar
+            </a>
+            
+            {% if orden.puede_completarse %}
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#cambiarEstadoModal" data-nuevo-estado="COMPLETADO">
+                <i class="fas fa-check me-1"></i>Marcar Completada
+            </button>
+            {% endif %}
+            
+            {% if orden.puede_entregarse %}
+            <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#cambiarEstadoModal" data-nuevo-estado="ENTREGADO">
+                <i class="fas fa-hand-holding me-1"></i>Entregar
+            </button>
+            {% endif %}
+            
+            <a href="{% url 'taller:generar_cotizacion_pdf' orden.pk %}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i>Cotización
+            </a>
+            
+            {% if orden.estado == 'COMPLETADO' %}
+            <a href="{% url 'taller:exportar_orden_a_pos' orden.pk %}" class="btn btn-outline-success">
+                <i class="fas fa-cash-register me-1"></i>Exportar a POS
+            </a>
+            {% endif %}
+        {% endif %}
+        
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Imprimir
+                </a></li>
+                {% if orden.estado == 'ENTREGADO' and not orden.evaluacion %}
+                <li><a class="dropdown-item" href="{% url 'taller:evaluacion_create' orden_pk=orden.pk %}">
+                    <i class="fas fa-star me-2"></i>Evaluar Servicio
+                </a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Columna Principal -->
+        <div class="col-lg-8">
+            <!-- Información del Cliente -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-user text-primary me-2"></i>
+                    Información del Cliente
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Nombre:</strong> {{ orden.cliente.get_nombre_completo }}</p>
+                        <p class="mb-1"><strong>Identificación:</strong> {{ orden.cliente.identificacion }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Teléfono:</strong> {{ orden.cliente.telefono|default:"No registrado" }}</p>
+                        <p class="mb-1"><strong>Email:</strong> {{ orden.cliente.email|default:"No registrado" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Información de la Moto -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-motorcycle text-primary me-2"></i>
+                    Información del Vehículo
+                </h5>
+                <div class="moto-info">
+                    <i class="fas fa-motorcycle moto-icon"></i>
+                    <div>
+                        <h6 class="mb-1">{{ orden.moto_marca }} {{ orden.moto_modelo }}</h6>
+                        <p class="mb-0">
+                            <span class="badge bg-secondary">{{ orden.moto_placa }}</span>
+                            {% if orden.moto_año %}
+                            <span class="ms-2">Año: {{ orden.moto_año }}</span>
+                            {% endif %}
+                            {% if orden.moto_cilindraje %}
+                            <span class="ms-2">{{ orden.moto_cilindraje }}</span>
+                            {% endif %}
+                            {% if orden.moto_color %}
+                            <span class="ms-2">Color: {{ orden.moto_color }}</span>
+                            {% endif %}
+                        </p>
+                        {% if orden.kilometraje_entrada %}
+                        <p class="mb-0 mt-1">
+                            <i class="fas fa-tachometer-alt me-1"></i>
+                            Kilometraje: {{ orden.kilometraje_entrada }} km
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Servicios -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-tools text-primary me-2"></i>
+                    Servicios ({{ servicios.count }})
+                </h5>
+                {% if servicios %}
+                    {% for servicio in servicios %}
+                    <div class="service-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ servicio.tipo_servicio.nombre }}</h6>
+                                <p class="text-muted mb-1 small">
+                                    Técnico: {{ servicio.tecnico_asignado.get_nombre_completo|default:"Por asignar" }}
+                                    {% if servicio.completado %}
+                                    <span class="badge bg-success ms-2">Completado</span>
+                                    {% endif %}
+                                </p>
+                                {% if servicio.observaciones %}
+                                <p class="mb-0 small">{{ servicio.observaciones }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <p class="mb-0 fw-bold">${{ servicio.precio_total|floatformat:2 }}</p>
+                                <p class="mb-0 small text-muted">{{ servicio.tiempo_estimado }}h</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No hay servicios registrados</p>
+                {% endif %}
+            </div>
+            
+            <!-- Repuestos -->
+            {% if repuestos %}
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-cogs text-warning me-2"></i>
+                    Repuestos Utilizados ({{ repuestos.count }})
+                </h5>
+                {% for repuesto in repuestos %}
+                <div class="repuesto-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ repuesto.producto.nombre }}</h6>
+                            <p class="text-muted mb-0 small">
+                                Cantidad: {{ repuesto.cantidad }} × ${{ repuesto.precio_unitario|floatformat:2 }}
+                            </p>
+                            {% if repuesto.observaciones %}
+                            <p class="mb-0 small">{{ repuesto.observaciones }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            <p class="mb-0 fw-bold">${{ repuesto.subtotal|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Observaciones y Diagnóstico -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-clipboard text-primary me-2"></i>
+                    Detalles del Servicio
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Motivo de Ingreso:</h6>
+                        <p>{{ orden.motivo_ingreso }}</p>
+                        
+                        {% if orden.diagnostico_inicial %}
+                        <h6>Diagnóstico Inicial:</h6>
+                        <p>{{ orden.diagnostico_inicial }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {% if orden.trabajo_realizado %}
+                        <h6>Trabajo Realizado:</h6>
+                        <p>{{ orden.trabajo_realizado }}</p>
+                        {% endif %}
+                        
+                        {% if orden.observaciones_tecnico %}
+                        <h6>Observaciones del Técnico:</h6>
+                        <p>{{ orden.observaciones_tecnico }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Evaluación -->
+            {% if evaluacion %}
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-star text-warning me-2"></i>
+                    Evaluación del Servicio
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-2">
+                            <strong>Calificación General:</strong>
+                            <span class="evaluacion-stars">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= evaluacion.calificacion_general %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                        </p>
+                        {% if evaluacion.calificacion_tecnico %}
+                        <p class="mb-2">
+                            <strong>Técnico:</strong>
+                            <span class="evaluacion-stars">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= evaluacion.calificacion_tecnico %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {% if evaluacion.recomendaria %}
+                        <p class="text-success">
+                            <i class="fas fa-thumbs-up me-1"></i>
+                            El cliente recomendaría nuestros servicios
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if evaluacion.comentarios %}
+                <hr>
+                <p class="mb-0"><em>"{{ evaluacion.comentarios }}"</em></p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Columna Lateral -->
+        <div class="col-lg-4">
+            <!-- Resumen de Precios -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-dollar-sign text-success me-2"></i>
+                    Resumen de Costos
+                </h5>
+                <div class="price-summary">
+                    <div class="price-row">
+                        <span>Mano de Obra:</span>
+                        <span>${{ orden.precio_mano_obra|floatformat:2 }}</span>
+                    </div>
+                    <div class="price-row">
+                        <span>Repuestos:</span>
+                        <span>${{ orden.precio_repuestos|floatformat:2 }}</span>
+                    </div>
+                    <div class="price-row price-total">
+                        <span>Total:</span>
+                        <span>${{ orden.precio_total|floatformat:2 }}</span>
+                    </div>
+                    {% if orden.anticipo > 0 %}
+                    <div class="price-row mt-3">
+                        <span>Anticipo:</span>
+                        <span class="text-success">-${{ orden.anticipo|floatformat:2 }}</span>
+                    </div>
+                    <div class="price-row">
+                        <span>Saldo Pendiente:</span>
+                        <span class="text-danger fw-bold">${{ orden.saldo_pendiente|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Información del Técnico -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-user-cog text-primary me-2"></i>
+                    Técnico Asignado
+                </h5>
+                <p class="mb-1"><strong>{{ orden.tecnico_principal.get_nombre_completo }}</strong></p>
+                <p class="mb-1">Código: {{ orden.tecnico_principal.codigo }}</p>
+                <p class="mb-0">
+                    <span class="badge bg-{{ orden.tecnico_principal.get_estado_color|default:'secondary' }}">
+                        {{ orden.tecnico_principal.get_estado_display }}
+                    </span>
+                </p>
+                {% if orden.tecnico_principal.especialidades.exists %}
+                <div class="mt-2">
+                    {% for especialidad in orden.tecnico_principal.especialidades.all %}
+                    <span class="badge bg-info me-1">{{ especialidad.nombre }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Timeline de Seguimiento -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-history text-primary me-2"></i>
+                    Historial
+                </h5>
+                <div class="timeline">
+                    {% for seguimiento in seguimientos|slice:":5" %}
+                    <div class="timeline-item">
+                        <small class="text-muted">{{ seguimiento.fecha_hora|date:"d/m/Y H:i" }}</small>
+                        <p class="mb-0 small">
+                            <strong>{{ seguimiento.estado_nuevo }}</strong>
+                            {% if seguimiento.observaciones %}
+                            <br>{{ seguimiento.observaciones }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if seguimientos.count > 5 %}
+                <a href="#" class="btn btn-sm btn-outline-primary w-100 mt-2">
+                    Ver historial completo
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Información de Tiempos -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-clock text-primary me-2"></i>
+                    Tiempos
+                </h5>
+                <p class="mb-2">
+                    <i class="fas fa-calendar-plus me-1"></i>
+                    <strong>Ingreso:</strong> {{ orden.fecha_ingreso|date:"d/m/Y H:i" }}
+                </p>
+                {% if orden.fecha_prometida %}
+                <p class="mb-2">
+                    <i class="fas fa-calendar-check me-1"></i>
+                    <strong>Prometida:</strong> {{ orden.fecha_prometida|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+                {% if orden.fecha_completado %}
+                <p class="mb-2">
+                    <i class="fas fa-check-circle me-1"></i>
+                    <strong>Completado:</strong> {{ orden.fecha_completado|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+                {% if orden.fecha_entrega %}
+                <p class="mb-2">
+                    <i class="fas fa-hand-holding me-1"></i>
+                    <strong>Entregado:</strong> {{ orden.fecha_entrega|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+                <hr>
+                <p class="mb-0">
+                    <i class="fas fa-hourglass-half me-1"></i>
+                    <strong>Tiempo transcurrido:</strong> {{ orden.get_dias_transcurridos }} días
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cambiar Estado -->
+<div class="modal fade" id="cambiarEstadoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'taller:cambiar_estado_orden' orden.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Cambiar Estado de Orden</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="estado" id="nuevoEstado">
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" name="observaciones" id="observaciones" 
+                                  placeholder="Observaciones" style="height: 100px"></textarea>
+                        <label for="observaciones">Observaciones (opcional)</label>
+                    </div>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Esta acción cambiará el estado de la orden y quedará registrada en el historial.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Confirmar Cambio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal de cambio de estado
+    const cambiarEstadoModal = document.getElementById('cambiarEstadoModal');
+    if (cambiarEstadoModal) {
+        cambiarEstadoModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const nuevoEstado = button.getAttribute('data-nuevo-estado');
+            const inputEstado = this.querySelector('#nuevoEstado');
+            const modalTitle = this.querySelector('.modal-title');
+            
+            inputEstado.value = nuevoEstado;
+            
+            // Personalizar título según estado
+            const titulos = {
+                'COMPLETADO': 'Marcar Orden como Completada',
+                'ENTREGADO': 'Marcar Orden como Entregada',
+                'CANCELADO': 'Cancelar Orden'
+            };
+            
+            modalTitle.textContent = titulos[nuevoEstado] || 'Cambiar Estado de Orden';
+        });
+    }
+    
+    // Imprimir
+    window.print = function() {
+        window.frames["print_frame"].document.body.innerHTML = document.getElementById("printarea").innerHTML;
+        window.frames["print_frame"].window.focus();
+        window.frames["print_frame"].window.print();
+    }
+});
+</script>
+{% endblock %}

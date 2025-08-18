@@ -1,0 +1,784 @@
+{% extends 'base.html' %}
+{% load reportes_extras %}
+
+{% block title %}Caja Diaria - {{ fecha|date:"d/m/Y" }} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========== VARIABLES CSS ========== */
+    :root {
+        --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
+        --success-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        --warning-gradient: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        --danger-gradient: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        --card-shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.15);
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --border-radius-lg: 12px;
+    }
+
+    /* ========== LAYOUT GENERAL ========== */
+    .content-wrapper {
+        padding: 1.5rem;
+        background-color: var(--light);
+        min-height: 100vh;
+    }
+
+    /* ========== HEADER DE CAJA ========== */
+    .caja-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: var(--border-radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .caja-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+        animation: move 20s linear infinite;
+        opacity: 0.1;
+    }
+
+    @keyframes move {
+        0% { transform: translate(-50%, -50%); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .caja-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    /* ========== NAVEGACIÓN DE FECHA ========== */
+    .nav-date {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 2rem;
+        border: 1px solid var(--gray-200);
+    }
+
+    .nav-date .btn {
+        border-radius: 25px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: var(--transition-smooth);
+    }
+
+    .nav-date .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* ========== BALANCE CARDS ========== */
+    .balance-card {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        border-left: 4px solid var(--primary);
+        transition: var(--transition-smooth);
+        height: 100%;
+    }
+
+    .balance-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .balance-card.income {
+        border-left-color: #28a745;
+        background: linear-gradient(135deg, white 0%, rgba(40, 167, 69, 0.02) 100%);
+    }
+
+    .balance-card.expense {
+        border-left-color: #dc3545;
+        background: linear-gradient(135deg, white 0%, rgba(220, 53, 69, 0.02) 100%);
+    }
+
+    .balance-card.payment {
+        border-left-color: #17a2b8;
+        background: linear-gradient(135deg, white 0%, rgba(23, 162, 184, 0.02) 100%);
+    }
+
+    .balance-card h6 {
+        color: var(--gray-600);
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.75rem;
+    }
+
+    .balance-card h3 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .balance-card small {
+        color: var(--gray-500);
+        font-size: 0.8rem;
+    }
+
+    /* ========== COMPARATIVO CARD ========== */
+    .comparison-card {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        color: #8B4513;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(252, 182, 159, 0.3);
+    }
+
+    .comparison-card h5 {
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .amount-positive {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .amount-negative {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    /* ========== TABS ========== */
+    .nav-tabs {
+        border: none;
+        background: #f8f9fa;
+        border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+        padding: 0.5rem;
+        margin-bottom: 0;
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        border-radius: 8px;
+        margin: 0 0.25rem;
+        font-weight: 500;
+        color: var(--gray-600);
+        transition: var(--transition-smooth);
+        padding: 0.75rem 1.25rem;
+    }
+
+    .nav-tabs .nav-link.active {
+        background: white;
+        color: var(--primary);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+
+    .nav-tabs .nav-link:hover:not(.active) {
+        background: rgba(255,255,255,0.7);
+        color: var(--primary);
+    }
+
+    .tab-content {
+        background: white;
+        border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--gray-200);
+        border-top: none;
+    }
+
+    /* ========== TRANSACTION ITEMS ========== */
+    .transaction-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 0.75rem;
+        border-left: 4px solid var(--gray-300);
+        transition: var(--transition-smooth);
+        cursor: pointer;
+    }
+
+    .transaction-item:hover {
+        background: #e9ecef;
+        transform: translateX(8px);
+        box-shadow: var(--card-shadow);
+    }
+
+    .transaction-item.venta {
+        border-left-color: #28a745;
+        background: linear-gradient(135deg, #f8f9fa 0%, rgba(40, 167, 69, 0.05) 100%);
+    }
+
+    .transaction-item.gasto {
+        border-left-color: #dc3545;
+        background: linear-gradient(135deg, #f8f9fa 0%, rgba(220, 53, 69, 0.05) 100%);
+    }
+
+    .transaction-item.servicio {
+        border-left-color: #17a2b8;
+        background: linear-gradient(135deg, #f8f9fa 0%, rgba(23, 162, 184, 0.05) 100%);
+    }
+
+    /* ========== BOTONES ========== */
+    .btn-close-cash {
+        background: var(--success-gradient);
+        border: none;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: var(--transition-smooth);
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    .btn-close-cash:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        color: white;
+    }
+
+    /* ========== STATUS BADGES ========== */
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-abierto {
+        background-color: rgba(40, 167, 69, 0.15);
+        color: #155724;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .status-cerrado {
+        background-color: rgba(220, 53, 69, 0.15);
+        color: #721c24;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+        .content-wrapper {
+            padding: 1rem;
+        }
+
+        .caja-header {
+            padding: 1.5rem;
+        }
+
+        .balance-card {
+            margin-bottom: 1.5rem;
+            padding: 1.25rem;
+        }
+
+        .nav-date {
+            padding: 1rem;
+        }
+
+        .nav-date .row {
+            gap: 1rem;
+        }
+
+        .nav-tabs .nav-link {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* ========== ANIMACIONES ========== */
+    .animate-fade-in {
+        animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ========== UTILIDADES ========== */
+    .no-content {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: var(--gray-500);
+    }
+
+    .no-content i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid content-wrapper">
+    <!-- ========== HEADER DE CAJA ========== -->
+    <div class="caja-header animate-fade-in">
+        <div class="caja-content">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="h2 mb-2">
+                        <i class="fas fa-cash-register me-2"></i>
+                        Caja Diaria
+                    </h1>
+                    <p class="mb-0 fs-5">{{ fecha|date:"l, d F Y" }}</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        <span class="status-badge {% if cierre.estado == 'ABIERTO' %}status-abierto{% else %}status-cerrado{% endif %}">
+                            <i class="fas fa-{% if cierre.estado == 'ABIERTO' %}unlock{% else %}lock{% endif %}"></i>
+                            {% if cierre.estado == 'ABIERTO' %}Caja Abierta{% else %}Caja Cerrada{% endif %}
+                        </span>
+                        {% if puede_cerrar %}
+                            <button type="button" class="btn btn-close-cash" data-bs-toggle="modal" data-bs-target="#cerrarCajaModal">
+                                <i class="fas fa-lock me-2"></i>
+                                Cerrar Caja
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== NAVEGACIÓN DE FECHA ========== -->
+    <div class="nav-date animate-fade-in">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                {% with fecha_anterior=fecha|add_days:-1 %}
+                <a href="?fecha={{ fecha_anterior|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-chevron-left me-2"></i>
+                    Día Anterior
+                </a>
+                {% endwith %}
+            </div>
+            <div class="col-md-4 text-center">
+                <input type="date" id="fechaSelector" value="{{ fecha|date:'Y-m-d' }}" 
+                       class="form-control d-inline-block w-auto" onchange="cambiarFecha(this.value)">
+            </div>
+            <div class="col-md-4 text-end">
+                {% if fecha < hoy %}
+                    {% with fecha_siguiente=fecha|add_days:1 %}
+                    <a href="?fecha={{ fecha_siguiente|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+                        Día Siguiente
+                        <i class="fas fa-chevron-right ms-2"></i>
+                    </a>
+                    {% endwith %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== RESUMEN DE TOTALES ========== -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="balance-card income animate-fade-in">
+                <h6>Saldo Inicial</h6>
+                <h3>{{ cierre.saldo_inicial|currency }}</h3>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="balance-card income animate-fade-in">
+                <h6>Total Ingresos</h6>
+                <h3 class="text-success">{{ cierre.total_ingresos|currency }}</h3>
+                <small>{{ cierre.cantidad_ventas|default:"0" }} ventas</small>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="balance-card expense animate-fade-in">
+                <h6>Total Gastos</h6>
+                <h3 class="text-danger">{{ cierre.total_gastos|currency }}</h3>
+                <small>{{ cierre.cantidad_gastos|default:"0" }} gastos</small>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="balance-card animate-fade-in">
+                <h6>Saldo Final</h6>
+                <h3 class="{% if cierre.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ cierre.saldo_final|currency }}
+                </h3>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="balance-card payment animate-fade-in">
+                <h6>Efectivo</h6>
+                <h3>{{ cierre.efectivo_ventas|currency }}</h3>
+                {% if cierre.diferencia_efectivo != 0 %}
+                    <small class="{% if cierre.diferencia_efectivo > 0 %}text-success{% else %}text-danger{% endif %}">
+                        Dif: {% format_currency_difference cierre.diferencia_efectivo %}
+                    </small>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="balance-card payment animate-fade-in">
+                <h6>Otros Métodos</h6>
+                <h3>{{ cierre.tarjeta_ventas|add:cierre.transferencia_ventas|currency }}</h3>
+                <small>Tarjeta + Transferencia</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== COMPARATIVO ========== -->
+    {% if comparativo %}
+    <div class="comparison-card animate-fade-in">
+        <h5>
+            <i class="fas fa-chart-line me-2"></i>
+            Comparativo con Día Anterior
+        </h5>
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Ventas:</strong>
+                <span class="{% if comparativo.diferencia_ventas >= 0 %}amount-positive{% else %}amount-negative{% endif %} ms-2">
+                    {% format_currency_difference comparativo.diferencia_ventas %}
+                </span>
+            </div>
+            <div class="col-md-4">
+                <strong>Gastos:</strong>
+                <span class="{% if comparativo.diferencia_gastos <= 0 %}amount-positive{% else %}amount-negative{% endif %} ms-2">
+                    {% format_currency_difference comparativo.diferencia_gastos %}
+                </span>
+            </div>
+            <div class="col-md-4">
+                <strong>Utilidad:</strong>
+                {% with diferencia_utilidad=comparativo.diferencia_ventas|subtract_days:comparativo.diferencia_gastos %}
+                <span class="{% if diferencia_utilidad >= 0 %}amount-positive{% else %}amount-negative{% endif %} ms-2">
+                    {% format_currency_difference diferencia_utilidad %}
+                </span>
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========== MÉTODOS DE PAGO ========== -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm animate-fade-in">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-credit-card text-primary me-2"></i>
+                        Distribución por Método de Pago
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for metodo in metodos_pago %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-primary mb-1">{{ metodo.total|currency }}</h4>
+                                <p class="mb-1 fw-bold">{{ metodo.tipo_pago }}</p>
+                                <small class="text-muted">
+                                    {{ metodo.cantidad }} transacciones
+                                    <br>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">
+                                        {{ metodo.total|percentage:cierre.total_ingresos }}
+                                    </span>
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TABS DE DETALLES ========== -->
+    <div class="animate-fade-in">
+        <ul class="nav nav-tabs" id="cajaTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="ventas-tab" data-bs-toggle="tab" data-bs-target="#ventas" 
+                        type="button" role="tab">
+                    <i class="fas fa-shopping-cart me-2"></i>
+                    Ventas ({{ ventas_dia.count }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="productos-tab" data-bs-toggle="tab" data-bs-target="#productos" 
+                        type="button" role="tab">
+                    <i class="fas fa-box me-2"></i>
+                    Productos ({{ ventas_productos|length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="servicios-tab" data-bs-toggle="tab" data-bs-target="#servicios" 
+                        type="button" role="tab">
+                    <i class="fas fa-wrench me-2"></i>
+                    Servicios ({{ ventas_servicios|length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="gastos-tab" data-bs-toggle="tab" data-bs-target="#gastos" 
+                        type="button" role="tab">
+                    <i class="fas fa-receipt me-2"></i>
+                    Gastos ({{ gastos_dia.count }})
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="cajaTabContent">
+            <!-- Tab Ventas -->
+            <div class="tab-pane fade show active" id="ventas" role="tabpanel">
+                <div class="p-4">
+                    {% for venta in ventas_dia %}
+                    <div class="transaction-item venta">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-bold">
+                                    <a href="{% url 'ventas:detalle_venta' venta.id %}" class="text-decoration-none">
+                                        Factura #{{ venta.numero_factura }}
+                                    </a>
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <i class="fas fa-user me-1"></i>
+                                            {{ venta.cliente }}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ venta.fecha_hora|time:"H:i" }} - {{ venta.tipo_pago }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <h6 class="mb-0 text-success">{{ venta.total|currency }}</h6>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="no-content">
+                        <i class="fas fa-shopping-cart"></i>
+                        <h5>No hay ventas registradas</h5>
+                        <p class="text-muted mb-0">Las ventas del día aparecerán aquí</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Tab Productos -->
+            <div class="tab-pane fade" id="productos" role="tabpanel">
+                <div class="p-4">
+                    {% for venta in ventas_productos %}
+                    <div class="transaction-item venta">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-bold">Factura #{{ venta.numero_factura }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ venta.cliente }} - 
+                                    <i class="fas fa-clock me-1"></i>{{ venta.fecha_hora|time:"H:i" }}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <h6 class="mb-0 text-success">{{ venta.total|currency }}</h6>
+                                <small class="text-muted">{{ venta.tipo_pago }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="no-content">
+                        <i class="fas fa-box"></i>
+                        <h5>No hay ventas de productos</h5>
+                        <p class="text-muted mb-0">Las ventas de productos aparecerán aquí</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Tab Servicios -->
+            <div class="tab-pane fade" id="servicios" role="tabpanel">
+                <div class="p-4">
+                    {% for venta in ventas_servicios %}
+                    <div class="transaction-item servicio">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-bold">Factura #{{ venta.numero_factura }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ venta.cliente }} - 
+                                    <i class="fas fa-clock me-1"></i>{{ venta.fecha_hora|time:"H:i" }}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <h6 class="mb-0 text-info">{{ venta.total|currency }}</h6>
+                                <small class="text-muted">{{ venta.tipo_pago }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="no-content">
+                        <i class="fas fa-wrench"></i>
+                        <h5>No hay ventas de servicios</h5>
+                        <p class="text-muted mb-0">Las ventas de servicios aparecerán aquí</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Tab Gastos -->
+            <div class="tab-pane fade" id="gastos" role="tabpanel">
+                <div class="p-4">
+                    {% for gasto in gastos_dia %}
+                    <div class="transaction-item gasto">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-bold">{{ gasto.concepto }}</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <i class="fas fa-tag me-1"></i>{{ gasto.get_categoria_display }}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <i class="fas fa-user me-1"></i>{{ gasto.usuario.get_full_name|default:gasto.usuario.username }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <h6 class="mb-0 text-danger">{{ gasto.monto|currency }}</h6>
+                                {% if gasto.aprobado %}
+                                    <small class="badge bg-success">Aprobado</small>
+                                {% else %}
+                                    <small class="badge bg-warning text-dark">Pendiente</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="no-content">
+                        <i class="fas fa-receipt"></i>
+                        <h5>No hay gastos registrados</h5>
+                        <p class="text-muted mb-3">Los gastos del día aparecerán aquí</p>
+                        <a href="{% url 'reportes:crear_gasto' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Registrar Gasto
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MODAL CERRAR CAJA ========== -->
+<div class="modal fade" id="cerrarCajaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-lock me-2"></i>
+                    Cerrar Caja del {{ fecha|date:"d/m/Y" }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'reportes:cerrar_caja' %}">
+                {% csrf_token %}
+                <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
+                
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                                <h6 class="text-success mb-1">Ingresos del Día</h6>
+                                <h4 class="text-success">{{ cierre.total_ingresos|currency }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-danger bg-opacity-10 rounded">
+                                <h6 class="text-danger mb-1">Gastos del Día</h6>
+                                <h4 class="text-danger">{{ cierre.total_gastos|currency }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-money-bill me-2"></i>
+                            Efectivo Contado Físicamente
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="efectivo_contado" class="form-control" 
+                                   step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <small class="form-text text-muted">
+                            Efectivo esperado: {{ cierre.efectivo_ventas|currency }}
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Observaciones</label>
+                        <textarea name="observaciones" class="form-control" rows="3" 
+                                  placeholder="Observaciones del cierre de caja (opcional)"></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Saldo Final Calculado:</strong> {{ cierre.saldo_final|currency }}
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-lock me-1"></i>Cerrar Caja
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ========== FUNCIONES PRINCIPALES ==========
+
+function cambiarFecha(nuevaFecha) {
+    window.location.href = `?fecha=${nuevaFecha}`;
+}
+
+// ========== EVENT LISTENERS ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // Animaciones de entrada
+    const elements = document.querySelectorAll('.animate-fade-in');
+    elements.forEach((el, index) => {
+        el.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    console.log('Caja diaria cargada correctamente');
+});
+</script>
+{% endblock %}

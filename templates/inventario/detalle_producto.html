@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block breadcrumb_page %}
+<li class="breadcrumb-item"><a href="{% url 'inventario:lista_productos' %}">Productos</a></li>
+<li class="breadcrumb-item active">Detalle de Producto</li>
+{% endblock %}
+{% block inventory_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>
+            <i class="fas fa-box"></i> 
+            {{ producto.nombre }}
+        </h1>
+        <h4><code>{{ producto.codigo_unico }}</code></h4>
+    </div>
+    <div class="col-md-4 text-end">
+        <div class="btn-group">
+            <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i> Editar Producto
+            </a>
+            <a href="{% url 'inventario:crear_ajuste' %}?producto_id={{ producto.id }}" class="btn btn-warning">
+                <i class="fas fa-balance-scale me-1"></i> Ajustar Stock
+            </a>
+            <form method="post" action="{% url 'inventario:activar_desactivar_producto' producto.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn {% if producto.activo %}btn-danger{% else %}btn-success{% endif %}">
+                    <i class="fas {% if producto.activo %}fa-times{% else %}fa-check{% endif %} me-1"></i>
+                    {% if producto.activo %}Desactivar{% else %}Activar{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <!-- Información Básica -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-2"></i> Información General
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Categoría:</strong> {{ producto.categoria.nombre }}</p>
+                        <p><strong>Marca:</strong> {{ producto.marca.nombre }}</p>
+                        <p><strong>Estado:</strong> 
+                            {% if producto.activo %}
+                            <span class="badge bg-success">Activo</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Creado el:</strong> {{ producto.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        {% if producto.fecha_ultima_compra %}
+                        <p><strong>Última compra:</strong> {{ producto.fecha_ultima_compra|date:"d/m/Y" }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Precio de compra:</strong> ${{ producto.precio_compra }}</p>
+                        <p><strong>Precio de venta:</strong> ${{ producto.precio_venta }}</p>
+                        <p>
+                            <strong>Stock actual:</strong> 
+                            <span class="badge fs-6 {% if producto.es_stock_bajo %}bg-warning{% elif producto.stock_actual == 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                {{ producto.stock_actual }}
+                            </span>
+                        </p>
+                        <p><strong>Stock mínimo:</strong> {{ producto.stock_minimo }}</p>
+                        <p><strong>Incluye IVA:</strong> {% if producto.incluye_iva %}Sí{% else %}No{% endif %}</p>
+                    </div>
+                </div>
+            {% if producto.descripcion %}
+            <hr>
+            <div class="row">
+                <div class="col-12">
+                    <h6>Descripción:</h6>
+                    <p>{{ producto.descripcion }}</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if producto.ubicacion_almacen %}
+            <hr>
+            <div class="row">
+                <div class="col-12">
+                    <h6>Ubicación en almacén:</h6>
+                    <p class="mb-0">{{ producto.ubicacion_almacen }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Código de barras -->
+<div class="col-md-6 mb-4">
+    <div class="card shadow-sm h-100">
+        <div class="card-header">
+            <i class="fas fa-barcode me-2"></i> Código de Barras
+        </div>
+        <div class="card-body text-center">
+            {% if producto.codigo_barras %}
+            <img src="{{ producto.codigo_barras.url }}" alt="Código de barras" class="img-fluid mb-3" style="max-height: 150px;">
+            <p class="text-center mb-4"><code>{{ producto.codigo_unico }}</code></p>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Este producto no tiene un código de barras generado.
+            </div>
+            {% endif %}
+            
+            <a href="{% url 'inventario:regenerar_codigo_barras' producto.id %}" class="btn btn-primary">
+                <i class="fas fa-sync me-2"></i> {% if producto.codigo_barras %}Regenerar{% else %}Generar{% endif %} Código de Barras
+            </a>
+            
+            <div class="mt-3">
+                <a href="{% url 'inventario:imprimir_etiquetas' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-print me-2"></i> Imprimir Etiqueta
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<div class="row">
+    <!-- Movimientos -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="fas fa-exchange-alt me-2"></i> Últimos Movimientos
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Usuario</th>
+                                <th>Referencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in movimientos %}
+                            <tr>
+                                <td>{{ mov.fecha_hora|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <span class="badge {% if mov.tipo_movimiento == 'ENTRADA' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ mov.get_tipo_movimiento_display }}
+                                    </span>
+                                </td>
+                                <td>{{ mov.cantidad }}</td>
+                                <td>{{ mov.usuario.get_full_name }}</td>
+                                <td>
+                                    {% if mov.venta %}
+                                    <a href="{% url 'ventas:detalle_venta' mov.venta.id %}">Venta #{{ mov.venta.id }}</a>
+                                    {% elif mov.compra %}
+                                    <a href="{% url 'compras:detalle_compra' mov.compra.id %}">Compra #{{ mov.compra.id }}</a>
+                                    {% else %}
+                                    {{ mov.referencia }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-3">No hay movimientos registrados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- Ajustes -->
+<div class="col-md-6 mb-4">
+    <div class="card shadow-sm h-100">
+        <div class="card-header">
+            <i class="fas fa-balance-scale me-2"></i> Últimos Ajustes
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Usuario</th>
+                            <th>Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ajuste in ajustes %}
+                        <tr>
+                            <td>{{ ajuste.fecha_hora|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if ajuste.tipo_ajuste == 'ENTRADA' %}bg-success
+                                    {% elif ajuste.tipo_ajuste == 'SALIDA' %}bg-danger
+                                    {% else %}bg-info{% endif %}">
+                                    {{ ajuste.get_tipo_ajuste_display }}
+                                </span>
+                            </td>
+                            <td>{{ ajuste.cantidad }}</td>
+                            <td>{{ ajuste.usuario.get_full_name }}</td>
+                            <td>{{ ajuste.motivo|truncatechars:30 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-3">No hay ajustes registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

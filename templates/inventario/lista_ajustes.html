@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% block breadcrumb_page %}
+<li class="breadcrumb-item active">Ajustes de Inventario</li>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="fas fa-balance-scale"></i> Ajustes de Inventario</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'inventario:crear_ajuste' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i> Nuevo Ajuste
+        </a>
+    </div>
+</div>
+
+<!-- Estadísticas y filtros -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Ajustes</h6>
+                        <h3 class="mb-0">{{ estadisticas.total_ajustes }}</h3>
+                    </div>
+                    <div class="icon-shape bg-primary text-white rounded-circle shadow-sm p-2">
+                        <i class="fas fa-balance-scale fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Entradas</h6>
+                        <h3 class="mb-0">{{ estadisticas.ajustes_entrada }}</h3>
+                    </div>
+                    <div class="icon-shape bg-success text-white rounded-circle shadow-sm p-2">
+                        <i class="fas fa-arrow-up fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Salidas</h6>
+                        <h3 class="mb-0">{{ estadisticas.ajustes_salida }}</h3>
+                    </div>
+                    <div class="icon-shape bg-danger text-white rounded-circle shadow-sm p-2">
+                        <i class="fas fa-arrow-down fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Ajustes Absolutos</h6>
+                        <h3 class="mb-0">{{ estadisticas.ajustes_absolutos }}</h3>
+                    </div>
+                    <div class="icon-shape bg-info text-white rounded-circle shadow-sm p-2">
+                        <i class="fas fa-sync-alt fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2"></i> Filtros de Búsqueda
+    </div>
+    <div class="card-body">
+        <form method="get" id="searchForm">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group mb-3">
+                        <label for="id_producto" class="form-label">Producto:</label>
+                        <select id="id_producto" name="producto" class="form-select rounded-3 shadow-sm">
+                            <option value="">Todos los productos</option>
+                            {% for producto in productos_opciones %}
+                            <option value="{{ producto.id }}" {% if request.GET.producto == producto.id|stringformat:"i" %}selected{% endif %}>
+                                {{ producto.nombre }} ({{ producto.codigo_unico }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group mb-3">
+                        <label for="id_tipo" class="form-label">Tipo de Ajuste:</label>
+                        <select id="id_tipo" name="tipo" class="form-select rounded-3 shadow-sm">
+                            <option value="">Todos los tipos</option>
+                            <option value="ENTRADA" {% if request.GET.tipo == 'ENTRADA' %}selected{% endif %}>Entradas</option>
+                            <option value="SALIDA" {% if request.GET.tipo == 'SALIDA' %}selected{% endif %}>Salidas</option>
+                            <option value="AJUSTE" {% if request.GET.tipo == 'AJUSTE' %}selected{% endif %}>Ajustes absolutos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group mb-3">
+                        <label for="id_fecha_desde" class="form-label">Desde:</label>
+                        <input type="date" id="id_fecha_desde" name="fecha_desde" class="form-control rounded-3 shadow-sm" 
+                               value="{{ request.GET.fecha_desde|default:'' }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group mb-3">
+                        <label for="id_fecha_hasta" class="form-label">Hasta:</label>
+                        <input type="date" id="id_fecha_hasta" name="fecha_hasta" class="form-control rounded-3 shadow-sm" 
+                               value="{{ request.GET.fecha_hasta|default:'' }}">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i> Filtrar
+                    </button>
+                    <a href="{% url 'inventario:lista_ajustes' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i> Limpiar Filtros
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de Ajustes -->
+<div class="card shadow-sm">
+    <div class="card-header">
+        <i class="fas fa-history me-2"></i> Historial de Ajustes
+        {% if ajustes.paginator.count > 0 %}
+            <span class="badge bg-secondary ms-2">{{ ajustes.paginator.count }} resultado{{ ajustes.paginator.count|pluralize }}</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Producto</th>
+                        <th>Tipo</th>
+                        <th>Cantidad</th>
+                        <th>Usuario</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ajuste in ajustes %}
+                    <tr>
+                        <td>
+                            <span class="fw-bold">{{ ajuste.fecha_hora|date:"d/m/Y" }}</span>
+                            <br>
+                            <small class="text-muted">{{ ajuste.fecha_hora|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            <a href="{% url 'inventario:detalle_producto' ajuste.producto.id %}" class="text-decoration-none">
+                                {{ ajuste.producto.nombre }}
+                            </a>
+                            <br>
+                            <small class="text-muted"><code>{{ ajuste.producto.codigo_unico }}</code></small>
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if ajuste.tipo_ajuste == 'ENTRADA' %}bg-success
+                                {% elif ajuste.tipo_ajuste == 'SALIDA' %}bg-danger
+                                {% else %}bg-info{% endif %}">
+                                <i class="fas 
+                                   {% if ajuste.tipo_ajuste == 'ENTRADA' %}fa-arrow-up
+                                   {% elif ajuste.tipo_ajuste == 'SALIDA' %}fa-arrow-down
+                                   {% else %}fa-sync-alt{% endif %} me-1"></i>
+                                {{ ajuste.get_tipo_ajuste_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-bold">
+                                {% if ajuste.tipo_ajuste == 'ENTRADA' %}+
+                                {% elif ajuste.tipo_ajuste == 'SALIDA' %}-
+                                {% endif %}
+                                {{ ajuste.cantidad }}
+                            </span>
+                        </td>
+                        <td>
+                            <span data-bs-toggle="tooltip" title="Usuario que realizó el ajuste">
+                                <i class="fas fa-user me-1 text-muted"></i> {{ ajuste.usuario.get_full_name|default:ajuste.usuario.username }}
+                            </span>
+                        </td>
+                        <td>
+                            <p class="mb-0 text-truncate" style="max-width: 250px;" data-bs-toggle="tooltip" title="{{ ajuste.motivo }}">
+                                {{ ajuste.motivo }}
+                            </p>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-balance-scale fa-3x text-muted mb-3"></i>
+                            <p class="mb-0">No hay ajustes de inventario registrados.</p>
+                            {% if request.GET.producto or request.GET.tipo or request.GET.fecha_desde or request.GET.fecha_hasta %}
+                                <p class="text-muted">Intenta cambiar los filtros de búsqueda.</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Paginación -->
+    {% if ajustes.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginación">
+            <ul class="pagination justify-content-center mb-0">
+                {% if ajustes.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ ajustes.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for i in ajustes.paginator.page_range %}
+                    {% if ajustes.number == i %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if ajustes.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ ajustes.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Siguiente">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Siguiente">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block inventory_js %}
+<script>
+    $(document).ready(function() {
+        // Activar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Aplicar filtros al cambiar select
+        $('#id_producto, #id_tipo').change(function() {
+            $('#searchForm').submit();
+        });
+        
+        // Limpiar filtros de fecha cuando se selecciona "Limpiar Filtros"
+        $('.btn-secondary').click(function(e) {
+            $('#id_fecha_desde, #id_fecha_hasta').val('');
+        });
+    });
+</script>
+{% endblock %}

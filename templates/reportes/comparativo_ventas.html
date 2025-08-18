@@ -1,0 +1,642 @@
+{% extends 'base.html' %}
+
+{% block title %}Comparativo de Ventas - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========== VARIABLES CSS ========== */
+    :root {
+        --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
+        --success-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        --warning-gradient: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        --danger-gradient: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        --card-shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.15);
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --border-radius-lg: 12px;
+    }
+
+    /* ========== LAYOUT GENERAL ========== */
+    .content-wrapper {
+        padding: 1.5rem;
+        background-color: var(--light);
+        min-height: 100vh;
+    }
+
+    /* ========== FORM CARD ========== */
+    .comparison-form {
+        background: var(--primary-gradient);
+        color: white;
+        border-radius: var(--border-radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .comparison-form::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+        animation: move 20s linear infinite;
+        opacity: 0.1;
+    }
+
+    @keyframes move {
+        0% { transform: translate(-50%, -50%); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .form-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .comparison-form .form-control,
+    .comparison-form .form-select {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: var(--gray-800);
+    }
+
+    .comparison-form .form-control:focus,
+    .comparison-form .form-select:focus {
+        background: white;
+        border-color: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+    }
+
+    .comparison-form .btn-light {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .comparison-form .btn-light:hover {
+        background: white;
+        transform: translateY(-2px);
+    }
+
+    /* ========== RESULTS CARD ========== */
+    .results-container {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        border: 1px solid var(--gray-200);
+    }
+
+    .results-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, white 100%);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .period-card {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        border: 1px solid var(--gray-200);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: var(--transition-smooth);
+        position: relative;
+    }
+
+    .period-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--card-shadow);
+    }
+
+    .period-card.current {
+        border-left: 4px solid var(--primary);
+        background: linear-gradient(135deg, white 0%, rgba(67, 97, 238, 0.02) 100%);
+    }
+
+    .period-card.comparison {
+        border-left: 4px solid var(--info);
+        background: linear-gradient(135deg, white 0%, rgba(23, 162, 184, 0.02) 100%);
+    }
+
+    .period-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--gray-700);
+    }
+
+    .period-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* ========== DIFFERENCES CARD ========== */
+    .differences-card {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        border: 1px solid rgba(255, 235, 59, 0.3);
+    }
+
+    .difference-item {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        transition: var(--transition-smooth);
+    }
+
+    .difference-item:hover {
+        background: rgba(255, 255, 255, 0.9);
+        transform: translateY(-2px);
+    }
+
+    .difference-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .difference-value.positive {
+        color: #28a745;
+    }
+
+    .difference-value.negative {
+        color: #dc3545;
+    }
+
+    .difference-percentage {
+        font-size: 0.9rem;
+        font-weight: 600;
+        opacity: 0.8;
+    }
+
+    /* ========== CHART SECTION ========== */
+    .chart-section {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        margin-top: 1.5rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 400px;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+        .content-wrapper {
+            padding: 1rem;
+        }
+
+        .comparison-form {
+            padding: 1.5rem;
+        }
+
+        .period-card {
+            padding: 1rem;
+        }
+
+        .period-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-container {
+            height: 300px;
+        }
+    }
+
+    /* ========== ANIMACIONES ========== */
+    .animate-fade-in {
+        animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ========== UTILIDADES ========== */
+    .no-comparison {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--gray-500);
+    }
+
+    .no-comparison i {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid content-wrapper">
+    <!-- ========== HEADER ========== -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center animate-fade-in">
+                <div>
+                    <h1 class="h3 mb-2">
+                        <i class="fas fa-balance-scale text-primary me-2"></i>
+                        Comparativo de Ventas
+                    </h1>
+                    <p class="text-muted mb-0">Análisis comparativo entre diferentes períodos de tiempo</p>
+                </div>
+                <div>
+                    <a href="{% url 'reportes:estadisticas_ventas' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line me-2"></i>Estadísticas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FORMULARIO DE COMPARACIÓN ========== -->
+    <div class="comparison-form animate-fade-in">
+        <div class="form-content">
+            <h4 class="mb-3">
+                <i class="fas fa-cog me-2"></i>
+                Configurar Comparación
+            </h4>
+            
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-white">
+                        <i class="fas fa-calendar me-1"></i>Período Actual
+                    </label>
+                    <select name="periodo_actual" class="form-select" id="periodoActual">
+                        <option value="dia" {% if form.periodo_actual.value == 'dia' %}selected{% endif %}>Día</option>
+                        <option value="semana" {% if form.periodo_actual.value == 'semana' %}selected{% endif %}>Semana</option>
+                        <option value="mes" {% if form.periodo_actual.value == 'mes' %}selected{% endif %}>Mes</option>
+                        <option value="trimestre" {% if form.periodo_actual.value == 'trimestre' %}selected{% endif %}>Trimestre</option>
+                        <option value="año" {% if form.periodo_actual.value == 'año' %}selected{% endif %}>Año</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label text-white">
+                        <i class="fas fa-calendar-day me-1"></i>Fecha de Referencia
+                    </label>
+                    <input type="date" name="fecha_actual" class="form-control" 
+                           value="{{ form.fecha_actual.value|date:'Y-m-d'|default:'' }}" required>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label text-white">
+                        <i class="fas fa-exchange-alt me-1"></i>Comparar Con
+                    </label>
+                    <select name="comparar_con" class="form-select" id="compararCon">
+                        <option value="anterior" {% if form.comparar_con.value == 'anterior' %}selected{% endif %}>Período Anterior</option>
+                        <option value="mismo_año_anterior" {% if form.comparar_con.value == 'mismo_año_anterior' %}selected{% endif %}>Mismo Período Año Anterior</option>
+                        <option value="personalizado" {% if form.comparar_con.value == 'personalizado' %}selected{% endif %}>Período Personalizado</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3" id="fechaComparacion" style="display: none;">
+                    <label class="form-label text-white">
+                        <i class="fas fa-calendar-check me-1"></i>Fecha Comparación
+                    </label>
+                    <input type="date" name="fecha_comparacion" class="form-control" 
+                           value="{{ form.fecha_comparacion.value|date:'Y-m-d'|default:'' }}">
+                </div>
+                
+                <div class="col-12 d-flex justify-content-center">
+                    <button type="submit" class="btn btn-light btn-lg px-4">
+                        <i class="fas fa-chart-bar me-2"></i>Generar Comparativo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== RESULTADOS DEL COMPARATIVO ========== -->
+    {% if datos_comparativo %}
+    <div class="results-container animate-fade-in">
+        <div class="results-header">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-line text-primary me-2"></i>
+                Resultados del Comparativo
+            </h5>
+        </div>
+        
+        <div class="p-4">
+            <!-- Períodos Comparados -->
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="period-card current">
+                        <div class="period-title">
+                            <i class="fas fa-calendar text-primary me-2"></i>
+                            Período Actual
+                        </div>
+                        <p class="text-muted mb-3">
+                            {{ datos_comparativo.periodo_actual.inicio|date:"d/m/Y" }} - 
+                            {{ datos_comparativo.periodo_actual.fin|date:"d/m/Y" }}
+                        </p>
+                        
+                        <div class="period-stats">
+                            <div class="stat-item">
+                                <div class="stat-value text-primary">${{ datos_comparativo.periodo_actual.total|floatformat:0 }}</div>
+                                <div class="stat-label">Total Ventas</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value text-info">{{ datos_comparativo.periodo_actual.cantidad }}</div>
+                                <div class="stat-label">Transacciones</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value text-success">${{ datos_comparativo.periodo_actual.promedio|floatformat:0 }}</div>
+                                <div class="stat-label">Promedio</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="period-card comparison">
+                        <div class="period-title">
+                            <i class="fas fa-history text-info me-2"></i>
+                            Período de Comparación
+                        </div>
+                        <p class="text-muted mb-3">
+                            {{ datos_comparativo.periodo_comparacion.inicio|date:"d/m/Y" }} - 
+                            {{ datos_comparativo.periodo_comparacion.fin|date:"d/m/Y" }}
+                        </p>
+                        
+                        <div class="period-stats">
+                            <div class="stat-item">
+                                <div class="stat-value text-primary">${{ datos_comparativo.periodo_comparacion.total|floatformat:0 }}</div>
+                                <div class="stat-label">Total Ventas</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value text-info">{{ datos_comparativo.periodo_comparacion.cantidad }}</div>
+                                <div class="stat-label">Transacciones</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value text-success">${{ datos_comparativo.periodo_comparacion.promedio|floatformat:0 }}</div>
+                                <div class="stat-label">Promedio</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diferencias -->
+            <div class="differences-card">
+                <h5 class="mb-3 text-center">
+                    <i class="fas fa-calculator me-2"></i>
+                    Análisis de Diferencias
+                </h5>
+                
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="difference-item">
+                            <div class="difference-value {% if datos_comparativo.diferencias.total >= 0 %}positive{% else %}negative{% endif %}">
+                                {% if datos_comparativo.diferencias.total >= 0 %}+{% endif %} ${{ datos_comparativo.diferencias.total|floatformat:0 }}
+                            </div>
+                            <div class="difference-percentage">
+                                ({{ datos_comparativo.diferencias.porcentaje_total|floatformat:1 }}%)
+                            </div>
+                            <div class="stat-label mt-1">Diferencia en Ventas</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="difference-item">
+                            <div class="difference-value {% if datos_comparativo.diferencias.cantidad >= 0 %}positive{% else %}negative{% endif %}">
+                                {% if datos_comparativo.diferencias.cantidad >= 0 %}+{% endif %}{{ datos_comparativo.diferencias.cantidad }}
+                            </div>
+                            <div class="stat-label mt-1">Diferencia en Transacciones</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="difference-item">
+                            <div class="difference-value {% if datos_comparativo.diferencias.promedio >= 0 %}positive{% else %}negative{% endif %}">
+                                {% if datos_comparativo.diferencias.promedio >= 0 %}+{% endif %} ${{ datos_comparativo.diferencias.promedio|floatformat:0 }}
+                            </div>
+                            <div class="stat-label mt-1">Diferencia en Promedio</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico Comparativo -->
+            <div class="chart-section">
+                <h6 class="mb-3">
+                    <i class="fas fa-chart-bar text-primary me-2"></i>
+                    Comparación Visual
+                </h6>
+                <div class="chart-container">
+                    <canvas id="comparativoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="no-comparison animate-fade-in">
+        <i class="fas fa-chart-bar"></i>
+        <h4>Configure los Parámetros</h4>
+        <p class="text-muted mb-4">
+            Seleccione los períodos que desea comparar y haga clic en "Generar Comparativo"<br>
+            para ver el análisis detallado de sus ventas.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ========== DATOS PARA JAVASCRIPT ========== -->
+{% if datos_comparativo %}
+<script id="datos-comparativo" type="application/json">
+{
+    "periodo_actual": {
+        "total": {{ datos_comparativo.periodo_actual.total|default:0 }},
+        "cantidad": {{ datos_comparativo.periodo_actual.cantidad|default:0 }},
+        "promedio": {{ datos_comparativo.periodo_actual.promedio|default:0 }}
+    },
+    "periodo_comparacion": {
+        "total": {{ datos_comparativo.periodo_comparacion.total|default:0 }},
+        "cantidad": {{ datos_comparativo.periodo_comparacion.cantidad|default:0 }},
+        "promedio": {{ datos_comparativo.periodo_comparacion.promedio|default:0 }}
+    }
+}
+</script>
+{% endif %}
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ========== FUNCIONES DEL FORMULARIO ==========
+
+function toggleFechaComparacion() {
+    const compararCon = document.getElementById('compararCon');
+    const fechaComparacion = document.getElementById('fechaComparacion');
+    
+    if (compararCon && fechaComparacion) {
+        if (compararCon.value === 'personalizado') {
+            fechaComparacion.style.display = 'block';
+            const input = fechaComparacion.querySelector('input');
+            if (input) input.required = true;
+        } else {
+            fechaComparacion.style.display = 'none';
+            const input = fechaComparacion.querySelector('input');
+            if (input) input.required = false;
+        }
+    }
+}
+
+// ========== GRÁFICO COMPARATIVO ==========
+function initComparativoChart() {
+    const scriptElement = document.getElementById('datos-comparativo');
+    if (!scriptElement) {
+        console.warn('No se encontraron datos para el gráfico comparativo');
+        return;
+    }
+
+    try {
+        const datos = JSON.parse(scriptElement.textContent);
+        const ctx = document.getElementById('comparativoChart');
+        
+        if (!ctx) {
+            console.warn('No se encontró el canvas para el gráfico');
+            return;
+        }
+
+        new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Total Ventas', 'Transacciones', 'Promedio por Venta'],
+                datasets: [{
+                    label: 'Período Actual',
+                    data: [
+                        datos.periodo_actual.total || 0,
+                        datos.periodo_actual.cantidad || 0,
+                        datos.periodo_actual.promedio || 0
+                    ],
+                    backgroundColor: 'rgba(67, 97, 238, 0.6)',
+                    borderColor: 'rgba(67, 97, 238, 1)',
+                    borderWidth: 2
+                }, {
+                    label: 'Período Comparación',
+                    data: [
+                        datos.periodo_comparacion.total || 0,
+                        datos.periodo_comparacion.cantidad || 0,
+                        datos.periodo_comparacion.promedio || 0
+                    ],
+                    backgroundColor: 'rgba(23, 162, 184, 0.6)',
+                    borderColor: 'rgba(23, 162, 184, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                if (index === 0 || index === 2) { // Total y Promedio
+                                    return '$' + value.toLocaleString();
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.dataIndex === 0 || context.dataIndex === 2) {
+                                    label += '$' + context.parsed.y.toLocaleString();
+                                } else {
+                                    label += context.parsed.y.toLocaleString();
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error al inicializar el gráfico comparativo:', error);
+    }
+}
+
+// ========== EVENT LISTENERS ==========
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Configurar evento de cambio en "Comparar Con"
+        const compararConElement = document.getElementById('compararCon');
+        if (compararConElement) {
+            compararConElement.addEventListener('change', toggleFechaComparacion);
+        }
+        
+        // Configurar estado inicial
+        toggleFechaComparacion();
+        
+        // Inicializar gráfico comparativo si hay datos
+        const datosScript = document.getElementById('datos-comparativo');
+        if (datosScript) {
+            initComparativoChart();
+        }
+        
+        // Animaciones de entrada
+        const elements = document.querySelectorAll('.animate-fade-in');
+        elements.forEach((el, index) => {
+            el.style.animationDelay = `${index * 0.1}s`;
+        });
+        
+        console.log('Comparativo de ventas cargado correctamente');
+    } catch (error) {
+        console.error('Error al inicializar la página:', error);
+    }
+});
+</script>
+{% endblock %}

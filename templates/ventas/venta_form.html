@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if venta %}Editar Venta{% else %}Nueva Venta{% endif %} - VPMOTOS{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h3 class="mb-0">
+                {% if venta %}
+                <i class="fas fa-edit me-2"></i>Editar Venta #{{ venta.numero_factura }}
+                {% else %}
+                <i class="fas fa-plus me-2"></i>Nueva Venta
+                {% endif %}
+            </h3>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                <a href="{% url 'ventas:lista_ventas' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+                {% if venta %}
+                <a href="{% url 'ventas:factura_pdf' %}?id={{ venta.id }}" class="btn btn-primary" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Ver PDF
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Datos de la Venta</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="ventaForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.consumidor_final }}
+                                <label class="form-check-label" for="{{ form.consumidor_final.id_for_label }}">
+                                    {{ form.consumidor_final.label }}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3" id="clienteIdContainer">
+                            <label for="{{ form.cliente_identificacion.id_for_label }}" class="form-label">{{ form.cliente_identificacion.label }}</label>
+                            <div class="input-group">
+                                {{ form.cliente_identificacion }}
+                                <button class="btn btn-outline-primary" type="button" id="buscarClienteBtn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            {% if form.cliente_identificacion.errors %}
+                            <div class="text-danger">
+                                {{ form.cliente_identificacion.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.cliente_nombre.id_for_label }}" class="form-label">Nombre del Cliente</label>
+                            {{ form.cliente_nombre }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.tipo_pago.id_for_label }}" class="form-label">{{ form.tipo_pago.label }}</label>
+                            {{ form.tipo_pago }}
+                            {% if form.tipo_pago.errors %}
+                            <div class="text-danger">
+                                {{ form.tipo_pago.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3" id="datosPagoContainer" style="display: none;">
+                            <label for="{{ form.datos_pago.id_for_label }}" class="form-label">{{ form.datos_pago.label }}</label>
+                            {{ form.datos_pago }}
+                            {% if form.datos_pago.errors %}
+                            <div class="text-danger">
+                                {{ form.datos_pago.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.observaciones.id_for_label }}" class="form-label">{{ form.observaciones.label }}</label>
+                            {{ form.observaciones }}
+                            {% if form.observaciones.errors %}
+                            <div class="text-danger">
+                                {{ form.observaciones.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                {% if venta %}
+                                <i class="fas fa-save me-1"></i> Actualizar Venta
+                                {% else %}
+                                <i class="fas fa-save me-1"></i> Crear Venta
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        {% if venta %}
+        <div class="col-md-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Productos y Servicios</h5>
+                    <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#agregarProductoModal">
+                        <i class="fas fa-plus me-1"></i> Agregar Producto
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="detallesForm">
+                        {% csrf_token %}
+                        {{ formset.management_form }}
+                        
+                        <div class="table-responsive mb-3">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Producto/Servicio</th>
+                                        <th width="100">Cantidad</th>
+                                        <th width="120">Precio</th>
+                                        <th width="120">Descuento</th>
+                                        <th width="40">Eliminar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detallesContainer">
+                                    {% for form in formset %}
+                                    <tr class="detalle-form">
+                                        <td>
+                                            {{ form.id }}
+                                            {{ form.producto }}
+                                            {{ form.servicio }}
+                                            {{ form.tecnico }}
+                                            
+                                            <div class="input-group mb-2">
+                                                {{ form.producto_codigo }}
+                                                <button class="btn btn-outline-primary buscar-producto-btn" type="button">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                            {{ form.producto_nombre }}
+                                        </td>
+                                        <td>
+                                            {{ form.cantidad }}
+                                        </td>
+                                        <td>
+                                            {{ form.precio_unitario }}
+                                        </td>
+                                        <td>
+                                            {{ form.descuento }}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check">
+                                                {{ form.DELETE }}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-md-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h4 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Proceso de Venta</h4>
+                        <p>Para crear una nueva venta, sigue estos pasos:</p>
+                        <ol>
+                            <li>Completa los datos básicos de la venta (cliente, tipo de pago, etc.)</li>
+                            <li>Haz clic en "Crear Venta" para registrar la venta</li>
+                            <li>Una vez creada, podrás agregar productos o servicios</li>
+                        </ol>
+                        <hr>
+                        <p class="mb-0">Si prefieres usar una interfaz más ágil, prueba el <a href="{% url 'ventas:punto_venta' %}" class="alert-link">Punto de Venta</a>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para agregar producto -->
+{% if venta %}
+<div class="modal fade" id="agregarProductoModal" tabindex="-1" aria-labelledby="agregarProductoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="agregarProductoModalLabel"><i class="fas fa-plus me-2"></i>Agregar Producto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'ventas:agregar_producto' venta.id %}" method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label">Código del Producto</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="codigo" name="codigo" required>
+                            <button class="btn btn-outline-primary" type="button" id="scanBtn">
+                                <i class="fas fa-barcode"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cantidad" class="form-label">Cantidad</label>
+                        <input type="number" class="form-control" id="cantidad" name="cantidad" value="1" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mostrar/ocultar campo de identificación según consumidor final
+        const consumidorFinalCheck = document.getElementById('{{ form.consumidor_final.id_for_label }}');
+        const clienteIdContainer = document.getElementById('clienteIdContainer');
+        
+        if (consumidorFinalCheck) {
+            consumidorFinalCheck.addEventListener('change', function() {
+                if (this.checked) {
+                    clienteIdContainer.style.display = 'none';
+                    document.getElementById('{{ form.cliente_nombre.id_for_label }}').value = 'Consumidor Final';
+                } else {
+                    clienteIdContainer.style.display = 'block';
+                    document.getElementById('{{ form.cliente_nombre.id_for_label }}').value = '';
+                }
+            });
+            
+            // Trigger change event on page load
+            consumidorFinalCheck.dispatchEvent(new Event('change'));
+        }
+        
+        // Mostrar/ocultar datos de pago según tipo
+        const tipoPagoSelect = document.getElementById('{{ form.tipo_pago.id_for_label }}');
+        const datosPagoContainer = document.getElementById('datosPagoContainer');
+        
+        if (tipoPagoSelect) {
+            tipoPagoSelect.addEventListener('change', function() {
+                const selectedOption = this.value;
+                if (selectedOption === 'EFECTIVO') {
+                    datosPagoContainer.style.display = 'none';
+                } else {
+                    datosPagoContainer.style.display = 'block';
+                }
+            });
+            
+            // Trigger change event on page load
+            tipoPagoSelect.dispatchEvent(new Event('change'));
+        }
+        
+        // Buscar cliente por identificación
+        const buscarClienteBtn = document.getElementById('buscarClienteBtn');
+        if (buscarClienteBtn) {
+            buscarClienteBtn.addEventListener('click', function() {
+                const identificacion = document.getElementById('{{ form.cliente_identificacion.id_for_label }}').value;
+                if (!identificacion) {
+                    alert('Ingrese una identificación para buscar');
+                    return;
+                }
+                
+                fetch(`/clientes/api/buscar/?identificacion=${identificacion}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const cliente = data.cliente;
+                            document.getElementById('{{ form.cliente_nombre.id_for_label }}').value = `${cliente.nombres} ${cliente.apellidos}`;
+                        } else {
+                            alert('Cliente no encontrado');
+                            document.getElementById('{{ form.cliente_nombre.id_for_label }}').value = '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al buscar el cliente');
+                    });
+            });
+        }
+        
+        // Buscar producto por código en líneas de detalle
+        const buscarProductoBtns = document.querySelectorAll('.buscar-producto-btn');
+        buscarProductoBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const row = this.closest('tr');
+                const codigoInput = row.querySelector('[id$="-producto_codigo"]');
+                const nombreInput = row.querySelector('[id$="-producto_nombre"]');
+                const precioInput = row.querySelector('[id$="-precio_unitario"]');
+                
+                if (!codigoInput || !nombreInput || !precioInput) return;
+                
+                const codigo = codigoInput.value;
+                if (!codigo) {
+                    alert('Ingrese un código para buscar');
+                    return;
+                }
+                
+                fetch(`/inventario/api/buscar-producto/?codigo=${codigo}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const producto = data.producto;
+                            nombreInput.value = producto.nombre;
+                            precioInput.value = producto.precio;
+                            
+                            // Actualizar campo oculto de producto
+                            const productoInput = row.querySelector('[id$="-producto"]');
+                            if (productoInput) {
+                                productoInput.value = producto.id;
+                            }
+                        } else {
+                            alert('Producto no encontrado');
+                            nombreInput.value = '';
+                            precioInput.value = '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al buscar el producto');
+                    });
+            });
+        });
+        
+        // Escanear código de barras
+        const scanBtn = document.getElementById('scanBtn');
+        if (scanBtn) {
+            scanBtn.addEventListener('click', function() {
+                // Aquí iría la lógica para activar el escáner
+                alert('Función de escaneo no implementada');
+            });
+        }
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

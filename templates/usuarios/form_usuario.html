@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }} - VPMOTOS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-user me-2"></i>{{ titulo }}</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.usuario.id_for_label }}" class="form-label">{{ form.usuario.label }}</label>
+                        {{ form.usuario }}
+                        {% if form.usuario.errors %}
+                        <div class="text-danger">
+                            {{ form.usuario.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="text-danger">
+                            {{ form.email.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label">{{ form.nombre.label }}</label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                        <div class="text-danger">
+                            {{ form.nombre.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.apellido.id_for_label }}" class="form-label">{{ form.apellido.label }}</label>
+                        {{ form.apellido }}
+                        {% if form.apellido.errors %}
+                        <div class="text-danger">
+                            {{ form.apellido.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.telefono.id_for_label }}" class="form-label">{{ form.telefono.label }}</label>
+                        {{ form.telefono }}
+                        {% if form.telefono.errors %}
+                        <div class="text-danger">
+                            {{ form.telefono.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.rol.id_for_label }}" class="form-label">{{ form.rol.label }}</label>
+                        {{ form.rol }}
+                        {% if form.rol.errors %}
+                        <div class="text-danger">
+                            {{ form.rol.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.password1.id_for_label }}" class="form-label">{{ form.password1.label }}</label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                        <div class="text-danger">
+                            {{ form.password1.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label">{{ form.password2.label }}</label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                        <div class="text-danger">
+                            {{ form.password2.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+                            {{ form.activo }}
+                            <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                {{ form.activo.label }}
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+                            {{ form.is_staff }}
+                            <label class="form-check-label" for="{{ form.is_staff.id_for_label }}">
+                                Acceso al Admin de Django
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,945 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Taller - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary: #2563eb;
+        --secondary: #7c3aed;
+        --success: #059669;
+        --warning: #d97706;
+        --danger: #dc2626;
+        --info: #0891b2;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-500: #6b7280;
+        --gray-700: #374151;
+        --gray-900: #111827;
+        --border-radius: 12px;
+        --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .dashboard-container {
+        padding: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* ========== HEADER MEJORADO ========== */
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    .dashboard-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    /* ========== ACCIONES PRINCIPALES - MÁS PROMINENTES ========== */
+    .quick-actions-main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .action-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        text-align: center;
+        transition: var(--transition);
+        border: 2px solid transparent;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary);
+    }
+
+    .action-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+        border-color: var(--primary);
+    }
+
+    .action-card.nueva-orden::before { background: linear-gradient(90deg, #059669, #10b981); }
+    .action-card.nuevo-tecnico::before { background: linear-gradient(90deg, #2563eb, #3b82f6); }
+    .action-card.reportes::before { background: linear-gradient(90deg, #7c3aed, #8b5cf6); }
+    .action-card.buscar::before { background: linear-gradient(90deg, #d97706, #f59e0b); }
+
+    .action-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        margin: 0 auto 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: white;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+    }
+
+    .action-card.nueva-orden .action-icon { background: linear-gradient(135deg, #059669, #10b981); }
+    .action-card.nuevo-tecnico .action-icon { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+    .action-card.reportes .action-icon { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+    .action-card.buscar .action-icon { background: linear-gradient(135deg, #d97706, #f59e0b); }
+
+    .action-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--gray-900);
+    }
+
+    .action-subtitle {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+
+    /* ========== ESTADÍSTICAS VISUALES ========== */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        box-shadow: var(--box-shadow);
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .stat-ordenes .stat-icon { background: linear-gradient(135deg, #dc2626, #ef4444); }
+    .stat-dinero .stat-icon { background: linear-gradient(135deg, #059669, #10b981); }
+    .stat-tecnicos .stat-icon { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+    .stat-servicios .stat-icon { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stat-label {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-bottom: 1rem;
+    }
+
+    .stat-progress {
+        height: 8px;
+        background: var(--gray-200);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .stat-progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 1s ease-in-out;
+    }
+
+    .stat-ordenes .stat-progress-fill { background: linear-gradient(90deg, #dc2626, #ef4444); }
+    .stat-dinero .stat-progress-fill { background: linear-gradient(90deg, #059669, #10b981); }
+    .stat-tecnicos .stat-progress-fill { background: linear-gradient(90deg, #2563eb, #3b82f6); }
+    .stat-servicios .stat-progress-fill { background: linear-gradient(90deg, #7c3aed, #8b5cf6); }
+
+    .stat-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.875rem;
+        color: var(--gray-500);
+    }
+
+    /* ========== NAVEGACIÓN RÁPIDA MEJORADA ========== */
+    .quick-nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .nav-item {
+        background: white;
+        padding: 1.5rem 1rem;
+        border-radius: var(--border-radius);
+        text-align: center;
+        text-decoration: none;
+        color: var(--gray-700);
+        border: 2px solid var(--gray-200);
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .nav-item:hover {
+        transform: translateY(-3px);
+        border-color: var(--primary);
+        color: var(--primary);
+        box-shadow: var(--box-shadow);
+    }
+
+    .nav-item i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .nav-item span {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .nav-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: var(--danger);
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    /* ========== CONTENT GRID ========== */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+
+    .content-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        overflow: hidden;
+    }
+
+    .content-header {
+        background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .content-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    /* ========== ÓRDENES MEJORADAS ========== */
+    .orders-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .order-item {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .order-item:hover {
+        background: var(--gray-50);
+        transform: translateX(8px);
+    }
+
+    .order-status {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+    }
+
+    .order-status.pendiente { background: var(--warning); }
+    .order-status.en-proceso { background: var(--info); }
+    .order-status.completado { background: var(--success); }
+    .order-status.entregado { background: var(--primary); }
+
+    .order-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .order-info h6 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .order-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+
+    .order-price {
+        text-align: right;
+    }
+
+    .order-price .amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--success);
+    }
+
+    .order-price .days {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    /* ========== PANEL LATERAL ========== */
+    .sidebar-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .sidebar-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .sidebar-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .service-list {
+        padding: 1rem;
+    }
+
+    .service-item {
+        padding: 1rem;
+        border-bottom: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: var(--transition);
+    }
+
+    .service-item:hover {
+        background: var(--gray-50);
+        padding-left: 1.5rem;
+    }
+
+    .service-item:last-child {
+        border-bottom: none;
+    }
+
+    .service-name {
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .service-count {
+        background: var(--primary);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    /* ========== ACCIONES SIDEBAR ========== */
+    .action-list {
+        padding: 1rem;
+    }
+
+    .action-button {
+        display: block;
+        width: 100%;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        background: var(--gray-50);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        text-decoration: none;
+        color: var(--gray-700);
+        font-weight: 600;
+        transition: var(--transition);
+        text-align: left;
+    }
+
+    .action-button:hover {
+        background: white;
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateX(4px);
+    }
+
+    .action-button i {
+        margin-right: 0.75rem;
+        width: 20px;
+    }
+
+    .action-badge {
+        float: right;
+        background: var(--primary);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 1rem;
+        }
+        
+        .dashboard-header {
+            padding: 1.5rem;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 2rem;
+        }
+        
+        .quick-actions-main {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        
+        .action-card {
+            padding: 1.5rem 1rem;
+        }
+        
+        .action-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 2rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .quick-nav {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+    }
+
+    /* ========== ANIMACIONES ========== */
+    .animate-fade-in {
+        animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-scale {
+        animation: scaleIn 0.5s ease-out;
+    }
+
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    /* ========== FLOATING BUTTON ========== */
+    .fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, var(--success), #10b981);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        box-shadow: 0 8px 25px rgba(5, 150, 105, 0.3);
+        cursor: pointer;
+        transition: var(--transition);
+        z-index: 1000;
+    }
+
+    .fab:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 35px rgba(5, 150, 105, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- ========== HEADER PRINCIPAL ========== -->
+    <div class="dashboard-header animate-fade-in">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1>
+                    <i class="fas fa-tools me-3"></i>
+                    Dashboard del Taller
+                </h1>
+                <p class="mb-0 opacity-90">
+                    <i class="fas fa-calendar-day me-2"></i>
+                    {{ hoy|date:"l, d \d\e F \d\e Y" }}
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="d-flex align-items-center justify-content-md-end gap-3">
+                    <div class="text-center">
+                        <div class="fs-3 fw-bold">{{ ordenes_pendientes }}</div>
+                        <small>Pendientes</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="fs-3 fw-bold">${{ facturacion_mes|floatformat:0 }}</div>
+                        <small>Este Mes</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ACCIONES PRINCIPALES ========== -->
+    <div class="quick-actions-main animate-fade-in">
+        <a href="{% url 'taller:orden_create' %}" class="action-card nueva-orden">
+            <div class="action-icon">
+                <i class="fas fa-plus-circle"></i>
+            </div>
+            <div class="action-title">Nueva Orden</div>
+            <div class="action-subtitle">Crear orden de trabajo</div>
+        </a>
+        
+        <a href="{% url 'taller:orden_list' %}?estado=PENDIENTE" class="action-card buscar">
+            <div class="action-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="action-title">Ver Pendientes</div>
+            <div class="action-subtitle">{{ ordenes_pendientes }} órdenes</div>
+        </a>
+        
+        <a href="{% url 'taller:tecnico_create' %}" class="action-card nuevo-tecnico">
+            <div class="action-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="action-title">Nuevo Técnico</div>
+            <div class="action-subtitle">Agregar personal</div>
+        </a>
+        
+        <a href="{% url 'taller:reporte_tecnicos' %}" class="action-card reportes">
+            <div class="action-icon">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <div class="action-title">Reportes</div>
+            <div class="action-subtitle">Ver estadísticas</div>
+        </a>
+    </div>
+
+    <!-- ========== ESTADÍSTICAS VISUALES ========== -->
+    <div class="stats-grid animate-fade-in">
+        <div class="stat-card stat-ordenes">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-number">{{ ordenes_pendientes }}</div>
+            <div class="stat-label">Órdenes Pendientes</div>
+            <div class="stat-progress">
+                <div class="stat-progress-fill" data-value="{{ ordenes_pendientes }}"></div>
+            </div>
+            <div class="stat-meta">
+                <span>Hoy: {{ ordenes_hoy }}</span>
+                <span class="text-warning">{{ ordenes_vencidas|default:0 }} vencidas</span>
+            </div>
+        </div>
+
+        <div class="stat-card stat-dinero">
+            <div class="stat-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-number">${{ facturacion_mes|floatformat:0 }}</div>
+            <div class="stat-label">Facturación Mensual</div>
+            <div class="stat-progress">
+                <div class="stat-progress-fill" style="width: 75%"></div>
+            </div>
+            <div class="stat-meta">
+                <span>{{ ordenes_mes }} órdenes</span>
+                <span class="text-success">+15% vs mes anterior</span>
+            </div>
+        </div>
+
+        <div class="stat-card stat-tecnicos">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-number">{{ tecnicos_activos }}</div>
+            <div class="stat-label">Técnicos Activos</div>
+            <div class="stat-progress">
+                <div class="stat-progress-fill" style="width: 90%"></div>
+            </div>
+            <div class="stat-meta">
+                <span>{{ evaluacion_promedio|floatformat:1 }}★ promedio</span>
+                <span>{{ tecnicos_disponibles|default:tecnicos_activos }} disponibles</span>
+            </div>
+        </div>
+
+        <div class="stat-card stat-servicios">
+            <div class="stat-icon">
+                <i class="fas fa-wrench"></i>
+            </div>
+            <div class="stat-number">{{ servicios_mes|default:0 }}</div>
+            <div class="stat-label">Servicios del Mes</div>
+            <div class="stat-progress">
+                <div class="stat-progress-fill" style="width: 65%"></div>
+            </div>
+            <div class="stat-meta">
+                <span>{{ promedio_servicios_dia|floatformat:1 }}/día</span>
+                <span>{{ tipos_servicios_activos|default:0 }} tipos</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== NAVEGACIÓN RÁPIDA ========== -->
+    <div class="quick-nav animate-fade-in">
+        <a href="{% url 'taller:orden_list' %}?estado=EN_PROCESO" class="nav-item">
+            <i class="fas fa-cog text-primary"></i>
+            <span>En Proceso</span>
+            {% if ordenes_proceso %}
+            <div class="nav-badge">{{ ordenes_proceso }}</div>
+            {% endif %}
+        </a>
+        
+        <a href="{% url 'taller:orden_list' %}?estado=COMPLETADO" class="nav-item">
+            <i class="fas fa-check-circle text-success"></i>
+            <span>Completados</span>
+        </a>
+        
+        <a href="{% url 'taller:tecnico_list' %}" class="nav-item">
+            <i class="fas fa-users-cog text-info"></i>
+            <span>Técnicos</span>
+        </a>
+        
+        <a href="{% url 'taller:tipo_servicio_list' %}" class="nav-item">
+            <i class="fas fa-cogs text-warning"></i>
+            <span>Servicios</span>
+        </a>
+        
+        <a href="{% url 'taller:orden_list' %}" class="nav-item">
+            <i class="fas fa-list text-secondary"></i>
+            <span>Todas</span>
+        </a>
+        
+        <a href="{% url 'taller:reporte_servicios' %}" class="nav-item">
+            <i class="fas fa-chart-line text-purple"></i>
+            <span>Reportes</span>
+        </a>
+    </div>
+
+    <!-- ========== CONTENIDO PRINCIPAL ========== -->
+    <div class="content-grid animate-fade-in">
+        <!-- ÓRDENES RECIENTES -->
+        <div class="content-card">
+            <div class="content-header">
+                <h5 class="content-title">
+                    <i class="fas fa-list-alt text-primary"></i>
+                    Órdenes Recientes
+                </h5>
+            </div>
+            
+            <div class="orders-container">
+                {% for orden in ordenes_recientes %}
+                <div class="order-item" data-orden-url="{% url 'taller:orden_detail' orden.pk %}">>
+                    <div class="order-status {{ orden.estado|lower }}"></div>
+                    
+                    <div class="order-main">
+                        <div class="order-info">
+                            <h6>{{ orden.numero_orden }}</h6>
+                            <div class="order-meta">
+                                <div>
+                                    <i class="fas fa-user me-1"></i>
+                                    {{ orden.cliente.get_nombre_completo }}
+                                </div>
+                                <div>
+                                    <i class="fas fa-motorcycle me-1"></i>
+                                    {{ orden.moto_placa }}
+                                </div>
+                                <div>
+                                    <i class="fas fa-wrench me-1"></i>
+                                    {{ orden.tecnico_principal.get_nombre_completo }}
+                                </div>
+                                <div>
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ orden.fecha_ingreso|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="order-price">
+                            <div class="amount">${{ orden.precio_total|floatformat:0 }}</div>
+                            <div class="days">{{ orden.get_dias_transcurridos }} días</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-{{ orden.get_color_estado }} px-3 py-2">
+                            {{ orden.get_estado_display }}
+                        </span>
+                        
+                        <div class="btn-group btn-group-sm">
+                            {% if orden.estado == 'COMPLETADO' %}
+                            <a href="{% url 'taller:generar_cotizacion_pdf' orden.pk %}" 
+                               class="btn btn-outline-primary btn-sm" target="_blank">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5">
+                    <i class="fas fa-clipboard-list fs-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">No hay órdenes registradas</h5>
+                    <p class="text-muted">Comienza creando tu primera orden</p>
+                    <a href="{% url 'taller:orden_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Nueva Orden
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- SIDEBAR -->
+        <div>
+            <!-- SERVICIOS POPULARES -->
+            <div class="sidebar-card animate-scale">
+                <div class="sidebar-header">
+                    <h5 class="sidebar-title">
+                        <i class="fas fa-star me-2"></i>
+                        Servicios Populares
+                    </h5>
+                </div>
+                <div class="service-list">
+                    {% for servicio in servicios_populares %}
+                    <div class="service-item">
+                        <div class="service-name">{{ servicio.tipo_servicio__nombre }}</div>
+                        <div class="service-count">{{ servicio.cantidad }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-chart-bar text-muted"></i>
+                        <p class="text-muted mb-0">Sin datos</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ACCIONES RÁPIDAS -->
+            <div class="sidebar-card animate-scale">
+                <div class="sidebar-header">
+                    <h5 class="sidebar-title">
+                        <i class="fas fa-bolt me-2"></i>
+                        Acceso Rápido
+                    </h5>
+                </div>
+                <div class="action-list">
+                    <a href="{% url 'taller:orden_list' %}?estado=PENDIENTE" class="action-button">
+                        <i class="fas fa-clock text-warning"></i>
+                        Órdenes Pendientes
+                        <span class="action-badge">{{ ordenes_pendientes }}</span>
+                    </a>
+                    
+                    <a href="{% url 'taller:orden_list' %}?estado=EN_PROCESO" class="action-button">
+                        <i class="fas fa-cog text-primary"></i>
+                        En Proceso
+                        <span class="action-badge">{{ ordenes_proceso|default:0 }}</span>
+                    </a>
+                    
+                    <a href="{% url 'taller:tecnico_list' %}" class="action-button">
+                        <i class="fas fa-users text-success"></i>
+                        Gestionar Técnicos
+                    </a>
+                    
+                    <a href="{% url 'taller:tipo_servicio_list' %}" class="action-button">
+                        <i class="fas fa-cogs text-info"></i>
+                        Tipos de Servicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FLOATING ACTION BUTTON -->
+<button class="fab" data-nueva-orden-url="{% url 'taller:orden_create' %}" title="Nueva Orden">
+    <i class="fas fa-plus"></i>
+</button>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejar clicks en órdenes
+    document.querySelectorAll('.order-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const url = this.getAttribute('data-orden-url');
+            if (url) {
+                window.location.href = url;
+            }
+        });
+    });
+
+    // Manejar floating action button
+    const fab = document.querySelector('.fab');
+    if (fab) {
+        fab.addEventListener('click', function() {
+            const url = this.getAttribute('data-nueva-orden-url');
+            if (url) {
+                window.location.href = url;
+            }
+        });
+    }
+
+    // Animar las barras de progreso
+    setTimeout(() => {
+        const progressBars = document.querySelectorAll('.stat-progress-fill');
+        progressBars.forEach(bar => {
+            const value = parseInt(bar.getAttribute('data-value')) || 0;
+            // Calcular porcentaje (máximo 100, escalado según el valor)
+            const percentage = Math.min(100, Math.max(5, (value / 20) * 100));
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = percentage + '%';
+            }, 100);
+        });
+    }, 500);
+
+    // Animar las estadísticas
+    const statNumbers = document.querySelectorAll('.stat-number');
+    statNumbers.forEach((stat, index) => {
+        setTimeout(() => {
+            stat.style.animation = 'scaleIn 0.6s ease-out';
+        }, index * 100);
+    });
+
+    // Hover effects para las cards de acciones
+    document.querySelectorAll('.action-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+
+    // Actualizar estadísticas cada 60 segundos
+    setInterval(() => {
+        // Aquí puedes agregar código para actualizar las estadísticas via AJAX
+        console.log('Actualizando estadísticas...');
+    }, 60000);
+});
+</script>
+{% endblock %}

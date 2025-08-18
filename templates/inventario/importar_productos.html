@@ -1,0 +1,652 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Importar Productos desde CSV{% endblock %}
+
+{% block breadcrumb_page %}
+<li class="breadcrumb-item"><a href="{% url 'inventario:lista_productos' %}">Inventario</a></li>
+<li class="breadcrumb-item active">Importar Productos</li>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-file-import me-2"></i>Importar Productos desde CSV</h2>
+            <p class="text-muted">Importa productos de forma masiva desde un archivo CSV</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i>Volver a Productos
+            </a>
+            <a href="{% url 'inventario:exportar_productos' %}" class="btn btn-success">
+                <i class="fas fa-file-export me-1"></i>Exportar CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas actuales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-primary">
+                        <i class="fas fa-boxes fa-2x mb-2"></i>
+                    </div>
+                    <h3 class="mb-0">{{ total_productos }}</h3>
+                    <small class="text-muted">Productos Totales</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-success">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    </div>
+                    <h3 class="mb-0">{{ productos_activos }}</h3>
+                    <small class="text-muted">Productos Activos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-info">
+                        <i class="fas fa-file-csv fa-2x mb-2"></i>
+                    </div>
+                    <h3 class="mb-0" id="archivos-procesados">0</h3>
+                    <small class="text-muted">Archivos Procesados Hoy</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-warning">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                    </div>
+                    <h3 class="mb-0" id="ultima-importacion">Nunca</h3>
+                    <small class="text-muted">Última Importación</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel de importación -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-upload me-2"></i>Subir Archivo CSV
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Formulario de subida -->
+                    <form id="form-importacion" method="post" enctype="multipart/form-data" class="mb-4">
+                        {% csrf_token %}
+                        
+                        <!-- Zona de drag & drop -->
+                        <div id="drop-zone" class="border-2 border-dashed border-secondary rounded p-5 text-center mb-3" 
+                             style="transition: all 0.3s ease;">
+                            <div id="drop-content">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h5>Arrastra tu archivo CSV aquí</h5>
+                                <p class="text-muted mb-3">o haz clic para seleccionar</p>
+                                <input type="file" id="archivo_csv" name="archivo_csv" accept=".csv" class="d-none">
+                                <button type="button" class="btn btn-primary" id="btn-seleccionar">
+                                    <i class="fas fa-folder-open me-1"></i>Seleccionar Archivo
+                                </button>
+                            </div>
+                            
+                            <!-- Información del archivo seleccionado -->
+                            <div id="archivo-info" class="d-none">
+                                <div class="alert alert-info mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-csv fa-2x me-3"></i>
+                                        <div class="flex-grow-1 text-start">
+                                            <h6 class="mb-1" id="archivo-nombre">archivo.csv</h6>
+                                            <small id="archivo-detalles">Tamaño: 0 KB</small>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="btn-remover">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Vista previa del CSV -->
+                                <div id="csv-preview" class="d-none">
+                                    <h6><i class="fas fa-eye me-1"></i>Vista Previa</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-dark">
+                                                <tr id="csv-headers"></tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <span id="csv-info">0 filas detectadas</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Opciones de importación -->
+                        <div id="opciones-importacion" class="d-none">
+                            <h6><i class="fas fa-cog me-1"></i>Opciones de Importación</h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="actualizar-existentes" checked>
+                                        <label class="form-check-label" for="actualizar-existentes">
+                                            Actualizar productos existentes
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="crear-categorias" checked>
+                                        <label class="form-check-label" for="crear-categorias">
+                                            Crear categorías/marcas automáticamente
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="validar-precios" checked>
+                                        <label class="form-check-label" for="validar-precios">
+                                            Validar que precios sean positivos
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="modo-prueba">
+                                        <label class="form-check-label" for="modo-prueba">
+                                            Modo prueba (solo validar)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-outline-primary" id="btn-validar" disabled>
+                                <i class="fas fa-check me-1"></i>Validar CSV
+                            </button>
+                            <button type="submit" class="btn btn-success" id="btn-importar" disabled>
+                                <i class="fas fa-file-import me-1"></i>Importar Productos
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Resultados de importación -->
+            {% if messages %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clipboard-list me-2"></i>Resultados de Importación
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                        
+                        <!-- Mostrar errores detallados si existen -->
+                        {% if request.session.errores_importacion %}
+                            <div class="mt-3">
+                                <h6>Errores Detallados:</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead class="table-danger">
+                                            <tr>
+                                                <th>Fila</th>
+                                                <th>Error</th>
+                                                <th>Datos</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for error in request.session.errores_importacion %}
+                                                <tr>
+                                                    <td>{{ error.fila }}</td>
+                                                    <td>{{ error.error }}</td>
+                                                    <td>
+                                                        <small class="text-muted">
+                                                            {% for key, value in error.datos.items %}
+                                                                <strong>{{ key }}:</strong> {{ value|truncatechars:30 }}{% if not forloop.last %}, {% endif %}
+                                                            {% endfor %}
+                                                        </small>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% if request.session.errores_importacion %}
+                                <script>
+                                    // Limpiar errores de la sesión
+                                    fetch('{% url "inventario:limpiar_errores_sesion" %}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-CSRFToken': '{{ csrf_token }}'
+                                        }
+                                    });
+                                </script>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Panel de ayuda e información -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Información y Ayuda
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Formato del CSV -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-file-csv me-1"></i>Formato del CSV</h6>
+                        <p class="small text-muted mb-2">Tu archivo CSV debe contener las siguientes columnas:</p>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Columna</th>
+                                        <th>Requerido</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>codigo</code></td>
+                                        <td><span class="badge bg-danger">Sí</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>nombre</code></td>
+                                        <td><span class="badge bg-danger">Sí</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>precio_venta</code></td>
+                                        <td><span class="badge bg-danger">Sí</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>descripcion</code></td>
+                                        <td><span class="badge bg-secondary">No</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>categoria</code></td>
+                                        <td><span class="badge bg-secondary">No</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>marca</code></td>
+                                        <td><span class="badge bg-secondary">No</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>precio_compra</code></td>
+                                        <td><span class="badge bg-secondary">No</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>stock_minimo</code></td>
+                                        <td><span class="badge bg-secondary">No</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>stock_actual</code></td>
+                                        <td><span class="badge bg-secondary">No</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>activo</code></td>
+                                        <td><span class="badge bg-secondary">No</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Descargar ejemplo -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-download me-1"></i>Archivo de Ejemplo</h6>
+                        <p class="small text-muted">Descarga un archivo CSV de ejemplo con el formato correcto:</p>
+                        <a href="{% url 'inventario:csv_ejemplo' %}" class="btn btn-outline-primary btn-sm d-block">
+                            <i class="fas fa-file-download me-1"></i>Descargar CSV de Ejemplo
+                        </a>
+                    </div>
+
+                    <!-- Consejos -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-lightbulb me-1"></i>Consejos</h6>
+                        <ul class="small text-muted mb-0">
+                            <li>Guarda tu archivo en formato <strong>UTF-8</strong></li>
+                            <li>Usa punto (.) como separador decimal</li>
+                            <li>Los códigos deben ser únicos</li>
+                            <li>Las categorías y marcas se crearán automáticamente si no existen</li>
+                            <li>El campo "activo" acepta: true, false, 1, 0</li>
+                            <li>Máximo 5MB por archivo</li>
+                        </ul>
+                    </div>
+
+                    <!-- Procesamiento actual -->
+                    <div id="progreso-importacion" class="d-none">
+                        <h6><i class="fas fa-cog fa-spin me-1"></i>Procesando...</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 id="barra-progreso" style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted" id="estado-progreso">Iniciando...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="modalConfirmacion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Confirmar Importación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres importar <strong id="total-filas">0</strong> productos?</p>
+                <div id="resumen-importacion">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Importante:</strong> Los productos existentes con el mismo código serán actualizados.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="confirmar-importacion">
+                    <i class="fas fa-check me-1"></i>Sí, Importar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block inventory_js %}
+<script>
+$(document).ready(function() {
+    let archivoSeleccionado = null;
+    let datosValidacion = null;
+
+    // Configurar drag & drop
+    const dropZone = document.getElementById('drop-zone');
+    const archivoInput = document.getElementById('archivo_csv');
+
+    // Prevenir comportamiento por defecto
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Destacar zona de drop
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        dropZone.classList.add('border-primary', 'bg-light');
+    }
+
+    function unhighlight(e) {
+        dropZone.classList.remove('border-primary', 'bg-light');
+    }
+
+    // Manejar drop
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            archivoInput.files = files;
+            manejarArchivoSeleccionado(files[0]);
+        }
+    }
+
+    // Manejar clic en seleccionar
+    $('#btn-seleccionar').on('click', function() {
+        archivoInput.click();
+    });
+
+    // Manejar selección de archivo
+    archivoInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            manejarArchivoSeleccionado(e.target.files[0]);
+        }
+    });
+
+    function manejarArchivoSeleccionado(archivo) {
+        archivoSeleccionado = archivo;
+        
+        // Validar tipo
+        if (!archivo.name.toLowerCase().endsWith('.csv')) {
+            mostrarAlerta('El archivo debe ser un CSV', 'danger');
+            return;
+        }
+        
+        // Validar tamaño (5MB)
+        if (archivo.size > 5 * 1024 * 1024) {
+            mostrarAlerta('El archivo es demasiado grande. Máximo 5MB.', 'danger');
+            return;
+        }
+        
+        // Mostrar información del archivo
+        $('#drop-content').addClass('d-none');
+        $('#archivo-info').removeClass('d-none');
+        $('#archivo-nombre').text(archivo.name);
+        $('#archivo-detalles').text(`Tamaño: ${(archivo.size / 1024).toFixed(2)} KB`);
+        
+        // Habilitar botones
+        $('#btn-validar').prop('disabled', false);
+        $('#opciones-importacion').removeClass('d-none');
+        
+        // Auto-validar
+        validarCSV();
+    }
+
+    // Remover archivo
+    $('#btn-remover').on('click', function() {
+        archivoSeleccionado = null;
+        datosValidacion = null;
+        archivoInput.value = '';
+        
+        $('#drop-content').removeClass('d-none');
+        $('#archivo-info').addClass('d-none');
+        $('#csv-preview').addClass('d-none');
+        $('#opciones-importacion').addClass('d-none');
+        
+        $('#btn-validar, #btn-importar').prop('disabled', true);
+    });
+
+    // Validar CSV
+    $('#btn-validar').on('click', validarCSV);
+
+    function validarCSV() {
+        if (!archivoSeleccionado) return;
+        
+        const formData = new FormData();
+        formData.append('archivo_csv', archivoSeleccionado);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        // Mostrar loading
+        $('#btn-validar').html('<i class="fas fa-spinner fa-spin me-1"></i>Validando...');
+        
+        fetch('{% url "inventario:validar_csv" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            $('#btn-validar').html('<i class="fas fa-check me-1"></i>Validar CSV');
+            
+            if (data.success) {
+                datosValidacion = data;
+                mostrarVistaPrevia(data);
+                $('#btn-importar').prop('disabled', false);
+                mostrarAlerta(`CSV válido: ${data.filas_aproximadas} filas, ${data.columnas_detectadas} columnas`, 'success');
+            } else {
+                mostrarAlerta(data.error, 'danger');
+                $('#btn-importar').prop('disabled', true);
+            }
+        })
+        .catch(error => {
+            $('#btn-validar').html('<i class="fas fa-check me-1"></i>Validar CSV');
+            mostrarAlerta('Error al validar el archivo', 'danger');
+        });
+    }
+
+    function mostrarVistaPrevia(data) {
+        const headers = $('#csv-headers');
+        headers.empty();
+        
+        data.columnas.forEach(columna => {
+            const requerida = ['codigo', 'nombre', 'precio_venta'].includes(columna);
+            const badgeClass = requerida ? 'bg-danger' : 'bg-secondary';
+            
+            headers.append(`
+                <th>
+                    ${columna}
+                    <span class="badge ${badgeClass} ms-1">${requerida ? 'Req' : 'Opc'}</span>
+                </th>
+            `);
+        });
+        
+        $('#csv-info').text(`${data.filas_aproximadas} filas detectadas, ${data.columnas_detectadas} columnas`);
+        $('#csv-preview').removeClass('d-none');
+    }
+
+    // Manejar envío del formulario
+    $('#form-importacion').on('submit', function(e) {
+        e.preventDefault();
+        
+        if (!archivoSeleccionado || !datosValidacion) {
+            mostrarAlerta('Primero valida el archivo CSV', 'warning');
+            return;
+        }
+        
+        // Mostrar modal de confirmación
+        $('#total-filas').text(datosValidacion.filas_aproximadas);
+        
+        const resumen = `
+            <ul class="mb-0">
+                <li><strong>Archivo:</strong> ${archivoSeleccionado.name}</li>
+                <li><strong>Filas:</strong> ${datosValidacion.filas_aproximadas}</li>
+                <li><strong>Columnas:</strong> ${datosValidacion.columnas_detectadas}</li>
+                <li><strong>Actualizar existentes:</strong> ${$('#actualizar-existentes').prop('checked') ? 'Sí' : 'No'}</li>
+                <li><strong>Crear categorías:</strong> ${$('#crear-categorias').prop('checked') ? 'Sí' : 'No'}</li>
+            </ul>
+        `;
+        
+        $('#resumen-importacion').html(resumen);
+        $('#modalConfirmacion').modal('show');
+    });
+
+    // Confirmar importación
+    $('#confirmar-importacion').on('click', function() {
+        $('#modalConfirmacion').modal('hide');
+        procesarImportacion();
+    });
+
+    function procesarImportacion() {
+        // Mostrar progreso
+        $('#progreso-importacion').removeClass('d-none');
+        $('#btn-importar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Importando...');
+        
+        // Simular progreso
+        let progreso = 0;
+        const intervalo = setInterval(() => {
+            progreso += Math.random() * 10;
+            if (progreso > 90) progreso = 90;
+            
+            $('#barra-progreso').css('width', progreso + '%');
+            $('#estado-progreso').text(`Procesando... ${Math.round(progreso)}%`);
+        }, 500);
+        
+        // Enviar formulario real
+        const formData = new FormData();
+        formData.append('archivo_csv', archivoSeleccionado);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        // Agregar opciones
+        formData.append('actualizar_existentes', $('#actualizar-existentes').prop('checked'));
+        formData.append('crear_categorias', $('#crear-categorias').prop('checked'));
+        formData.append('validar_precios', $('#validar-precios').prop('checked'));
+        formData.append('modo_prueba', $('#modo-prueba').prop('checked'));
+        
+        fetch('{% url "inventario:importar_productos" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            clearInterval(intervalo);
+            $('#barra-progreso').css('width', '100%');
+            $('#estado-progreso').text('Completado');
+            
+            // Recargar página para mostrar resultados
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        })
+        .catch(error => {
+            clearInterval(intervalo);
+            $('#progreso-importacion').addClass('d-none');
+            $('#btn-importar').prop('disabled', false).html('<i class="fas fa-file-import me-1"></i>Importar Productos');
+            mostrarAlerta('Error al procesar la importación', 'danger');
+        });
+    }
+
+    function mostrarAlerta(mensaje, tipo) {
+        const alertClass = `alert-${tipo}`;
+        const alerta = $(`
+            <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+                 style="top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        
+        $('body').append(alerta);
+        
+        setTimeout(() => {
+            alerta.fadeOut(500, () => alerta.remove());
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

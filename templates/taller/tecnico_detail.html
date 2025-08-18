@@ -1,0 +1,721 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ tecnico.nombres }} {{ tecnico.apellidos }} - Técnico - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-card {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        margin: 0 auto 1rem;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--box-shadow);
+        margin-bottom: 1.5rem;
+    }
+    
+    .info-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--gray-700);
+        display: flex;
+        align-items: center;
+    }
+    
+    .info-label i {
+        margin-right: 0.5rem;
+        color: var(--primary);
+        width: 20px;
+    }
+    
+    .info-value {
+        color: var(--gray-600);
+    }
+    
+    .status-badge {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-activo {
+        background-color: rgba(25, 135, 84, 0.1);
+        color: #0f5132;
+        border: 2px solid rgba(25, 135, 84, 0.3);
+    }
+    
+    .status-inactivo {
+        background-color: rgba(108, 117, 125, 0.1);
+        color: #495057;
+        border: 2px solid rgba(108, 117, 125, 0.3);
+    }
+    
+    .speciality-tag {
+        background-color: rgba(13, 110, 253, 0.1);
+        color: #084298;
+        padding: 0.4rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        margin: 0.2rem;
+        display: inline-block;
+        border: 1px solid rgba(13, 110, 253, 0.2);
+    }
+    
+    .stats-card {
+        background: var(--light);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        text-align: center;
+        transition: var(--transition);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--box-shadow);
+    }
+    
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--primary);
+    }
+    
+    .stats-label {
+        color: var(--gray-600);
+        font-size: 0.9rem;
+    }
+    
+    .orden-card {
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: var(--light);
+        transition: var(--transition);
+        cursor: pointer;
+        position: relative;
+    }
+    
+    .orden-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+        border-color: var(--primary-light);
+    }
+    
+    .orden-estado {
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .estado-pendiente {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #856404;
+    }
+    
+    .estado-en-proceso {
+        background-color: rgba(13, 110, 253, 0.1);
+        color: #084298;
+    }
+    
+    .estado-completado {
+        background-color: rgba(25, 135, 84, 0.1);
+        color: #0f5132;
+    }
+    
+    .estado-entregado {
+        background-color: rgba(32, 201, 151, 0.1);
+        color: #0a3622;
+    }
+
+    /* Efecto de carga en las estadísticas */
+    .stats-card .stats-number {
+        animation: countUp 0.8s ease-out;
+    }
+
+    @keyframes countUp {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Indicador de orden clickeable */
+    .orden-card::after {
+        content: '\f105';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .orden-card:hover::after {
+        opacity: 1;
+    }
+
+    /* Mejoras responsivas */
+    @media (max-width: 768px) {
+        .profile-card {
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .profile-card .col-md-3,
+        .profile-card .col-md-6,
+        .profile-card .col-md-3 {
+            margin-bottom: 1rem;
+        }
+        
+        .stats-card {
+            margin-bottom: 1rem;
+        }
+    }
+
+    /* Estado toggle buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .btn-toggle-estado {
+        opacity: 0.8;
+        transition: all 0.3s ease;
+    }
+
+    .btn-toggle-estado:hover {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header con Profile Card -->
+    <div class="profile-card">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center">
+                <div class="profile-avatar">
+                    {{ tecnico.nombres.0 }}{{ tecnico.apellidos.0 }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h2 class="mb-2">{{ tecnico.nombres }} {{ tecnico.apellidos }}</h2>
+                <p class="mb-3 opacity-75">{{ tecnico.codigo }} • Técnico Especializado</p>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for especialidad in tecnico.especialidades.all %}
+                    <span class="badge bg-light text-dark">{{ especialidad.nombre }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-md-3 text-end">
+                <span class="status-badge status-{{ tecnico.estado|lower }}">
+                    {{ tecnico.get_estado_display }}
+                </span>
+                <div class="action-buttons">
+                    <a href="{% url 'taller:tecnico_update' tecnico.pk %}" class="btn btn-light me-2">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </a>
+                    <a href="{% url 'taller:tecnico_list' %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-1"></i>Volver
+                    </a>
+                </div>
+                <!-- Botón toggle estado -->
+                {% if tecnico.estado == 'ACTIVO' %}
+                <button type="button" 
+                        class="btn btn-outline-light btn-sm btn-toggle-estado mt-2" 
+                        data-tecnico-id="{{ tecnico.pk }}"
+                        data-estado="INACTIVO"
+                        title="Desactivar técnico">
+                    <i class="fas fa-user-times me-1"></i>Desactivar
+                </button>
+                {% else %}
+                <button type="button" 
+                        class="btn btn-light btn-sm btn-toggle-estado mt-2" 
+                        data-tecnico-id="{{ tecnico.pk }}"
+                        data-estado="ACTIVO"
+                        title="Activar técnico">
+                    <i class="fas fa-user-check me-1"></i>Activar
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Información Personal -->
+        <div class="col-lg-4">
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-user text-primary me-2"></i>
+                    Información Personal
+                </h5>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-id-card"></i>Identificación
+                    </span>
+                    <span class="info-value">{{ tecnico.identificacion|default:"No especificada" }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-phone"></i>Teléfono
+                    </span>
+                    <span class="info-value">
+                        {% if tecnico.telefono %}
+                            <a href="tel:{{ tecnico.telefono }}" class="text-decoration-none">{{ tecnico.telefono }}</a>
+                        {% else %}
+                            No especificado
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-envelope"></i>Email
+                    </span>
+                    <span class="info-value">
+                        {% if tecnico.email %}
+                            <a href="mailto:{{ tecnico.email }}" class="text-decoration-none">{{ tecnico.email }}</a>
+                        {% else %}
+                            No especificado
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-map-marker-alt"></i>Dirección
+                    </span>
+                    <span class="info-value">{{ tecnico.direccion|default:"No especificada" }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-calendar"></i>Fecha de Ingreso
+                    </span>
+                    <span class="info-value">{{ tecnico.fecha_ingreso|date:"d/m/Y" }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-clock"></i>Tiempo en empresa
+                    </span>
+                    <span class="info-value">{{ tecnico.tiempo_empresa }}</span>
+                </div>
+                
+                {% if tecnico.observaciones %}
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-sticky-note"></i>Observaciones
+                    </span>
+                    <span class="info-value">{{ tecnico.observaciones }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Especialidades -->
+            {% if tecnico.especialidades.all %}
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-tools text-primary me-2"></i>
+                    Especialidades
+                </h5>
+                <div class="d-flex flex-wrap">
+                    {% for especialidad in tecnico.especialidades.all %}
+                    <span class="speciality-tag">{{ especialidad.nombre }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Información de rendimiento -->
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    Rendimiento General
+                </h5>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-tasks"></i>Total Órdenes
+                    </span>
+                    <span class="info-value">{{ stats_general.ordenes_total }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-check-circle"></i>Completadas
+                    </span>
+                    <span class="info-value">{{ stats_general.ordenes_completadas }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-percentage"></i>Tasa Éxito
+                    </span>
+                    <span class="info-value">{{ stats_general.tasa_exito }}%</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-dollar-sign"></i>Total Facturado
+                    </span>
+                    <span class="info-value">${{ stats_general.total_facturado|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estadísticas y Actividad -->
+        <div class="col-lg-8">
+            <!-- Estadísticas del Mes -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number">{{ ordenes_activas }}</div>
+                        <div class="stats-label">Órdenes Activas</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number">{{ stats_mes.ordenes_total }}</div>
+                        <div class="stats-label">Órdenes Este Mes</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number">{{ stats_mes.ordenes_completadas }}</div>
+                        <div class="stats-label">Completadas</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number">${{ stats_mes.total_facturado|floatformat:0 }}</div>
+                        <div class="stats-label">Facturado</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Órdenes Recientes -->
+            <div class="info-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-list text-primary me-2"></i>
+                        Órdenes Recientes
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm me-2" id="btnRefreshOrdenes">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <a href="{% url 'taller:orden_list' %}?tecnico={{ tecnico.pk }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-external-link-alt me-1"></i>Ver Todas
+                        </a>
+                    </div>
+                </div>
+                
+                <div id="ordenesContainer">
+                    {% for orden in ordenes_recientes %}
+                    <div class="orden-card" data-orden-id="{{ orden.pk }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <h6 class="mb-0 fw-bold">{{ orden.numero_orden }}</h6>
+                                    <span class="orden-estado estado-{{ orden.estado|lower|cut:' '|cut:'_' }}">
+                                        {{ orden.get_estado_display }}
+                                    </span>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-user me-1"></i>{{ orden.cliente.get_nombre_completo }}
+                                        </small>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-motorcycle me-1"></i>{{ orden.moto.placa }} - {{ orden.moto.marca }}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-calendar me-1"></i>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}
+                                        </small>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-wrench me-1"></i>{{ orden.motivo_ingreso|truncatechars:30 }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <h6 class="mb-0 text-primary fw-bold">${{ orden.precio_total|floatformat:2 }}</h6>
+                                <small class="text-muted">{{ orden.get_tiempo_transcurrido.days }} días</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4" id="emptyState">
+                        <i class="fas fa-clipboard fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No hay órdenes registradas para este técnico</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación para cambio de estado -->
+<div class="modal fade" id="modalConfirmarEstado" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Cambio de Estado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="mensajeConfirmacion"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarCambio">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let tecnicoIdPendiente = null;
+let nuevoEstadoPendiente = null;
+
+// Función para cambiar estado del técnico
+function cambiarEstadoTecnico(tecnicoId, nuevoEstado, button) {
+    button.classList.add('loading');
+    
+    fetch(`/taller/tecnicos/${tecnicoId}/cambiar-estado/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            estado: nuevoEstado
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        button.classList.remove('loading');
+        if (data.success) {
+            mostrarNotificacion('Éxito', data.message, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            mostrarNotificacion('Error', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        button.classList.remove('loading');
+        mostrarNotificacion('Error', 'Error al cambiar estado del técnico', 'error');
+        console.error('Error:', error);
+    });
+}
+
+// Función para refrescar órdenes
+function refrescarOrdenes() {
+    const tecnicoId = '{{ tecnico.pk }}';
+    const button = document.getElementById('btnRefreshOrdenes');
+    const icon = button.querySelector('i');
+    
+    icon.classList.add('fa-spin');
+    
+    fetch(`/taller/tecnicos/${tecnicoId}/ordenes-recientes/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('ordenesContainer').innerHTML = data.html;
+            mostrarNotificacion('Actualizado', 'Órdenes actualizadas correctamente', 'success');
+        }
+    })
+    .catch(error => {
+        console.error('Error al refrescar órdenes:', error);
+        mostrarNotificacion('Error', 'Error al actualizar órdenes', 'error');
+    })
+    .finally(() => {
+        icon.classList.remove('fa-spin');
+    });
+}
+
+// Función para mostrar notificaciones
+function mostrarNotificacion(titulo, mensaje, tipo = 'info') {
+    if (typeof toastr !== 'undefined') {
+        toastr[tipo](mensaje, titulo);
+    } else {
+        alert(`${titulo}: ${mensaje}`);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation para manejar clics
+    document.addEventListener('click', function(e) {
+        // Manejar clics en órdenes
+        if (e.target.closest('.orden-card')) {
+            const card = e.target.closest('.orden-card');
+            const ordenId = card.getAttribute('data-orden-id');
+            if (ordenId) {
+                window.location.href = `/taller/ordenes/${ordenId}/`;
+            }
+            return;
+        }
+        
+        // Manejar clics en botón de cambio de estado
+        if (e.target.closest('.btn-toggle-estado')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const button = e.target.closest('.btn-toggle-estado');
+            const tecnicoId = button.getAttribute('data-tecnico-id');
+            const nuevoEstado = button.getAttribute('data-estado');
+            
+            // Mostrar modal de confirmación
+            tecnicoIdPendiente = tecnicoId;
+            nuevoEstadoPendiente = nuevoEstado;
+            
+            const mensaje = nuevoEstado === 'ACTIVO' 
+                ? '¿Está seguro de activar este técnico?' 
+                : '¿Está seguro de desactivar este técnico?';
+            
+            document.getElementById('mensajeConfirmacion').textContent = mensaje;
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalConfirmarEstado'));
+            modal.show();
+            
+            return;
+        }
+        
+        // Manejar clic en botón de refresh
+        if (e.target.closest('#btnRefreshOrdenes')) {
+            e.preventDefault();
+            refrescarOrdenes();
+            return;
+        }
+    });
+    
+    // Manejar confirmación del modal
+    document.getElementById('btnConfirmarCambio').addEventListener('click', function() {
+        if (tecnicoIdPendiente && nuevoEstadoPendiente) {
+            const button = document.querySelector(`[data-tecnico-id="${tecnicoIdPendiente}"][data-estado="${nuevoEstadoPendiente}"]`);
+            cambiarEstadoTecnico(tecnicoIdPendiente, nuevoEstadoPendiente, button);
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarEstado'));
+            modal.hide();
+            
+            // Limpiar variables
+            tecnicoIdPendiente = null;
+            nuevoEstadoPendiente = null;
+        }
+    });
+    
+    // Mejorar experiencia de hover en tarjetas de órdenes
+    document.querySelectorAll('.orden-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.borderColor = 'var(--primary)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.borderColor = 'var(--gray-200)';
+        });
+    });
+    
+    // Animaciones de entrada
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    });
+    
+    document.querySelectorAll('.info-card, .stats-card').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(el);
+    });
+});
+
+// Estilos adicionales para loading
+const style = document.createElement('style');
+style.textContent = `
+    .btn.loading {
+        position: relative;
+        color: transparent;
+    }
+    .btn.loading::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        left: 50%;
+        margin-left: -8px;
+        margin-top: -8px;
+        border-radius: 50%;
+        border: 2px solid #ccc;
+        border-top-color: #333;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

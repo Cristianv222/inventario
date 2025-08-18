@@ -1,0 +1,545 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb_page %}
+<li class="breadcrumb-item"><a href="{% url 'inventario:lista_productos' %}">Productos</a></li>
+<li class="breadcrumb-item active">{% if es_nuevo %}Nuevo Producto{% else %}Editar Producto{% endif %}</li>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="container-fluid">
+    <!-- Header compacto -->
+    <div class="row align-items-center mb-3">
+        <div class="col">
+            <h2 class="mb-0">
+                <i class="fas fa-{% if es_nuevo %}plus{% else %}edit{% endif %} me-2"></i>
+                {% if es_nuevo %}Nuevo Producto{% else %}Editar Producto{% endif %}
+            </h2>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Formulario en pestañas -->
+    <div class="card">
+        <div class="card-header p-0">
+            <ul class="nav nav-tabs card-header-tabs" id="producto-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="basico-tab" data-bs-toggle="tab" data-bs-target="#basico" type="button" role="tab">
+                        <i class="fas fa-info-circle me-1"></i> Información Básica
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="precios-tab" data-bs-toggle="tab" data-bs-target="#precios" type="button" role="tab">
+                        <i class="fas fa-dollar-sign me-1"></i> Precios y Stock
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="adicional-tab" data-bs-toggle="tab" data-bs-target="#adicional" type="button" role="tab">
+                        <i class="fas fa-cog me-1"></i> Configuración
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <form method="post" id="producto-form" novalidate>
+                {% csrf_token %}
+                
+                <div class="tab-content" id="producto-tabs-content">
+                    <!-- Pestaña: Información Básica -->
+                    <div class="tab-pane fade show active" id="basico" role="tabpanel">
+                        <div class="row g-3">
+                            <!-- Nombre del producto -->
+                            <div class="col-12">
+                                <label for="{{ form.nombre.id_for_label }}" class="form-label fw-semibold required">Nombre del Producto</label>
+                                <input type="text" 
+                                       class="form-control{% if form.nombre.errors %} is-invalid{% endif %}" 
+                                       id="{{ form.nombre.id_for_label }}" 
+                                       name="{{ form.nombre.name }}" 
+                                       value="{{ form.nombre.value|default:'' }}"
+                                       placeholder="Ej: Filtro de aceite para motor" required>
+                                {% if form.nombre.errors %}
+                                    <div class="invalid-feedback">{{ form.nombre.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Código y Categoría -->
+                            <div class="col-md-4">
+                                <label for="{{ form.codigo_unico.id_for_label }}" class="form-label fw-semibold required">Código</label>
+                                <input type="text" 
+                                       class="form-control{% if form.codigo_unico.errors %} is-invalid{% endif %}" 
+                                       id="{{ form.codigo_unico.id_for_label }}" 
+                                       name="{{ form.codigo_unico.name }}" 
+                                       value="{{ form.codigo_unico.value|default:'' }}"
+                                       placeholder="Código único" required>
+                                {% if form.codigo_unico.errors %}
+                                    <div class="invalid-feedback">{{ form.codigo_unico.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.categoria.id_for_label }}" class="form-label fw-semibold required">Categoría</label>
+                                <select class="form-select{% if form.categoria.errors %} is-invalid{% endif %}" 
+                                        id="{{ form.categoria.id_for_label }}" 
+                                        name="{{ form.categoria.name }}" required>
+                                    <option value="">-- Seleccionar --</option>
+                                    {% for choice in form.categoria.field.queryset %}
+                                        <option value="{{ choice.pk }}" 
+                                                {% if form.categoria.value == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                            {{ choice }} ({{ choice.porcentaje_ganancia }}%)
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.categoria.errors %}
+                                    <div class="invalid-feedback">{{ form.categoria.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.marca.id_for_label }}" class="form-label fw-semibold required">Marca</label>
+                                <select class="form-select{% if form.marca.errors %} is-invalid{% endif %}" 
+                                        id="{{ form.marca.id_for_label }}" 
+                                        name="{{ form.marca.name }}" required>
+                                    <option value="">-- Seleccionar --</option>
+                                    {% for choice in form.marca.field.queryset %}
+                                        <option value="{{ choice.pk }}" 
+                                                {% if form.marca.value == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                            {{ choice }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.marca.errors %}
+                                    <div class="invalid-feedback">{{ form.marca.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Descripción -->
+                            <div class="col-12">
+                                <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-semibold">Descripción</label>
+                                <textarea class="form-control{% if form.descripcion.errors %} is-invalid{% endif %}" 
+                                          id="{{ form.descripcion.id_for_label }}" 
+                                          name="{{ form.descripcion.name }}" 
+                                          rows="2"
+                                          placeholder="Descripción detallada del producto...">{{ form.descripcion.value|default:'' }}</textarea>
+                                {% if form.descripcion.errors %}
+                                    <div class="invalid-feedback">{{ form.descripcion.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pestaña: Precios y Stock -->
+                    <div class="tab-pane fade" id="precios" role="tabpanel">
+                        <div class="row g-3">
+                            <!-- Precios con calculadora integrada -->
+                            <div class="col-md-6">
+                                <label for="{{ form.precio_compra.id_for_label }}" class="form-label fw-semibold required">Precio de Compra</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" 
+                                           class="form-control{% if form.precio_compra.errors %} is-invalid{% endif %}" 
+                                           id="{{ form.precio_compra.id_for_label }}" 
+                                           name="{{ form.precio_compra.name }}" 
+                                           value="{{ form.precio_compra.value|default:'' }}"
+                                           step="0.01" 
+                                           min="0"
+                                           placeholder="0.00" required>
+                                    {% if form.precio_compra.errors %}
+                                        <div class="invalid-feedback">{{ form.precio_compra.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Se calculará automáticamente el precio de venta
+                                </small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.precio_venta.id_for_label }}" class="form-label fw-semibold required">Precio de Venta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" 
+                                           class="form-control{% if form.precio_venta.errors %} is-invalid{% endif %}" 
+                                           id="{{ form.precio_venta.id_for_label }}" 
+                                           name="{{ form.precio_venta.name }}" 
+                                           value="{{ form.precio_venta.value|default:'' }}"
+                                           step="0.01" 
+                                           min="0"
+                                           placeholder="0.00" required>
+                                    <button type="button" id="btn-calcular-precio" class="btn btn-outline-primary" title="Calcular precio automáticamente">
+                                        <i class="fas fa-calculator"></i>
+                                    </button>
+                                    {% if form.precio_venta.errors %}
+                                        <div class="invalid-feedback">{{ form.precio_venta.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-magic me-1"></i>
+                                    Calculado con % de ganancia de la categoría
+                                </small>
+                            </div>
+                            
+                            <!-- Stock -->
+                            <div class="col-md-4">
+                                <label for="{{ form.stock_actual.id_for_label }}" class="form-label fw-semibold">Stock Actual</label>
+                                <input type="number" 
+                                       class="form-control{% if form.stock_actual.errors %} is-invalid{% endif %}" 
+                                       id="{{ form.stock_actual.id_for_label }}" 
+                                       name="{{ form.stock_actual.name }}" 
+                                       value="{{ form.stock_actual.value|default:'0' }}"
+                                       min="0"
+                                       placeholder="0">
+                                {% if form.stock_actual.errors %}
+                                    <div class="invalid-feedback">{{ form.stock_actual.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.stock_minimo.id_for_label }}" class="form-label fw-semibold">Stock Mínimo</label>
+                                <input type="number" 
+                                       class="form-control{% if form.stock_minimo.errors %} is-invalid{% endif %}" 
+                                       id="{{ form.stock_minimo.id_for_label }}" 
+                                       name="{{ form.stock_minimo.name }}" 
+                                       value="{{ form.stock_minimo.value|default:'5' }}"
+                                       min="0"
+                                       placeholder="5">
+                                {% if form.stock_minimo.errors %}
+                                    <div class="invalid-feedback">{{ form.stock_minimo.errors.0 }}</div>
+                                {% endif %}
+                                <small class="text-muted">Para alertas de stock bajo</small>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.ubicacion_almacen.id_for_label }}" class="form-label fw-semibold">Ubicación</label>
+                                <input type="text" 
+                                       class="form-control{% if form.ubicacion_almacen.errors %} is-invalid{% endif %}" 
+                                       id="{{ form.ubicacion_almacen.id_for_label }}" 
+                                       name="{{ form.ubicacion_almacen.name }}" 
+                                       value="{{ form.ubicacion_almacen.value|default:'' }}"
+                                       placeholder="Ej: A-1, B-15">
+                                {% if form.ubicacion_almacen.errors %}
+                                    <div class="invalid-feedback">{{ form.ubicacion_almacen.errors.0 }}</div>
+                                {% endif %}
+                                <small class="text-muted">Posición en almacén</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pestaña: Configuración -->
+                    <div class="tab-pane fade" id="adicional" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header py-2">
+                                        <h6 class="mb-0"><i class="fas fa-toggle-on me-1"></i> Estado del Producto</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-check form-switch mb-3">
+                                            <input type="checkbox" 
+                                                   class="form-check-input{% if form.activo.errors %} is-invalid{% endif %}" 
+                                                   id="{{ form.activo.id_for_label }}" 
+                                                   name="{{ form.activo.name }}" 
+                                                   value="True"
+                                                   {% if form.activo.value %}checked{% endif %}>
+                                            <label for="{{ form.activo.id_for_label }}" class="form-check-label fw-semibold">
+                                                Producto activo
+                                            </label>
+                                            {% if form.activo.errors %}
+                                                <div class="invalid-feedback">{{ form.activo.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">Los productos inactivos no aparecen en ventas</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header py-2">
+                                        <h6 class="mb-0"><i class="fas fa-percent me-1"></i> Configuración Fiscal</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-check form-switch mb-3">
+                                            <input type="checkbox" 
+                                                   class="form-check-input{% if form.incluye_iva.errors %} is-invalid{% endif %}" 
+                                                   id="{{ form.incluye_iva.id_for_label }}" 
+                                                   name="{{ form.incluye_iva.name }}" 
+                                                   value="True"
+                                                   {% if form.incluye_iva.value %}checked{% endif %}>
+                                            <label for="{{ form.incluye_iva.id_for_label }}" class="form-check-label fw-semibold">
+                                                Incluye IVA
+                                            </label>
+                                            {% if form.incluye_iva.errors %}
+                                                <div class="invalid-feedback">{{ form.incluye_iva.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">Marca si el precio incluye impuestos</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones de acción fijos -->
+                <div class="row mt-4 pt-3 border-top">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </a>
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <i class="fas fa-save me-1"></i> 
+                                    {% if es_nuevo %}Crear Producto{% else %}Guardar Cambios{% endif %}
+                                </button>
+                                {% if not es_nuevo %}
+                                    <a href="{% url 'inventario:detalle_producto' producto.id %}" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i> Ver Detalle
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block inventory_js %}
+<script>
+$(document).ready(function() {
+    // Variables para los campos del formulario
+    const $precioCompra = $('#id_precio_compra');
+    const $precioVenta = $('#id_precio_venta');
+    const $categoria = $('#id_categoria');
+    const $btnCalcular = $('#btn-calcular-precio');
+    
+    // Función para calcular el precio de venta
+    function calcularPrecioVenta() {
+        const precioCompra = parseFloat($precioCompra.val());
+        const categoriaId = $categoria.val();
+        
+        if (!precioCompra || precioCompra <= 0) {
+            mostrarNotificacion('Ingresa un precio de compra válido', 'warning');
+            return;
+        }
+        
+        if (!categoriaId) {
+            mostrarNotificacion('Selecciona una categoría', 'warning');
+            return;
+        }
+        
+        // Mostrar loading
+        $btnCalcular.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        
+        $.ajax({
+            url: '{% url "inventario:calcular_precio_venta" %}',
+            method: 'GET',
+            data: {
+                'precio_compra': precioCompra,
+                'categoria_id': categoriaId
+            },
+            success: function(response) {
+                if (response.success) {
+                    $precioVenta.val(response.precio_venta.toFixed(2));
+                    
+                    mostrarNotificacion(
+                        'Precio calculado: $' + response.precio_venta.toFixed(2) + ' (' + response.porcentaje_ganancia + '% ganancia)',
+                        'success'
+                    );
+                    
+                    // Efecto visual
+                    $precioVenta.addClass('campo-actualizado');
+                    setTimeout(function() {
+                        $precioVenta.removeClass('campo-actualizado');
+                    }, 2000);
+                } else {
+                    mostrarNotificacion(response.message || 'Error al calcular', 'danger');
+                }
+            },
+            error: function() {
+                mostrarNotificacion('Error de conexión', 'danger');
+            },
+            complete: function() {
+                $btnCalcular.prop('disabled', false).html('<i class="fas fa-calculator"></i>');
+            }
+        });
+    }
+    
+    // Función para mostrar notificaciones tipo toast
+    function mostrarNotificacion(mensaje, tipo) {
+        $('.toast-notification').remove();
+        
+        var iconClass = 'fas fa-check-circle';
+        if (tipo === 'warning') iconClass = 'fas fa-exclamation-triangle';
+        if (tipo === 'danger') iconClass = 'fas fa-times-circle';
+        
+        var toast = $('<div class="toast-notification position-fixed top-0 end-0 m-3" style="z-index: 9999;">' +
+            '<div class="alert alert-' + tipo + ' alert-dismissible fade show shadow-sm" role="alert">' +
+                '<i class="' + iconClass + ' me-2"></i>' + mensaje +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+            '</div>' +
+        '</div>');
+        
+        $('body').append(toast);
+        
+        if (tipo === 'success') {
+            setTimeout(function() {
+                toast.fadeOut(500, function() {
+                    toast.remove();
+                });
+            }, 3000);
+        }
+    }
+    
+    // Event listeners optimizados
+    $precioCompra.on('blur', function() {
+        const precioCompra = parseFloat($(this).val());
+        const categoriaId = $categoria.val();
+        
+        if (precioCompra > 0 && categoriaId) {
+            calcularPrecioVenta();
+        }
+    });
+    
+    $categoria.on('change', function() {
+        const precioCompra = parseFloat($precioCompra.val());
+        
+        if (precioCompra > 0) {
+            calcularPrecioVenta();
+        }
+        
+        mostrarInfoCategoria();
+    });
+    
+    $btnCalcular.on('click', function(e) {
+        e.preventDefault();
+        calcularPrecioVenta();
+    });
+    
+    // Función para mostrar información de categoría
+    function mostrarInfoCategoria() {
+        const categoriaId = $categoria.val();
+        
+        if (categoriaId) {
+            $.ajax({
+                url: '{% url "inventario:api_categoria_porcentaje" %}',
+                method: 'GET',
+                data: {'categoria_id': categoriaId},
+                success: function(response) {
+                    if (response.success) {
+                        $('#info-categoria').remove();
+                        $categoria.closest('.col-md-4').append(
+                            '<small id="info-categoria" class="text-success">' +
+                                '<i class="fas fa-percentage me-1"></i>' +
+                                '<strong>Ganancia:</strong> ' + response.porcentaje_ganancia + '%' +
+                            '</small>'
+                        );
+                    }
+                }
+            });
+        } else {
+            $('#info-categoria').remove();
+        }
+    }
+    
+    // Trigger inicial
+    if ($categoria.val()) {
+        mostrarInfoCategoria();
+    }
+});
+</script>
+
+<style>
+/* Estilos compactos y profesionales */
+.form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.form-control, .form-select {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.nav-tabs .nav-link {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    border: none;
+    color: #6c757d;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: white;
+    border-bottom: 2px solid #0d6efd;
+    color: #0d6efd;
+    font-weight: 500;
+}
+
+.tab-content {
+    padding: 1rem 0;
+}
+
+.campo-actualizado {
+    background-color: #d4edda !important;
+    border-color: #28a745 !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+}
+
+.required::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-group .btn {
+    font-size: 0.875rem;
+}
+
+/* Responsividad mejorada */
+@media (max-width: 768px) {
+    .nav-tabs .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .container-fluid {
+        padding: 0.5rem;
+    }
+}
+
+/* Animaciones suaves */
+.tab-pane {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Toast notifications */
+.toast-notification .alert {
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}

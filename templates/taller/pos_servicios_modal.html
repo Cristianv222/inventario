@@ -1,0 +1,464 @@
+<!-- Modal de Servicios Mejorado para POS -->
+<div class="modal fade" id="serviciosModal" tabindex="-1" aria-labelledby="serviciosModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="serviciosModalLabel">
+                    <i class="fas fa-tools me-2"></i>Catálogo de Servicios
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Filtros Rápidos -->
+                <div class="bg-light p-3 border-bottom">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="servicioSearchInput" 
+                                       placeholder="Buscar servicio por nombre o código...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="serviciosCategoriaFilter">
+                                <option value="">Todas las categorías</option>
+                                <option value="MANTENIMIENTO">Mantenimiento</option>
+                                <option value="REPARACION">Reparación</option>
+                                <option value="DIAGNOSTICO">Diagnóstico</option>
+                                <option value="ELECTRICO">Sistema Eléctrico</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="serviciosPrecioFilter">
+                                <option value="">Todos los precios</option>
+                                <option value="0-50">$0 - $50</option>
+                                <option value="50-100">$50 - $100</option>
+                                <option value="100-200">$100 - $200</option>
+                                <option value="200+">$200+</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Pills de Categorías -->
+                    <div class="mt-3">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-outline-primary btn-sm category-pill active" data-categoria="">
+                                <i class="fas fa-list me-1"></i>Todos
+                            </button>
+                            <button class="btn btn-outline-success btn-sm category-pill" data-categoria="MANTENIMIENTO">
+                                <i class="fas fa-tools me-1"></i>Mantenimiento
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm category-pill" data-categoria="REPARACION">
+                                <i class="fas fa-wrench me-1"></i>Reparación
+                            </button>
+                            <button class="btn btn-outline-info btn-sm category-pill" data-categoria="DIAGNOSTICO">
+                                <i class="fas fa-search me-1"></i>Diagnóstico
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm category-pill" data-categoria="ELECTRICO">
+                                <i class="fas fa-bolt me-1"></i>Eléctrico
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lista de Servicios -->
+                <div class="p-3" style="max-height: 500px; overflow-y: auto;">
+                    <div id="serviciosContainer" class="row g-3">
+                        <!-- Los servicios se cargarán aquí dinámicamente -->
+                        <div class="col-12 text-center py-4" id="serviciosLoading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando servicios...</span>
+                            </div>
+                            <p class="text-muted mt-2">Cargando servicios disponibles...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    <div>
+                        <small class="text-muted">
+                            <span id="serviciosCount">0</span> servicios encontrados
+                        </small>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-primary me-2" onclick="abrirGestionServicios()">
+                            <i class="fas fa-cogs me-1"></i>Gestionar Servicios
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template para servicio item -->
+<template id="servicioItemTemplate">
+    <div class="col-lg-4 col-md-6 servicio-item">
+        <div class="card h-100 service-card" style="cursor: pointer; transition: all 0.3s ease;">
+            <div class="card-body d-flex flex-column">
+                <!-- Header del servicio -->
+                <div class="d-flex align-items-start mb-2">
+                    <div class="service-icon me-3">
+                        <!-- Icono se asignará dinámicamente -->
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-1 service-name">Nombre del Servicio</h6>
+                        <small class="text-muted service-code">Código</small>
+                    </div>
+                    <div class="service-price-badge">
+                        $0.00
+                    </div>
+                </div>
+                
+                <!-- Información del servicio -->
+                <div class="service-info mb-3">
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <small class="text-muted d-block">Tiempo</small>
+                            <span class="service-time">0h</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">Dificultad</small>
+                            <span class="service-difficulty">-</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">Categoría</small>
+                            <span class="service-category">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Descripción -->
+                <p class="card-text small text-muted mb-3 service-description">
+                    Descripción del servicio...
+                </p>
+                
+                <!-- Desglose de precio -->
+                <div class="price-breakdown mb-3 small">
+                    <div class="d-flex justify-content-between">
+                        <span>Precio base:</span>
+                        <span class="service-precio-base">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Mano de obra:</span>
+                        <span class="service-precio-mano-obra">$0.00</span>
+                    </div>
+                    <hr class="my-1">
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Total:</span>
+                        <span class="service-precio-total">$0.00</span>
+                    </div>
+                </div>
+                
+                <!-- Badges adicionales -->
+                <div class="service-badges mb-3">
+                    <!-- Se llenarán dinámicamente -->
+                </div>
+                
+                <!-- Botón agregar -->
+                <button class="btn btn-primary mt-auto add-service-btn">
+                    <i class="fas fa-plus me-2"></i>Agregar al Carrito
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style>
+/* Estilos específicos para el modal de servicios */
+.service-card {
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.service-card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px);
+    border-color: var(--primary);
+}
+
+.service-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.service-icon.mantenimiento {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.service-icon.reparacion {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+}
+
+.service-icon.diagnostico {
+    background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+}
+
+.service-icon.electrico {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+}
+
+.service-icon.default {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+}
+
+.service-price-badge {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.category-pill {
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+
+.category-pill.active {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.service-badges .badge {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.price-breakdown {
+    background-color: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+</style>
+
+<script>
+// Variables globales para el modal de servicios
+let serviciosData = [];
+let serviciosFiltrados = [];
+
+// Inicializar modal de servicios
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listeners para filtros
+    document.getElementById('servicioSearchInput').addEventListener('input', filtrarServicios);
+    document.getElementById('serviciosCategoriaFilter').addEventListener('change', filtrarServicios);
+    document.getElementById('serviciosPrecioFilter').addEventListener('change', filtrarServicios);
+    
+    // Event listeners para pills de categoría
+    document.querySelectorAll('.category-pill').forEach(pill => {
+        pill.addEventListener('click', function() {
+            // Quitar active de todos
+            document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+            // Agregar active al actual
+            this.classList.add('active');
+            
+            // Actualizar filtro
+            const categoria = this.dataset.categoria;
+            document.getElementById('serviciosCategoriaFilter').value = categoria;
+            filtrarServicios();
+        });
+    });
+    
+    // Cargar servicios cuando se abra el modal
+    document.getElementById('serviciosModal').addEventListener('shown.bs.modal', cargarServicios);
+});
+
+function cargarServicios() {
+    // Mostrar loading
+    document.getElementById('serviciosLoading').style.display = 'block';
+    document.getElementById('serviciosContainer').innerHTML = '<div class="col-12 text-center py-4" id="serviciosLoading"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando servicios...</span></div><p class="text-muted mt-2">Cargando servicios disponibles...</p></div>';
+    
+    // Fetch servicios desde el backend
+    fetch('/taller/api/servicios-disponibles/')
+        .then(response => response.json())
+        .then(data => {
+            serviciosData = data.servicios;
+            serviciosFiltrados = [...serviciosData];
+            renderizarServicios();
+        })
+        .catch(error => {
+            console.error('Error cargando servicios:', error);
+            document.getElementById('serviciosContainer').innerHTML = 
+                '<div class="col-12 text-center py-4"><i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i><p class="text-muted">Error al cargar servicios</p></div>';
+        });
+}
+
+function filtrarServicios() {
+    const searchTerm = document.getElementById('servicioSearchInput').value.toLowerCase();
+    const categoriaFilter = document.getElementById('serviciosCategoriaFilter').value;
+    const precioFilter = document.getElementById('serviciosPrecioFilter').value;
+    
+    serviciosFiltrados = serviciosData.filter(servicio => {
+        // Filtro de búsqueda
+        const matchSearch = !searchTerm || 
+            servicio.nombre.toLowerCase().includes(searchTerm) ||
+            servicio.codigo.toLowerCase().includes(searchTerm);
+        
+        // Filtro de categoría
+        const matchCategoria = !categoriaFilter || 
+            servicio.categoria?.nombre?.toUpperCase().includes(categoriaFilter);
+        
+        // Filtro de precio
+        let matchPrecio = true;
+        if (precioFilter) {
+            const precio = parseFloat(servicio.precio_total);
+            switch(precioFilter) {
+                case '0-50':
+                    matchPrecio = precio <= 50;
+                    break;
+                case '50-100':
+                    matchPrecio = precio > 50 && precio <= 100;
+                    break;
+                case '100-200':
+                    matchPrecio = precio > 100 && precio <= 200;
+                    break;
+                case '200+':
+                    matchPrecio = precio > 200;
+                    break;
+            }
+        }
+        
+        return matchSearch && matchCategoria && matchPrecio;
+    });
+    
+    renderizarServicios();
+}
+
+function renderizarServicios() {
+    const container = document.getElementById('serviciosContainer');
+    const template = document.getElementById('servicioItemTemplate');
+    
+    // Limpiar container
+    container.innerHTML = '';
+    
+    // Actualizar contador
+    document.getElementById('serviciosCount').textContent = serviciosFiltrados.length;
+    
+    if (serviciosFiltrados.length === 0) {
+        container.innerHTML = 
+            '<div class="col-12 text-center py-4"><i class="fas fa-search fa-2x text-muted mb-2"></i><p class="text-muted">No se encontraron servicios</p></div>';
+        return;
+    }
+    
+    // Renderizar cada servicio
+    serviciosFiltrados.forEach(servicio => {
+        const servicioElement = template.content.cloneNode(true);
+        
+        // Llenar datos
+        servicioElement.querySelector('.service-name').textContent = servicio.nombre;
+        servicioElement.querySelector('.service-code').textContent = servicio.codigo;
+        servicioElement.querySelector('.service-price-badge').textContent = `$${servicio.precio_total}`;
+        servicioElement.querySelector('.service-time').textContent = `${servicio.tiempo_estimado_horas}h`;
+        servicioElement.querySelector('.service-difficulty').textContent = servicio.nivel_dificultad;
+        servicioElement.querySelector('.service-category').textContent = servicio.categoria?.nombre || '-';
+        servicioElement.querySelector('.service-description').textContent = 
+            servicio.descripcion || 'Sin descripción disponible';
+        servicioElement.querySelector('.service-precio-base').textContent = `$${servicio.precio_base}`;
+        servicioElement.querySelector('.service-precio-mano-obra').textContent = `$${servicio.precio_mano_obra}`;
+        servicioElement.querySelector('.service-precio-total').textContent = `$${servicio.precio_total}`;
+        
+        // Configurar icono
+        const icon = servicioElement.querySelector('.service-icon');
+        const categoria = servicio.categoria?.nombre?.toUpperCase() || 'DEFAULT';
+        
+        if (categoria.includes('MANTENIMIENTO')) {
+            icon.classList.add('mantenimiento');
+            icon.innerHTML = '<i class="fas fa-tools"></i>';
+        } else if (categoria.includes('REPARACION')) {
+            icon.classList.add('reparacion');
+            icon.innerHTML = '<i class="fas fa-wrench"></i>';
+        } else if (categoria.includes('DIAGNOSTICO')) {
+            icon.classList.add('diagnostico');
+            icon.innerHTML = '<i class="fas fa-search"></i>';
+        } else if (categoria.includes('ELECTRICO')) {
+            icon.classList.add('electrico');
+            icon.innerHTML = '<i class="fas fa-bolt"></i>';
+        } else {
+            icon.classList.add('default');
+            icon.innerHTML = '<i class="fas fa-cog"></i>';
+        }
+        
+        // Configurar badges
+        const badgesContainer = servicioElement.querySelector('.service-badges');
+        let badges = '';
+        
+        if (servicio.requiere_repuestos) {
+            badges += '<span class="badge bg-warning text-dark"><i class="fas fa-tools me-1"></i>Requiere Repuestos</span>';
+        }
+        
+        if (servicio.requiere_especialidad) {
+            badges += '<span class="badge bg-info"><i class="fas fa-user-graduate me-1"></i>Especialista</span>';
+        }
+        
+        badgesContainer.innerHTML = badges;
+        
+        // Configurar botón agregar
+        const addBtn = servicioElement.querySelector('.add-service-btn');
+        addBtn.onclick = () => agregarServicioAlCarrito(servicio);
+        
+        // Agregar al container
+        container.appendChild(servicioElement);
+    });
+}
+
+function agregarServicioAlCarrito(servicio) {
+    // Usar la función global del POS
+    if (window.agregarItemAlCarrito) {
+        window.agregarItemAlCarrito(
+            servicio.id,
+            servicio.nombre,
+            parseFloat(servicio.precio_total),
+            'servicio'
+        );
+        
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('serviciosModal'));
+        modal.hide();
+        
+        // Mostrar mensaje de confirmación
+        mostrarNotificacion(`Servicio "${servicio.nombre}" agregado al carrito`, 'success');
+    } else {
+        console.error('Función agregarItemAlCarrito no disponible');
+    }
+}
+
+function abrirGestionServicios() {
+    // Abrir gestión de servicios en nueva ventana
+    window.open('/taller/tipos-servicio/', 'gestion_servicios', 'width=1200,height=800');
+}
+
+function mostrarNotificacion(mensaje, tipo = 'info') {
+    // Crear notificación temporal
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${tipo} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove después de 3 segundos
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+</script>

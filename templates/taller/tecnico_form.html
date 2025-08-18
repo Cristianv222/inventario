@@ -1,0 +1,624 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if object %}Editar Técnico{% else %}Nuevo Técnico{% endif %} - VPMOTOS
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        box-shadow: var(--box-shadow);
+        margin-bottom: 2rem;
+    }
+    
+    .form-section {
+        border-left: 4px solid var(--primary);
+        padding-left: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .form-section h5 {
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+    
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+    
+    .form-floating label {
+        color: var(--gray-600);
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+    }
+    
+    .preview-avatar {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0 auto 1rem;
+        transition: var(--transition);
+    }
+    
+    .preview-card {
+        background: var(--gray-100);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        text-align: center;
+        border: 2px dashed var(--gray-300);
+    }
+    
+    .btn-action {
+        min-width: 120px;
+        margin: 0 0.5rem;
+    }
+    
+    .required-field label::after {
+        content: ' *';
+        color: var(--danger);
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-top: 0.25rem;
+    }
+    
+    .specialty-checkbox {
+        border: 1px solid var(--gray-300);
+        border-radius: var(--border-radius);
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        transition: var(--transition);
+    }
+    
+    .specialty-checkbox:hover {
+        background-color: var(--gray-100);
+    }
+    
+    .specialty-checkbox input:checked + label {
+        color: var(--primary);
+        font-weight: 600;
+    }
+    
+    .alert-icon {
+        font-size: 1.2rem;
+        margin-right: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>
+                        <i class="fas fa-user-plus text-primary me-2"></i>
+                        {% if object %}Editar Técnico{% else %}Nuevo Técnico{% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if object %}
+                        Modifica la información del técnico {{ object.nombres }} {{ object.apellidos }}
+                        {% else %}
+                        Registra un nuevo técnico en el sistema
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'taller:tecnico_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Volver a Lista
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Formulario Principal -->
+        <div class="col-lg-8">
+            <div class="form-card">
+                <form method="post" id="tecnicoForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- Mostrar errores generales del formulario -->
+                    {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle alert-icon"></i>
+                        <strong>Por favor corrige los siguientes errores:</strong>
+                        <ul class="mb-0 mt-2">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                            <li><strong>{{ field }}:</strong> {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle alert-icon"></i>
+                        {% for error in form.non_field_errors %}
+                            <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} alert-icon"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Información Personal -->
+                    <div class="form-section">
+                        <h5>
+                            <i class="fas fa-user me-2"></i>
+                            Información Personal
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating required-field">
+                                    {{ form.nombres }}
+                                    <label for="{{ form.nombres.id_for_label }}">Nombres</label>
+                                    {% if form.nombres.errors %}
+                                    <div class="text-danger small">{{ form.nombres.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating required-field">
+                                    {{ form.apellidos }}
+                                    <label for="{{ form.apellidos.id_for_label }}">Apellidos</label>
+                                    {% if form.apellidos.errors %}
+                                    <div class="text-danger small">{{ form.apellidos.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    {{ form.tipo_identificacion }}
+                                    <label for="{{ form.tipo_identificacion.id_for_label }}">Tipo ID</label>
+                                    {% if form.tipo_identificacion.errors %}
+                                    <div class="text-danger small">{{ form.tipo_identificacion.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-floating required-field">
+                                    {{ form.identificacion }}
+                                    <label for="{{ form.identificacion.id_for_label }}">Identificación</label>
+                                    {% if form.identificacion.errors %}
+                                    <div class="text-danger small">{{ form.identificacion.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="help-text">Número de cédula o identificación</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    {{ form.codigo }}
+                                    <label for="{{ form.codigo.id_for_label }}">Código de Técnico</label>
+                                    {% if form.codigo.errors %}
+                                    <div class="text-danger small">{{ form.codigo.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="help-text">Se genera automáticamente si está vacío</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información de Contacto -->
+                    <div class="form-section">
+                        <h5>
+                            <i class="fas fa-phone me-2"></i>
+                            Información de Contacto
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    {{ form.telefono }}
+                                    <label for="{{ form.telefono.id_for_label }}">Teléfono</label>
+                                    {% if form.telefono.errors %}
+                                    <div class="text-danger small">{{ form.telefono.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    {{ form.celular }}
+                                    <label for="{{ form.celular.id_for_label }}">Celular</label>
+                                    {% if form.celular.errors %}
+                                    <div class="text-danger small">{{ form.celular.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    {{ form.email }}
+                                    <label for="{{ form.email.id_for_label }}">Email</label>
+                                    {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    {{ form.direccion }}
+                                    <label for="{{ form.direccion.id_for_label }}">Dirección</label>
+                                    {% if form.direccion.errors %}
+                                    <div class="text-danger small">{{ form.direccion.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información Laboral -->
+                    <div class="form-section">
+                        <h5>
+                            <i class="fas fa-briefcase me-2"></i>
+                            Información Laboral
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating required-field">
+                                    {{ form.fecha_ingreso }}
+                                    <label for="{{ form.fecha_ingreso.id_for_label }}">Fecha de Ingreso</label>
+                                    {% if form.fecha_ingreso.errors %}
+                                    <div class="text-danger small">{{ form.fecha_ingreso.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    {{ form.estado }}
+                                    <label for="{{ form.estado.id_for_label }}">Estado</label>
+                                    {% if form.estado.errors %}
+                                    <div class="text-danger small">{{ form.estado.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    {{ form.porcentaje_comision }}
+                                    <label for="{{ form.porcentaje_comision.id_for_label }}">% Comisión</label>
+                                    {% if form.porcentaje_comision.errors %}
+                                    <div class="text-danger small">{{ form.porcentaje_comision.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="help-text">Porcentaje de comisión por servicios</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    {{ form.salario_base }}
+                                    <label for="{{ form.salario_base.id_for_label }}">Salario Base</label>
+                                    {% if form.salario_base.errors %}
+                                    <div class="text-danger small">{{ form.salario_base.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Especialidades -->
+                        {% if form.especialidades %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-tools me-2"></i>
+                                Especialidades
+                            </label>
+                            <div class="row">
+                                {% for choice in form.especialidades %}
+                                <div class="col-md-6">
+                                    <div class="specialty-checkbox">
+                                        <div class="form-check">
+                                            {{ choice.tag }}
+                                            <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                                {{ choice.choice_label }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.especialidades.errors %}
+                            <div class="text-danger small">{{ form.especialidades.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">Selecciona las especialidades técnicas del empleado</div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="form-floating">
+                            {{ form.observaciones }}
+                            <label for="{{ form.observaciones.id_for_label }}">Observaciones</label>
+                            {% if form.observaciones.errors %}
+                            <div class="text-danger small">{{ form.observaciones.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">Información adicional sobre el técnico</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones de Acción -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'taller:tecnico_list' %}" class="btn btn-outline-secondary btn-action">
+                            <i class="fas fa-times me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" name="action" value="save" class="btn btn-primary btn-action">
+                            <i class="fas fa-save me-1"></i>
+                            {% if object %}Actualizar{% else %}Guardar{% endif %}
+                        </button>
+                        {% if not object %}
+                        <button type="submit" name="action" value="save_and_new" class="btn btn-success btn-action">
+                            <i class="fas fa-save me-1"></i>
+                            Guardar y Nuevo
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Vista Previa -->
+        <div class="col-lg-4">
+            <div class="preview-card">
+                <h6 class="text-muted mb-3">Vista Previa</h6>
+                <div class="preview-avatar" id="previewAvatar">
+                    --
+                </div>
+                <h5 id="previewName">Nombre del Técnico</h5>
+                <p class="text-muted mb-2" id="previewCode">Código</p>
+                <p class="text-muted mb-0" id="previewContact">Información de contacto</p>
+                
+                <hr class="my-3">
+                
+                <div class="text-start">
+                    <small class="text-muted">Estado:</small>
+                    <span class="badge bg-success" id="previewEstado">ACTIVO</span>
+                </div>
+                <div class="text-start mt-2">
+                    <small class="text-muted">Comisión:</small>
+                    <span id="previewComision">0%</span>
+                </div>
+            </div>
+            
+            {% if object %}
+            <div class="mt-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-info-circle text-info fa-2x mb-2"></i>
+                        <h6>Técnico Registrado</h6>
+                        <p class="text-muted small mb-0">
+                            Registrado el {{ object.fecha_ingreso|date:"d/m/Y" }}
+                        </p>
+                        {% if object.get_ordenes_activas %}
+                        <p class="text-warning small mb-0 mt-2">
+                            <i class="fas fa-wrench"></i>
+                            {{ object.get_ordenes_activas }} órdenes activas
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="mt-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-lightbulb text-warning me-2"></i>
+                            Consejos
+                        </h6>
+                        <ul class="small mb-0">
+                            <li>El código se genera automáticamente si no lo especificas</li>
+                            <li>La identificación debe ser única</li>
+                            <li>Asigna especialidades según las habilidades del técnico</li>
+                            <li>El porcentaje de comisión afecta el cálculo de pagos</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('tecnicoForm');
+    const nombresInput = document.getElementById('{{ form.nombres.id_for_label }}');
+    const apellidosInput = document.getElementById('{{ form.apellidos.id_for_label }}');
+    const codigoInput = document.getElementById('{{ form.codigo.id_for_label }}');
+    const telefonoInput = document.getElementById('{{ form.telefono.id_for_label }}');
+    const celularInput = document.getElementById('{{ form.celular.id_for_label }}');
+    const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+    const estadoInput = document.getElementById('{{ form.estado.id_for_label }}');
+    const comisionInput = document.getElementById('{{ form.porcentaje_comision.id_for_label }}');
+    
+    // Elementos de vista previa
+    const previewAvatar = document.getElementById('previewAvatar');
+    const previewName = document.getElementById('previewName');
+    const previewCode = document.getElementById('previewCode');
+    const previewContact = document.getElementById('previewContact');
+    const previewEstado = document.getElementById('previewEstado');
+    const previewComision = document.getElementById('previewComision');
+    
+    // Función para actualizar vista previa
+    function updatePreview() {
+        const nombres = nombresInput.value.trim();
+        const apellidos = apellidosInput.value.trim();
+        const codigo = codigoInput.value.trim();
+        const telefono = telefonoInput.value.trim();
+        const celular = celularInput.value.trim();
+        const email = emailInput.value.trim();
+        const estado = estadoInput.value;
+        const comision = comisionInput.value || 0;
+        
+        // Actualizar avatar
+        if (nombres && apellidos) {
+            previewAvatar.textContent = nombres.charAt(0).toUpperCase() + apellidos.charAt(0).toUpperCase();
+        } else {
+            previewAvatar.textContent = '--';
+        }
+        
+        // Actualizar nombre
+        if (nombres || apellidos) {
+            previewName.textContent = `${nombres} ${apellidos}`.trim();
+        } else {
+            previewName.textContent = 'Nombre del Técnico';
+        }
+        
+        // Actualizar código
+        if (codigo) {
+            previewCode.textContent = codigo;
+        } else {
+            previewCode.textContent = 'Código (se generará automáticamente)';
+        }
+        
+        // Actualizar contacto
+        const contactInfo = [];
+        if (telefono) contactInfo.push(`Tel: ${telefono}`);
+        if (celular) contactInfo.push(`Cel: ${celular}`);
+        if (email) contactInfo.push(email);
+        
+        if (contactInfo.length > 0) {
+            previewContact.textContent = contactInfo.join(' • ');
+        } else {
+            previewContact.textContent = 'Información de contacto';
+        }
+        
+        // Actualizar estado
+        previewEstado.textContent = estado || 'ACTIVO';
+        previewEstado.className = 'badge bg-' + (estado === 'ACTIVO' ? 'success' : 'secondary');
+        
+        // Actualizar comisión
+        previewComision.textContent = comision + '%';
+    }
+    
+    // Escuchar cambios en los campos
+    [nombresInput, apellidosInput, codigoInput, telefonoInput, celularInput, 
+     emailInput, estadoInput, comisionInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', updatePreview);
+            input.addEventListener('change', updatePreview);
+        }
+    });
+    
+    // Generar código automático basado en nombres y apellidos
+    function generateCode() {
+        const nombres = nombresInput.value.trim();
+        const apellidos = apellidosInput.value.trim();
+        
+        if (nombres && apellidos && !codigoInput.value.trim()) {
+            const code = 'TEC-' + (nombres.charAt(0) + apellidos.charAt(0)).toUpperCase() + 
+                        Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+            codigoInput.value = code;
+            updatePreview();
+        }
+    }
+    
+    // Generar código cuando se completen nombres y apellidos
+    if (apellidosInput) {
+        apellidosInput.addEventListener('blur', generateCode);
+    }
+    
+    // Validación del formulario antes de enviar
+    form.addEventListener('submit', function(e) {
+        console.log('Formulario enviándose...');
+        
+        // Mostrar los datos que se están enviando (para debugging)
+        const formData = new FormData(form);
+        console.log('Datos del formulario:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+        
+        // Validación básica
+        let isValid = true;
+        const requiredFields = form.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+                console.log(`Campo requerido vacío: ${field.name}`);
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Por favor completa todos los campos requeridos');
+            return false;
+        }
+        
+        // Si todo está bien, mostrar mensaje de procesamiento
+        const submitBtns = form.querySelectorAll('button[type="submit"]');
+        submitBtns.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+        });
+    });
+    
+    // Actualizar vista previa inicial
+    updatePreview();
+    
+    // Animación suave para specialty checkboxes
+    document.querySelectorAll('.specialty-checkbox input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const parent = this.closest('.specialty-checkbox');
+            if (this.checked) {
+                parent.style.backgroundColor = 'rgba(67, 97, 238, 0.1)';
+                parent.style.borderColor = 'var(--primary)';
+            } else {
+                parent.style.backgroundColor = '';
+                parent.style.borderColor = 'var(--gray-300)';
+            }
+        });
+    });
+    
+    // Formatear campos numéricos
+    if (comisionInput) {
+        comisionInput.addEventListener('input', function() {
+            let value = parseFloat(this.value);
+            if (value < 0) this.value = 0;
+            if (value > 100) this.value = 100;
+        });
+    }
+});
+</script>
+{% endblock %}

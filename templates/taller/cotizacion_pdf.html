@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotización {{ orden.numero_orden }} - VPMOTOS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.4;
+            color: #333;
+            font-size: 12px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+        }
+        
+        .company-info {
+            flex: 1;
+        }
+        
+        .company-info h1 {
+            color: #007bff;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .company-info p {
+            margin-bottom: 2px;
+            color: #666;
+        }
+        
+        .quote-info {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        
+        .quote-info h2 {
+            color: #007bff;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            gap: 30px;
+        }
+        
+        .client-info, .vehicle-info, .quote-details {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        .info-row {
+            margin-bottom: 5px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .services-table, .parts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .services-table th, .parts-table th {
+            background: #007bff;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 2px solid #0056b3;
+        }
+        
+        .services-table td, .parts-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .services-table tr:nth-child(even), .parts-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .services-table tr:hover, .parts-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .totals-section {
+            margin-top: 30px;
+            border-top: 2px solid #007bff;
+            padding-top: 20px;
+        }
+        
+        .totals-table {
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+        }
+        
+        .totals-table td {
+            padding: 8px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .totals-table .total-row {
+            font-weight: bold;
+            font-size: 16px;
+            background: #f8f9fa;
+            border-top: 2px solid #007bff;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 11px;
+        }
+        
+        .terms {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .terms h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .terms ul {
+            margin-left: 20px;
+        }
+        
+        .terms li {
+            margin-bottom: 5px;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .print-button:hover {
+            background: #0056b3;
+        }
+        
+        @media print {
+            .print-button {
+                display: none;
+            }
+            
+            body {
+                font-size: 11px;
+            }
+            
+            .container {
+                padding: 0;
+                margin: 0;
+                max-width: none;
+            }
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-pendiente {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-completado {
+            background-color: #d1edff;
+            color: #084298;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="window.print()">
+        🖨️ Imprimir / Guardar PDF
+    </button>
+    
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <h1>{{ empresa.nombre }}</h1>
+                <p>{{ empresa.direccion }}</p>
+                <p>Tel: {{ empresa.telefono }}</p>
+                <p>Email: {{ empresa.email }}</p>
+            </div>
+            <div class="quote-info">
+                <h2>COTIZACIÓN</h2>
+                <div class="info-row">
+                    <span class="info-label">No.:</span> {{ orden.numero_orden }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Fecha:</span> {{ orden.fecha_ingreso|date:"d/m/Y" }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Estado:</span> 
+                    <span class="status-badge status-{{ orden.estado|lower }}">{{ orden.get_estado_display }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Válida hasta:</span> {{ orden.fecha_ingreso|date:"d/m/Y"|add_days:30 }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Información -->
+        <div class="info-section">
+            <div class="client-info">
+                <div class="section-title">Información del Cliente</div>
+                <div class="info-row">
+                    <span class="info-label">Nombre:</span> {{ orden.cliente.get_nombre_completo }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Identificación:</span> {{ orden.cliente.identificacion }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Teléfono:</span> {{ orden.cliente.telefono }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email:</span> {{ orden.cliente.email|default:"-" }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Dirección:</span> {{ orden.cliente.direccion|default:"-" }}
+                </div>
+            </div>
+            
+            <div class="vehicle-info">
+                <div class="section-title">Información del Vehículo</div>
+                <div class="info-row">
+                    <span class="info-label">Placa:</span> {{ orden.moto.placa }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Marca:</span> {{ orden.moto.marca }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Modelo:</span> {{ orden.moto.modelo }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Año:</span> {{ orden.moto.año|default:"-" }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Color:</span> {{ orden.moto.color|default:"-" }}
+                </div>
+            </div>
+            
+            <div class="quote-details">
+                <div class="section-title">Detalles de la Cotización</div>
+                <div class="info-row">
+                    <span class="info-label">Técnico:</span> {{ orden.tecnico_principal.get_nombre_completo }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Prioridad:</span> {{ orden.get_prioridad_display }}
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Motivo:</span> {{ orden.motivo_ingreso }}
+                </div>
+                {% if orden.observaciones_cliente %}
+                <div class="info-row">
+                    <span class="info-label">Observaciones:</span> {{ orden.observaciones_cliente }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Servicios -->
+        {% if servicios %}
+        <h3 style="color: #007bff; margin-bottom: 15px;">SERVICIOS</h3>
+        <table class="services-table">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Código</th>
+                    <th style="width: 40%;">Descripción</th>
+                    <th style="width: 15%;" class="text-center">Tiempo Est.</th>
+                    <th style="width: 15%;" class="text-right">Mano de Obra</th>
+                    <th style="width: 15%;" class="text-right">Materiales</th>
+                    <th style="width: 15%;" class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for servicio in servicios %}
+                <tr>
+                    <td>{{ servicio.tipo_servicio.codigo }}</td>
+                    <td>
+                        <strong>{{ servicio.tipo_servicio.nombre }}</strong>
+                        {% if servicio.tipo_servicio.descripcion %}
+                            <br><small style="color: #666;">{{ servicio.tipo_servicio.descripcion }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ servicio.tipo_servicio.tiempo_estimado_horas }}h</td>
+                    <td class="text-right">${{ servicio.tipo_servicio.precio_mano_obra|floatformat:2 }}</td>
+                    <td class="text-right">${{ servicio.tipo_servicio.precio_base|floatformat:2 }}</td>
+                    <td class="text-right"><strong>${{ servicio.precio_total|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        
+        <!-- Repuestos -->
+        {% if repuestos %}
+        <h3 style="color: #007bff; margin-bottom: 15px; margin-top: 30px;">REPUESTOS Y MATERIALES</h3>
+        <table class="parts-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Código</th>
+                    <th style="width: 45%;">Descripción</th>
+                    <th style="width: 10%;" class="text-center">Cant.</th>
+                    <th style="width: 15%;" class="text-right">Precio Unit.</th>
+                    <th style="width: 15%;" class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for repuesto in repuestos %}
+                <tr>
+                    <td>{{ repuesto.producto.codigo }}</td>
+                    <td>
+                        <strong>{{ repuesto.producto.nombre }}</strong>
+                        {% if repuesto.producto.descripcion %}
+                            <br><small style="color: #666;">{{ repuesto.producto.descripcion }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ repuesto.cantidad }}</td>
+                    <td class="text-right">${{ repuesto.precio_unitario|floatformat:2 }}</td>
+                    <td class="text-right"><strong>${{ repuesto.precio_total|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        
+        <!-- Totales -->
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td>Subtotal Servicios:</td>
+                    <td class="text-right">${{ orden.get_subtotal_servicios|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Subtotal Repuestos:</td>
+                    <td class="text-right">${{ orden.get_subtotal_repuestos|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Subtotal:</td>
+                    <td class="text-right">${{ orden.get_subtotal|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>IVA ({{ orden.get_porcentaje_iva }}%):</td>
+                    <td class="text-right">${{ orden.get_valor_iva|floatformat:2 }}</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>TOTAL:</strong></td>
+                    <td class="text-right"><strong>${{ orden.precio_total|floatformat:2 }}</strong></td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Términos y Condiciones -->
+        <div class="terms">
+            <h4>Términos y Condiciones</h4>
+            <ul>
+                <li>Esta cotización tiene una validez de 30 días calendario.</li>
+                <li>Los precios incluyen IVA donde aplique.</li>
+                <li>Los tiempos de entrega pueden variar según disponibilidad de repuestos.</li>
+                <li>Se requiere autorización previa para trabajos adicionales no contemplados.</li>
+                <li>El vehículo debe ser retirado máximo 15 días después de la finalización del trabajo.</li>
+                <li>No nos hacemos responsables por objetos de valor dejados en el vehículo.</li>
+                <li>Garantía de 90 días en mano de obra y según fabricante en repuestos.</li>
+            </ul>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>Este documento es una cotización y no constituye una factura fiscal.</p>
+            <p>Para proceder con los trabajos, es necesaria la autorización escrita del cliente.</p>
+            <p><strong>{{ empresa.nombre }}</strong> - {{ empresa.direccion }} - Tel: {{ empresa.telefono }}</p>
+        </div>
+    </div>
+</body>
+</html>

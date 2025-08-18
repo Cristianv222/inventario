@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Citas del Taller{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cita-card {
+        transition: transform 0.2s;
+        border-left: 4px solid #007bff;
+    }
+    .cita-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .estado-pendiente { border-left-color: #ffc107; }
+    .estado-confirmada { border-left-color: #28a745; }
+    .estado-completada { border-left-color: #6c757d; }
+    .estado-cancelada { border-left-color: #dc3545; }
+    
+    .calendar-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .badge-estado {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">Citas del Taller</h1>
+                <a href="{% url 'taller:cita_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nueva Cita
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y navegación -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="form-inline">
+                        <div class="calendar-nav w-100">
+                            <div>
+                                <a href="?fecha={{ fecha_anterior|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-chevron-left"></i> Anterior
+                                </a>
+                                <input type="date" name="fecha" value="{{ fecha_actual|date:'Y-m-d' }}" 
+                                       class="form-control mx-2" onchange="this.form.submit()">
+                                <a href="?fecha={{ fecha_siguiente|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary">
+                                    Siguiente <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </div>
+                            <div>
+                                <a href="?fecha={{ hoy|date:'Y-m-d' }}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-calendar-day"></i> Hoy
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de citas -->
+    <div class="row">
+        <div class="col-12">
+            {% if object_list %}
+                <div class="row">
+                    {% for cita in object_list %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card cita-card estado-{{ cita.estado|lower }}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-clock"></i> {{ cita.fecha_hora|date:"H:i" }}
+                                        </h5>
+                                        <span class="badge badge-estado 
+                                            {% if cita.estado == 'PENDIENTE' %}badge-warning{% endif %}
+                                            {% if cita.estado == 'CONFIRMADA' %}badge-success{% endif %}
+                                            {% if cita.estado == 'COMPLETADA' %}badge-secondary{% endif %}
+                                            {% if cita.estado == 'CANCELADA' %}badge-danger{% endif %}">
+                                            {{ cita.get_estado_display }}
+                                        </span>
+                                    </div>
+                                    
+                                    <h6 class="card-subtitle mb-2 text-muted">
+                                        <i class="fas fa-user"></i> {{ cita.cliente.get_nombre_completo }}
+                                    </h6>
+                                    
+                                    {% if cita.moto %}
+                                        <p class="mb-1">
+                                            <i class="fas fa-motorcycle"></i> 
+                                            {{ cita.moto.marca }} {{ cita.moto.modelo }} - {{ cita.moto.placa }}
+                                        </p>
+                                    {% endif %}
+                                    
+                                    {% if cita.servicio_solicitado %}
+                                        <p class="mb-2">
+                                            <i class="fas fa-wrench"></i> {{ cita.servicio_solicitado }}
+                                        </p>
+                                    {% endif %}
+                                    
+                                    {% if cita.notas %}
+                                        <p class="mb-2 text-muted small">
+                                            <i class="fas fa-sticky-note"></i> {{ cita.notas|truncatewords:10 }}
+                                        </p>
+                                    {% endif %}
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <a href="{% url 'taller:cita_detail' cita.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> Ver
+                                        </a>
+                                        <div>
+                                            {% if cita.estado == 'CONFIRMADA' %}
+                                                <a href="{% url 'taller:crear_orden_desde_cita' cita.pk %}" 
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fas fa-file-invoice"></i> Crear Orden
+                                                </a>
+                                            {% endif %}
+                                            <a href="{% url 'taller:cita_update' cita.pk %}" 
+                                               class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Paginación -->
+                {% if is_paginated %}
+                    <nav aria-label="Paginación">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1&fecha={{ fecha_actual|date:'Y-m-d' }}">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&fecha={{ fecha_actual|date:'Y-m-d' }}">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&fecha={{ fecha_actual|date:'Y-m-d' }}">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&fecha={{ fecha_actual|date:'Y-m-d' }}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h4>No hay citas para esta fecha</h4>
+                    <p>No se encontraron citas programadas para el {{ fecha_actual|date:"d/m/Y" }}</p>
+                    <a href="{% url 'taller:cita_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Programar Nueva Cita
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Actualizar automáticamente cada 5 minutos
+    setTimeout(function() {
+        location.reload();
+    }, 300000);
+</script>
+{% endblock %}

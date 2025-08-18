@@ -1,0 +1,1132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Ventas{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========== ESTILOS LIMPIOS COMO EL POS ========== */
+    .dashboard-container {
+        padding: 1rem;
+        min-height: calc(100vh - 120px);
+        background: #f8f9fa;
+    }
+
+    /* Header simple */
+    .dashboard-header {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .dashboard-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .dashboard-title h1 {
+        color: #495057;
+        font-weight: 500;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.5rem;
+    }
+
+    .dashboard-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-dashboard {
+        background: #3f51b5;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .btn-dashboard:hover {
+        background: #2c387e;
+        color: white;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+
+    .btn-dashboard.success {
+        background: #28a745;
+    }
+
+    .btn-dashboard.success:hover {
+        background: #218838;
+    }
+
+    .btn-dashboard.warning {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .btn-dashboard.warning:hover {
+        background: #e0a800;
+    }
+
+    /* Grid de estadísticas limpio */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border-left: 4px solid;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .stat-card.sales { border-left-color: #3f51b5; }
+    .stat-card.revenue { border-left-color: #28a745; }
+    .stat-card.pending { border-left-color: #ffc107; }
+    .stat-card.products { border-left-color: #dc3545; }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+    }
+
+    .stat-icon.sales { background: #3f51b5; }
+    .stat-icon.revenue { background: #28a745; }
+    .stat-icon.pending { background: #ffc107; }
+    .stat-icon.products { background: #dc3545; }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-change {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+        display: inline-block;
+    }
+
+    .stat-change.positive {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+
+    .stat-change.negative {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+
+    /* Content grid */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .chart-title {
+        font-size: 1.2rem;
+        font-weight: 500;
+        color: #495057;
+        margin: 0;
+    }
+
+    .chart-filters {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .filter-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid #dee2e6;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.8rem;
+        color: #495057;
+        font-weight: 500;
+    }
+
+    .filter-btn:hover {
+        border-color: #3f51b5;
+        background: rgba(63, 81, 181, 0.05);
+    }
+
+    .filter-btn.active {
+        background: #3f51b5;
+        color: white;
+        border-color: #3f51b5;
+    }
+
+    .chart-area {
+        height: 250px;
+        position: relative;
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chart-bars {
+        display: flex;
+        align-items: end;
+        justify-content: space-around;
+        height: 180px;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .chart-bar {
+        background: #3f51b5;
+        border-radius: 4px 4px 0 0;
+        min-width: 25px;
+        position: relative;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        flex: 1;
+        max-width: 50px;
+    }
+
+    .chart-bar:hover {
+        background: #28a745;
+        transform: scale(1.05);
+    }
+
+    .chart-bar::after {
+        content: attr(data-value);
+        position: absolute;
+        top: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: #495057;
+        white-space: nowrap;
+        background: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .chart-labels {
+        display: flex;
+        justify-content: space-around;
+        padding: 0.5rem 0;
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    /* Actividades recientes */
+    .recent-activities {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .activity-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-radius: 6px;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+    }
+
+    .activity-item:hover {
+        background: rgba(63, 81, 181, 0.05);
+        transform: translateX(3px);
+    }
+
+    .activity-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .activity-info {
+        flex: 1;
+    }
+
+    .activity-title {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .activity-subtitle {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .activity-value {
+        text-align: right;
+    }
+
+    .activity-amount {
+        font-weight: 600;
+        color: #28a745;
+        margin-bottom: 0.25rem;
+    }
+
+    .activity-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+    .badge-success {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+
+    .badge-warning {
+        background: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+    }
+
+    .badge-danger {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+
+    /* Modales limpios */
+    .modal-content {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .modal-header {
+        background: #3f51b5;
+        color: white;
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        padding: 1rem 1.5rem;
+    }
+
+    .modal-title {
+        font-weight: 500;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .sale-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        transition: all 0.3s ease;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+    }
+
+    .sale-row:hover {
+        background: #f8f9fa;
+    }
+
+    .sale-details {
+        flex: 1;
+    }
+
+    .sale-invoice {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.25rem;
+    }
+
+    .sale-customer {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .sale-amount {
+        font-weight: 600;
+        color: #28a745;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Estados vacíos */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    /* Loading */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #f3f3f3;
+        border-radius: 50%;
+        border-top-color: #3f51b5;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 0.5rem;
+        }
+
+        .dashboard-title {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-actions {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .chart-header {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+
+    /* Notification badge */
+    .notification-badge {
+        position: relative;
+    }
+
+    .notification-badge::after {
+        content: attr(data-count);
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+    }
+
+    /* Botones del modal */
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #3f51b5;
+        border-color: #3f51b5;
+    }
+
+    .btn-primary:hover {
+        background: #2c387e;
+        border-color: #2c387e;
+    }
+
+    .btn-success {
+        background: #28a745;
+        border-color: #28a745;
+    }
+
+    .btn-success:hover {
+        background: #218838;
+        border-color: #218838;
+    }
+
+    .form-control {
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        font-size: 0.875rem;
+    }
+
+    .form-control:focus {
+        border-color: #3f51b5;
+        box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
+    }
+
+    .form-select {
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        font-size: 0.875rem;
+    }
+
+    .form-select:focus {
+        border-color: #3f51b5;
+        box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header del Dashboard -->
+    <div class="dashboard-header">
+        <div class="dashboard-title">
+            <h1>
+                <i class="bi bi-graph-up"></i>
+                Dashboard de Ventas
+            </h1>
+            <div class="dashboard-actions">
+                <a href="{% url 'ventas:punto_venta' %}" class="btn-dashboard success">
+                    <i class="bi bi-shop"></i>
+                    Punto de Venta
+                </a>
+                <button class="btn-dashboard warning notification-badge" data-count="{{ ordenes_pendientes.count }}" onclick="showPendingOrders()">
+                    <i class="bi bi-clock"></i>
+                    Órdenes Pendientes
+                </button>
+                <button class="btn-dashboard" onclick="showAllSales()">
+                    <i class="bi bi-list"></i>
+                    Ver Todas las Ventas
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de Estadísticas -->
+    <div class="stats-grid">
+        <!-- Ventas de Hoy -->
+        <div class="stat-card sales">
+            <div class="stat-header">
+                <div class="stat-content">
+                    <div class="stat-value" id="ventasHoy">{{ estadisticas.ventas_hoy }}</div>
+                    <div class="stat-label">Ventas Hoy</div>
+                    <div class="stat-change positive">
+                        <i class="bi bi-arrow-up"></i>
+                        +{{ estadisticas.crecimiento_ventas|floatformat:1 }}%
+                    </div>
+                </div>
+                <div class="stat-icon sales">
+                    <i class="bi bi-cart3"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ingresos de Hoy -->
+        <div class="stat-card revenue">
+            <div class="stat-header">
+                <div class="stat-content">
+                    <div class="stat-value" id="ingresosHoy">S/ {{ estadisticas.ingresos_hoy|floatformat:2 }}</div>
+                    <div class="stat-label">Ingresos Hoy</div>
+                    <div class="stat-change positive">
+                        <i class="bi bi-arrow-up"></i>
+                        +{{ estadisticas.crecimiento_ingresos|floatformat:1 }}%
+                    </div>
+                </div>
+                <div class="stat-icon revenue">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Órdenes Pendientes -->
+        <div class="stat-card pending">
+            <div class="stat-header">
+                <div class="stat-content">
+                    <div class="stat-value" id="ordenesPendientes">{{ estadisticas.ordenes_pendientes }}</div>
+                    <div class="stat-label">Órdenes Pendientes</div>
+                    <div class="stat-change {% if estadisticas.variacion_ordenes > 0 %}negative{% else %}positive{% endif %}">
+                        <i class="bi bi-{% if estadisticas.variacion_ordenes > 0 %}arrow-up{% else %}arrow-down{% endif %}"></i>
+                        {{ estadisticas.variacion_ordenes|floatformat:0 }}
+                    </div>
+                </div>
+                <div class="stat-icon pending">
+                    <i class="bi bi-clock"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Productos Bajo Stock -->
+        <div class="stat-card products">
+            <div class="stat-header">
+                <div class="stat-content">
+                    <div class="stat-value" id="productosStock">{{ estadisticas.productos_bajo_stock }}</div>
+                    <div class="stat-label">Productos Bajo Stock</div>
+                    <div class="stat-change {% if estadisticas.productos_bajo_stock > 5 %}negative{% else %}positive{% endif %}">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        {% if estadisticas.productos_bajo_stock > 5 %}Crítico{% else %}Normal{% endif %}
+                    </div>
+                </div>
+                <div class="stat-icon products">
+                    <i class="bi bi-box"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+        <!-- Gráfico de Ventas -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3 class="chart-title">Ventas de los Últimos 7 Días</h3>
+                <div class="chart-filters">
+                    <button class="filter-btn active" data-period="7d">7 Días</button>
+                    <button class="filter-btn" data-period="30d">30 Días</button>
+                    <button class="filter-btn" data-period="90d">3 Meses</button>
+                </div>
+            </div>
+            <div class="chart-area">
+                <div class="chart-bars" id="salesChart">
+                    {% for dia in grafico_ventas %}
+                    <div class="chart-bar" 
+                         data-height="{{ dia.altura }}" 
+                         data-value="S/ {{ dia.total|floatformat:0 }}"
+                         data-fecha="{{ dia.fecha }}"
+                         data-total="{{ dia.total }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="chart-labels">
+                    {% for dia in grafico_ventas %}
+                    <div>{{ dia.dia }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Actividades Recientes -->
+        <div class="recent-activities">
+            <div class="chart-header">
+                <h3 class="chart-title">Actividad Reciente</h3>
+                <button class="btn btn-sm btn-outline-primary" onclick="refreshActivities()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+            
+            <!-- Ventas Recientes -->
+            <div class="mb-3">
+                <h6 class="text-muted mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Últimas Ventas</h6>
+                {% for venta in ventas_recientes %}
+                <div class="activity-item" data-venta-id="{{ venta.id }}">
+                    <div class="activity-info">
+                        <div class="activity-title">{{ venta.numero_factura }}</div>
+                        <div class="activity-subtitle">
+                            {% if venta.cliente.identificacion == '9999999999' %}
+                                Consumidor Final
+                            {% else %}
+                                {{ venta.cliente.nombres }} {{ venta.cliente.apellidos }}
+                            {% endif %}
+                            - {{ venta.fecha_hora|date:"H:i" }}
+                        </div>
+                    </div>
+                    <div class="activity-value">
+                        <div class="activity-amount">S/ {{ venta.total|floatformat:2 }}</div>
+                        <div class="activity-badge badge-success">{{ venta.get_tipo_pago_display }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="bi bi-cart3"></i>
+                    <p>No hay ventas registradas hoy</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Productos Más Vendidos -->
+            <div>
+                <h6 class="text-muted mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Productos Más Vendidos</h6>
+                {% for producto in productos_top %}
+                <div class="activity-item">
+                    <div class="activity-info">
+                        <div class="activity-title">{{ producto.nombre }}</div>
+                        <div class="activity-subtitle">{{ producto.total_vendido }} unidades vendidas</div>
+                    </div>
+                    <div class="activity-value">
+                        <div class="activity-amount">S/ {{ producto.ingresos|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="bi bi-box"></i>
+                    <p>No hay datos de productos</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Todas las Ventas -->
+<div class="modal fade" id="salesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-list"></i>
+                    Todas las Ventas
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filtros -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="fechaInicio" placeholder="Fecha inicio">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="fechaFin" placeholder="Fecha fin">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="estadoFilter">
+                            <option value="">Todos los estados</option>
+                            <option value="COMPLETADA">Completada</option>
+                            <option value="ANULADA">Anulada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary" onclick="filterSales()">
+                            <i class="bi bi-search"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Ventas -->
+                <div id="salesList">
+                    {% for venta in ventas_modal %}
+                    <div class="sale-row" data-venta-id="{{ venta.id }}">
+                        <div class="sale-details">
+                            <div class="sale-invoice">{{ venta.numero_factura }}</div>
+                            <div class="sale-customer">
+                                {% if venta.cliente.identificacion == '9999999999' %}
+                                    Consumidor Final
+                                {% else %}
+                                    {{ venta.cliente.nombres }} {{ venta.cliente.apellidos }}
+                                {% endif %}
+                                - {{ venta.fecha_hora|date:"d/m/Y H:i" }}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="sale-amount">S/ {{ venta.total|floatformat:2 }}</div>
+                            <div class="activity-badge {% if venta.estado == 'COMPLETADA' %}badge-success{% else %}badge-danger{% endif %}">
+                                {{ venta.get_estado_display }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Órdenes Pendientes -->
+<div class="modal fade" id="pendingOrdersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-clock"></i>
+                    Órdenes Pendientes de Facturar
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% for orden in ordenes_pendientes %}
+                <div class="activity-item" onclick="goToPOS({{ orden.id }})">
+                    <div class="activity-info">
+                        <div class="activity-title">O.T. #{{ orden.numero_orden }}</div>
+                        <div class="activity-subtitle">
+                            {{ orden.cliente.nombres }} {{ orden.cliente.apellidos }} - 
+                            {{ orden.moto_marca }} {{ orden.moto_modelo }} ({{ orden.moto_placa }})
+                        </div>
+                        <small class="text-muted">{{ orden.fecha_completado|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <div class="activity-value">
+                        <div class="activity-amount">S/ {{ orden.precio_total|floatformat:2 }}</div>
+                        <button class="btn btn-sm btn-success">
+                            <i class="bi bi-shop"></i> Facturar
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="bi bi-check-circle"></i>
+                    <p>No hay órdenes pendientes de facturar</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ========== VARIABLES GLOBALES ==========
+let currentPeriod = '7d';
+
+// ========== INICIALIZACIÓN ==========
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+    setupEventListeners();
+    setupAutoRefresh();
+    initializeChartBars();
+});
+
+function initializeDashboard() {
+    console.log('Dashboard de ventas inicializado');
+    loadTodayStats();
+}
+
+function initializeChartBars() {
+    // Inicializar alturas de barras del gráfico
+    document.querySelectorAll('.chart-bar').forEach(bar => {
+        const height = bar.getAttribute('data-height');
+        if (height) {
+            setTimeout(() => {
+                bar.style.height = height + 'px';
+            }, 100);
+        }
+    });
+}
+
+function setupEventListeners() {
+    // Event listeners para filtros de gráfico
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const period = this.getAttribute('data-period');
+            changeChartPeriod(period, this);
+        });
+    });
+
+    // Event listeners para barras del gráfico
+    document.querySelectorAll('.chart-bar').forEach(bar => {
+        bar.addEventListener('click', function() {
+            const fecha = this.getAttribute('data-fecha');
+            const total = this.getAttribute('data-total');
+            showDayDetails(fecha, total);
+        });
+    });
+
+    // Event listeners para items de ventas
+    document.querySelectorAll('[data-venta-id]').forEach(item => {
+        item.addEventListener('click', function() {
+            const ventaId = this.getAttribute('data-venta-id');
+            viewSaleDetails(ventaId);
+        });
+    });
+}
+
+// ========== FUNCIONES DE DATOS ==========
+function loadTodayStats() {
+    fetch('/ventas/api/dashboard-stats/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStatsDisplay(data.stats);
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando estadísticas:', error);
+        });
+}
+
+function updateStatsDisplay(stats) {
+    if (stats.ventas_hoy !== undefined) {
+        animateValue('ventasHoy', parseInt(document.getElementById('ventasHoy').textContent), stats.ventas_hoy, 1000);
+    }
+    
+    if (stats.ingresos_hoy !== undefined) {
+        animateValue('ingresosHoy', 0, stats.ingresos_hoy, 1000, 'S/ ');
+    }
+    
+    if (stats.ordenes_pendientes !== undefined) {
+        animateValue('ordenesPendientes', parseInt(document.getElementById('ordenesPendientes').textContent), stats.ordenes_pendientes, 1000);
+    }
+    
+    if (stats.productos_bajo_stock !== undefined) {
+        animateValue('productosStock', parseInt(document.getElementById('productosStock').textContent), stats.productos_bajo_stock, 1000);
+    }
+}
+
+// ========== MODALES ==========
+function showAllSales() {
+    const modal = new bootstrap.Modal(document.getElementById('salesModal'));
+    modal.show();
+    loadAllSales();
+}
+
+function showPendingOrders() {
+    const modal = new bootstrap.Modal(document.getElementById('pendingOrdersModal'));
+    modal.show();
+}
+
+function loadAllSales() {
+    const salesList = document.getElementById('salesList');
+    salesList.innerHTML = '<div class="text-center py-4"><div class="loading-spinner"></div><p class="mt-2">Cargando ventas...</p></div>';
+    
+    const fechaInicio = document.getElementById('fechaInicio').value;
+    const fechaFin = document.getElementById('fechaFin').value;
+    const estado = document.getElementById('estadoFilter').value;
+    
+    let url = '/ventas/api/todas-ventas/?';
+    if (fechaInicio) url += 'fecha_inicio=' + fechaInicio + '&';
+    if (fechaFin) url += 'fecha_fin=' + fechaFin + '&';
+    if (estado) url += 'estado=' + estado + '&';
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displaySalesList(data.ventas);
+            } else {
+                salesList.innerHTML = '<div class="empty-state"><i class="bi bi-exclamation-triangle"></i><p>Error cargando ventas</p></div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            salesList.innerHTML = '<div class="empty-state"><i class="bi bi-exclamation-triangle"></i><p>Error de conexión</p></div>';
+        });
+}
+
+function displaySalesList(ventas) {
+    const salesList = document.getElementById('salesList');
+    
+    if (ventas.length === 0) {
+        salesList.innerHTML = '<div class="empty-state"><i class="bi bi-cart3"></i><p>No se encontraron ventas</p></div>';
+        return;
+    }
+    
+    salesList.innerHTML = ventas.map(venta => 
+        '<div class="sale-row" data-venta-id="' + venta.id + '">' +
+            '<div class="sale-details">' +
+                '<div class="sale-invoice">' + venta.numero_factura + '</div>' +
+                '<div class="sale-customer">' + venta.cliente_nombre + ' - ' + venta.fecha_hora + '</div>' +
+            '</div>' +
+            '<div style="text-align: right;">' +
+                '<div class="sale-amount">S/ ' + venta.total + '</div>' +
+                '<div class="activity-badge ' + (venta.estado === 'COMPLETADA' ? 'badge-success' : 'badge-danger') + '">' +
+                    venta.estado +
+                '</div>' +
+            '</div>' +
+        '</div>'
+    ).join('');
+
+    // Re-agregar event listeners
+    salesList.querySelectorAll('[data-venta-id]').forEach(item => {
+        item.addEventListener('click', function() {
+            const ventaId = this.getAttribute('data-venta-id');
+            viewSaleDetails(ventaId);
+        });
+    });
+}
+
+function filterSales() {
+    loadAllSales();
+}
+
+// ========== NAVEGACIÓN ==========
+function viewSaleDetails(ventaId) {
+    window.location.href = '/ventas/detalle/' + ventaId + '/';
+}
+
+function goToPOS(ordenId) {
+    window.location.href = '{% url "ventas:punto_venta" %}?orden_id=' + ordenId;
+}
+
+function showDayDetails(fecha, total) {
+    const fechaFormateada = new Date(fecha).toLocaleDateString('es-ES');
+    const totalFormateado = parseFloat(total).toLocaleString('es-ES', {
+        style: 'currency',
+        currency: 'PEN'
+    });
+    
+    alert('Ventas del ' + fechaFormateada + ': ' + totalFormateado);
+}
+
+// ========== GRÁFICO ==========
+function changeChartPeriod(period, button) {
+    currentPeriod = period;
+    
+    // Actualizar botones activos
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    button.classList.add('active');
+    
+    // Cargar nuevos datos del gráfico
+    loadChartData(period);
+}
+
+function loadChartData(period) {
+    fetch('/ventas/api/grafico-ventas/?periodo=' + period)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateChart(data.datos);
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando datos del gráfico:', error);
+        });
+}
+
+function updateChart(datos) {
+    const chartBars = document.getElementById('salesChart');
+    const maxValue = Math.max(...datos.map(d => d.total));
+    
+    chartBars.innerHTML = datos.map(dia => {
+        const height = maxValue > 0 ? (dia.total / maxValue) * 180 : 5;
+        return '<div class="chart-bar" ' +
+                    'style="height: ' + height + 'px;" ' +
+                    'data-value="S/ ' + dia.total.toLocaleString() + '"' +
+                    'data-fecha="' + dia.fecha + '" ' +
+                    'data-total="' + dia.total + '">' +
+                '</div>';
+    }).join('');
+
+    // Re-agregar event listeners
+    chartBars.querySelectorAll('.chart-bar').forEach(bar => {
+        bar.addEventListener('click', function() {
+            const fecha = this.getAttribute('data-fecha');
+            const total = this.getAttribute('data-total');
+            showDayDetails(fecha, total);
+        });
+    });
+}
+
+// ========== UTILIDADES ==========
+function animateValue(elementId, start, end, duration, prefix) {
+    prefix = prefix || '';
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const startTime = performance.now();
+    
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        const current = Math.floor(start + (end - start) * progress);
+        element.textContent = prefix + current.toLocaleString();
+        
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    }
+    
+    requestAnimationFrame(animate);
+}
+
+function refreshActivities() {
+    location.reload();
+}
+
+function setupAutoRefresh() {
+    // Actualizar estadísticas cada 30 segundos
+    setInterval(function() {
+        loadTodayStats();
+    }, 30000);
+}
+
+console.log('Dashboard de ventas cargado correctamente');
+</script>
+{% endblock %}

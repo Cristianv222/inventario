@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OPENMOTORS{% endblock %}</title>
+
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+<!-- Font Awesome como fallback -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Google Fonts - Roboto (Material Design standard) + Poppins original -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<!-- Bootstrap CSS (for layout compatibility) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Material Design 3 CSS -->
+<style>
+    :root {
+        /* Colores originales de OPENMOTORS */
+        --primary: #4361ee;
+        --primary-light: #4895ef;
+        --secondary: #3f37c9;
+        --accent: #f72585;
+        --success: #4cc9f0;
+        --warning: #f8961e;
+        --danger: #f94144;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --gray-100: #f8f9fa;
+        --gray-200: #e9ecef;
+        --gray-300: #dee2e6;
+        --gray-400: #ced4da;
+        --gray-500: #adb5bd;
+        --gray-600: #6c757d;
+        --gray-700: #495057;
+        --gray-800: #343a40;
+        --gray-900: #212529;
+        
+        /* Material Design adaptado con colores originales */
+        --md-primary: var(--primary);
+        --md-primary-light: var(--primary-light);
+        --md-primary-container: rgba(67, 97, 238, 0.15);
+        --md-on-primary: #ffffff;
+        --md-on-primary-container: #ffffff;
+        
+        --md-secondary: var(--secondary);
+        --md-secondary-container: rgba(63, 55, 201, 0.15);
+        --md-on-secondary: #ffffff;
+        --md-on-secondary-container: var(--secondary);
+        
+        --md-tertiary: var(--accent);
+        --md-tertiary-container: rgba(247, 37, 133, 0.15);
+        --md-on-tertiary: #ffffff;
+        --md-on-tertiary-container: var(--accent);
+        
+        --md-error: var(--danger);
+        --md-error-container: rgba(249, 65, 68, 0.12);
+        --md-on-error: #ffffff;
+        --md-on-error-container: var(--danger);
+        
+        --md-success: var(--success);
+        --md-success-container: rgba(76, 201, 240, 0.12);
+        --md-on-success: #ffffff;
+        --md-on-success-container: var(--success);
+        
+        --md-warning: var(--warning);
+        --md-warning-container: rgba(248, 150, 30, 0.12);
+        --md-on-warning: #ffffff;
+        --md-on-warning-container: var(--warning);
+        
+        --md-surface: #ffffff;
+        --md-surface-variant: var(--gray-100);
+        --md-on-surface: var(--gray-700);
+        --md-on-surface-variant: var(--gray-600);
+        
+        --md-outline: var(--gray-400);
+        --md-outline-variant: var(--gray-300);
+        --md-shadow: #000000;
+        
+        /* Elevation shadows */
+        --md-elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+        --md-elevation-2: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+        --md-elevation-3: 0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15);
+        --md-elevation-4: 0px 2px 3px 0px rgba(0, 0, 0, 0.3), 0px 6px 10px 4px rgba(0, 0, 0, 0.15);
+        
+        /* Shape */
+        --md-shape-corner-small: 8px;
+        --md-shape-corner-medium: 12px;
+        --md-shape-corner-large: 16px;
+        --md-shape-corner-extra-large: 28px;
+        
+        /* Motion */
+        --md-motion-easing-standard: cubic-bezier(0.2, 0.0, 0, 1.0);
+        --md-motion-easing-emphasized: cubic-bezier(0.2, 0.0, 0, 1.0);
+        --md-motion-duration-short: 200ms;
+        --md-motion-duration-medium: 300ms;
+        --md-motion-duration-long: 400ms;
+    }
+    
+    body {
+        background-color: #f0f2f5;
+        font-family: 'Poppins', sans-serif;
+        color: var(--md-on-surface);
+        margin: 0;
+        line-height: 1.5;
+    }
+    
+    /* Material App Bar */
+    .material-app-bar {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: var(--md-on-primary);
+        box-shadow: var(--md-elevation-2);
+        padding: 0 24px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+    
+    .material-app-bar .brand {
+        font-family: 'Poppins', serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: var(--md-on-primary);
+        text-decoration: none;
+        margin-right: 32px;
+        letter-spacing: 0.5px;
+    }
+    
+    .material-nav {
+        display: flex;
+        flex: 1;
+        gap: 8px;
+    }
+    
+    .material-nav-item {
+        position: relative;
+        color: var(--md-on-primary);
+        text-decoration: none;
+        padding: 12px 16px;
+        border-radius: var(--md-shape-corner-medium);
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all var(--md-motion-duration-short) var(--md-motion-easing-standard);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .material-nav-item:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: var(--md-on-primary);
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+    
+    .material-nav-item.active {
+        background-color: rgba(255, 255, 255, 0.18);
+        color: white;
+        box-shadow: var(--md-elevation-1);
+    }
+    
+    .material-nav-item .material-icons {
+        font-size: 20px;
+    }
+    
+    /* Material Cards */
+    .material-card {
+        background-color: var(--md-surface);
+        border-radius: var(--md-shape-corner-medium);
+        box-shadow: var(--md-elevation-1);
+        transition: all var(--md-motion-duration-medium) var(--md-motion-easing-standard);
+        margin-bottom: 16px;
+        overflow: hidden;
+        border: 1px solid var(--md-outline-variant);
+    }
+    
+    .material-card:hover {
+        box-shadow: var(--md-elevation-3);
+        transform: translateY(-2px);
+    }
+    
+    .material-card-header {
+        background-color: var(--md-surface-variant);
+        color: var(--md-on-surface-variant);
+        padding: 16px 20px;
+        font-weight: 500;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--md-outline-variant);
+    }
+    
+    .material-card-content {
+        padding: 20px;
+    }
+    
+    /* Material Buttons */
+    .material-btn {
+        background-color: var(--md-primary);
+        color: var(--md-on-primary);
+        border: none;
+        border-radius: var(--md-shape-corner-large);
+        padding: 10px 24px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-transform: none;
+        cursor: pointer;
+        transition: all var(--md-motion-duration-short) var(--md-motion-easing-standard);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        box-shadow: var(--md-elevation-1);
+    }
+    
+    .material-btn:hover {
+        box-shadow: var(--md-elevation-2);
+        transform: translateY(-1px);
+        color: var(--md-on-primary);
+        text-decoration: none;
+    }
+    
+    .material-btn-outlined {
+        background-color: transparent;
+        color: var(--md-primary);
+        border: 1px solid var(--md-outline);
+        box-shadow: none;
+    }
+    
+    .material-btn-outlined:hover {
+        background-color: var(--md-primary-container);
+        color: var(--md-on-primary-container);
+    }
+    
+    .material-btn-text {
+        background-color: transparent;
+        color: var(--md-primary);
+        box-shadow: none;
+    }
+    
+    .material-btn-text:hover {
+        background-color: var(--md-primary-container);
+        color: var(--md-on-primary-container);
+    }
+    
+    /* Material Chips/Tags */
+    .material-chip {
+        background-color: var(--md-secondary-container);
+        color: var(--md-on-secondary-container);
+        border-radius: var(--md-shape-corner-small);
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .material-chip-outlined {
+        background-color: transparent;
+        border: 1px solid var(--md-outline);
+        color: var(--md-on-surface);
+    }
+    
+    /* Material Navigation Rail */
+    .material-nav-rail {
+        background-color: var(--md-surface);
+        border-radius: var(--md-shape-corner-medium);
+        padding: 16px;
+        box-shadow: var(--md-elevation-1);
+        margin-bottom: 24px;
+        border: 1px solid var(--md-outline-variant);
+    }
+    
+    .material-nav-rail-item {
+        color: var(--md-on-surface);
+        text-decoration: none;
+        padding: 12px 16px;
+        border-radius: var(--md-shape-corner-medium);
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all var(--md-motion-duration-short) var(--md-motion-easing-standard);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 4px;
+    }
+    
+    .material-nav-rail-item:hover {
+        background-color: var(--md-secondary-container);
+        color: var(--md-on-secondary-container);
+        text-decoration: none;
+    }
+    
+    .material-nav-rail-item.active {
+        background-color: var(--md-primary);
+        color: white;
+        box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+    }
+    
+    /* Material Dropdown */
+    .material-dropdown {
+        background-color: var(--md-surface);
+        border-radius: var(--md-shape-corner-medium);
+        box-shadow: var(--md-elevation-3);
+        border: 1px solid var(--md-outline-variant);
+        min-width: 280px;
+        padding: 8px 0;
+    }
+    
+    .material-dropdown-header {
+        padding: 12px 16px 8px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        color: var(--md-on-surface-variant);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--md-outline-variant);
+        margin-bottom: 8px;
+    }
+    
+    .material-dropdown-item {
+        padding: 12px 16px;
+        color: var(--md-on-surface);
+        text-decoration: none;
+        font-weight: 400;
+        transition: all var(--md-motion-duration-short) var(--md-motion-easing-standard);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+    }
+    
+    .material-dropdown-item:hover {
+        background-color: var(--md-secondary-container);
+        color: var(--md-on-secondary-container);
+        text-decoration: none;
+    }
+    
+    .material-dropdown-divider {
+        height: 1px;
+        background-color: var(--md-outline-variant);
+        margin: 8px 0;
+    }
+    
+    /* Content wrapper */
+    .content-wrapper {
+        padding: 24px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    /* Material Alerts */
+    .material-alert {
+        background-color: var(--md-error-container);
+        color: var(--md-on-error-container);
+        border-radius: var(--md-shape-corner-medium);
+        padding: 16px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: var(--md-elevation-1);
+    }
+    
+    .material-alert.success {
+        background-color: var(--md-tertiary-container);
+        color: var(--md-on-tertiary-container);
+    }
+    
+    .material-alert.warning {
+        background-color: var(--md-secondary-container);
+        color: var(--md-on-secondary-container);
+    }
+    
+    .material-alert.info {
+        background-color: var(--md-primary-container);
+        color: var(--md-on-primary-container);
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .material-app-bar {
+            padding: 0 16px;
+        }
+        
+        .material-nav {
+            display: none;
+        }
+        
+        .content-wrapper {
+            padding: 16px;
+        }
+        
+        .material-nav-rail {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 12px;
+        }
+        
+        .material-nav-rail-item {
+            white-space: nowrap;
+            margin: 0;
+        }
+    }
+    
+    /* User menu */
+    .user-menu {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+    }
+    
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: var(--md-primary-container);
+        color: var(--md-on-primary-container);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        margin-right: 8px;
+    }
+    
+    /* Material Badge */
+    .material-badge {
+        background-color: var(--md-error);
+        color: var(--md-on-error);
+        border-radius: var(--md-shape-corner-small);
+        padding: 2px 8px;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .material-badge.admin {
+        background-color: var(--md-tertiary);
+        color: var(--md-on-tertiary);
+    }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: var(--md-surface-variant);
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: var(--md-outline);
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--md-on-surface-variant);
+    }
+</style>
+
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Material App Bar -->
+    <nav class="material-app-bar">
+        <a class="brand" href="{% url 'core:dashboard' %}">OPENMOTORS</a>
+        
+        <div class="material-nav">
+            <a class="material-nav-item {% if active_page == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
+                <i class="fas fa-tachometer-alt"></i>
+                Dashboard
+            </a>
+            <a class="material-nav-item {% if active_page == 'ventas' %}active{% endif %}" href="{% url 'ventas:lista_ventas' %}">
+                <i class="fas fa-shopping-cart"></i>
+                Ventas
+            </a>
+            
+            <!-- Inventario Dropdown -->
+            <div class="dropdown">
+                <button class="material-nav-item {% if active_page == 'inventario' %}active{% endif %} dropdown-toggle" 
+                        id="inventarioDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-boxes"></i>
+                    Inventario
+                </button>
+                <div class="dropdown-menu material-dropdown" aria-labelledby="inventarioDropdown">
+                    <div class="material-dropdown-header">Catálogo</div>
+                    <a class="material-dropdown-item" href="{% url 'inventario:lista_productos' %}">
+                        <i class="fas fa-box"></i>
+                        Productos
+                    </a>
+                    <a class="material-dropdown-item" href="{% url 'inventario:lista_categorias' %}">
+                        <i class="fas fa-tags"></i>
+                        Categorías
+                    </a>
+                    <a class="material-dropdown-item" href="{% url 'inventario:lista_marcas' %}">
+                        <i class="fas fa-trademark"></i>
+                        Marcas
+                    </a>
+                    
+                    <div class="material-dropdown-divider"></div>
+                    <div class="material-dropdown-header">Gestión</div>
+                    <a class="material-dropdown-item" href="{% url 'inventario:lista_ajustes' %}">
+                        <i class="fas fa-balance-scale"></i>
+                        Ajustes
+                    </a>
+                    <a class="material-dropdown-item" href="{% url 'inventario:scanner' %}">
+                        <i class="fas fa-barcode"></i>
+                        Escáner
+                    </a>
+                    
+                    <div class="material-dropdown-divider"></div>
+                    <div class="material-dropdown-header">Herramientas</div>
+                    <a class="material-dropdown-item" href="{% url 'inventario:imprimir_etiquetas' %}">
+                        <i class="fas fa-print"></i>
+                        Imprimir Etiquetas
+                    </a>
+                    <a class="material-dropdown-item" href="{% url 'inventario:importar_productos' %}">
+                        <i class="fas fa-file-import"></i>
+                        Importar desde CSV
+                    </a>
+                    <a class="material-dropdown-item" href="{% url 'inventario:exportar_productos' %}">
+                        <i class="fas fa-file-export"></i>
+                        Exportar a CSV
+                    </a>
+                    
+                    <div class="material-dropdown-divider"></div>
+                    <div class="d-grid px-3">
+                        <a class="material-btn" href="{% url 'inventario:producto_form' %}">
+                            <i class="fas fa-plus-circle"></i>
+                            Nuevo Producto
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <a class="material-nav-item {% if active_page == 'taller' %}active{% endif %}" href="{% url 'taller:dashboard' %}">
+                <i class="fas fa-tools"></i>
+                Taller
+            </a>
+            <a class="material-nav-item {% if active_page == 'clientes' %}active{% endif %}" href="{% url 'clientes:lista_clientes' %}">
+                <i class="fas fa-users"></i>
+                Clientes
+            </a>
+            <a class="material-nav-item {% if active_page == 'reportes' %}active{% endif %}" href="{% url 'reportes:dashboard' %}">
+                <i class="fas fa-chart-line"></i>
+                Reportes
+            </a>
+            
+            <!-- Administración Dropdown -->
+            {% if request.user.is_staff or request.user.rol.nombre == 'Administrador' %}
+            <div class="dropdown">
+                <button class="material-nav-item {% if active_page == 'admin' or active_page == 'roles' or active_page == 'permisos' %}active{% endif %} dropdown-toggle" 
+                        id="adminDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-users-cog"></i>
+                    Administración
+                </button>
+                <div class="dropdown-menu material-dropdown" aria-labelledby="adminDropdown">
+                    <div class="material-dropdown-header">Usuarios y Roles</div>
+                    <a class="material-dropdown-item" href="{% url 'usuarios:lista_usuarios' %}">
+                        <i class="fas fa-users"></i>
+                        Gestión de Usuarios
+                    </a>
+                    <a class="material-dropdown-item" href="{% url 'usuarios:lista_roles' %}">
+                        <i class="fas fa-user-tag"></i>
+                        Gestión de Roles
+                    </a>
+                    <a class="material-dropdown-item" href="{% url 'usuarios:crear_rol' %}">
+                        <i class="fas fa-plus"></i>
+                        Crear Nuevo Rol
+                    </a>
+                    
+                    <div class="material-dropdown-divider"></div>
+                    <div class="material-dropdown-header">Permisos del Sistema</div>
+                    <a class="material-dropdown-item" href="{% url 'usuarios:lista_permisos' %}">
+                        <i class="fas fa-key"></i>
+                        Listar Todos los Permisos
+                    </a>
+                    {% if request.user.is_superuser %}
+                    <a class="material-dropdown-item" href="{% url 'usuarios:crear_permiso' %}">
+                        <i class="fas fa-plus-circle"></i>
+                        Crear Permiso Personalizado
+                        <span class="material-badge admin">Super</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- User Menu -->
+        <div class="user-menu">
+            <div class="dropdown">
+                <button class="material-btn-text dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    {{ request.user.nombre }}
+                </button>
+                <div class="dropdown-menu material-dropdown dropdown-menu-end" aria-labelledby="userDropdown">
+                    <a class="material-dropdown-item" href="{% url 'usuarios:cambiar_password' %}">
+                        <i class="fas fa-key"></i>
+                        Cambiar Contraseña
+                    </a>
+                    <div class="material-dropdown-divider"></div>
+                    <form method="post" action="{% url 'usuarios:logout' %}" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="material-dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="content-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages mb-3">
+            {% for message in messages %}
+            <div class="material-alert {{ message.tags }}" role="alert">
+                {% if message.tags == 'error' %}
+                    <i class="fas fa-exclamation-circle"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="fas fa-exclamation-triangle"></i>
+                {% elif message.tags == 'success' %}
+                    <i class="fas fa-check-circle"></i>
+                {% else %}
+                    <i class="fas fa-info-circle"></i>
+                {% endif %}
+                <span>{{ message }}</span>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Secondary Navigation for Inventory -->
+        {% if active_page == 'inventario' %}
+        <div class="material-nav-rail d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex">
+                <a href="{% url 'inventario:lista_productos' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_productos' %}active{% endif %}">
+                    <i class="fas fa-box"></i> Productos
+                </a>
+                <a href="{% url 'inventario:lista_categorias' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_categorias' %}active{% endif %}">
+                    <i class="fas fa-tags"></i> Categorías
+                </a>
+                <a href="{% url 'inventario:lista_marcas' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_marcas' %}active{% endif %}">
+                    <i class="fas fa-trademark"></i> Marcas
+                </a>
+                <a href="{% url 'inventario:lista_ajustes' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_ajustes' %}active{% endif %}">
+                    <i class="fas fa-balance-scale"></i> Ajustes
+                </a>
+                <a href="{% url 'inventario:importar_productos' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'importar_productos' %}active{% endif %}">
+                    <i class="fas fa-file-import"></i> Importar CSV
+                </a>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'inventario:exportar_productos' %}" class="material-btn-outlined">
+                    <i class="fas fa-file-export"></i> Exportar CSV
+                </a>
+                <a href="{% url 'inventario:producto_form' %}" class="material-btn">
+                    <i class="fas fa-plus-circle"></i> Nuevo Producto
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Secondary Navigation for Clients -->
+        {% if active_page == 'clientes' %}
+        <div class="material-nav-rail d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex">
+                <a href="{% url 'clientes:lista_clientes' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_clientes' %}active{% endif %}">
+                    <i class="fas fa-users"></i> Todos los Clientes
+                </a>
+                <a href="{% url 'clientes:crear_cliente' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'crear_cliente' %}active{% endif %}">
+                    <i class="fas fa-user-plus"></i> Nuevo Cliente
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'clientes:crear_cliente' %}" class="material-btn">
+                    <i class="fas fa-plus-circle"></i> Nuevo Cliente
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Secondary Navigation for Reports -->
+        {% if active_page == 'reportes' %}
+        <div class="material-nav-rail d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex">
+                <a href="{% url 'reportes:dashboard' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'dashboard_reportes' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="{% url 'reportes:caja_diaria' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'caja_diaria' %}active{% endif %}">
+                    <i class="fas fa-cash-register"></i> Caja Diaria
+                </a>
+                <a href="{% url 'reportes:lista_gastos' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_gastos' %}active{% endif %}">
+                    <i class="fas fa-receipt"></i> Gastos
+                </a>
+                <a href="{% url 'reportes:estadisticas_ventas' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'estadisticas_ventas' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i> Estadísticas
+                </a>
+                <a href="{% url 'reportes:comparativo_ventas' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'comparativo_ventas' %}active{% endif %}">
+                    <i class="fas fa-balance-scale"></i> Comparativo
+                </a>
+                <a href="{% url 'reportes:lista_movimientos' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_movimientos' %}active{% endif %}">
+                    <i class="fas fa-exchange-alt"></i> Movimientos
+                </a>
+                <a href="{% url 'reportes:reportes_mensuales' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'reportes_mensuales' %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i> Mensuales
+                </a>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'reportes:crear_gasto' %}" class="material-btn-outlined">
+                    <i class="fas fa-plus-circle"></i> Nuevo Gasto
+                </a>
+                <a href="{% url 'reportes:exportar_reporte' %}" class="material-btn">
+                    <i class="fas fa-file-export"></i> Exportar
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Secondary Navigation for Administration -->
+        {% if active_page == 'roles' or active_page == 'permisos' or active_page == 'admin' %}
+        <div class="material-nav-rail d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex">
+                <a href="{% url 'usuarios:lista_usuarios' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_usuarios' %}active{% endif %}">
+                    <i class="fas fa-users"></i> Usuarios
+                </a>
+                <a href="{% url 'usuarios:lista_roles' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_roles' %}active{% endif %}">
+                    <i class="fas fa-user-tag"></i> Roles
+                </a>
+                <a href="{% url 'usuarios:lista_permisos' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'lista_permisos' %}active{% endif %}">
+                    <i class="fas fa-key"></i> Permisos
+                </a>
+                {% if request.user.is_superuser %}
+                <a href="{% url 'usuarios:crear_permiso' %}" class="material-nav-rail-item {% if request.resolver_match.url_name == 'crear_permiso' %}active{% endif %}">
+                    <i class="fas fa-plus-circle"></i> Crear Permiso
+                </a>
+                {% endif %}
+            </div>
+            <div>
+                {% if active_page == 'roles' or active_page == 'admin' %}
+                <a href="{% url 'usuarios:crear_rol' %}" class="material-btn">
+                    <i class="fas fa-plus-circle"></i> Nuevo Rol
+                </a>
+                {% endif %}
+                {% if request.user.is_superuser and active_page == 'permisos' %}
+                <a href="{% url 'usuarios:crear_permiso' %}" class="material-btn">
+                    <i class="fas fa-plus-circle"></i> Nuevo Permiso
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Template blocks for compatibility -->
+        <div style="display: none;">{% block sidebar %}{% endblock %}</div>
+        
+        <!-- Main content blocks -->
+        <div>
+            {% block content %}{% endblock %}
+        </div>
+        <div>
+            {% block inventory_content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script>
+        if (typeof jQuery === 'undefined') {
+            document.write('<script src="https://code.jquery.com/jquery-3.7.0.min.js"><\/script>');
+        }
+    </script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Material UI Enhancement Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-dismiss alerts
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.material-alert');
+                alerts.forEach(alert => {
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
+                    alert.style.transition = 'all 300ms cubic-bezier(0.2, 0.0, 0, 1.0)';
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.parentNode.removeChild(alert);
+                        }
+                    }, 300);
+                });
+            }, 5000);
+            
+            // Add ripple effect to buttons
+            const buttons = document.querySelectorAll('.material-btn, .material-nav-item, .material-dropdown-item');
+            buttons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.cssText = `
+                        position: absolute;
+                        width: ${size}px;
+                        height: ${size}px;
+                        left: ${x}px;
+                        top: ${y}px;
+                        background: rgba(255, 255, 255, 0.3);
+                        border-radius: 50%;
+                        transform: scale(0);
+                        animation: ripple 600ms ease-out;
+                        pointer-events: none;
+                    `;
+                    
+                    if (!this.style.position || this.style.position === 'static') {
+                        this.style.position = 'relative';
+                    }
+                    this.style.overflow = 'hidden';
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        if (ripple.parentNode) {
+                            ripple.parentNode.removeChild(ripple);
+                        }
+                    }, 600);
+                });
+            });
+            
+            // Add ripple animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes ripple {
+                    to {
+                        transform: scale(2);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+
+    <!-- JavaScript blocks -->
+    {% block extra_js %}{% endblock %}
+    {% block inventory_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ticket #{{ venta.numero_factura }}</title>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ empresa.COMPANY_NAME }}</h1>
+        <p>Venta de Repuestos y Servicio Técnico</p>
+        <p>{{ empresa.COMPANY_ADDRESS }}</p>
+        <p>Tel: {{ empresa.COMPANY_PHONE }}</p>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="info">
+        <p><strong>Ticket #:</strong> {{ venta.numero_factura }}</p>
+        <p><strong>Fecha:</strong> {{ fecha|date:"d/m/Y H:i" }}</p>
+        <p><strong>Cliente:</strong> 
+            {% if es_consumidor_final %}
+            CONSUMIDOR FINAL
+            {% else %}
+            {{ cliente.nombres }} {{ cliente.apellidos }}
+            {% endif %}
+        </p>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <table class="items">
+        <thead>
+            <tr>
+                <th>Descripción</th>
+                <th>Cant</th>
+                <th class="amount">Precio</th>
+                <th class="amount">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detalle in detalles %}
+            <tr>
+                <td>
+                    {% if detalle.producto %}
+                    {{ detalle.producto.nombre }}
+                    {% elif detalle.servicio %}
+                    {{ detalle.servicio.tipo_servicio.nombre }}
+                    {% endif %}
+                </td>
+                <td>{{ detalle.cantidad }}</td>
+                <td class="amount">${{ detalle.precio_unitario|floatformat:2 }}</td>
+                <td class="amount">${{ detalle.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="divider"></div>
+    
+    <div class="totals">
+        <p><strong>Subtotal:</strong> ${{ subtotal|floatformat:2 }}</p>
+        <p><strong>IVA ({{ empresa.IVA_PERCENTAGE }}%):</strong> ${{ iva|floatformat:2 }}</p>
+        {% if descuento > 0 %}
+        <p><strong>Descuento:</strong> -${{ descuento|floatformat:2 }}</p>
+        {% endif %}
+        <p class="total"><strong>TOTAL: ${{ total|floatformat:2 }}</strong></p>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="footer">
+        <p>¡Gracias por su compra!</p>
+        <p>{{ empresa.COMPANY_NAME }}</p>
+        <p>{{ fecha|date:"d/m/Y H:i:s" }}</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+{% block breadcrumb_page %}
+<li class="breadcrumb-item"><a href="{% url 'inventario:lista_ajustes' %}">Ajustes de Inventario</a></li>
+<li class="breadcrumb-item active">Nuevo Ajuste</li>
+{% endblock %}
+{% block inventory_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="fas fa-balance-scale"></i> Nuevo Ajuste de Inventario</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'inventario:lista_ajustes' %}" class="btn btn-secondary">
+            <i class="fas fa-list me-2"></i> Volver al Historial
+        </a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-7 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="fas fa-clipboard-list me-2"></i> Registrar Ajuste de Inventario
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'inventario:crear_ajuste' %}" id="ajusteForm">
+                    {% csrf_token %}
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    <h5><i class="fas fa-exclamation-circle me-2"></i> Por favor corrige los siguientes errores:</h5>
+                    {{ form.errors }}
+                </div>
+                {% endif %}
+                
+                <div class="card bg-light border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <i class="fas fa-box me-2"></i> Producto
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.producto.id_for_label }}" class="form-label">Selecciona un producto</label>
+                            {{ form.producto }}
+                            <div class="form-text text-muted">
+                                Puedes empezar a escribir para buscar un producto por nombre o código
+                            </div>
+                        </div>
+                        
+                        <div id="producto-info" class="mt-3 d-none">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h5 id="producto-nombre" class="mb-2"></h5>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>Código:</strong> <code id="producto-codigo"></code></p>
+                                            <p class="mb-1"><strong>Categoría:</strong> <span id="producto-categoria"></span></p>
+                                            <p class="mb-1"><strong>Marca:</strong> <span id="producto-marca"></span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card bg-primary text-white mb-2">
+                                                <div class="card-body p-2 text-center">
+                                                    <h3 id="producto-stock" class="mb-0"></h3>
+                                                    <small>Stock actual</small>
+                                                </div>
+                                            </div>
+                                            <p class="mb-1"><strong>Precio:</strong> $<span id="producto-precio"></span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card bg-light border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <i class="fas fa-sliders-h me-2"></i> Detalles del Ajuste
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.tipo_ajuste.id_for_label }}" class="form-label">Tipo de Ajuste</label>
+                            {{ form.tipo_ajuste }}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.cantidad.id_for_label }}" class="form-label">Cantidad</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="cantidad-prefix"></span>
+                                {{ form.cantidad }}
+                            </div>
+                            <small class="form-text text-muted" id="hint-cantidad">
+                                Unidades a ajustar.
+                            </small>
+                        </div>
+                        
+                        <div id="preview-result" class="alert alert-info d-none mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="preview-message"></span>
+                        </div>
+                        
+                        <div class="form-group mb-2">
+                            <label for="{{ form.motivo.id_for_label }}" class="form-label">Motivo del Ajuste</label>
+                            {{ form.motivo }}
+                            <small class="form-text text-muted">
+                                Especifica el motivo detallado del ajuste (obligatorio). Esta información será visible en el historial.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg px-5" id="submit-button" disabled>
+                        <i class="fas fa-save me-2"></i> Registrar Ajuste
+                    </button>
+                    <a href="{% url 'inventario:lista_ajustes' %}" class="btn btn-secondary btn-lg px-5">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-5 mb-4">
+    <div class="card shadow-sm h-100">
+        <div class="card-header">
+            <i class="fas fa-info-circle me-2"></i> Información
+        </div>
+        <div class="card-body">
+            <div class="alert alert-primary">
+                <h5><i class="fas fa-lightbulb me-2"></i> ¿Qué es un ajuste de inventario?</h5>
+                <p>
+                    Los ajustes de inventario permiten corregir o modificar manualmente el stock de un producto
+                    cuando hay discrepancias entre el inventario físico y el registrado en el sistema.
+                </p>
+            </div>
+            
+            <div class="mt-4">
+                <h5>Tipos de Ajustes</h5>
+                <div class="card mb-3 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex mb-2">
+                            <div class="bg-success text-white rounded-circle p-2 me-2" style="width: 32px; height: 32px; text-align: center;">
+                                <i class="fas fa-arrow-up"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Entrada</h6>
+                                <p class="mb-0 text-muted">Aumenta el stock del producto.</p>
+                                <small>Ejemplo: devoluciones, correcciones, hallazgos</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex mb-2">
+                            <div class="bg-danger text-white rounded-circle p-2 me-2" style="width: 32px; height: 32px; text-align: center;">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Salida</h6>
+                                <p class="mb-0 text-muted">Disminuye el stock del producto.</p>
+                                <small>Ejemplo: mermas, daños, uso interno, pérdidas</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex mb-2">
+                            <div class="bg-info text-white rounded-circle p-2 me-2" style="width: 32px; height: 32px; text-align: center;">
+                                <i class="fas fa-sync-alt"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Ajuste Absoluto</h6>
+                                <p class="mb-0 text-muted">Establece el stock a un valor exacto.</p>
+                                <small>Ejemplo: inventario físico, recuento completo</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-warning mt-4">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span>Todos los ajustes quedan registrados con tu usuario y hora exacta. Asegúrate de incluir un motivo claro y detallado.</span>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+{% block inventory_js %}
+<script>
+    $(document).ready(function() {
+        // Estilos mejorados para formularios
+        $('.form-control, .form-select').addClass('rounded-3 shadow-sm');
+        $('textarea').attr('rows', '4');
+        
+        // Mostrar información del producto al seleccionarlo
+        $('#id_producto').change(function() {
+            var producto_id = $(this).val();
+            if (producto_id) {
+                $.ajax({
+                    url: '{% url "inventario:buscar_producto_api" %}',
+                    data: {
+                        'codigo': $('#id_producto option:selected').text().split(' - ')[0]
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        if (data.success) {
+                            $('#producto-nombre').text(data.producto.nombre);
+                            $('#producto-codigo').text(data.producto.codigo);
+                            $('#producto-stock').text(data.producto.stock);
+                            $('#producto-precio').text(data.producto.precio);
+                            $('#producto-categoria').text($('#id_producto option:selected').data('categoria'));
+                            $('#producto-marca').text($('#id_producto option:selected').data('marca'));
+                            $('#producto-info').removeClass('d-none');
+                            $('#submit-button').prop('disabled', false);
+                            
+                            // Actualizar el preview
+                            updatePreview();
+                        }
+                    }
+                });
+            } else {
+                $('#producto-info').addClass('d-none');
+                $('#submit-button').prop('disabled', true);
+                $('#preview-result').addClass('d-none');
+            }
+        });
+        
+        // Cambiar ayuda según tipo de ajuste
+        $('#id_tipo_ajuste').change(function() {
+            var tipo = $(this).val();
+            if (tipo === 'ENTRADA') {
+                $('#hint-cantidad').text('Número de unidades a añadir al inventario.');
+                $('#cantidad-prefix').html('<i class="fas fa-plus"></i>');
+                $('#preview-result').removeClass('alert-danger alert-info').addClass('alert-success');
+            } else if (tipo === 'SALIDA') {
+                $('#hint-cantidad').text('Número de unidades a retirar del inventario. No debe exceder el stock disponible.');
+                $('#cantidad-prefix').html('<i class="fas fa-minus"></i>');
+                $('#preview-result').removeClass('alert-success alert-info').addClass('alert-danger');
+            } else if (tipo === 'AJUSTE') {
+                $('#hint-cantidad').text('Valor absoluto al que se establecerá el stock.');
+                $('#cantidad-prefix').html('<i class="fas fa-equals"></i>');
+                $('#preview-result').removeClass('alert-success alert-danger').addClass('alert-info');
+            }
+            
+            // Actualizar el preview
+            updatePreview();
+        });
+        
+        // Previsualizar el resultado del ajuste
+        $('#id_cantidad').on('input', function() {
+            updatePreview();
+        });
+        
+        function updatePreview() {
+            var tipoAjuste = $('#id_tipo_ajuste').val();
+            var cantidad = parseFloat($('#id_cantidad').val()) || 0;
+            var stockActual = parseFloat($('#producto-stock').text()) || 0;
+            
+            if (!$('#id_producto').val() || isNaN(cantidad)) {
+                $('#preview-result').addClass('d-none');
+                return;
+            }
+            
+            var mensaje = '';
+            var nuevoStock = 0;
+            
+            if (tipoAjuste === 'ENTRADA') {
+                nuevoStock = stockActual + cantidad;
+                mensaje = `El stock aumentará de <strong>${stockActual}</strong> a <strong>${nuevoStock}</strong> unidades.`;
+            } else if (tipoAjuste === 'SALIDA') {
+                nuevoStock = stockActual - cantidad;
+                if (nuevoStock < 0) {
+                    mensaje = `<strong>¡ADVERTENCIA!</strong> No hay suficiente stock. El ajuste resultaría en <strong>${nuevoStock}</strong> unidades.`;
+                } else {
+                    mensaje = `El stock disminuirá de <strong>${stockActual}</strong> a <strong>${nuevoStock}</strong> unidades.`;
+                }
+            } else if (tipoAjuste === 'AJUSTE') {
+                nuevoStock = cantidad;
+                var diferencia = nuevoStock - stockActual;
+                if (diferencia > 0) {
+                    mensaje = `El stock se establecerá exactamente en <strong>${nuevoStock}</strong> unidades (aumentará en ${diferencia}).`;
+                } else if (diferencia < 0) {
+                    mensaje = `El stock se establecerá exactamente en <strong>${nuevoStock}</strong> unidades (disminuirá en ${Math.abs(diferencia)}).`;
+                } else {
+                    mensaje = `El stock seguirá siendo <strong>${nuevoStock}</strong> unidades (sin cambios).`;
+                }
+            }
+            
+            $('#preview-message').html(mensaje);
+            $('#preview-result').removeClass('d-none');
+        }
+        
+        // Inicializar los prefijos de cantidad
+        $('#cantidad-prefix').html('<i class="fas fa-plus"></i>');
+        
+        // Si hay un producto preseleccionado, activar su evento change
+        if ($('#id_producto').val()) {
+            $('#id_producto').trigger('change');
+        }
+        
+        // Validar el formulario antes de enviar
+        $('#ajusteForm').submit(function(e) {
+            var tipoAjuste = $('#id_tipo_ajuste').val();
+            var cantidad = parseFloat($('#id_cantidad').val()) || 0;
+            var stockActual = parseFloat($('#producto-stock').text()) || 0;
+            
+            if (tipoAjuste === 'SALIDA' && cantidad > stockActual) {
+                e.preventDefault();
+                alert('No hay suficiente stock para realizar esta salida.');
+                return false;
+            }
+            
+            if (!$('#id_motivo').val().trim()) {
+                e.preventDefault();
+                alert('El motivo del ajuste es obligatorio.');
+                $('#id_motivo').focus();
+                return false;
+            }
+            
+            return true;
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,502 @@
+{% extends 'base.html' %}
+{% block breadcrumb_page %}
+<li class="breadcrumb-item active">Escáner de Códigos</li>
+{% endblock %}
+{% block extra_css %}
+<style>
+    #scanner-container {
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+    }
+    
+    #preview {
+        background-color: #000;
+        width: 100%;
+        max-height: 350px;
+        object-fit: cover;
+    }
+    
+    #scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        height: 150px;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
+        box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5);
+        z-index: 10;
+    }
+    
+    #scan-result-animation {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: none;
+        background-color: rgba(40, 167, 69, 0.3);
+        border-radius: 10px;
+        z-index: 20;
+    }
+    
+    .scan-line {
+        position: absolute;
+        height: 2px;
+        width: 100%;
+        background: linear-gradient(to right, transparent, #4cc9f0, transparent);
+        top: 50%;
+        animation: scan 2s linear infinite;
+    }
+    
+    @keyframes scan {
+        0% {
+            top: 20%;
+        }
+        50% {
+            top: 80%;
+        }
+        100% {
+            top: 20%;
+        }
+    }
+    
+    .camera-selection-container {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        z-index: 30;
+    }
+    
+    .scan-result-success {
+        animation: fadeInOut 0.5s ease-in-out;
+    }
+    
+    @keyframes fadeInOut {
+        0% { opacity: 0; }
+        50% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+    
+    .device-img {
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+        margin-bottom: 1rem;
+        width: 60px;
+        height: 60px;
+        opacity: 0.7;
+    }
+</style>
+{% endblock %}
+{% block inventory_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="fas fa-barcode"></i> Escáner de Códigos</h1>
+        <p class="lead">Utiliza la cámara de tu dispositivo para escanear códigos de barras de productos</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-secondary">
+            <i class="fas fa-boxes me-2"></i> Volver a Productos
+        </a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-7 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="fas fa-camera me-2"></i> Escáner
+            </div>
+            <div class="card-body">
+                <div id="scanner-container" class="mb-4">
+                    <video id="preview" class="rounded-3"></video>
+                    <div id="scanner-overlay"></div>
+                    <div class="scan-line"></div>
+                    <div id="scan-result-animation"></div>
+                    <div class="camera-selection-container">
+                        <button id="switch-camera" class="btn btn-sm btn-dark opacity-75" title="Cambiar cámara" disabled>
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+            <div class="d-flex justify-content-center mb-4">
+                <button id="start-button" class="btn btn-primary me-2">
+                    <i class="fas fa-play me-2"></i> Iniciar Escáner
+                </button>
+                <button id="stop-button" class="btn btn-danger me-2" disabled>
+                    <i class="fas fa-stop me-2"></i> Detener
+                </button>
+            </div>
+            
+            <div class="card bg-light border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-upload me-2"></i> Usar imagen con código</h5>
+                    <p class="card-text text-muted">Puedes subir una imagen que contenga un código de barras.</p>
+                    
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="image-input" accept="image/*">
+                        <button class="btn btn-outline-primary" type="button" id="process-image-btn">
+                            <i class="fas fa-search me-1"></i> Procesar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="scan-result-container" class="d-none">
+                <div class="alert alert-success">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle fa-2x me-3"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="alert-heading">Código detectado!</h5>
+                            <p class="mb-0">Código: <strong id="scanned-code"></strong></p>
+                            <p class="mb-0">Tipo: <span id="code-type"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="input-manual">
+                <div class="card bg-light border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-keyboard me-2"></i> Búsqueda Manual</h5>
+                        <p class="card-text text-muted">Si tienes el código del producto, puedes buscarlo directamente.</p>
+                        
+                        <div class="input-group">
+                            <input type="text" id="codigo-manual" class="form-control" placeholder="Ingresa un código..." autocomplete="off">
+                            <button class="btn btn-primary" id="buscar-manual">
+                                <i class="fas fa-search me-1"></i> Buscar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-5 mb-4">
+    <div class="card shadow-sm h-100">
+        <div class="card-header">
+            <i class="fas fa-info-circle me-2"></i> Información del Producto
+        </div>
+        <div class="card-body">
+            <div id="scanner-instructions" class="text-center py-4">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzZjNzU3ZCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9ImRldmljZS1pbWciPjxyZWN0IHg9IjQiIHk9IjMiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxOCIgcng9IjIiPjwvcmVjdD48bGluZSB4MT0iOCIgeTE9IjE3IiB4Mj0iMTYiIHkyPSIxNyI+PC9saW5lPjxsaW5lIHgxPSIxMiIgeTE9IjYiIHgyPSIxMiIgeTI9IjYuMDEiPjwvbGluZT48L3N2Zz4=" alt="Escáner" class="device-img">
+                <h4 class="mt-2 mb-3">Escanea un código de barras</h4>
+                <p class="text-muted">Usa la cámara para escanear el código de barras de un producto o ingresa el código manualmente.</p>
+            </div>
+            
+            <div id="producto-no-encontrado" class="d-none">
+                <div class="alert alert-warning mb-4">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="alert-heading">Producto no encontrado</h5>
+                            <p class="mb-0">No se encontró ningún producto con este código en el sistema.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <a href="#" id="crear-producto-link" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i> Crear Producto con este Código
+                    </a>
+                </div>
+            </div>
+            
+            <div id="producto-info" class="d-none">
+                <div class="text-center mb-4">
+                    <div class="badge bg-success p-2 mb-3">
+                        <i class="fas fa-check me-1"></i> Producto encontrado
+                    </div>
+                </div>
+                
+                <h4 id="producto-nombre" class="mb-3"></h4>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body p-2 text-center">
+                                <p class="text-muted mb-1 small">Código</p>
+                                <code id="producto-codigo" class="fs-6"></code>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body p-2 text-center">
+                                <p class="text-muted mb-1 small">Precio</p>
+                                <span class="fs-5">$<span id="producto-precio"></span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body p-3 text-center">
+                                <h3 id="producto-stock" class="mb-0"></h3>
+                                <p class="mb-0">Unidades en stock</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="#" id="ver-detalle-link" class="btn btn-info">
+                        <i class="fas fa-eye me-2"></i> Ver Detalle
+                    </a>
+                    <a href="#" id="ajustar-stock-link" class="btn btn-warning">
+                        <i class="fas fa-balance-scale me-2"></i> Ajustar Stock
+                    </a>
+                    <a href="#" id="editar-producto-link" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i> Editar Producto
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<!-- Modal de alerta -->
+<div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alertModalLabel">Mensaje</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="alertModalContent">
+                <!-- El contenido del mensaje se insertará aquí -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block inventory_js %}
+<script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+<script>
+    $(document).ready(function() {
+        let scanner = null;
+        let cameras = [];
+        let currentCamera = 0;
+        let alertModal = new bootstrap.Modal(document.getElementById('alertModal'));
+        
+        // Función para mostrar alertas
+        function showAlert(message, type = 'info') {
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'warning') icon = 'exclamation-triangle';
+            if (type === 'danger') icon = 'times-circle';
+            
+            $('#alertModalContent').html(
+                `<div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-${icon} fa-2x me-3 text-${type}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        ${message}
+                    </div>
+                </div>`
+            );
+            
+            alertModal.show();
+        }
+        
+        // Inicializar escáner
+        $('#start-button').click(function() {
+            // Ocultar instrucciones
+            $('#scanner-instructions').hide();
+            
+            // Crear instancia del escáner
+            scanner = new Instascan.Scanner({ 
+                video: document.getElementById('preview'),
+                scanPeriod: 5,
+                mirror: false
+            });
+            
+            // Manejar códigos encontrados
+            scanner.addListener('scan', function(content, image) {
+                // Mostrar animación de éxito
+                $('#scan-result-animation').fadeIn(100).delay(300).fadeOut(200);
+                
+                // Procesar el código
+                handleScan(content, 'CODE128'); // Tipo de código es una suposición
+            });
+            
+            // Obtener cámaras disponibles
+            Instascan.Camera.getCameras().then(function(availableCameras) {
+                cameras = availableCameras;
+                
+                if (cameras.length > 0) {
+                    scanner.start(cameras[currentCamera]);
+                    toggleScannerButtons(true);
+                    
+                    // Activar botón de cambio de cámara si hay más de una
+                    if (cameras.length > 1) {
+                        $('#switch-camera').prop('disabled', false);
+                    }
+                } else {
+                    showAlert('No se detectaron cámaras en el dispositivo.', 'danger');
+                    toggleScannerButtons(false);
+                }
+            }).catch(function(error) {
+                console.error(error);
+                showAlert('Error al acceder a la cámara: ' + error, 'danger');
+            });
+        });
+        
+        // Detener escáner
+        $('#stop-button').click(function() {
+            if (scanner) {
+                scanner.stop();
+                toggleScannerButtons(false);
+            }
+        });
+        
+        // Cambiar cámara
+        $('#switch-camera').click(function() {
+            if (scanner && cameras.length > 1) {
+                currentCamera = (currentCamera + 1) % cameras.length;
+                scanner.start(cameras[currentCamera]);
+            }
+        });
+        
+        // Cargar imagen
+        $('#process-image-btn').click(function() {
+            const fileInput = document.getElementById('image-input');
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageData = e.target.result;
+                    
+                    // Mostrar indicador de carga
+                    showAlert('Procesando imagen...', 'info');
+                    
+                    // Enviar imagen para procesamiento
+                    const formData = new FormData();
+                    formData.append('imagen', imageData);
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    
+                    $.ajax({
+                        url: '{% url "inventario:escanear_imagen" %}',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            alertModal.hide();
+                            if (response.success && response.codigos && response.codigos.length > 0) {
+                                const primerCodigo = response.codigos[0];
+                                handleScan(primerCodigo.codigo, primerCodigo.tipo);
+                            } else {
+                                showAlert('No se detectaron códigos en la imagen.', 'warning');
+                            }
+                        },
+                        error: function(error) {
+                            alertModal.hide();
+                            console.error(error);
+                            showAlert('Error al procesar la imagen.', 'danger');
+                        }
+                    });
+                };
+                reader.readAsDataURL(file);
+            } else {
+                showAlert('Por favor selecciona una imagen primero.', 'warning');
+            }
+        });
+        
+        // Búsqueda manual
+        $('#buscar-manual').click(function() {
+            const codigo = $('#codigo-manual').val().trim();
+            if (codigo) {
+                buscarProducto(codigo);
+            } else {
+                showAlert('Por favor ingresa un código para buscar.', 'warning');
+            }
+        });
+        
+        // También permitir Enter en el campo
+        $('#codigo-manual').keypress(function(e) {
+            if (e.which === 13) {
+                $('#buscar-manual').click();
+                e.preventDefault();
+            }
+        });
+        
+        // Función para manejar un código escaneado
+        function handleScan(codigo, tipo) {
+            $('#scanned-code').text(codigo);
+            $('#code-type').text(tipo);
+            $('#scan-result-container').removeClass('d-none');
+            
+            // Buscar el producto
+            buscarProducto(codigo);
+        }
+        
+        // Función para buscar un producto por código
+        function buscarProducto(codigo) {
+            $.ajax({
+                url: '{% url "inventario:buscar_producto_api" %}',
+                data: {'codigo': codigo},
+                dataType: 'json',
+                success: function(data) {
+                    if (data.success) {
+                        mostrarProducto(data.producto);
+                    } else {
+                        mostrarProductoNoEncontrado(codigo);
+                    }
+                },
+                error: function(error) {
+                    console.error(error);
+                    showAlert('Error al buscar el producto.', 'danger');
+                }
+            });
+        }
+        
+        // Mostrar información del producto
+        function mostrarProducto(producto) {
+            $('#scanner-instructions').hide();
+            
+            $('#producto-nombre').text(producto.nombre);
+            $('#producto-codigo').text(producto.codigo);
+            $('#producto-precio').text(producto.precio);
+            $('#producto-stock').text(producto.stock);
+            
+            // Actualizar enlaces
+            $('#ver-detalle-link').attr('href', '{% url "inventario:lista_productos" %}');
+            $('#ver-detalle-link').attr('href', '{% url "inventario:detalle_producto" 0 %}'.replace('0', producto.id));
+            $('#ajustar-stock-link').attr('href', '{% url "inventario:crear_ajuste" %}?producto_id=' + producto.id);
+            $('#editar-producto-link').attr('href', '{% url "inventario:editar_producto" 0 %}'.replace('0', producto.id));
+            
+            // Mostrar/ocultar secciones
+            $('#producto-info').removeClass('d-none');
+            $('#producto-no-encontrado').addClass('d-none');
+        }
+        
+        // Mostrar mensaje de producto no encontrado
+        function mostrarProductoNoEncontrado(codigo) {
+            $('#scanner-instructions').hide();
+            
+            $('#crear-producto-link').attr('href', '{% url "inventario:crear_producto" %}?codigo=' + codigo);
+            $('#producto-info').addClass('d-none');
+            $('#producto-no-encontrado').removeClass('d-none');
+        }
+        
+        // Activar/desactivar botones del escáner
+        function toggleScannerButtons(scanning) {
+            $('#start-button').prop('disabled', scanning);
+            $('#stop-button').prop('disabled', !scanning);
+        }
+    });
+</script>
+{% endblock %}

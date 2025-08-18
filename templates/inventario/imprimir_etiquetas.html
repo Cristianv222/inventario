@@ -1,0 +1,1234 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block breadcrumb_page %}
+<li class="breadcrumb-item active">Generador de Etiquetas Zebra</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .product-card:hover {
+        background-color: #f8f9fa;
+        border-color: #007bff;
+    }
+    
+    .product-card.selected {
+        background-color: #e3f2fd;
+        border-color: #2196f3;
+        box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+    }
+    
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .search-result-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+    
+    .search-result-item:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2><i class="fas fa-tags me-2"></i> Generador de Etiquetas Zebra</h2>
+            <p class="text-muted">Imprime etiquetas directamente en tu impresora Zebra</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Volver a Productos
+            </a>
+            <button class="btn btn-info" id="verificar-impresora">
+                <i class="fas fa-print me-1"></i> Verificar Impresora
+            </button>
+        </div>
+    </div>
+
+    <!-- Estado de la impresora -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div id="estado-impresora" class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Estado de impresora:</strong> <span id="estado-texto">Verificando...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel de búsqueda y selección -->
+        <div class="col-lg-7 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-search me-2"></i> Búsqueda de Productos
+                </div>
+                <div class="card-body">
+                    <!-- Búsqueda -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Buscar producto</label>
+                            <div class="input-group">
+                                <input type="text" id="busqueda-texto" class="form-control" placeholder="Nombre o código del producto">
+                                <button class="btn btn-primary" type="button" id="btn-buscar">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Categoría</label>
+                            <select id="filtro-categoria" class="form-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Marca</label>
+                            <select id="filtro-marca" class="form-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Resultados de búsqueda -->
+                    <div id="resultados-busqueda" class="mb-4" style="display: none;">
+                        <h6><i class="fas fa-list me-1"></i> Resultados de búsqueda</h6>
+                        <div id="lista-resultados" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                        </div>
+                    </div>
+
+                    <!-- Productos seleccionados -->
+                    <div class="border-top pt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6><i class="fas fa-shopping-cart me-1"></i> Productos Seleccionados</h6>
+                            <span class="badge bg-primary" id="contador-productos">0</span>
+                        </div>
+                        
+                        <div id="productos-seleccionados" class="border rounded p-3" style="min-height: 100px; max-height: 400px; overflow-y: auto;">
+                            <div class="text-center text-muted py-4" id="mensaje-vacio">
+                                <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                                <p class="mb-0">No hay productos seleccionados</p>
+                                <small>Busca y selecciona productos para generar etiquetas</small>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 text-end">
+                            <button class="btn btn-outline-danger" id="limpiar-todo" disabled>
+                                <i class="fas fa-trash me-1"></i> Limpiar Todo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de configuración -->
+        <div class="col-lg-5 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-cog me-2"></i> Configuración de Impresión
+                </div>
+                <div class="card-body">
+                    <!-- Selección de impresora -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-print me-1"></i> Impresora Zebra</h6>
+                        <select id="lista-impresoras" class="form-select">
+                            <option value="">Seleccionar impresora...</option>
+                        </select>
+                        <small class="text-muted">Las impresoras se detectan automáticamente</small>
+                    </div>
+
+                    <!-- Tipo de etiqueta -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-ruler-combined me-1"></i> Tipo de Etiqueta</h6>
+                        <select id="tipo-etiqueta" class="form-select">
+                            <option value="4x6" selected>4" x 6" (Shipping)</option>
+                            <option value="4x3">4" x 3" (Shipping)</option>
+                            <option value="2x1">2" x 1" (Address)</option>
+                            <option value="2.25x1.25">2.25" x 1.25" (Address)</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                    </div>
+
+                    <!-- Dimensiones personalizadas -->
+                    <div class="mb-4" id="dimensiones-custom" style="display: none;">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">Ancho (inches)</label>
+                                <input type="number" id="ancho-custom" class="form-control" value="4" min="1" max="8" step="0.1">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Alto (inches)</label>
+                                <input type="number" id="alto-custom" class="form-control" value="6" min="1" max="12" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contenido -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-list-check me-1"></i> Contenido a mostrar</h6>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrar-nombre" checked>
+                            <label class="form-check-label" for="mostrar-nombre">Nombre del producto</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrar-codigo" checked>
+                            <label class="form-check-label" for="mostrar-codigo">Código de barras</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrar-precio" checked>
+                            <label class="form-check-label" for="mostrar-precio">Precio de venta</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrar-marca">
+                            <label class="form-check-label" for="mostrar-marca">Marca</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrar-categoria">
+                            <label class="form-check-label" for="mostrar-categoria">Categoría</label>
+                        </div>
+                    </div>
+
+                    <!-- Configuración ZPL -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-sliders-h me-1"></i> Configuración ZPL</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">DPI</label>
+                                <select id="dpi" class="form-select">
+                                    <option value="203">203 DPI</option>
+                                    <option value="300" selected>300 DPI</option>
+                                    <option value="600">600 DPI</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Velocidad</label>
+                                <select id="velocidad" class="form-select">
+                                    <option value="2">Lenta (2)</option>
+                                    <option value="4" selected>Media (4)</option>
+                                    <option value="6">Rápida (6)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vista previa visual -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-eye me-1"></i> Vista Previa de Etiqueta</h6>
+                        <div class="text-center">
+                            <div id="preview-etiqueta" class="border d-inline-block bg-white position-relative" 
+                                 style="width: 200px; height: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; border: 2px solid #dee2e6;">
+                                
+                                <!-- Contenido de la etiqueta -->
+                                <div class="p-3 h-100 d-flex flex-column justify-content-start">
+                                    
+                                    <!-- Nombre del producto -->
+                                    <div id="preview-nombre" class="text-center mb-2" style="display: block;">
+                                        <div style="font-size: 12px; font-weight: bold; line-height: 1.2; word-wrap: break-word; color: #212529;">
+                                            Nombre del Producto
+                                        </div>
+                                    </div>
+
+                                    <!-- Código de barras -->
+                                    <div id="preview-codigo" class="text-center mb-2" style="display: block;">
+                                        <div class="mb-1">
+                                            <!-- Barras del código más realistas -->
+                                            <div class="d-flex justify-content-center align-items-end" style="height: 45px; background: linear-gradient(90deg, #000 0%, #000 8%, #fff 8%, #fff 12%, #000 12%, #000 16%, #fff 16%, #fff 20%, #000 20%, #000 28%, #fff 28%, #fff 32%, #000 32%, #000 36%, #fff 36%, #fff 40%, #000 40%, #000 44%, #fff 44%, #fff 48%, #000 48%, #000 56%, #fff 56%, #fff 60%, #000 60%, #000 64%, #fff 64%, #fff 68%, #000 68%, #000 72%, #fff 72%, #fff 76%, #000 76%, #000 84%, #fff 84%, #fff 88%, #000 88%, #000 92%, #fff 92%, #fff 96%, #000 96%, #000 100%);">
+                                            </div>
+                                        </div>
+                                        <div style="font-size: 10px; font-family: 'Courier New', monospace; margin-top: 2px;" id="preview-codigo-texto">
+                                            123456789
+                                        </div>
+                                    </div>
+
+                                    <!-- Precio -->
+                                    <div id="preview-precio" class="text-center mb-2" style="display: block;">
+                                        <div style="font-size: 20px; font-weight: bold; color: #28a745;" id="preview-precio-texto">
+                                            $99.99
+                                        </div>
+                                    </div>
+
+                                    <!-- Marca -->
+                                    <div id="preview-marca" class="text-center mb-1" style="display: none;">
+                                        <div style="font-size: 11px; color: #6c757d;" id="preview-marca-texto">
+                                            Marca: Sin marca
+                                        </div>
+                                    </div>
+
+                                    <!-- Categoría -->
+                                    <div id="preview-categoria" class="text-center mb-1" style="display: none;">
+                                        <div style="font-size: 11px; color: #6c757d;" id="preview-categoria-texto">
+                                            Cat: Sin categoría
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <!-- Indicadores de dimensiones -->
+                                <div class="position-absolute" style="bottom: -30px; left: 0; right: 0;">
+                                    <small class="text-muted" id="preview-dimensiones">4" x 6"</small>
+                                </div>
+                                
+                                <!-- Esquinas redondeadas simulando etiqueta real -->
+                                <div style="position: absolute; top: 5px; right: 5px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #f8f9fa; transform: rotate(45deg);"></div>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block text-center mt-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Vista previa aproximada de cómo se verá la etiqueta impresa
+                        </small>
+                        
+                        <!-- Botón para ver código ZPL -->
+                        <div class="text-center mt-2">
+                            <button class="btn btn-sm btn-outline-secondary" id="toggle-zpl" type="button" data-bs-toggle="collapse" data-bs-target="#codigo-zpl" aria-expanded="false">
+                                <i class="fas fa-code me-1"></i> Ver código ZPL
+                            </button>
+                        </div>
+                        
+                        <!-- Código ZPL colapsable -->
+                        <div class="collapse mt-3" id="codigo-zpl">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-code me-1"></i>
+                                        Código ZPL que se enviará a la impresora
+                                    </small>
+                                </div>
+                                <div class="card-body p-2">
+                                    <textarea id="preview-zpl" class="form-control" rows="8" readonly 
+                                              style="font-family: 'Courier New', monospace; font-size: 11px; background-color: #f8f9fa;"></textarea>
+                                    <div class="mt-2 text-end">
+                                        <button class="btn btn-sm btn-outline-primary" id="copiar-zpl">
+                                            <i class="fas fa-copy me-1"></i> Copiar ZPL
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success btn-lg" id="imprimir-etiquetas" disabled>
+                            <i class="fas fa-calculator me-2"></i> Configurar e Imprimir
+                        </button>
+                        <button class="btn btn-outline-primary" id="imprimir-prueba">
+                            <i class="fas fa-vial me-2"></i> Imprimir Prueba
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para seleccionar cantidad -->
+<div class="modal fade" id="cantidadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calculator me-2"></i>Configurar Cantidad de Etiquetas
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6>Productos seleccionados:</h6>
+                    <div id="resumen-productos" class="border rounded p-3 mb-3" style="max-height: 200px; overflow-y: auto;">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6>Método de impresión:</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="metodoImpresion" id="metodo-individual" value="individual" checked>
+                        <label class="form-check-label" for="metodo-individual">
+                            <strong>Por producto individual</strong>
+                            <br><small class="text-muted">Usar las cantidades configuradas por producto</small>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="metodoImpresion" id="metodo-total" value="total">
+                        <label class="form-check-label" for="metodo-total">
+                            <strong>Cantidad total fija</strong>
+                            <br><small class="text-muted">Imprimir una cantidad específica de cada producto</small>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="metodoImpresion" id="metodo-personalizado" value="personalizado">
+                        <label class="form-check-label" for="metodo-personalizado">
+                            <strong>Cantidad personalizada</strong>
+                            <br><small class="text-muted">Configurar cantidad específica para cada producto</small>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Cantidad total fija -->
+                <div class="mb-4" id="config-total" style="display: none;">
+                    <label class="form-label">Cantidad de etiquetas por producto:</label>
+                    <div class="input-group">
+                        <input type="number" id="cantidad-total" class="form-control" value="1" min="1" max="999">
+                        <span class="input-group-text">etiquetas</span>
+                    </div>
+                    <small class="text-muted">Se imprimirán <span id="total-etiquetas-fijo">0</span> etiquetas en total</small>
+                </div>
+
+                <!-- Configuración personalizada -->
+                <div class="mb-4" id="config-personalizado" style="display: none;">
+                    <label class="form-label">Configurar cantidad por producto:</label>
+                    <div id="lista-personalizada" class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                    <small class="text-muted">Total: <span id="total-etiquetas-personalizado">0</span> etiquetas</small>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Resumen:</strong> Se imprimirán <span id="total-final">0</span> etiquetas
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-success" id="confirmar-impresion">
+                    <i class="fas fa-print me-1"></i>Imprimir Etiquetas
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de impresión -->
+<div class="modal fade" id="imprimiendoModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;"></div>
+                <h5>Imprimiendo etiquetas...</h5>
+                <p class="text-muted mb-0" id="progreso-impresion">Procesando: 0 de 0</p>
+                <div class="progress mt-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="barra-progreso" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block inventory_js %}
+<!-- Zebra Browser Print SDK -->
+<script src="https://www.zebra.com/content/dam/zebra_new_ia/en-us/software-printer-software/browser-print/BrowserPrint-3.0.216.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    let productosSeleccionados = [];
+    let zebraPrinter = null;
+    let browserPrint = null;
+
+    // Inicializar Zebra Browser Print
+    inicializarZebraPrint();
+
+    function inicializarZebraPrint() {
+        try {
+            browserPrint = new BrowserPrint();
+            verificarImpresoras();
+        } catch (error) {
+            mostrarEstadoImpresora('error', 'Zebra Browser Print no detectado. Instala la aplicación.');
+            console.error('Error inicializando Zebra Browser Print:', error);
+        }
+    }
+
+    function verificarImpresoras() {
+        if (!browserPrint) {
+            mostrarEstadoImpresora('error', 'Browser Print no inicializado');
+            return;
+        }
+
+        browserPrint.getPrinters(
+            function(printers) {
+                $('#lista-impresoras').empty().append('<option value="">Seleccionar impresora...</option>');
+                
+                if (printers && printers.length > 0) {
+                    printers.forEach(function(printer) {
+                        if (printer.name.toLowerCase().includes('zebra')) {
+                            $('#lista-impresoras').append(`<option value="${printer.uid}">${printer.name}</option>`);
+                        }
+                    });
+                    
+                    if ($('#lista-impresoras option').length > 1) {
+                        mostrarEstadoImpresora('success', `${printers.length} impresora(s) Zebra detectada(s)`);
+                        // Seleccionar automáticamente la primera impresora Zebra
+                        $('#lista-impresoras option:eq(1)').prop('selected', true);
+                        seleccionarImpresora();
+                    } else {
+                        mostrarEstadoImpresora('warning', 'No se detectaron impresoras Zebra');
+                    }
+                } else {
+                    mostrarEstadoImpresora('warning', 'No se detectaron impresoras');
+                }
+            },
+            function(error) {
+                mostrarEstadoImpresora('error', 'Error al detectar impresoras: ' + error);
+            }
+        );
+    }
+
+    function seleccionarImpresora() {
+        const printerUid = $('#lista-impresoras').val();
+        if (printerUid && browserPrint) {
+            zebraPrinter = browserPrint.getPrinter(printerUid);
+            actualizarVistaPrevia();
+            $('#imprimir-etiquetas').prop('disabled', productosSeleccionados.length === 0);
+        } else {
+            zebraPrinter = null;
+            $('#imprimir-etiquetas').prop('disabled', true);
+        }
+    }
+
+    function mostrarEstadoImpresora(tipo, mensaje) {
+        const alertClass = {
+            'success': 'alert-success',
+            'warning': 'alert-warning',
+            'error': 'alert-danger'
+        };
+        
+        const icon = {
+            'success': 'fa-check-circle',
+            'warning': 'fa-exclamation-triangle',
+            'error': 'fa-times-circle'
+        };
+
+        $('#estado-impresora')
+            .removeClass('alert-success alert-warning alert-danger')
+            .addClass(alertClass[tipo]);
+        
+        $('#estado-texto').html(`<i class="fas ${icon[tipo]} me-1"></i>${mensaje}`);
+    }
+
+    function generarZPL(productos) {
+        const tipoEtiqueta = $('#tipo-etiqueta').val();
+        const dpi = parseInt($('#dpi').val());
+        const velocidad = $('#velocidad').val();
+        
+        // Dimensiones según tipo de etiqueta (en dots)
+        const dimensiones = {
+            '4x6': { ancho: 812, alto: 1218 },
+            '4x3': { ancho: 812, alto: 609 },
+            '2x1': { ancho: 406, alto: 203 },
+            '2.25x1.25': { ancho: 456, alto: 254 }
+        };
+
+        let dim = dimensiones[tipoEtiqueta];
+        if (tipoEtiqueta === 'custom') {
+            const ancho = parseFloat($('#ancho-custom').val()) || 4;
+            const alto = parseFloat($('#alto-custom').val()) || 6;
+            dim = {
+                ancho: Math.round(ancho * dpi),
+                alto: Math.round(alto * dpi)
+            };
+        }
+
+        let zplCompleto = '';
+
+        productos.forEach((producto, index) => {
+            let zpl = '^XA\n'; // Inicio de etiqueta
+            
+            // Configuración básica
+            zpl += `^PW${dim.ancho}\n`; // Ancho de etiqueta
+            zpl += `^LL${dim.alto}\n`; // Largo de etiqueta
+            zpl += `^PR${velocidad}\n`; // Velocidad de impresión
+            
+            let posY = 50; // Posición Y inicial
+
+            // Nombre del producto
+            if ($('#mostrar-nombre').prop('checked')) {
+                const nombre = producto.nombre.substring(0, 40); // Limitar longitud
+                zpl += `^FO50,${posY}^A0N,30,30^FD${nombre}^FS\n`;
+                posY += 40;
+            }
+
+            // Código de barras
+            if ($('#mostrar-codigo').prop('checked')) {
+                posY += 20;
+                zpl += `^FO50,${posY}^BY3^BCN,100,Y,N,N^FD${producto.codigo}^FS\n`;
+                posY += 120;
+            }
+
+            // Precio
+            if ($('#mostrar-precio').prop('checked')) {
+                zpl += `^FO50,${posY}^A0N,40,40^FD$${parseFloat(producto.precio).toFixed(2)}^FS\n`;
+                posY += 50;
+            }
+
+            // Marca
+            if ($('#mostrar-marca').prop('checked') && producto.marca) {
+                zpl += `^FO50,${posY}^A0N,25,25^FDMarca: ${producto.marca}^FS\n`;
+                posY += 35;
+            }
+
+            // Categoría
+            if ($('#mostrar-categoria').prop('checked') && producto.categoria) {
+                zpl += `^FO50,${posY}^A0N,25,25^FDCat: ${producto.categoria}^FS\n`;
+                posY += 35;
+            }
+
+            zpl += '^XZ\n'; // Fin de etiqueta
+            zplCompleto += zpl;
+        });
+
+        return zplCompleto;
+    }
+
+    function actualizarVistaPrevia() {
+        // Actualizar dimensiones de la etiqueta
+        actualizarDimensionesPreview();
+        
+        // Actualizar contenido según opciones seleccionadas
+        actualizarContenidoPreview();
+        
+        // Si hay productos seleccionados, usar el primero como ejemplo
+        if (productosSeleccionados.length > 0) {
+            const producto = productosSeleccionados[0];
+            actualizarDatosPreview(producto);
+            
+            // También generar código ZPL para la vista
+            const productoEjemplo = {
+                id: producto.id,
+                nombre: producto.nombre,
+                codigo: producto.codigo,
+                precio: producto.precio,
+                marca: producto.marca || '',
+                categoria: producto.categoria || ''
+            };
+            const zpl = generarZPL([productoEjemplo]);
+            $('#preview-zpl').val(zpl);
+        } else {
+            // Mostrar vista previa vacía
+            mostrarVistaPreviewVacia();
+            $('#preview-zpl').val('// Selecciona productos para ver el código ZPL');
+        }
+    }
+
+    function actualizarDimensionesPreview() {
+        const tipoEtiqueta = $('#tipo-etiqueta').val();
+        let ancho, alto, texto;
+
+        switch(tipoEtiqueta) {
+            case '4x6':
+                ancho = 200; alto = 300; texto = '4" x 6"';
+                break;
+            case '4x3':
+                ancho = 200; alto = 150; texto = '4" x 3"';
+                break;
+            case '2x1':
+                ancho = 150; alto = 75; texto = '2" x 1"';
+                break;
+            case '2.25x1.25':
+                ancho = 170; alto = 95; texto = '2.25" x 1.25"';
+                break;
+            case 'custom':
+                const anchoCustom = parseFloat($('#ancho-custom').val()) || 4;
+                const altoCustom = parseFloat($('#alto-custom').val()) || 6;
+                ancho = Math.max(150, anchoCustom * 50);
+                alto = Math.max(100, altoCustom * 50);
+                texto = `${anchoCustom}" x ${altoCustom}"`;
+                break;
+            default:
+                ancho = 200; alto = 300; texto = '4" x 6"';
+        }
+
+        $('#preview-etiqueta').css({
+            width: ancho + 'px',
+            height: alto + 'px'
+        });
+        
+        $('#preview-dimensiones').text(texto);
+    }
+
+    function actualizarContenidoPreview() {
+        // Mostrar/ocultar elementos según configuración
+        $('#preview-nombre').toggle($('#mostrar-nombre').prop('checked'));
+        $('#preview-codigo').toggle($('#mostrar-codigo').prop('checked'));
+        $('#preview-precio').toggle($('#mostrar-precio').prop('checked'));
+        $('#preview-marca').toggle($('#mostrar-marca').prop('checked'));
+        $('#preview-categoria').toggle($('#mostrar-categoria').prop('checked'));
+    }
+
+    function actualizarDatosPreview(producto) {
+        // Actualizar nombre del producto
+        if ($('#mostrar-nombre').prop('checked')) {
+            const nombreCorto = producto.nombre.length > 35 ? 
+                producto.nombre.substring(0, 35) + '...' : 
+                producto.nombre;
+            $('#preview-nombre div').text(nombreCorto);
+        }
+
+        // Actualizar código de barras
+        if ($('#mostrar-codigo').prop('checked')) {
+            $('#preview-codigo-texto').text(producto.codigo);
+        }
+
+        // Actualizar precio
+        if ($('#mostrar-precio').prop('checked')) {
+            $('#preview-precio-texto').text(`$${parseFloat(producto.precio).toFixed(2)}`);
+        }
+
+        // Actualizar marca
+        if ($('#mostrar-marca').prop('checked')) {
+            const marca = producto.marca || 'Sin marca';
+            $('#preview-marca-texto').text(`Marca: ${marca}`);
+        }
+
+        // Actualizar categoría
+        if ($('#mostrar-categoria').prop('checked')) {
+            const categoria = producto.categoria || 'Sin categoría';
+            $('#preview-categoria-texto').text(`Cat: ${categoria}`);
+        }
+    }
+
+    function mostrarVistaPreviewVacia() {
+        $('#preview-nombre div').text('Nombre del Producto');
+        $('#preview-codigo-texto').text('123456789');
+        $('#preview-precio-texto').text('$99.99');
+        $('#preview-marca-texto').text('Marca: Sin marca');
+        $('#preview-categoria-texto').text('Cat: Sin categoría');
+    }
+
+    function mostrarModalCantidad() {
+        if (!zebraPrinter) {
+            mostrarAlerta('Selecciona una impresora Zebra', 'warning');
+            return;
+        }
+
+        if (productosSeleccionados.length === 0) {
+            mostrarAlerta('Selecciona al menos un producto', 'warning');
+            return;
+        }
+
+        // Llenar resumen de productos
+        actualizarResumenProductos();
+        
+        // Reiniciar configuración
+        $('#metodo-individual').prop('checked', true);
+        $('#config-total, #config-personalizado').hide();
+        
+        // Calcular total inicial
+        actualizarTotalEtiquetas();
+
+        const modal = new bootstrap.Modal(document.getElementById('cantidadModal'));
+        modal.show();
+    }
+
+    function actualizarResumenProductos() {
+        let html = '';
+        productosSeleccionados.forEach(producto => {
+            html += `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <div class="fw-bold">${producto.nombre}</div>
+                        <small class="text-muted">${producto.codigo} - $${producto.precio.toFixed(2)}</small>
+                    </div>
+                    <span class="badge bg-primary">${producto.cantidad} etiquetas</span>
+                </div>
+            `;
+        });
+        $('#resumen-productos').html(html);
+    }
+
+    function actualizarConfigPersonalizado() {
+        let html = '';
+        productosSeleccionados.forEach((producto, index) => {
+            html += `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="flex-grow-1 me-3">
+                        <div class="fw-bold">${producto.nombre}</div>
+                        <small class="text-muted">${producto.codigo}</small>
+                    </div>
+                    <div class="input-group" style="width: 120px;">
+                        <button class="btn btn-outline-secondary btn-sm cantidad-personalizada" data-index="${index}" data-accion="restar">-</button>
+                        <input type="number" class="form-control form-control-sm text-center cantidad-personalizada-input" 
+                               value="${producto.cantidadModal || producto.cantidad}" min="0" max="999" data-index="${index}">
+                        <button class="btn btn-outline-secondary btn-sm cantidad-personalizada" data-index="${index}" data-accion="sumar">+</button>
+                    </div>
+                </div>
+            `;
+        });
+        $('#lista-personalizada').html(html);
+
+        // Event listeners para cantidad personalizada
+        $('.cantidad-personalizada').on('click', function() {
+            const index = $(this).data('index');
+            const accion = $(this).data('accion');
+            let cantidad = productosSeleccionados[index].cantidadModal || productosSeleccionados[index].cantidad;
+            
+            if (accion === 'sumar') {
+                cantidad++;
+            } else if (accion === 'restar' && cantidad > 0) {
+                cantidad--;
+            }
+            
+            productosSeleccionados[index].cantidadModal = cantidad;
+            $(`.cantidad-personalizada-input[data-index="${index}"]`).val(cantidad);
+            actualizarTotalEtiquetas();
+        });
+
+        $('.cantidad-personalizada-input').on('change', function() {
+            const index = $(this).data('index');
+            const valor = Math.max(0, parseInt($(this).val()) || 0);
+            productosSeleccionados[index].cantidadModal = valor;
+            $(this).val(valor);
+            actualizarTotalEtiquetas();
+        });
+    }
+
+    function actualizarTotalEtiquetas() {
+        const metodo = $('input[name="metodoImpresion"]:checked').val();
+        let total = 0;
+
+        switch(metodo) {
+            case 'individual':
+                total = productosSeleccionados.reduce((sum, prod) => sum + (prod.cantidad || 1), 0);
+                break;
+            case 'total':
+                const cantidadFija = parseInt($('#cantidad-total').val()) || 1;
+                total = productosSeleccionados.length * cantidadFija;
+                $('#total-etiquetas-fijo').text(total);
+                break;
+            case 'personalizado':
+                total = productosSeleccionados.reduce((sum, prod) => sum + (prod.cantidadModal || prod.cantidad || 1), 0);
+                $('#total-etiquetas-personalizado').text(total);
+                break;
+        }
+
+        $('#total-final').text(total);
+    }
+
+    function imprimirEtiquetas() {
+        const metodo = $('input[name="metodoImpresion"]:checked').val();
+        const productosParaImprimir = [];
+
+        // Preparar productos según el método seleccionado
+        productosSeleccionados.forEach(producto => {
+            let cantidad = 1;
+            
+            switch(metodo) {
+                case 'individual':
+                    cantidad = producto.cantidad || 1;
+                    break;
+                case 'total':
+                    cantidad = parseInt($('#cantidad-total').val()) || 1;
+                    break;
+                case 'personalizado':
+                    cantidad = producto.cantidadModal || producto.cantidad || 1;
+                    break;
+            }
+
+            for (let i = 0; i < cantidad; i++) {
+                productosParaImprimir.push({
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    codigo: producto.codigo,
+                    precio: producto.precio,
+                    marca: producto.marca || '',
+                    categoria: producto.categoria || ''
+                });
+            }
+        });
+
+        // Cerrar modal de cantidad
+        bootstrap.Modal.getInstance(document.getElementById('cantidadModal')).hide();
+
+        // Mostrar modal de impresión
+        const modalImpresion = new bootstrap.Modal(document.getElementById('imprimiendoModal'));
+        modalImpresion.show();
+
+        const totalEtiquetas = productosParaImprimir.length;
+        $('#progreso-impresion').text(`Procesando: 0 de ${totalEtiquetas}`);
+        $('#barra-progreso').css('width', '0%');
+
+        // Generar ZPL
+        const zpl = generarZPL(productosParaImprimir);
+
+        // Simular progreso
+        let progreso = 0;
+        const intervaloProgreso = setInterval(() => {
+            progreso += Math.random() * 20;
+            if (progreso > 90) progreso = 90;
+            $('#barra-progreso').css('width', progreso + '%');
+        }, 200);
+
+        // Enviar a impresora
+        zebraPrinter.send(zpl, 
+            function() {
+                clearInterval(intervaloProgreso);
+                $('#barra-progreso').css('width', '100%');
+                $('#progreso-impresion').text(`Completado: ${totalEtiquetas} de ${totalEtiquetas}`);
+                
+                setTimeout(() => {
+                    modalImpresion.hide();
+                    mostrarAlerta(`${totalEtiquetas} etiquetas enviadas a la impresora correctamente`, 'success');
+                }, 1500);
+            },
+            function(error) {
+                clearInterval(intervaloProgreso);
+                modalImpresion.hide();
+                mostrarAlerta('Error al imprimir: ' + error, 'danger');
+            }
+        );
+    }
+
+    function imprimirPrueba() {
+        if (!zebraPrinter) {
+            mostrarAlerta('Selecciona una impresora Zebra', 'warning');
+            return;
+        }
+
+        const zplPrueba = `
+^XA
+^FO50,50^A0N,30,30^FDPrueba de Etiqueta^FS
+^FO50,100^A0N,25,25^FDImpresora funcionando correctamente^FS
+^FO50,150^BY3^BCN,100,Y,N,N^FD123456789^FS
+^FO50,280^A0N,20,20^FDFecha: ${new Date().toLocaleDateString()}^FS
+^XZ
+        `;
+
+        zebraPrinter.send(zplPrueba,
+            function() {
+                mostrarAlerta('Etiqueta de prueba enviada', 'success');
+            },
+            function(error) {
+                mostrarAlerta('Error en prueba de impresión: ' + error, 'danger');
+            }
+        );
+    }
+
+    // Funciones de búsqueda y selección
+    function cargarFiltros() {
+        // Cargar categorías
+        $.ajax({
+            url: '{% url "inventario:api_categorias_marcas" %}',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    $('#filtro-categoria').empty().append('<option value="">Todas</option>');
+                    response.categorias.forEach(cat => {
+                        $('#filtro-categoria').append(`<option value="${cat.id}">${cat.nombre}</option>`);
+                    });
+                    
+                    $('#filtro-marca').empty().append('<option value="">Todas</option>');
+                    response.marcas.forEach(marca => {
+                        $('#filtro-marca').append(`<option value="${marca.id}">${marca.nombre}</option>`);
+                    });
+                }
+            }
+        });
+    }
+
+    function buscarProductos() {
+        const termino = $('#busqueda-texto').val().trim();
+        const categoria = $('#filtro-categoria').val();
+        const marca = $('#filtro-marca').val();
+
+        if (!termino && !categoria && !marca) {
+            mostrarAlerta('Ingresa un término de búsqueda o selecciona un filtro', 'warning');
+            return;
+        }
+
+        $('#lista-resultados').html('<div class="text-center py-3"><div class="spinner-border text-primary"></div><p class="mt-2">Buscando...</p></div>');
+        $('#resultados-busqueda').show();
+
+        $.ajax({
+            url: '{% url "inventario:api_productos" %}',
+            method: 'GET',
+            data: {
+                q: termino,
+                categoria: categoria,
+                marca: marca,
+                limit: 50
+            },
+            success: function(response) {
+                if (response.success && response.productos.length > 0) {
+                    mostrarResultados(response.productos);
+                } else {
+                    $('#lista-resultados').html(`
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-search fa-2x mb-2"></i>
+                            <p class="mb-0">No se encontraron productos</p>
+                        </div>
+                    `);
+                }
+            },
+            error: function() {
+                $('#lista-resultados').html(`
+                    <div class="text-center py-4 text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <p class="mb-0">Error al buscar productos</p>
+                    </div>
+                `);
+            }
+        });
+    }
+
+    function mostrarResultados(productos) {
+        let html = '';
+        
+        productos.forEach(producto => {
+            const yaSeleccionado = productosSeleccionados.some(p => p.id === producto.id);
+            
+            html += `
+                <div class="border-bottom py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">${producto.nombre}</div>
+                            <small class="text-muted">
+                                <span class="badge bg-secondary me-1">${producto.categoria || 'Sin categoría'}</span>
+                                <span class="badge bg-info me-1">${producto.marca || 'Sin marca'}</span>
+                                <code>${producto.codigo}</code> - $${producto.precio.toFixed(2)}
+                            </small>
+                        </div>
+                        <button class="btn btn-sm ${yaSeleccionado ? 'btn-success' : 'btn-primary'} agregar-producto" 
+                                data-producto='${JSON.stringify(producto)}' 
+                                ${yaSeleccionado ? 'disabled' : ''}>
+                            <i class="fas ${yaSeleccionado ? 'fa-check' : 'fa-plus'}"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        $('#lista-resultados').html(html);
+
+        $('.agregar-producto').on('click', function() {
+            const producto = JSON.parse($(this).attr('data-producto'));
+            agregarProducto(producto);
+            $(this).removeClass('btn-primary').addClass('btn-success')
+                   .html('<i class="fas fa-check"></i>')
+                   .prop('disabled', true);
+        });
+    }
+
+    function agregarProducto(producto) {
+        producto.cantidad = 1;
+        productosSeleccionados.push(producto);
+        actualizarListaSeleccionados();
+        actualizarVistaPrevia();
+    }
+
+    function actualizarListaSeleccionados() {
+        $('#contador-productos').text(productosSeleccionados.length);
+        
+        if (productosSeleccionados.length === 0) {
+            $('#mensaje-vacio').show();
+            $('#productos-seleccionados').children().not('#mensaje-vacio').remove();
+            $('#limpiar-todo').prop('disabled', true);
+            $('#imprimir-etiquetas').prop('disabled', true);
+            
+            // Mostrar vista previa vacía
+            mostrarVistaPreviewVacia();
+            actualizarContenidoPreview();
+            return;
+        }
+
+        $('#mensaje-vacio').hide();
+        $('#limpiar-todo').prop('disabled', false);
+        $('#imprimir-etiquetas').prop('disabled', !zebraPrinter);
+
+        let html = '';
+        productosSeleccionados.forEach((producto, index) => {
+            html += `
+                <div class="card mb-2" data-index="${index}">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">${producto.nombre}</div>
+                                <small class="text-muted">
+                                    <code>${producto.codigo}</code> - $${producto.precio.toFixed(2)}
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="input-group input-group-sm me-2" style="width: 90px;">
+                                    <button class="btn btn-outline-secondary cambiar-cantidad" data-index="${index}" data-accion="restar">-</button>
+                                    <input type="number" class="form-control text-center cantidad" value="${producto.cantidad}" min="1" data-index="${index}">
+                                    <button class="btn btn-outline-secondary cambiar-cantidad" data-index="${index}" data-accion="sumar">+</button>
+                                </div>
+                                <button class="btn btn-sm btn-danger eliminar-producto" data-index="${index}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        $('#productos-seleccionados').html($('#mensaje-vacio')[0].outerHTML + html);
+
+        // Event listeners para cantidad y eliminar
+        $('.cambiar-cantidad').on('click', function() {
+            const index = $(this).data('index');
+            const accion = $(this).data('accion');
+            
+            if (accion === 'sumar') {
+                productosSeleccionados[index].cantidad++;
+            } else if (accion === 'restar' && productosSeleccionados[index].cantidad > 1) {
+                productosSeleccionados[index].cantidad--;
+            }
+            
+            actualizarListaSeleccionados();
+        });
+
+        $('.cantidad').on('change', function() {
+            const index = $(this).data('index');
+            const valor = parseInt($(this).val()) || 1;
+            productosSeleccionados[index].cantidad = Math.max(1, valor);
+            actualizarListaSeleccionados();
+        });
+
+        $('.eliminar-producto').on('click', function() {
+            const index = $(this).data('index');
+            const producto = productosSeleccionados[index];
+            
+            productosSeleccionados.splice(index, 1);
+            actualizarListaSeleccionados();
+
+            $(`.agregar-producto[data-producto*='"id":${producto.id}']`)
+                .removeClass('btn-success').addClass('btn-primary')
+                .html('<i class="fas fa-plus"></i>')
+                .prop('disabled', false);
+        });
+    }
+
+    function mostrarAlerta(mensaje, tipo) {
+        const alertClass = `alert-${tipo}`;
+        const alerta = $(`
+            <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+                 style="top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        
+        $('body').append(alerta);
+        
+        setTimeout(() => {
+            alerta.fadeOut(500, () => alerta.remove());
+        }, 5000);
+    }
+
+    // Event listeners
+    $('#verificar-impresora').on('click', verificarImpresoras);
+    $('#lista-impresoras').on('change', seleccionarImpresora);
+    $('#tipo-etiqueta').on('change', function() {
+        if ($(this).val() === 'custom') {
+            $('#dimensiones-custom').show();
+        } else {
+            $('#dimensiones-custom').hide();
+        }
+        actualizarVistaPrevia();
+    });
+
+    $('#btn-buscar').on('click', buscarProductos);
+    $('#busqueda-texto').on('keypress', function(e) {
+        if (e.which === 13) buscarProductos();
+    });
+    
+    $('#filtro-categoria, #filtro-marca').on('change', function() {
+        if ($('#busqueda-texto').val() || $(this).val()) {
+            buscarProductos();
+        }
+    });
+
+    $('#limpiar-todo').on('click', function() {
+        if (confirm('¿Estás seguro de limpiar toda la selección?')) {
+            productosSeleccionados = [];
+            actualizarListaSeleccionados();
+            
+            $('.agregar-producto').removeClass('btn-success').addClass('btn-primary')
+                                  .html('<i class="fas fa-plus"></i>')
+                                  .prop('disabled', false);
+        }
+    });
+
+    $('#imprimir-etiquetas').on('click', mostrarModalCantidad);
+    $('#imprimir-prueba').on('click', imprimirPrueba);
+    
+    // Event listeners para el modal de cantidad
+    $('input[name="metodoImpresion"]').on('change', function() {
+        const metodo = $(this).val();
+        
+        $('#config-total, #config-personalizado').hide();
+        
+        switch(metodo) {
+            case 'total':
+                $('#config-total').show();
+                break;
+            case 'personalizado':
+                $('#config-personalizado').show();
+                actualizarConfigPersonalizado();
+                break;
+        }
+        
+        actualizarTotalEtiquetas();
+    });
+
+    $('#cantidad-total').on('input', actualizarTotalEtiquetas);
+    $('#confirmar-impresion').on('click', imprimirEtiquetas);
+    
+    // Event listener para copiar código ZPL
+    $('#copiar-zpl').on('click', function() {
+        const zplText = $('#preview-zpl').val();
+        navigator.clipboard.writeText(zplText).then(function() {
+            mostrarAlerta('Código ZPL copiado al portapapeles', 'success');
+            
+            // Cambiar ícono temporalmente
+            const $btn = $('#copiar-zpl');
+            const originalHtml = $btn.html();
+            $btn.html('<i class="fas fa-check me-1"></i> Copiado');
+            
+            setTimeout(() => {
+                $btn.html(originalHtml);
+            }, 2000);
+        }).catch(function() {
+            mostrarAlerta('Error al copiar el código ZPL', 'warning');
+        });
+    });
+
+    // Actualizar vista previa cuando cambien las opciones
+    $('#ancho-custom, #alto-custom, #dpi, #velocidad').on('change', actualizarVistaPrevia);
+    $('#mostrar-nombre, #mostrar-codigo, #mostrar-precio, #mostrar-marca, #mostrar-categoria').on('change', actualizarVistaPrevia);
+
+    // Inicializar
+    cargarFiltros();
+    actualizarVistaPrevia(); // Inicializar vista previa
+    
+    // Verificar impresoras cada 30 segundos
+    setInterval(verificarImpresoras, 30000);
+});
+</script>
+{% endblock %}

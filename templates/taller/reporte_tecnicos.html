@@ -1,0 +1,701 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reporte de Técnicos{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+    :root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --success-color: #27ae60;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --light-bg: #f8f9fa;
+        --shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    body {
+        background-color: var(--light-bg);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .report-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 15px 15px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        border: none;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--primary-color);
+    }
+
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        margin-bottom: 2rem;
+        position: relative;
+        height: 400px; /* Altura fija */
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 300px; /* Altura específica para el canvas */
+        width: 100%;
+    }
+
+    .chart-container canvas {
+        max-height: 300px !important;
+        max-width: 100% !important;
+    }
+
+    .chart-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        font-size: 1.1rem;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
+
+    .table-card .card-header {
+        background: var(--primary-color);
+        color: white;
+        padding: 1rem 1.5rem;
+        border: none;
+    }
+
+    .table thead th {
+        background-color: #f8f9fa;
+        border: none;
+        color: var(--primary-color);
+        font-weight: 600;
+        padding: 1rem;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        border-color: #eee;
+        vertical-align: middle;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .badge-custom {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+
+    .top-performer {
+        background: linear-gradient(135deg, var(--warning-color) 0%, #f1c40f 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+    }
+
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn-custom {
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary-custom {
+        background: var(--secondary-color);
+        border: none;
+        color: white;
+    }
+
+    .btn-primary-custom:hover {
+        background: #2980b9;
+        transform: translateY(-1px);
+    }
+
+    .progress-modern {
+        height: 8px;
+        border-radius: 10px;
+        background-color: #e9ecef;
+    }
+
+    .progress-bar-modern {
+        border-radius: 10px;
+        background: linear-gradient(90deg, var(--secondary-color) 0%, var(--success-color) 100%);
+    }
+
+    .rating-stars {
+        color: #ffc107;
+    }
+
+    @media print {
+        .btn, .filter-card { display: none !important; }
+        .chart-container { page-break-inside: avoid; }
+        body { background: white !important; }
+    }
+
+    @media (max-width: 768px) {
+        .chart-container {
+            height: 350px;
+        }
+        .chart-wrapper {
+            height: 250px;
+        }
+        .chart-container canvas {
+            max-height: 250px !important;
+        }
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #6c757d;
+    }
+
+    .no-data i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .no-data-small {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #6c757d;
+    }
+
+    .no-data-small i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header del Reporte -->
+<div class="report-header">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="fas fa-chart-line me-3"></i>
+                    Reporte de Rendimiento de Técnicos
+                </h1>
+                <p class="mb-0 opacity-75">
+                    Análisis detallado del desempeño del equipo técnico
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-light btn-custom me-2" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Imprimir
+                </button>
+                <a href="{% url 'taller:reporte_servicios' %}" class="btn btn-outline-light btn-custom me-2">
+                    <i class="fas fa-chart-bar me-2"></i>Reporte Servicios
+                </a>
+                <a href="{% url 'taller:dashboard' %}" class="btn btn-outline-light btn-custom">
+                    <i class="fas fa-arrow-left me-2"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Filtros -->
+    <div class="filter-card">
+        <form method="get" class="row align-items-end g-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Fecha de Inicio</label>
+                <input type="date" name="fecha_inicio" value="{{ fecha_inicio|date:'Y-m-d' }}" 
+                       class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Fecha de Fin</label>
+                <input type="date" name="fecha_fin" value="{{ fecha_fin|date:'Y-m-d' }}" 
+                       class="form-control">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary-custom btn-custom w-100">
+                    <i class="fas fa-filter me-2"></i>Aplicar Filtros
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Estadísticas Principales -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--primary-color);">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="stat-number">{{ total_tecnicos|default:0 }}</h3>
+                <p class="stat-label">Total Técnicos</p>
+                <small class="text-success">
+                    <i class="fas fa-check-circle me-1"></i>
+                    {{ tecnicos_activos|default:0 }} activos
+                </small>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--secondary-color);">
+                    <i class="fas fa-wrench"></i>
+                </div>
+                <h3 class="stat-number">{{ total_servicios|default:0 }}</h3>
+                <p class="stat-label">Servicios Realizados</p>
+                <small class="text-info">
+                    <i class="fas fa-calendar me-1"></i>
+                    En el período seleccionado
+                </small>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--success-color);">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="stat-number">{{ promedio_diario|floatformat:1|default:"0" }}</h3>
+                <p class="stat-label">Promedio Diario</p>
+                <small class="text-success">
+                    <i class="fas fa-trending-up me-1"></i>
+                    Servicios por día
+                </small>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--warning-color);">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <h3 class="stat-number">${{ total_ingresos|floatformat:0|default:"0" }}</h3>
+                <p class="stat-label">Ingresos Generados</p>
+                <small class="text-warning">
+                    <i class="fas fa-coins me-1"></i>
+                    Total del período
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficas -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="chart-container">
+                <h5 class="chart-title">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Servicios por Técnico
+                </h5>
+                {% if tecnicos %}
+                    <div class="chart-wrapper">
+                        <canvas id="serviciosPorTecnicoChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="no-data-small">
+                        <i class="fas fa-chart-bar"></i>
+                        <p class="text-muted mb-0">No hay datos para mostrar</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="chart-container">
+                <h5 class="chart-title">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Distribución de Ingresos
+                </h5>
+                {% if tecnicos %}
+                    <div class="chart-wrapper">
+                        <canvas id="distribucionIngresosChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="no-data-small">
+                        <i class="fas fa-chart-pie"></i>
+                        <p class="text-muted mb-0">No hay datos para mostrar</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Técnico Destacado y Top Servicios -->
+    {% if tecnico_del_mes %}
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="top-performer">
+                <i class="fas fa-trophy fa-3x mb-3"></i>
+                <h4 class="mb-2">Técnico Destacado</h4>
+                <h3 class="fw-bold">{{ tecnico_del_mes.get_nombre_completo }}</h3>
+                <p class="mb-3">{{ tecnico_del_mes.especialidades.first.nombre|default:"Técnico General" }}</p>
+                <div class="row">
+                    <div class="col-6">
+                        <h4 class="fw-bold">{{ tecnico_del_mes.servicios_count }}</h4>
+                        <small>Servicios</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="fw-bold">${{ tecnico_del_mes.total_ingresos|floatformat:0 }}</h4>
+                        <small>Ingresos</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if top_servicios %}
+        <div class="col-md-6">
+            <div class="chart-container h-100">
+                <h5 class="chart-title">
+                    <i class="fas fa-star me-2"></i>
+                    Top 5 Servicios Más Realizados
+                </h5>
+                <div class="list-group list-group-flush">
+                    {% for servicio in top_servicios|slice:":5" %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                        <div>
+                            <strong class="text-dark">{{ servicio.nombre }}</strong>
+                            <br>
+                            <small class="text-muted">{{ servicio.categoria.nombre|default:"Sin categoría" }}</small>
+                        </div>
+                        <span class="badge badge-custom bg-primary">{{ servicio.total_realizados }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Tabla Detallada de Técnicos -->
+    <div class="table-card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-users-cog me-2"></i>
+                Detalle de Rendimiento por Técnico
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if tecnicos %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Técnico</th>
+                                <th>Especialidades</th>
+                                <th class="text-center">Servicios</th>
+                                <th class="text-center">Órdenes</th>
+                                <th class="text-end">Ingresos</th>
+                                <th class="text-center">Calificación</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-center">Rendimiento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tecnico in tecnicos %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                             style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                        <div>
+                                            <strong class="text-dark">{{ tecnico.get_nombre_completo }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                <i class="fas fa-phone me-1"></i>
+                                                {{ tecnico.telefono|default:"Sin teléfono" }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% for esp in tecnico.especialidades.all %}
+                                        <span class="badge bg-info badge-custom me-1 mb-1">{{ esp.nombre }}</span>
+                                    {% empty %}
+                                        <span class="text-muted">Sin especialidad</span>
+                                    {% endfor %}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary badge-custom">
+                                        {{ tecnico.servicios_count|default:0 }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary badge-custom">
+                                        {{ tecnico.ordenes_count|default:0 }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <strong class="text-success">
+                                        ${{ tecnico.total_ingresos|floatformat:2|default:"0.00" }}
+                                    </strong>
+                                </td>
+                                <td class="text-center">
+                                    {% if tecnico.promedio_calificacion %}
+                                        <div class="rating-stars mb-1">
+                                            {% for i in "12345"|make_list %}
+                                                {% if i|add:0 <= tecnico.promedio_calificacion %}
+                                                    <i class="fas fa-star"></i>
+                                                {% else %}
+                                                    <i class="far fa-star"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                        <small class="text-muted">{{ tecnico.promedio_calificacion|floatformat:1 }}</small>
+                                    {% else %}
+                                        <span class="text-muted">Sin evaluar</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if tecnico.activo %}
+                                        <span class="badge bg-success badge-custom">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger badge-custom">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center" style="width: 120px;">
+                                    <div class="progress progress-modern">
+                                        <div class="progress-bar progress-bar-modern" role="progressbar" 
+                                             data-total="{{ tecnico.servicios_count }}" 
+                                             data-max="{{ total_servicios }}">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        {% if total_servicios > 0 %}
+                                            {% widthratio tecnico.servicios_count total_servicios 100 %}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="no-data">
+                    <i class="fas fa-chart-line"></i>
+                    <h5>No hay datos disponibles</h5>
+                    <p class="text-muted">No se encontraron técnicos con actividad en el período seleccionado.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Scripts para las gráficas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<!-- Datos desde Django -->
+<script id="datos-tecnicos" type="application/json">
+[
+    {% for tecnico in tecnicos %}
+    {
+        "nombre": "{{ tecnico.get_nombre_completo|truncatechars:15|escapejs }}",
+        "servicios": {{ tecnico.servicios_count|default:0 }},
+        "ingresos": {{ tecnico.total_ingresos|default:0|floatformat:0 }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtener datos desde el script JSON
+    var datosElement = document.getElementById('datos-tecnicos');
+    var tecnicos = [];
+    
+    if (datosElement) {
+        try {
+            tecnicos = JSON.parse(datosElement.textContent);
+        } catch (e) {
+            console.log('Error al parsear datos:', e);
+            tecnicos = [];
+        }
+    }
+
+    // Solo crear gráficas si hay datos
+    if (tecnicos && tecnicos.length > 0) {
+        // Gráfica de Servicios por Técnico
+        var ctx1 = document.getElementById('serviciosPorTecnicoChart');
+        if (ctx1) {
+            var nombresArray = [];
+            var serviciosArray = [];
+            
+            for (var i = 0; i < tecnicos.length; i++) {
+                nombresArray.push(tecnicos[i].nombre);
+                serviciosArray.push(tecnicos[i].servicios);
+            }
+            
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: nombresArray,
+                    datasets: [{
+                        label: 'Servicios Realizados',
+                        data: serviciosArray,
+                        backgroundColor: 'rgba(52, 152, 219, 0.8)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfica de Distribución de Ingresos
+        var ctx2 = document.getElementById('distribucionIngresosChart');
+        if (ctx2) {
+            var colores = [
+                '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
+                '#1abc9c', '#34495e', '#e67e22', '#95a5a6', '#f1c40f'
+            ];
+            
+            var ingresosArray = [];
+            var nombresArray2 = [];
+            
+            for (var j = 0; j < tecnicos.length; j++) {
+                nombresArray2.push(tecnicos[j].nombre);
+                ingresosArray.push(parseFloat(tecnicos[j].ingresos) || 0);
+            }
+            
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: nombresArray2,
+                    datasets: [{
+                        data: ingresosArray,
+                        backgroundColor: colores.slice(0, tecnicos.length),
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 1,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Establecer anchos de barras de progreso
+    var progressBars = document.querySelectorAll('.progress-bar-modern');
+    for (var m = 0; m < progressBars.length; m++) {
+        var bar = progressBars[m];
+        var total = parseInt(bar.getAttribute('data-total')) || 0;
+        var max = parseInt(bar.getAttribute('data-max')) || 1;
+        var porcentaje = max > 0 ? (total / max) * 100 : 0;
+        bar.style.width = porcentaje + '%';
+    }
+});
+</script>
+
+<!-- 
+NOTA: Para que funcione el botón "Reporte Servicios", asegúrate de agregar esta URL en tu urls.py:
+
+path('reportes/servicios/', views.reporte_servicios, name='reporte_servicios'),
+
+Y crear la vista correspondiente en views.py
+-->
+{% endblock %}

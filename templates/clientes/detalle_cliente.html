@@ -1,0 +1,793 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ cliente.get_nombre_completo }} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .client-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .client-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+    
+    .client-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: bold;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        border-left: 4px solid;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .stat-card.compras { border-left-color: #007bff; }
+    .stat-card.valor { border-left-color: #28a745; }
+    .stat-card.puntos { border-left-color: #ffc107; }
+    .stat-card.ordenes { border-left-color: #dc3545; }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .info-card-header {
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        padding: 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .points-card {
+        background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .timeline-item {
+        border-left: 3px solid #e9ecef;
+        padding-left: 1.5rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 0;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #007bff;
+    }
+    
+    .timeline-item.tipo-venta::before { background: #28a745; }
+    .timeline-item.tipo-servicio::before { background: #17a2b8; }
+    .timeline-item.tipo-llamada::before { background: #ffc107; }
+    .timeline-item.tipo-reclamo::before { background: #dc3545; }
+    
+    .moto-card {
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .moto-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-color: #007bff;
+    }
+    
+    .badge-custom {
+        font-size: 0.8rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+    }
+    
+    .section-tabs {
+        border-bottom: 2px solid #f8f9fa;
+        margin-bottom: 2rem;
+    }
+    
+    .section-tabs .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #6c757d;
+        font-weight: 600;
+        padding: 1rem 1.5rem;
+    }
+    
+    .section-tabs .nav-link.active {
+        background: none;
+        color: #007bff;
+        border-bottom-color: #007bff;
+    }
+    
+    .quick-actions {
+        position: sticky;
+        top: 100px;
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'clientes:lista_clientes' %}">
+                    <i class="fas fa-users me-1"></i>Clientes
+                </a>
+            </li>
+            <li class="breadcrumb-item active">{{ cliente.get_nombre_completo }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header del Cliente -->
+    <div class="client-header">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <div class="client-avatar">
+                    {{ cliente.nombres.0|upper }}{{ cliente.apellidos.0|upper }}
+                </div>
+            </div>
+            <div class="col">
+                <h1 class="h2 mb-2">{{ cliente.get_nombre_completo }}</h1>
+                <div class="row">
+                    <div class="col-md-4">
+                        <p class="mb-1 opacity-75">
+                            <i class="fas fa-id-card me-2"></i>
+                            {{ cliente.get_tipo_identificacion_display }}: {{ cliente.identificacion }}
+                        </p>
+                        {% if cliente.telefono %}
+                        <p class="mb-1 opacity-75">
+                            <i class="fas fa-phone me-2"></i>{{ cliente.telefono }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        {% if cliente.email %}
+                        <p class="mb-1 opacity-75">
+                            <i class="fas fa-envelope me-2"></i>{{ cliente.email }}
+                        </p>
+                        {% endif %}
+                        <p class="mb-1 opacity-75">
+                            <i class="fas fa-calendar-plus me-2"></i>
+                            Cliente desde: {{ cliente.fecha_registro|date:"d/m/Y" }}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center">
+                            <span class="badge {% if cliente.activo %}bg-success{% else %}bg-secondary{% endif %} badge-custom me-3">
+                                {% if cliente.activo %}
+                                    <i class="fas fa-check-circle me-1"></i>Activo
+                                {% else %}
+                                    <i class="fas fa-pause-circle me-1"></i>Inactivo
+                                {% endif %}
+                            </span>
+                            
+                            {% if cliente.puntos_disponibles > 0 %}
+                            <span class="badge bg-warning text-dark badge-custom">
+                                <i class="fas fa-star me-1"></i>
+                                {{ cliente.puntos_disponibles }} puntos
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-cog me-2"></i>Acciones
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'clientes:editar_cliente' cliente.id %}">
+                                <i class="fas fa-edit me-2"></i>Editar Cliente
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'clientes:agregar_moto' cliente.id %}">
+                                <i class="fas fa-motorcycle me-2"></i>Agregar Moto
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'clientes:gestionar_puntos' cliente.id %}">
+                                <i class="fas fa-star me-2"></i>Gestionar Puntos
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'clientes:agregar_historial' cliente.id %}">
+                                <i class="fas fa-plus me-2"></i>Agregar Nota
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="alert('Función disponible cuando se implemente el módulo de ventas')">
+                                <i class="fas fa-cash-register me-2"></i>Nueva Venta
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="alert('Función disponible cuando se implemente el módulo de taller')">
+                                <i class="fas fa-wrench me-2"></i>Nueva Orden
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card compras">
+                <div class="stat-number text-primary">{{ stats.total_compras }}</div>
+                <div class="text-muted">Compras Realizadas</div>
+                {% if stats.ultima_compra %}
+                <small class="text-muted">
+                    Última: {{ stats.ultima_compra.fecha_hora|date:"d/m/Y" }}
+                </small>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card valor">
+                <div class="stat-number text-success">${{ stats.valor_total_compras|floatformat:0 }}</div>
+                <div class="text-muted">Valor Total Compras</div>
+                {% if stats.total_compras > 0 %}
+                <small class="text-muted">
+                    Promedio: ${% widthratio stats.valor_total_compras 1 stats.total_compras|floatformat:0 %}
+                </small>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card puntos">
+                <div class="stat-number text-warning">{{ cliente.puntos_disponibles }}</div>
+                <div class="text-muted">Puntos Disponibles</div>
+                <small class="text-muted">
+                    Acumulados: {{ cliente.puntos_acumulados }}
+                </small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card ordenes">
+                <div class="stat-number text-danger">{{ stats.total_ordenes }}</div>
+                <div class="text-muted">Órdenes de Trabajo</div>
+                <small class="text-muted">
+                    Completadas: {{ stats.ordenes_completadas }}
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Columna Principal -->
+        <div class="col-lg-8">
+            <!-- Navegación por Pestañas -->
+            <ul class="nav nav-tabs section-tabs" id="clienteTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="info-tab" data-bs-toggle="tab" 
+                            data-bs-target="#info-content" type="button" role="tab">
+                        <i class="fas fa-user me-2"></i>Información
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="motos-tab" data-bs-toggle="tab" 
+                            data-bs-target="#motos-content" type="button" role="tab">
+                        <i class="fas fa-motorcycle me-2"></i>Motos ({{ motos|length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="ventas-tab" data-bs-toggle="tab" 
+                            data-bs-target="#ventas-content" type="button" role="tab">
+                        <i class="fas fa-shopping-cart me-2"></i>Ventas Recientes
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="historial-tab" data-bs-toggle="tab" 
+                            data-bs-target="#historial-content" type="button" role="tab">
+                        <i class="fas fa-history me-2"></i>Historial
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Contenido de las Pestañas -->
+            <div class="tab-content" id="clienteTabContent">
+                <!-- Información Personal -->
+                <div class="tab-pane fade show active" id="info-content" role="tabpanel">
+                    <div class="info-card">
+                        <div class="info-card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user me-2"></i>Información Personal
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">Datos Básicos</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td class="fw-semibold">Nombres:</td>
+                                            <td>{{ cliente.nombres }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-semibold">Apellidos:</td>
+                                            <td>{{ cliente.apellidos }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-semibold">Identificación:</td>
+                                            <td>{{ cliente.identificacion }} ({{ cliente.get_tipo_identificacion_display }})</td>
+                                        </tr>
+                                        {% if cliente.fecha_nacimiento %}
+                                        <tr>
+                                            <td class="fw-semibold">Fecha Nacimiento:</td>
+                                            <td>{{ cliente.fecha_nacimiento|date:"d/m/Y" }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if cliente.profesion %}
+                                        <tr>
+                                            <td class="fw-semibold">Profesión:</td>
+                                            <td>{{ cliente.profesion }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </table>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">Contacto</h6>
+                                    <table class="table table-sm">
+                                        {% if cliente.telefono %}
+                                        <tr>
+                                            <td class="fw-semibold">Teléfono:</td>
+                                            <td>
+                                                <a href="tel:{{ cliente.telefono }}" class="text-decoration-none">
+                                                    <i class="fas fa-phone text-success me-1"></i>
+                                                    {{ cliente.telefono }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if cliente.celular %}
+                                        <tr>
+                                            <td class="fw-semibold">Celular:</td>
+                                            <td>
+                                                <a href="tel:{{ cliente.celular }}" class="text-decoration-none">
+                                                    <i class="fas fa-mobile-alt text-success me-1"></i>
+                                                    {{ cliente.celular }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if cliente.email %}
+                                        <tr>
+                                            <td class="fw-semibold">Email:</td>
+                                            <td>
+                                                <a href="mailto:{{ cliente.email }}" class="text-decoration-none">
+                                                    <i class="fas fa-envelope text-info me-1"></i>
+                                                    {{ cliente.email }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if cliente.direccion %}
+                                        <tr>
+                                            <td class="fw-semibold">Dirección:</td>
+                                            <td>{{ cliente.direccion }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </table>
+                                </div>
+                                
+                                {% if cliente.referido_por or cliente.descuento_preferencial > 0 or cliente.observaciones %}
+                                <div class="col-12">
+                                    <hr>
+                                    <h6 class="text-muted mb-2">Información Comercial</h6>
+                                    <table class="table table-sm">
+                                        {% if cliente.referido_por %}
+                                        <tr>
+                                            <td class="fw-semibold">Referido por:</td>
+                                            <td>
+                                                <a href="{% url 'clientes:detalle_cliente' cliente.referido_por.id %}" 
+                                                   class="text-decoration-none">
+                                                    {{ cliente.referido_por.get_nombre_completo }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if cliente.descuento_preferencial > 0 %}
+                                        <tr>
+                                            <td class="fw-semibold">Descuento Preferencial:</td>
+                                            <td>
+                                                <span class="badge bg-success">{{ cliente.descuento_preferencial }}%</span>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if cliente.observaciones %}
+                                        <tr>
+                                            <td class="fw-semibold">Observaciones:</td>
+                                            <td>{{ cliente.observaciones }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </table>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motos del Cliente -->
+                <div class="tab-pane fade" id="motos-content" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>
+                            <i class="fas fa-motorcycle me-2"></i>
+                            Motos Registradas ({{ motos|length }})
+                        </h5>
+                        <a href="{% url 'clientes:agregar_moto' cliente.id %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Agregar Moto
+                        </a>
+                    </div>
+                    
+                    {% if motos %}
+                        {% for moto in motos %}
+                        <div class="moto-card">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-motorcycle text-primary me-2"></i>
+                                        {{ moto.marca }} {{ moto.modelo }} - {{ moto.año }}
+                                    </h6>
+                                    <p class="text-muted mb-2">
+                                        <strong>Placa:</strong> {{ moto.placa }} | 
+                                        <strong>Color:</strong> {{ moto.color }}
+                                        {% if moto.cilindraje %}| <strong>Cilindraje:</strong> {{ moto.cilindraje }}{% endif %}
+                                    </p>
+                                    {% if moto.numero_chasis or moto.numero_motor %}
+                                    <small class="text-muted">
+                                        {% if moto.numero_chasis %}Chasis: {{ moto.numero_chasis }}{% endif %}
+                                        {% if moto.numero_motor %}{% if moto.numero_chasis %} | {% endif %}Motor: {{ moto.numero_motor }}{% endif %}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <span class="badge bg-{% if moto.estado == 'Activo' %}success{% elif moto.estado == 'En reparación' %}warning{% else %}secondary{% endif %} mb-2">
+                                        {{ moto.estado }}
+                                    </span>
+                                    <div>
+                                        <a href="{% url 'clientes:editar_moto' moto.id %}" 
+                                           class="btn btn-sm btn-outline-primary me-2">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button onclick="alert('Disponible cuando se implemente el módulo de taller')" 
+                                                class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-wrench"></i> Orden
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-motorcycle fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay motos registradas</h5>
+                            <p class="text-muted">Agregue la primera moto de este cliente.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Ventas Recientes -->
+                <div class="tab-pane fade" id="ventas-content" role="tabpanel">
+                    <h5 class="mb-3">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Ventas Recientes
+                    </h5>
+                    
+                    {% if ventas_recientes %}
+                        {% for venta in ventas_recientes %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6 class="mb-1">
+                                            Factura #{{ venta.numero_factura }}
+                                            <span class="badge bg-success ms-2">${{ venta.total }}</span>
+                                        </h6>
+                                        <p class="text-muted mb-0">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ venta.fecha_hora|date:"d/m/Y H:i" }} |
+                                            <i class="fas fa-credit-card me-1"></i>
+                                            {{ venta.get_tipo_pago_display }}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <button onclick="alert('Ver detalle disponible cuando se implemente el módulo de ventas')" 
+                                                class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>Ver Detalle
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="text-center">
+                            <button onclick="alert('Ver todas las ventas disponible cuando se implemente el módulo de ventas')" 
+                                    class="btn btn-outline-primary">
+                                <i class="fas fa-list me-2"></i>Ver Todas las Ventas
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay ventas registradas</h5>
+                            <p class="text-muted">Este cliente aún no ha realizado compras.</p>
+                            <button onclick="alert('Nueva venta disponible cuando se implemente el módulo de ventas')" 
+                                    class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Primera Venta
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Historial -->
+                <div class="tab-pane fade" id="historial-content" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>
+                            <i class="fas fa-history me-2"></i>
+                            Historial de Interacciones
+                        </h5>
+                        <div>
+                            <a href="{% url 'clientes:agregar_historial' cliente.id %}" 
+                               class="btn btn-primary me-2">
+                                <i class="fas fa-plus me-1"></i>Agregar Nota
+                            </a>
+                            <a href="{% url 'clientes:historial_completo' cliente.id %}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-list me-1"></i>Ver Todo
+                            </a>
+                        </div>
+                    </div>
+                    
+                    {% if historial %}
+                        {% for item in historial %}
+                        <div class="timeline-item tipo-{{ item.tipo|lower }}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-{% if item.tipo == 'VENTA' %}shopping-cart{% elif item.tipo == 'SERVICIO' %}wrench{% elif item.tipo == 'LLAMADA' %}phone{% elif item.tipo == 'EMAIL' %}envelope{% elif item.tipo == 'RECLAMO' %}exclamation-triangle{% else %}sticky-note{% endif %} me-2"></i>
+                                    {{ item.get_tipo_display }}
+                                    {% if item.importante %}
+                                        <i class="fas fa-star text-warning ms-1"></i>
+                                    {% endif %}
+                                </h6>
+                                <small class="text-muted">
+                                    {{ item.fecha|date:"d/m/Y H:i" }}
+                                </small>
+                            </div>
+                            <p class="mb-2">{{ item.descripcion }}</p>
+                            {% if item.usuario %}
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>
+                                Por: {{ item.usuario.get_full_name|default:item.usuario.username }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay historial registrado</h5>
+                            <p class="text-muted">Agregue la primera interacción con este cliente.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Derecho -->
+        <div class="col-lg-4">
+            <!-- Sistema de Puntos -->
+            {% if cliente.puntos_disponibles > 0 or cliente.puntos_acumulados > 0 %}
+            <div class="points-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-star me-2"></i>
+                    Sistema de Puntos
+                </h5>
+                
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="h3 mb-1">{{ cliente.puntos_disponibles }}</div>
+                        <small class="opacity-75">Disponibles</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h3 mb-1">{{ cliente.puntos_acumulados }}</div>
+                        <small class="opacity-75">Acumulados</small>
+                    </div>
+                </div>
+                
+                <hr class="border-light my-3">
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'clientes:gestionar_puntos' cliente.id %}" 
+                       class="btn btn-light">
+                        <i class="fas fa-cog me-2"></i>Gestionar Puntos
+                    </a>
+                    <a href="{% url 'clientes:canjear_puntos' cliente.id %}" 
+                       class="btn btn-warning">
+                        <i class="fas fa-gift me-2"></i>Canjear Puntos
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Canjes Activos -->
+            {% if canjes_activos %}
+            <div class="info-card mb-3">
+                <div class="info-card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-gift me-2"></i>
+                        Canjes Activos ({{ canjes_activos|length }})
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for canje in canjes_activos %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <div class="fw-semibold">{{ canje.descripcion_premio }}</div>
+                            <small class="text-muted">
+                                {{ canje.puntos_utilizados }} puntos
+                                {% if canje.fecha_vencimiento %}
+                                | Vence: {{ canje.fecha_vencimiento|date:"d/m/Y" }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        <span class="badge bg-warning">Pendiente</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Acciones Rápidas -->
+            <div class="quick-actions">
+                <h6 class="mb-3">
+                    <i class="fas fa-bolt me-2"></i>
+                    Acciones Rápidas
+                </h6>
+                
+                <div class="d-grid gap-2">
+                    <button onclick="alert('Punto de venta disponible cuando se implemente el módulo de ventas')" 
+                            class="btn btn-success">
+                        <i class="fas fa-cash-register me-2"></i>Punto de Venta
+                    </button>
+                    
+                    <button onclick="alert('Nueva orden disponible cuando se implemente el módulo de taller')" 
+                            class="btn btn-info">
+                        <i class="fas fa-wrench me-2"></i>Nueva Orden de Trabajo
+                    </button>
+                    
+                    <a href="tel:{{ cliente.telefono|default:cliente.celular }}" 
+                       class="btn btn-warning"
+                       {% if not cliente.telefono and not cliente.celular %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                        <i class="fas fa-phone me-2"></i>Llamar Cliente
+                    </a>
+                    
+                    {% if cliente.email %}
+                    <a href="mailto:{{ cliente.email }}" class="btn btn-outline-primary">
+                        <i class="fas fa-envelope me-2"></i>Enviar Email
+                    </a>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <a href="{% url 'clientes:editar_cliente' cliente.id %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-edit me-2"></i>Editar Cliente
+                    </a>
+                </div>
+            </div>
+
+            <!-- Movimientos de Puntos Recientes -->
+            {% if movimientos_puntos %}
+            <div class="info-card mt-3">
+                <div class="info-card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Movimientos de Puntos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for movimiento in movimientos_puntos %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <div class="fw-semibold">{{ movimiento.concepto }}</div>
+                            <small class="text-muted">{{ movimiento.fecha|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <span class="badge bg-{% if movimiento.tipo == 'GANADO' %}success{% else %}warning{% endif %}">
+                            {% if movimiento.tipo == 'GANADO' %}+{% else %}-{% endif %}{{ movimiento.puntos }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Activar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Confirmar llamada telefónica
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneLinks = document.querySelectorAll('a[href^="tel:"]');
+    phoneLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const numero = this.href.replace('tel:', '');
+            if (!confirm(`¿Desea llamar al número ${numero}?`)) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

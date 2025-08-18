@@ -1,0 +1,1368 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar Orden{% else %}Nueva Orden{% endif %} - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary: #1976d2;
+        --primary-dark: #1565c0;
+        --secondary: #03dac6;
+        --surface: #ffffff;
+        --background: #f5f5f5;
+        --on-surface: #212121;
+        --on-surface-variant: #757575;
+        --outline: #e0e0e0;
+        --shadow: 0 2px 4px rgba(0,0,0,0.12);
+        --shadow-hover: 0 4px 8px rgba(0,0,0,0.16);
+        --border-radius: 8px;
+        --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+        background-color: var(--background);
+        font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .container-fluid {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px;
+    }
+
+    /* Header simplificado */
+    .page-header {
+        background: var(--surface);
+        padding: 24px;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 24px;
+        border-left: 4px solid var(--primary);
+    }
+
+    .page-header h1 {
+        margin: 0 0 8px 0;
+        font-size: 1.75rem;
+        font-weight: 500;
+        color: var(--on-surface);
+    }
+
+    .page-header p {
+        margin: 0;
+        color: var(--on-surface-variant);
+    }
+
+    /* Cards material */
+    .card {
+        background: var(--surface);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        border: none;
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--outline);
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .card-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--primary);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .card-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: var(--on-surface);
+    }
+
+    .card-subtitle {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--on-surface-variant);
+    }
+
+    .card-body {
+        padding: 24px;
+    }
+
+    /* Formularios material */
+    .form-floating {
+        margin-bottom: 20px;
+    }
+
+    .form-control, .form-select {
+        border: 1px solid var(--outline);
+        border-radius: var(--border-radius);
+        transition: var(--transition);
+        box-shadow: none;
+        font-size: 1rem;
+        height: 56px;
+        padding: 16px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.12);
+        outline: none;
+    }
+
+    .form-floating > label {
+        color: var(--on-surface-variant);
+        font-weight: 400;
+        padding: 16px;
+    }
+
+    /* Búsqueda de cliente simplificada */
+    .search-container {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 16px 16px 16px 48px;
+        border: 1px solid var(--outline);
+        border-radius: var(--border-radius);
+        font-size: 1rem;
+        transition: var(--transition);
+    }
+
+    .search-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.12);
+        outline: none;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--on-surface-variant);
+    }
+
+    .cliente-card {
+        background: #f8f9fa;
+        border: 1px solid var(--outline);
+        border-radius: var(--border-radius);
+        padding: 16px;
+        margin-top: 12px;
+        display: none;
+    }
+
+    .cliente-card.show {
+        display: block;
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid de campos */
+    .fields-grid {
+        display: grid;
+        gap: 20px;
+    }
+
+    .fields-grid.two-cols {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .fields-grid.three-cols {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .fields-grid.four-cols {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* Formsets simplificados */
+    .formset-container {
+        border: 1px solid var(--outline);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    .formset-header {
+        background: #f8f9fa;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--outline);
+        font-weight: 500;
+    }
+
+    .formset-item {
+        padding: 20px;
+        border-bottom: 1px solid var(--outline);
+        position: relative;
+    }
+
+    .formset-item:last-child {
+        border-bottom: none;
+    }
+
+    .formset-remove {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        background: #f44336;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        transition: var(--transition);
+    }
+
+    .formset-remove:hover {
+        background: #d32f2f;
+    }
+
+    .formset-add {
+        background: var(--surface);
+        border: 2px dashed var(--outline);
+        color: var(--on-surface-variant);
+        padding: 20px;
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-weight: 500;
+    }
+
+    .formset-add:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(25, 118, 210, 0.04);
+    }
+
+    /* Producto search */
+    .producto-container {
+        position: relative;
+    }
+
+    .producto-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--surface);
+        border: 1px solid var(--outline);
+        border-top: none;
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 10;
+        box-shadow: var(--shadow);
+        display: none;
+    }
+
+    .producto-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--outline);
+        transition: var(--transition);
+    }
+
+    .producto-item:hover {
+        background: rgba(25, 118, 210, 0.04);
+    }
+
+    .producto-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Sidebar */
+    .sidebar {
+        position: sticky;
+        top: 24px;
+    }
+
+    .summary-card {
+        background: var(--primary);
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .summary-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        font-size: 1.25rem;
+        font-weight: 500;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 2px solid rgba(255,255,255,0.2);
+    }
+
+    /* Botones material */
+    .btn {
+        border-radius: var(--border-radius);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 12px 24px;
+        transition: var(--transition);
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: var(--shadow);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        box-shadow: var(--shadow-hover);
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        color: var(--primary);
+        border: 1px solid var(--primary);
+    }
+
+    .btn-outline-primary:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    /* Estados de validación */
+    .is-invalid {
+        border-color: #f44336 !important;
+    }
+
+    .is-valid {
+        border-color: #4caf50 !important;
+    }
+
+    .invalid-feedback {
+        color: #f44336;
+        font-size: 0.875rem;
+        margin-top: 4px;
+    }
+
+    /* Loading state */
+    .loading {
+        position: relative;
+        pointer-events: none;
+    }
+
+    .loading::after {
+        content: '';
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e0e0e0;
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translateY(-50%) rotate(360deg); }
+    }
+
+    /* Prioridad selector */
+    .priority-group {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .priority-chip {
+        padding: 8px 16px;
+        border: 1px solid var(--outline);
+        border-radius: 16px;
+        cursor: pointer;
+        transition: var(--transition);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .priority-chip.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .fields-grid.two-cols,
+        .fields-grid.three-cols,
+        .fields-grid.four-cols {
+            grid-template-columns: 1fr;
+        }
+        
+        .container-fluid {
+            padding: 12px;
+        }
+        
+        .card-body {
+            padding: 16px;
+        }
+    }
+
+    /* Ocultar campos que no necesitamos ver */
+    .d-none {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1>
+                    <i class="fas fa-wrench me-2"></i>
+                    {% if object %}Editar Orden #{{ object.numero_orden }}{% else %}Nueva Orden de Trabajo{% endif %}
+                </h1>
+                <p>Complete la información requerida para la orden</p>
+            </div>
+            <a href="{% url 'taller:orden_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <form method="post" id="ordenForm" novalidate>
+        {% csrf_token %}
+        
+        <!-- Errores generales -->
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">
+            {% for error in form.non_field_errors %}
+                {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <!-- Columna principal -->
+            <div class="col-lg-8">
+                
+                <!-- 1. Cliente -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <h3 class="card-title">Cliente</h3>
+                            <p class="card-subtitle">Buscar por cédula o nombre</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="cliente-search" 
+                                   placeholder="Buscar cliente por cédula o nombre..."
+                                   autocomplete="off">
+                        </div>
+
+                        <!-- Campo oculto del cliente -->
+                        <div class="d-none">
+                            {{ form.cliente }}
+                        </div>
+
+                        <div class="fields-grid two-cols">
+                            <div class="form-floating">
+                                {{ form.cliente_identificacion }}
+                                <label>Identificación del Cliente *</label>
+                            </div>
+                        </div>
+
+                        <div class="cliente-card" id="cliente-info">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 id="cliente-nombre">-</h6>
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-phone me-2"></i>
+                                        <span id="cliente-telefono">-</span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1">
+                                        <i class="fas fa-envelope me-2"></i>
+                                        <span id="cliente-email">-</span>
+                                    </p>
+                                    <p class="mb-0 text-muted">
+                                        <i class="fas fa-map-marker-alt me-2"></i>
+                                        <span id="cliente-direccion">-</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Motocicleta -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-motorcycle"></i>
+                        </div>
+                        <div>
+                            <h3 class="card-title">Motocicleta</h3>
+                            <p class="card-subtitle">Información del vehículo</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="fields-grid four-cols">
+                            <div class="form-floating">
+                                {{ form.moto_placa }}
+                                <label>Placa *</label>
+                            </div>
+                            <div class="form-floating">
+                                {{ form.moto_marca }}
+                                <label>Marca *</label>
+                            </div>
+                            <div class="form-floating">
+                                {{ form.moto_modelo }}
+                                <label>Modelo *</label>
+                            </div>
+                            <div class="form-floating">
+                                {{ form.moto_cilindraje }}
+                                <label>Cilindraje</label>
+                            </div>
+                        </div>
+                        <div class="fields-grid three-cols">
+                            <div class="form-floating">
+                                {{ form.moto_color }}
+                                <label>Color</label>
+                            </div>
+                            <div class="form-floating">
+                                {{ form.kilometraje_entrada }}
+                                <label>Kilometraje</label>
+                            </div>
+                            <div class="form-floating">
+                                {{ form.nivel_combustible }}
+                                <label>Combustible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Detalles del Servicio -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div>
+                            <h3 class="card-title">Detalles del Servicio</h3>
+                            <p class="card-subtitle">Información del trabajo</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="fields-grid two-cols">
+                            <div class="form-floating">
+                                {{ form.tecnico_principal }}
+                                <label>Técnico Principal *</label>
+                            </div>
+                            <div class="form-floating">
+                                {{ form.fecha_prometida }}
+                                <label>Fecha de Entrega</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Prioridad</label>
+                            <div class="priority-group">
+                                {% for value, label in form.prioridad.field.choices %}
+                                <div class="priority-chip" data-value="{{ value }}">{{ label }}</div>
+                                {% endfor %}
+                            </div>
+                            {{ form.prioridad }}
+                        </div>
+
+                        <div class="form-floating">
+                            {{ form.motivo_ingreso }}
+                            <label>Motivo de Ingreso *</label>
+                        </div>
+
+                        <div class="fields-grid two-cols">
+                            <div class="form-floating">
+                                {{ form.diagnostico_inicial }}
+                                <label>Diagnóstico Inicial</label>
+                            </div>
+                            <div class="form-floating">
+                                {{ form.observaciones_cliente }}
+                                <label>Observaciones del Cliente</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Servicios -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div>
+                            <h3 class="card-title">Servicios</h3>
+                            <p class="card-subtitle">Servicios a realizar</p>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="formset-container">
+                            {{ servicios_formset.management_form }}
+                            <div id="servicios-container">
+                                {% for form in servicios_formset %}
+                                <div class="formset-item">
+                                    {% if not forloop.first %}
+                                    <button type="button" class="formset-remove" onclick="removeFormsetItem(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                    
+                                    <div class="fields-grid two-cols">
+                                        <div class="form-floating">
+                                            {{ form.tipo_servicio }}
+                                            <label>Servicio *</label>
+                                        </div>
+                                        <div class="form-floating">
+                                            {{ form.tecnico_asignado }}
+                                            <label>Técnico</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="fields-grid three-cols">
+                                        <div class="form-floating">
+                                            {{ form.precio_base }}
+                                            <label>Precio Base</label>
+                                        </div>
+                                        <div class="form-floating">
+                                            {{ form.precio_mano_obra }}
+                                            <label>Mano de Obra</label>
+                                        </div>
+                                        <div class="form-floating">
+                                            {{ form.tiempo_estimado }}
+                                            <label>Tiempo (hrs)</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-floating">
+                                        {{ form.observaciones }}
+                                        <label>Observaciones</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="formset-add" onclick="addServicio()">
+                                <i class="fas fa-plus"></i>
+                                Agregar Servicio
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Repuestos -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div>
+                            <h3 class="card-title">Repuestos</h3>
+                            <p class="card-subtitle">Repuestos necesarios</p>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="formset-container">
+                            {{ repuestos_formset.management_form }}
+                            <div id="repuestos-container">
+                                {% for form in repuestos_formset %}
+                                <div class="formset-item">
+                                    {% if not forloop.first %}
+                                    <button type="button" class="formset-remove" onclick="removeFormsetItem(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                    
+                                    <div class="fields-grid">
+                                        <div class="producto-container">
+                                            <input type="text" 
+                                                   class="form-control producto-search" 
+                                                   placeholder="Buscar repuesto..."
+                                                   autocomplete="off">
+                                            <div class="producto-results"></div>
+                                            {{ form.producto }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="fields-grid three-cols">
+                                        <div class="form-floating">
+                                            {{ form.cantidad }}
+                                            <label>Cantidad</label>
+                                        </div>
+                                        <div class="form-floating">
+                                            {{ form.precio_unitario }}
+                                            <label>Precio Unitario</label>
+                                        </div>
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control subtotal-display" readonly>
+                                            <label>Subtotal</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-floating">
+                                        {{ form.observaciones }}
+                                        <label>Observaciones</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="formset-add" onclick="addRepuesto()">
+                                <i class="fas fa-plus"></i>
+                                Agregar Repuesto
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <div class="sidebar">
+                    <!-- Resumen -->
+                    <div class="summary-card">
+                        <h5 class="mb-3">
+                            <i class="fas fa-calculator me-2"></i>
+                            Resumen
+                        </h5>
+                        
+                        <div class="summary-row">
+                            <span>Servicios:</span>
+                            <span id="total-servicios">$0.00</span>
+                        </div>
+                        
+                        <div class="summary-row">
+                            <span>Repuestos:</span>
+                            <span id="total-repuestos">$0.00</span>
+                        </div>
+                        
+                        <div class="summary-row">
+                            <span>IVA (15%):</span>
+                            <span id="total-iva">$0.00</span>
+                        </div>
+                        
+                        <div class="summary-row">
+                            <span>TOTAL:</span>
+                            <span id="total-general">$0.00</span>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="form-floating">
+                                {{ form.anticipo }}
+                                <label style="color: rgba(255,255,255,0.8);">Anticipo</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-2 p-2 bg-black bg-opacity-25 rounded">
+                            <small style="color: rgba(255,255,255,0.8);">Saldo:</small>
+                            <div class="h5 mb-0" id="saldo-pendiente">$0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Info adicional -->
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="mb-3">Estado</h6>
+                            <div class="form-floating">
+                                {{ form.estado }}
+                                <label>Estado de la Orden</label>
+                            </div>
+                            
+                            {% if object %}
+                            <div class="mt-3 p-3 bg-light rounded">
+                                <small class="text-muted">Creada:</small>
+                                <div>{{ object.fecha_ingreso|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex gap-3 justify-content-end">
+                    <a href="{% url 'taller:orden_list' %}" class="btn btn-outline-primary">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        {% if object %}Actualizar{% else %}Crear{% endif %} Orden
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Templates para formsets -->
+<template id="servicio-template">
+    <div class="formset-item">
+        <button type="button" class="formset-remove" onclick="removeFormsetItem(this)">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="fields-grid two-cols">
+            <div class="form-floating">
+                <select class="form-select" name="servicios-__prefix__-tipo_servicio">
+                    <option value="">Seleccionar servicio...</option>
+                    {% for servicio in servicios_disponibles %}
+                    <option value="{{ servicio.id }}" 
+                            data-precio-base="{{ servicio.precio_base }}"
+                            data-precio-mano-obra="{{ servicio.precio_mano_obra }}"
+                            data-tiempo="{{ servicio.tiempo_estimado_horas }}">
+                        {{ servicio.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <label>Servicio *</label>
+            </div>
+            <div class="form-floating">
+                <select class="form-select" name="servicios-__prefix__-tecnico_asignado">
+                    <option value="">Seleccionar técnico...</option>
+                    {% for tecnico in tecnicos_disponibles %}
+                    <option value="{{ tecnico.id }}">{{ tecnico.get_nombre_completo }}</option>
+                    {% endfor %}
+                </select>
+                <label>Técnico</label>
+            </div>
+        </div>
+        
+        <div class="fields-grid three-cols">
+            <div class="form-floating">
+                <input type="number" class="form-control" name="servicios-__prefix__-precio_base" step="0.01">
+                <label>Precio Base</label>
+            </div>
+            <div class="form-floating">
+                <input type="number" class="form-control" name="servicios-__prefix__-precio_mano_obra" step="0.01">
+                <label>Mano de Obra</label>
+            </div>
+            <div class="form-floating">
+                <input type="number" class="form-control" name="servicios-__prefix__-tiempo_estimado" step="0.25">
+                <label>Tiempo (hrs)</label>
+            </div>
+        </div>
+        
+        <div class="form-floating">
+            <textarea class="form-control" name="servicios-__prefix__-observaciones" style="height: 80px;"></textarea>
+            <label>Observaciones</label>
+        </div>
+    </div>
+</template>
+
+<template id="repuesto-template">
+    <div class="formset-item">
+        <button type="button" class="formset-remove" onclick="removeFormsetItem(this)">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="fields-grid">
+            <div class="producto-container">
+                <input type="text" 
+                       class="form-control producto-search" 
+                       placeholder="Buscar repuesto..."
+                       autocomplete="off">
+                <div class="producto-results"></div>
+                <select class="form-select d-none" name="repuestos-__prefix__-producto">
+                    <option value="">---------</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="fields-grid three-cols">
+            <div class="form-floating">
+                <input type="number" class="form-control" name="repuestos-__prefix__-cantidad" value="1" min="1" step="1">
+                <label>Cantidad</label>
+            </div>
+            <div class="form-floating">
+                <input type="number" class="form-control" name="repuestos-__prefix__-precio_unitario" step="0.01">
+                <label>Precio Unitario</label>
+            </div>
+            <div class="form-floating">
+                <input type="text" class="form-control subtotal-display" readonly>
+                <label>Subtotal</label>
+            </div>
+        </div>
+        
+        <div class="form-floating">
+            <textarea class="form-control" name="repuestos-__prefix__-observaciones" style="height: 60px;"></textarea>
+            <label>Observaciones</label>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// URLs para AJAX
+const AJAX_URLS = {
+    buscarCliente: '{% url "taller:buscar_cliente_ajax" %}',
+    buscarProducto: '{% url "taller:buscar_producto_ajax" %}',
+    precioServicio: '/taller/ajax/precio-servicio/'
+};
+
+// Cache para resultados
+let clientesCache = new Map();
+let productosCache = new Map();
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeForm();
+    setupEventListeners();
+    calculateTotals();
+});
+
+function initializeForm() {
+    // Configurar placa en mayúsculas
+    const placaInput = document.querySelector('[name="moto_placa"]');
+    if (placaInput) {
+        placaInput.addEventListener('input', e => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+    }
+
+    // Configurar chips de prioridad
+    const priorityChips = document.querySelectorAll('.priority-chip');
+    const priorityInput = document.querySelector('[name="prioridad"]');
+    
+    priorityChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            priorityChips.forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            if (priorityInput) {
+                priorityInput.value = chip.dataset.value;
+            }
+        });
+        
+        // Marcar inicial si hay valor
+        if (priorityInput && priorityInput.value === chip.dataset.value) {
+            chip.classList.add('selected');
+        }
+    });
+
+    // Cliente inicial si existe
+    {% if object and object.cliente %}
+    showClienteInfo({
+        id: {{ object.cliente.id }},
+        nombres: "{{ object.cliente.nombres|escapejs }}",
+        apellidos: "{{ object.cliente.apellidos|escapejs }}",
+        identificacion: "{{ object.cliente.identificacion|escapejs }}",
+        telefono: "{{ object.cliente.telefono|default:''|escapejs }}",
+        email: "{{ object.cliente.email|default:''|escapejs }}",
+        direccion: "{{ object.cliente.direccion|default:''|escapejs }}"
+    });
+    {% endif %}
+}
+
+function setupEventListeners() {
+    // Búsqueda de cliente
+    const clienteSearch = document.getElementById('cliente-search');
+    let searchTimeout;
+    
+    clienteSearch.addEventListener('input', e => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim();
+        
+        if (query.length >= 3) {
+            searchTimeout = setTimeout(() => buscarCliente(query), 300);
+        }
+    });
+
+    // Búsqueda de productos
+    document.addEventListener('input', e => {
+        if (e.target.classList.contains('producto-search')) {
+            clearTimeout(e.target.searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length >= 2) {
+                e.target.searchTimeout = setTimeout(() => buscarProducto(e.target, query), 300);
+            } else {
+                hideProductResults(e.target);
+            }
+        }
+    });
+
+    // Cambios en servicios
+    document.addEventListener('change', e => {
+        if (e.target.name && e.target.name.includes('tipo_servicio')) {
+            loadServiceData(e.target);
+        }
+        
+        if (e.target.name && (e.target.name.includes('cantidad') || e.target.name.includes('precio'))) {
+            updateSubtotal(e.target);
+            calculateTotals();
+        }
+    });
+
+    // Anticipo
+    const anticipoInput = document.querySelector('[name="anticipo"]');
+    if (anticipoInput) {
+        anticipoInput.addEventListener('input', calculateTotals);
+    }
+
+    // Cerrar resultados de productos al hacer clic fuera
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.producto-container')) {
+            document.querySelectorAll('.producto-results').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+    });
+}
+
+function buscarCliente(query) {
+    const clienteSearch = document.getElementById('cliente-search');
+    clienteSearch.classList.add('loading');
+
+    if (clientesCache.has(query)) {
+        const results = clientesCache.get(query);
+        handleClienteResults(results);
+        clienteSearch.classList.remove('loading');
+        return;
+    }
+
+    fetch(`${AJAX_URLS.buscarCliente}?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            clientesCache.set(query, data);
+            handleClienteResults(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            clienteSearch.classList.add('is-invalid');
+        })
+        .finally(() => {
+            clienteSearch.classList.remove('loading');
+        });
+}
+
+function handleClienteResults(results) {
+    const clienteSearch = document.getElementById('cliente-search');
+    
+    if (results && results.length > 0) {
+        const cliente = results[0];
+        
+        // Establecer valores
+        const clienteField = document.querySelector('[name="cliente"]');
+        const identificacionField = document.querySelector('[name="cliente_identificacion"]');
+        
+        if (clienteField) clienteField.value = cliente.id;
+        if (identificacionField) identificacionField.value = cliente.identificacion;
+        
+        clienteSearch.value = `${cliente.nombres} ${cliente.apellidos}`;
+        clienteSearch.classList.remove('is-invalid');
+        clienteSearch.classList.add('is-valid');
+        
+        showClienteInfo(cliente);
+    } else {
+        clienteSearch.classList.add('is-invalid');
+        hideClienteInfo();
+    }
+}
+
+function showClienteInfo(cliente) {
+    const infoCard = document.getElementById('cliente-info');
+    if (!infoCard) return;
+
+    document.getElementById('cliente-nombre').textContent = `${cliente.nombres} ${cliente.apellidos}`;
+    document.getElementById('cliente-telefono').textContent = cliente.telefono || 'No registrado';
+    document.getElementById('cliente-email').textContent = cliente.email || 'No registrado';
+    document.getElementById('cliente-direccion').textContent = cliente.direccion || 'No registrada';
+    
+    infoCard.classList.add('show');
+}
+
+function hideClienteInfo() {
+    const infoCard = document.getElementById('cliente-info');
+    if (infoCard) {
+        infoCard.classList.remove('show');
+    }
+}
+
+function buscarProducto(input, query) {
+    input.classList.add('loading');
+    
+    if (productosCache.has(query)) {
+        const results = productosCache.get(query);
+        showProductResults(input, results);
+        input.classList.remove('loading');
+        return;
+    }
+
+    fetch(`${AJAX_URLS.buscarProducto}?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            productosCache.set(query, data);
+            showProductResults(input, data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            input.classList.remove('loading');
+        });
+}
+
+function showProductResults(input, results) {
+    const container = input.closest('.producto-container');
+    const resultsDiv = container.querySelector('.producto-results');
+    
+    if (!results || results.length === 0) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    resultsDiv.innerHTML = '';
+    results.forEach(producto => {
+        const item = document.createElement('div');
+        item.className = 'producto-item';
+        item.innerHTML = `
+            <div><strong>${producto.nombre}</strong></div>
+            <div><small>$${producto.precio_venta} - Stock: ${producto.stock || 0}</small></div>
+        `;
+        
+        item.addEventListener('click', () => {
+            selectProducto(input, producto);
+        });
+        
+        resultsDiv.appendChild(item);
+    });
+    
+    resultsDiv.style.display = 'block';
+}
+
+function selectProducto(input, producto) {
+    const container = input.closest('.formset-item');
+    const productoSelect = container.querySelector('select[name*="producto"]');
+    const precioInput = container.querySelector('[name*="precio_unitario"]');
+    
+    // Establecer producto
+    if (productoSelect) {
+        let option = productoSelect.querySelector(`option[value="${producto.id}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = producto.id;
+            option.textContent = producto.nombre;
+            productoSelect.appendChild(option);
+        }
+        productoSelect.value = producto.id;
+    }
+    
+    // Establecer precio
+    if (precioInput && producto.precio_venta) {
+        precioInput.value = parseFloat(producto.precio_venta).toFixed(2);
+    }
+    
+    input.value = producto.nombre;
+    hideProductResults(input);
+    
+    updateSubtotal(precioInput);
+    calculateTotals();
+}
+
+function hideProductResults(input) {
+    const container = input.closest('.producto-container');
+    const resultsDiv = container.querySelector('.producto-results');
+    if (resultsDiv) {
+        resultsDiv.style.display = 'none';
+    }
+}
+
+function loadServiceData(selectElement) {
+    const option = selectElement.selectedOptions[0];
+    if (!option || !option.value) return;
+    
+    const container = selectElement.closest('.formset-item');
+    const precioBaseInput = container.querySelector('[name*="precio_base"]');
+    const manoObraInput = container.querySelector('[name*="precio_mano_obra"]');
+    const tiempoInput = container.querySelector('[name*="tiempo_estimado"]');
+    
+    // Obtener datos del option
+    const precioBase = parseFloat(option.dataset.precioBase) || 0;
+    const precioManoObra = parseFloat(option.dataset.precioManoObra) || 0;
+    const tiempo = parseFloat(option.dataset.tiempo) || 0;
+    
+    if (precioBaseInput) precioBaseInput.value = precioBase.toFixed(2);
+    if (manoObraInput) manoObraInput.value = precioManoObra.toFixed(2);
+    if (tiempoInput) tiempoInput.value = tiempo;
+    
+    calculateTotals();
+}
+
+function updateSubtotal(element) {
+    const container = element.closest('.formset-item');
+    const cantidadInput = container.querySelector('[name*="cantidad"]');
+    const precioInput = container.querySelector('[name*="precio_unitario"]');
+    const subtotalDisplay = container.querySelector('.subtotal-display');
+    
+    if (cantidadInput && precioInput && subtotalDisplay) {
+        const cantidad = parseFloat(cantidadInput.value) || 0;
+        const precio = parseFloat(precioInput.value) || 0;
+        const subtotal = cantidad * precio;
+        
+        subtotalDisplay.value = `$${subtotal.toFixed(2)}`;
+    }
+}
+
+function calculateTotals() {
+    let totalServicios = 0;
+    let totalRepuestos = 0;
+    
+    // Calcular servicios
+    document.querySelectorAll('#servicios-container .formset-item').forEach(item => {
+        const deleteCheckbox = item.querySelector('[name*="DELETE"]');
+        if (deleteCheckbox && deleteCheckbox.checked) return;
+        
+        const precioBase = parseFloat(item.querySelector('[name*="precio_base"]')?.value) || 0;
+        const manoObra = parseFloat(item.querySelector('[name*="precio_mano_obra"]')?.value) || 0;
+        totalServicios += precioBase + manoObra;
+    });
+    
+    // Calcular repuestos
+    document.querySelectorAll('#repuestos-container .formset-item').forEach(item => {
+        const deleteCheckbox = item.querySelector('[name*="DELETE"]');
+        if (deleteCheckbox && deleteCheckbox.checked) return;
+        
+        const cantidad = parseFloat(item.querySelector('[name*="cantidad"]')?.value) || 0;
+        const precio = parseFloat(item.querySelector('[name*="precio_unitario"]')?.value) || 0;
+        totalRepuestos += cantidad * precio;
+    });
+    
+    const subtotal = totalServicios + totalRepuestos;
+    const iva = totalRepuestos * 0.15; // Solo repuestos tienen IVA
+    const total = subtotal + iva;
+    
+    // Actualizar display
+    document.getElementById('total-servicios').textContent = `$${totalServicios.toFixed(2)}`;
+    document.getElementById('total-repuestos').textContent = `$${totalRepuestos.toFixed(2)}`;
+    document.getElementById('total-iva').textContent = `$${iva.toFixed(2)}`;
+    document.getElementById('total-general').textContent = `$${total.toFixed(2)}`;
+    
+    // Saldo pendiente
+    const anticipoInput = document.querySelector('[name="anticipo"]');
+    const anticipo = parseFloat(anticipoInput?.value) || 0;
+    const saldo = total - anticipo;
+    
+    document.getElementById('saldo-pendiente').textContent = `$${saldo.toFixed(2)}`;
+}
+
+function addServicio() {
+    const container = document.getElementById('servicios-container');
+    const totalFormsInput = document.querySelector('[name="servicios-TOTAL_FORMS"]');
+    const formIdx = parseInt(totalFormsInput.value);
+    
+    const template = document.getElementById('servicio-template');
+    const newForm = template.content.cloneNode(true);
+    
+    // Reemplazar __prefix__
+    newForm.innerHTML = newForm.innerHTML.replace(/__prefix__/g, formIdx);
+    
+    container.appendChild(newForm);
+    totalFormsInput.value = formIdx + 1;
+}
+
+function addRepuesto() {
+    const container = document.getElementById('repuestos-container');
+    const totalFormsInput = document.querySelector('[name="repuestos-TOTAL_FORMS"]');
+    const formIdx = parseInt(totalFormsInput.value);
+    
+    const template = document.getElementById('repuesto-template');
+    const newForm = template.content.cloneNode(true);
+    
+    // Reemplazar __prefix__
+    newForm.innerHTML = newForm.innerHTML.replace(/__prefix__/g, formIdx);
+    
+    container.appendChild(newForm);
+    totalFormsInput.value = formIdx + 1;
+}
+
+function removeFormsetItem(button) {
+    const item = button.closest('.formset-item');
+    const deleteCheckbox = item.querySelector('[name*="DELETE"]');
+    
+    if (deleteCheckbox) {
+        deleteCheckbox.checked = true;
+        item.style.display = 'none';
+    } else {
+        item.remove();
+    }
+    
+    calculateTotals();
+}
+
+// Validación del formulario
+document.getElementById('ordenForm').addEventListener('submit', function(e) {
+    const requiredFields = this.querySelectorAll('[required]');
+    let isValid = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    if (!isValid) {
+        e.preventDefault();
+        alert('Por favor complete todos los campos obligatorios.');
+    }
+});
+</script>
+{% endblock %}
