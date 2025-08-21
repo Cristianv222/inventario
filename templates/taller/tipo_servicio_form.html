@@ -256,24 +256,23 @@
         transform: translateX(26px);
     }
     
-    /* Estilos para el botón de nueva categoría */
-    .input-group-category {
-        position: relative;
+    /* Estilos corregidos para el grupo de categoría */
+    .input-group .form-floating {
+        flex-grow: 1;
     }
     
-    .btn-new-category {
-        position: absolute;
-        right: 5px;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 5;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
+    .input-group .btn {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        height: calc(3.5rem + 2px);
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0;
+    }
+    
+    .input-group .form-floating .form-select {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
     }
     
     /* Estilos para el modal */
@@ -405,23 +404,24 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="input-group-category">
-                                <div class="form-floating required-field" style="width: 100%;">
+                            <label class="form-label">Categoría *</label>
+                            <div class="input-group">
+                                <div class="form-floating flex-grow-1">
                                     {{ form.categoria }}
-                                    <label for="{{ form.categoria.id_for_label }}">Categoría</label>
+                                    <label for="{{ form.categoria.id_for_label }}">Seleccionar Categoría</label>
                                 </div>
-                                <button type="button" class="btn btn-primary btn-sm btn-new-category" 
+                                <button type="button" class="btn btn-primary" 
                                         data-bs-toggle="modal" data-bs-target="#modalNuevaCategoria"
                                         title="Crear nueva categoría">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                             {% if form.categoria.errors %}
-                                <div class="validation-feedback">{{ form.categoria.errors.0 }}</div>
+                                <div class="validation-feedback d-block">{{ form.categoria.errors.0 }}</div>
                             {% endif %}
                             <div class="help-text">
                                 <i class="fas fa-info-circle me-1"></i>
-                                Si no encuentra la categoría, puede crear una nueva
+                                Si no encuentra la categoría, puede crear una nueva con el botón "+"
                             </div>
                         </div>
                         
@@ -835,8 +835,10 @@ function updatePreview() {
     // Actualizar preview de dificultad
     const difficultyValue = document.getElementById('id_nivel_dificultad').value;
     const difficultyPreview = document.getElementById('difficultyPreview');
-    difficultyPreview.className = `difficulty-preview difficulty-${difficultyValue.toLowerCase()}`;
-    difficultyPreview.textContent = dificultad;
+    if (difficultyPreview) {
+        difficultyPreview.className = `difficulty-preview difficulty-${difficultyValue.toLowerCase()}`;
+        difficultyPreview.textContent = dificultad;
+    }
 }
 
 function generarCodigo() {
@@ -896,7 +898,10 @@ function seleccionarColor(color) {
         option.classList.remove('selected');
     });
     
-    document.querySelector(`[style*="${color}"]`).classList.add('selected');
+    const colorOption = document.querySelector(`[style*="${color}"]`);
+    if (colorOption) {
+        colorOption.classList.add('selected');
+    }
 }
 
 async function crearCategoria() {
@@ -1042,3 +1047,5 @@ document.getElementById('modalNuevaCategoria').addEventListener('hidden.bs.modal
         option.classList.remove('selected');
     });
 });
+</script>
+{% endblock %}
