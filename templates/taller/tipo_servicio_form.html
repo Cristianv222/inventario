@@ -255,6 +255,85 @@
     input:checked + .slider:before {
         transform: translateX(26px);
     }
+    
+    /* Estilos para el botón de nueva categoría */
+    .input-group-category {
+        position: relative;
+    }
+    
+    .btn-new-category {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 5;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+    
+    /* Estilos para el modal */
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        border-bottom: none;
+    }
+    
+    .modal-header .btn-close {
+        filter: invert(1);
+    }
+    
+    .modal-body {
+        padding: 2rem;
+    }
+    
+    .quick-form-field {
+        margin-bottom: 1.5rem;
+    }
+    
+    .color-picker-container {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+    
+    .color-option {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid #dee2e6;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    
+    .color-option:hover {
+        transform: scale(1.1);
+    }
+    
+    .color-option.selected {
+        border-color: #495057;
+        border-width: 3px;
+    }
+    
+    .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 </style>
 {% endblock %}
 
@@ -326,9 +405,23 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="form-floating">
-                                {{ form.categoria }}
-                                <label for="{{ form.categoria.id_for_label }}">Categoría</label>
+                            <div class="input-group-category">
+                                <div class="form-floating required-field" style="width: 100%;">
+                                    {{ form.categoria }}
+                                    <label for="{{ form.categoria.id_for_label }}">Categoría</label>
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm btn-new-category" 
+                                        data-bs-toggle="modal" data-bs-target="#modalNuevaCategoria"
+                                        title="Crear nueva categoría">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            {% if form.categoria.errors %}
+                                <div class="validation-feedback">{{ form.categoria.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Si no encuentra la categoría, puede crear una nueva
                             </div>
                         </div>
                         
@@ -548,6 +641,100 @@
         </div>
     </form>
 </div>
+
+<!-- Modal para Nueva Categoría -->
+<div class="modal fade" id="modalNuevaCategoria" tabindex="-1" aria-labelledby="modalNuevaCategoriaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalNuevaCategoriaLabel">
+                    <i class="fas fa-folder-plus me-2"></i>
+                    Nueva Categoría de Servicio
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formNuevaCategoria">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating quick-form-field">
+                                <input type="text" class="form-control" id="categoriaNombre" name="nombre" required>
+                                <label for="categoriaNombre">Nombre de la Categoría *</label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-floating quick-form-field">
+                                <input type="text" class="form-control" id="categoriaCodigo" name="codigo" required>
+                                <label for="categoriaCodigo">Código *</label>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fas fa-magic me-1"></i>
+                                <span class="link-primary" onclick="generarCodigoCategoria()" style="cursor: pointer;">Auto-generar código</span>
+                            </small>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="form-floating quick-form-field">
+                                <textarea class="form-control" id="categoriaDescripcion" name="descripcion" style="height: 80px;"></textarea>
+                                <label for="categoriaDescripcion">Descripción</label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Color de la Categoría</label>
+                            <input type="color" class="form-control form-control-color" id="categoriaColor" name="color" value="#007bff">
+                            
+                            <div class="color-picker-container">
+                                <div class="color-option" style="background-color: #007bff;" onclick="seleccionarColor('#007bff')"></div>
+                                <div class="color-option" style="background-color: #28a745;" onclick="seleccionarColor('#28a745')"></div>
+                                <div class="color-option" style="background-color: #dc3545;" onclick="seleccionarColor('#dc3545')"></div>
+                                <div class="color-option" style="background-color: #ffc107;" onclick="seleccionarColor('#ffc107')"></div>
+                                <div class="color-option" style="background-color: #6f42c1;" onclick="seleccionarColor('#6f42c1')"></div>
+                                <div class="color-option" style="background-color: #fd7e14;" onclick="seleccionarColor('#fd7e14')"></div>
+                                <div class="color-option" style="background-color: #20c997;" onclick="seleccionarColor('#20c997')"></div>
+                                <div class="color-option" style="background-color: #6c757d;" onclick="seleccionarColor('#6c757d')"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="categoriaRequiereDiagnostico" name="requiere_diagnostico">
+                                <label class="form-check-label" for="categoriaRequiereDiagnostico">
+                                    Requiere Diagnóstico Previo
+                                </label>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="categoriaTiempoEstimado" name="tiempo_estimado_horas" step="0.25" min="0">
+                                    <label for="categoriaTiempoEstimado">Tiempo Estimado (horas)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        La nueva categoría estará disponible inmediatamente después de crearla.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="crearCategoria()">
+                    <div class="loading-spinner me-2"></div>
+                    <i class="fas fa-save me-2"></i>
+                    Crear Categoría
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -586,6 +773,14 @@ document.addEventListener('DOMContentLoaded', function() {
             toggle.closest('.feature-toggle').classList.add('active');
         }
     });
+    
+    // Auto-generar código de categoría cuando se escribe el nombre
+    document.getElementById('categoriaNombre').addEventListener('input', function() {
+        const codigo = document.getElementById('categoriaCodigo');
+        if (!codigo.value) {
+            generarCodigoCategoria();
+        }
+    });
 });
 
 function updateCalculator() {
@@ -598,14 +793,14 @@ function updateCalculator() {
     const total = subtotal + iva;
     
     // Actualizar display
-    document.getElementById('calc-precio-base').textContent = `$${precioBase.toFixed(2)}`;
-    document.getElementById('calc-mano-obra').textContent = `$${manoObra.toFixed(2)}`;
-    document.getElementById('calc-subtotal').textContent = `$${subtotal.toFixed(2)}`;
-    document.getElementById('calc-iva').textContent = `$${iva.toFixed(2)}`;
-    document.getElementById('calc-total').textContent = `$${total.toFixed(2)}`;
+    document.getElementById('calc-precio-base').textContent = `${precioBase.toFixed(2)}`;
+    document.getElementById('calc-mano-obra').textContent = `${manoObra.toFixed(2)}`;
+    document.getElementById('calc-subtotal').textContent = `${subtotal.toFixed(2)}`;
+    document.getElementById('calc-iva').textContent = `${iva.toFixed(2)}`;
+    document.getElementById('calc-total').textContent = `${total.toFixed(2)}`;
     
     // Actualizar preview
-    document.getElementById('previewPrecio').textContent = `$${total.toFixed(2)}`;
+    document.getElementById('previewPrecio').textContent = `${total.toFixed(2)}`;
 }
 
 function updatePreview() {
@@ -678,11 +873,130 @@ function generarCodigo() {
     updatePreview();
 }
 
+function generarCodigoCategoria() {
+    const nombre = document.getElementById('categoriaNombre').value;
+    if (!nombre) return;
+    
+    // Tomar primeras 4 letras del nombre
+    let codigo = nombre.substring(0, 4).toUpperCase();
+    
+    // Agregar número aleatorio si es muy corto
+    if (codigo.length < 3) {
+        codigo += Math.floor(Math.random() * 90) + 10;
+    }
+    
+    document.getElementById('categoriaCodigo').value = codigo;
+}
+
+function seleccionarColor(color) {
+    document.getElementById('categoriaColor').value = color;
+    
+    // Actualizar selección visual
+    document.querySelectorAll('.color-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    document.querySelector(`[style*="${color}"]`).classList.add('selected');
+}
+
+async function crearCategoria() {
+    const form = document.getElementById('formNuevaCategoria');
+    const formData = new FormData(form);
+    const loadingSpinner = document.querySelector('.loading-spinner');
+    const saveButton = document.querySelector('.modal-footer .btn-primary');
+    
+    // Validar campos requeridos
+    const nombre = document.getElementById('categoriaNombre').value.trim();
+    const codigo = document.getElementById('categoriaCodigo').value.trim();
+    
+    if (!nombre || !codigo) {
+        alert('Por favor complete los campos obligatorios: Nombre y Código');
+        return;
+    }
+    
+    // Mostrar loading
+    loadingSpinner.style.display = 'inline-block';
+    saveButton.disabled = true;
+    
+    try {
+        const response = await fetch('/taller/categoria/crear-ajax/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Agregar nueva opción al select
+            const categoriaSelect = document.getElementById('id_categoria');
+            const newOption = document.createElement('option');
+            newOption.value = data.categoria.id;
+            newOption.textContent = data.categoria.nombre;
+            newOption.selected = true;
+            
+            categoriaSelect.appendChild(newOption);
+            
+            // Cerrar modal y mostrar mensaje de éxito
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaCategoria'));
+            modal.hide();
+            
+            // Limpiar formulario
+            form.reset();
+            document.getElementById('categoriaColor').value = '#007bff';
+            
+            // Actualizar preview
+            updatePreview();
+            
+            // Mostrar notificación de éxito
+            mostrarNotificacion('Categoría creada exitosamente', 'success');
+            
+        } else {
+            throw new Error(data.message || 'Error al crear la categoría');
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion(error.message || 'Error al crear la categoría', 'error');
+    } finally {
+        // Ocultar loading
+        loadingSpinner.style.display = 'none';
+        saveButton.disabled = false;
+    }
+}
+
+function mostrarNotificacion(mensaje, tipo = 'info') {
+    // Crear elemento de notificación
+    const notificacion = document.createElement('div');
+    notificacion.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+    notificacion.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    
+    notificacion.innerHTML = `
+        <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notificacion);
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        if (notificacion.parentNode) {
+            notificacion.remove();
+        }
+    }, 5000);
+}
+
 function probarEnPOS() {
     const servicioId = '{{ object.pk }}';
-    if (servicioId) {
+    if (servicioId && servicioId !== 'None') {
         const posUrl = `/ventas/punto-venta/?servicio=${servicioId}`;
         window.open(posUrl, 'pos', 'width=1400,height=900');
+    } else {
+        alert('Primero debe guardar el servicio para probarlo en POS');
     }
 }
 
@@ -719,5 +1033,12 @@ document.getElementById('servicioForm').addEventListener('submit', function(e) {
         alert('Por favor complete todos los campos requeridos.');
     }
 });
-</script>
-{% endblock %}
+
+// Limpiar modal cuando se cierre
+document.getElementById('modalNuevaCategoria').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('formNuevaCategoria').reset();
+    document.getElementById('categoriaColor').value = '#007bff';
+    document.querySelectorAll('.color-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+});
