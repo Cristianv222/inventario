@@ -13,6 +13,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from datetime import datetime, timedelta
 import json
+from decimal import Decimal, InvalidOperation
+from django.views.decorators.http import require_POST
 
 # IMPORTANTE: Si encuentras errores de "column does not exist", ejecuta:
 # python manage.py makemigrations taller
@@ -1518,6 +1520,94 @@ def api_orden_datos_pos(request, orden_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    @login_required
+    @require_POST
+    def crear_categoria_ajax(request):
+        """Vista AJAX para crear categoría de servicio"""
+        try:
+            # Obtener datos del formulario
+            nombre = request.POST.get('nombre', '').strip()
+            codigo = request.POST.get('codigo', '').strip()
+            descripcion = request.POST.get('descripcion', '').strip()
+            color = request.POST.get('color', '#007bff')
+            requiere_diagnostico = request.POST.get('requiere_diagnostico') == 'on'
+            tiempo_estimado = request.POST.get('tiempo_estimado_horas', '').strip()
+            
+            # Validaciones básicas
+            if not nombre:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'El nombre de la categoría es requerido.'
+                })
+            
+            if not codigo:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'El código de la categoría es requerido.'
+                })
+            
+            # Verificar si ya existe el código
+            if CategoriaServicio.objects.filter(codigo=codigo).exists():
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Ya existe una categoría con el código "{codigo}".'
+                })
+            
+            # Verificar si ya existe el nombre
+            if CategoriaServicio.objects.filter(nombre=nombre).exists():
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Ya existe una categoría con el nombre "{nombre}".'
+                })
+            
+            # Convertir tiempo estimado
+            tiempo_estimado_decimal = None
+            if tiempo_estimado:
+                try:
+                    tiempo_estimado_decimal = Decimal(tiempo_estimado)
+                    if tiempo_estimado_decimal < 0:
+                        raise ValueError("El tiempo no puede ser negativo")
+                except (ValueError, InvalidOperation):
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'El tiempo estimado debe ser un número válido.'
+                    })
+            
+            # Crear la categoría
+            categoria = CategoriaServicio.objects.create(
+                nombre=nombre,
+                codigo=codigo,
+                descripcion=descripcion or None,
+                color=color,
+                requiere_diagnostico=requiere_diagnostico,
+                tiempo_estimado_horas=tiempo_estimado_decimal,
+                activa=True
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Categoría creada exitosamente.',
+                'categoria': {
+                    'id': categoria.id,
+                    'nombre': categoria.nombre,
+                    'codigo': categoria.codigo,
+                    'color': categoria.color,
+                    'descripcion': categoria.descripcion or '',
+                    'activa': categoria.activa
+                }
+            })
+            
+        except Exception as e:
+            print(f"Error al crear categoría: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            return JsonResponse({
+                'success': False,
+                'message': f'Error interno del servidor: {str(e)}'
+            })
+
 
 # ================== NOTAS IMPORTANTES ==================
 """
