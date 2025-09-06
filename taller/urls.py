@@ -61,5 +61,5 @@ urlpatterns = [
     path('ajax/datos-servicio-pos/', views.ajax_datos_servicio_pos, name='ajax_datos_servicio_pos'),
     path('ajax/buscar-cliente/', views.buscar_cliente_ajax, name='buscar_cliente_ajax'),
     path('ajax/buscar-producto/', views.buscar_producto_ajax, name='buscar_producto_ajax'),
-     path('categoria/crear-ajax/', views.crear_categoria_ajax, name='crear_categoria_ajax'),
+    path('categoria/crear-ajax/', views.crear_categoria_ajax, name='crear_categoria_ajax'),
 ]

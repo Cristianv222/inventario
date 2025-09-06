@@ -36,8 +36,10 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
     volumes:
+      - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - /app/__pycache__
     depends_on:
       - db
       - redis

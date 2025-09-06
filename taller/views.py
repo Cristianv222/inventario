@@ -1521,135 +1521,92 @@ def api_orden_datos_pos(request, orden_id):
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
     
-    @login_required
-    @require_POST
-    def crear_categoria_ajax(request):
-        """Vista AJAX para crear categoría de servicio"""
-        try:
-            # Obtener datos del formulario
-            nombre = request.POST.get('nombre', '').strip()
-            codigo = request.POST.get('codigo', '').strip()
-            descripcion = request.POST.get('descripcion', '').strip()
-            color = request.POST.get('color', '#007bff')
-            requiere_diagnostico = request.POST.get('requiere_diagnostico') == 'on'
-            tiempo_estimado = request.POST.get('tiempo_estimado_horas', '').strip()
-            
-            # Validaciones básicas
-            if not nombre:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'El nombre de la categoría es requerido.'
-                })
-            
-            if not codigo:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'El código de la categoría es requerido.'
-                })
-            
-            # Verificar si ya existe el código
-            if CategoriaServicio.objects.filter(codigo=codigo).exists():
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Ya existe una categoría con el código "{codigo}".'
-                })
-            
-            # Verificar si ya existe el nombre
-            if CategoriaServicio.objects.filter(nombre=nombre).exists():
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Ya existe una categoría con el nombre "{nombre}".'
-                })
-            
-            # Convertir tiempo estimado
-            tiempo_estimado_decimal = None
-            if tiempo_estimado:
-                try:
-                    tiempo_estimado_decimal = Decimal(tiempo_estimado)
-                    if tiempo_estimado_decimal < 0:
-                        raise ValueError("El tiempo no puede ser negativo")
-                except (ValueError, InvalidOperation):
-                    return JsonResponse({
-                        'success': False,
-                        'message': 'El tiempo estimado debe ser un número válido.'
-                    })
-            
-            # Crear la categoría
-            categoria = CategoriaServicio.objects.create(
-                nombre=nombre,
-                codigo=codigo,
-                descripcion=descripcion or None,
-                color=color,
-                requiere_diagnostico=requiere_diagnostico,
-                tiempo_estimado_horas=tiempo_estimado_decimal,
-                activa=True
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Categoría creada exitosamente.',
-                'categoria': {
-                    'id': categoria.id,
-                    'nombre': categoria.nombre,
-                    'codigo': categoria.codigo,
-                    'color': categoria.color,
-                    'descripcion': categoria.descripcion or '',
-                    'activa': categoria.activa
-                }
-            })
-            
-        except Exception as e:
-            print(f"Error al crear categoría: {e}")
-            import traceback
-            traceback.print_exc()
-            
+# Agregar esta función al final de taller/views.py
+# ANTES de los comentarios largos
+
+@login_required
+@require_POST
+def crear_categoria_ajax(request):
+    """Vista AJAX para crear categoría de servicio"""
+    try:
+        # Obtener datos del formulario
+        nombre = request.POST.get('nombre', '').strip()
+        codigo = request.POST.get('codigo', '').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+        color = request.POST.get('color', '#007bff')
+        requiere_diagnostico = request.POST.get('requiere_diagnostico') == 'on'
+        tiempo_estimado = request.POST.get('tiempo_estimado_horas', '').strip()
+        
+        # Validaciones básicas
+        if not nombre:
             return JsonResponse({
                 'success': False,
-                'message': f'Error interno del servidor: {str(e)}'
+                'message': 'El nombre de la categoría es requerido.'
             })
-
-
-# ================== NOTAS IMPORTANTES ==================
-"""
-CAMBIOS PRINCIPALES REALIZADOS:
-
-1. ✅ CORREGIDO: Cambió todas las referencias de 'models.Q' por 'Q' 
-   (ya que Q está importado al inicio del archivo)
-
-2. ✅ AGREGADO: Todas las funciones del segundo archivo integradas
-
-3. ✅ MEJORADO: Manejo de errores más robusto para campos que pueden no existir
-
-4. ✅ SEGURIDAD: Funciones helper para obtener campos de forma segura
-
-5. ✅ COMPATIBILIDAD: El código funciona tanto si tienes campos separados para moto 
-   (moto_marca, moto_modelo, etc.) como si tienes una ForeignKey a Moto
-
-Si encuentras errores de "column does not exist", sigue estos pasos:
-
-1. Verifica el estado de las migraciones:
-   python manage.py showmigrations taller
-
-2. Si hay migraciones sin aplicar:
-   python manage.py migrate taller
-
-3. Si no hay migraciones pendientes pero sigues con errores:
-   python manage.py makemigrations taller
-   python manage.py migrate taller
-
-4. Si el error persiste, verifica tu modelo OrdenTrabajo en models.py:
-   - ¿Tiene campos moto_marca, moto_modelo, etc.?
-   - ¿O tiene una ForeignKey a Moto?
-   
-5. Si cambió la estructura del modelo:
-   a) Comenta temporalmente los campos problemáticos en models.py
-   b) Ejecuta makemigrations y migrate
-   c) Descomenta los campos
-   d) Ejecuta makemigrations y migrate nuevamente
-
-6. Como último recurso (SOLO en desarrollo):
-   python manage.py migrate taller zero
-   python manage.py migrate taller
-   
-   ADVERTENCIA: Esto eliminará todos los datos de la app taller
-"""
+        
+        if not codigo:
+            return JsonResponse({
+                'success': False,
+                'message': 'El código de la categoría es requerido.'
+            })
+        
+        # Verificar si ya existe el código
+        if CategoriaServicio.objects.filter(codigo=codigo).exists():
+            return JsonResponse({
+                'success': False,
+                'message': f'Ya existe una categoría con el código "{codigo}".'
+            })
+        
+        # Verificar si ya existe el nombre
+        if CategoriaServicio.objects.filter(nombre=nombre).exists():
+            return JsonResponse({
+                'success': False,
+                'message': f'Ya existe una categoría con el nombre "{nombre}".'
+            })
+        
+        # Convertir tiempo estimado
+        tiempo_estimado_decimal = None
+        if tiempo_estimado:
+            try:
+                tiempo_estimado_decimal = Decimal(tiempo_estimado)
+                if tiempo_estimado_decimal < 0:
+                    raise ValueError("El tiempo no puede ser negativo")
+            except (ValueError, InvalidOperation):
+                return JsonResponse({
+                    'success': False,
+                    'message': 'El tiempo estimado debe ser un número válido.'
+                })
+        
+        # Crear la categoría
+        categoria = CategoriaServicio.objects.create(
+            nombre=nombre,
+            codigo=codigo,
+            descripcion=descripcion or None,
+            color=color,
+            requiere_diagnostico=requiere_diagnostico,
+            tiempo_estimado_horas=tiempo_estimado_decimal,
+            activa=True
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Categoría creada exitosamente.',
+            'categoria': {
+                'id': categoria.id,
+                'nombre': categoria.nombre,
+                'codigo': categoria.codigo,
+                'color': categoria.color,
+                'descripcion': categoria.descripcion or '',
+                'activa': categoria.activa
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error al crear categoría: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        return JsonResponse({
+            'success': False,
+            'message': f'Error interno del servidor: {str(e)}'
+        })
