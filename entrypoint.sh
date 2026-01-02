@@ -4,7 +4,7 @@
 set -e
 
 echo "Esperando a que la base de datos esté lista..."
-while ! pg_isready -h db -p 5432 -U vpmotos_user -d vpmotos_db; do
+while ! pg_isready -h db -p 5432 -U ${DB_USER} -d ${DB_NAME}; do
     echo "Esperando a PostgreSQL..."
     sleep 2
 done
@@ -27,7 +27,7 @@ User = get_user_model()
 if not User.objects.filter(usuario='admin').exists():
     User.objects.create_superuser(
         usuario='admin',
-        email='admin@vpmotos.com', 
+        email='admin@inventario.com', 
         password='admin123',
         nombre='Administrador',
         apellido='Sistema'
@@ -47,7 +47,7 @@ echo "Iniciando servidor Django..."
 # Usar gunicorn en producción
 if [ "$DEBUG" = "False" ]; then
     echo "Modo producción - usando Gunicorn..."
-    exec gunicorn vpmotos.wsgi:application \
+    exec gunicorn config.wsgi:application \
         --bind 0.0.0.0:8000 \
         --workers 3 \
         --worker-class gevent \

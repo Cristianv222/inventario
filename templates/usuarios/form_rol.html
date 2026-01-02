@@ -2,55 +2,399 @@
 
 {% block title %}{{ titulo }} - VPMOTOS{% endblock %}
 
+{% block extra_css %}
+<style>
+    .permission-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .permission-card:hover {
+        border-left-color: #0d6efd;
+        box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);
+    }
+    
+    .permission-checkbox {
+        cursor: pointer;
+        transform: scale(1.2);
+    }
+    
+    .permission-label {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .tooltip-icon {
+        color: #6c757d;
+        cursor: help;
+        font-size: 0.875rem;
+    }
+    
+    .select-all-btn {
+        font-size: 0.875rem;
+    }
+    
+    .section-divider {
+        border-top: 2px solid #e9ecef;
+        margin: 2rem 0;
+        position: relative;
+    }
+    
+    .section-divider::before {
+        content: attr(data-title);
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 0 1rem;
+        color: #6c757d;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-user-tag me-2"></i>{{ titulo }}</h5>
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-shield me-2"></i>{{ titulo }}
+                </h5>
+                <span class="badge bg-light text-dark">
+                    <i class="fas fa-info-circle me-1"></i>Selecciona qué puede hacer este rol
+                </span>
+            </div>
         </div>
-        <div class="card-body">
-            <form method="post" novalidate>
+        
+        <div class="card-body p-4">
+            <form method="post" id="rolForm">
                 {% csrf_token %}
                 
-                <div class="mb-3">
-                    <label for="{{ form.nombre.id_for_label }}" class="form-label">{{ form.nombre.label }}</label>
-                    {{ form.nombre }}
-                    {% if form.nombre.errors %}
-                    <div class="text-danger">
-                        {{ form.nombre.errors }}
+                <!-- SECCIÓN 1: INFORMACIÓN DEL ROL -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.nombre.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-tag me-2 text-primary"></i>{{ form.nombre.label }}
+                            </label>
+                            {{ form.nombre }}
+                            {% if form.nombre.errors %}
+                            <div class="text-danger mt-1">
+                                {{ form.nombre.errors }}
+                            </div>
+                            {% endif %}
+                            <small class="text-muted">Ejemplo: Vendedor, Gerente, Administrador</small>
+                        </div>
                     </div>
-                    {% endif %}
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.activo.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-toggle-on me-2 text-success"></i>Estado
+                            </label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.activo }}
+                                <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                    {{ form.activo.label }}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="mb-3">
-                    <label for="{{ form.descripcion.id_for_label }}" class="form-label">{{ form.descripcion.label }}</label>
+                <div class="mb-4">
+                    <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-bold">
+                        <i class="fas fa-align-left me-2 text-primary"></i>{{ form.descripcion.label }}
+                    </label>
                     {{ form.descripcion }}
                     {% if form.descripcion.errors %}
-                    <div class="text-danger">
+                    <div class="text-danger mt-1">
                         {{ form.descripcion.errors }}
                     </div>
                     {% endif %}
+                    <small class="text-muted">Describe las responsabilidades de este rol</small>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="form-check">
-                        {{ form.activo }}
-                        <label class="form-check-label" for="{{ form.activo.id_for_label }}">
-                            {{ form.activo.label }}
-                        </label>
+                <!-- DIVISOR -->
+                <div class="section-divider" data-title="⬇️ PERMISOS DEL ROL ⬇️"></div>
+                
+                <!-- SECCIÓN 2: PERMISOS DEL ROL -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h6 class="mb-0">
+                            <i class="fas fa-key me-2 text-warning"></i>
+                            Permisos Disponibles
+                        </h6>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-success me-2" id="selectAllPermisos">
+                            <i class="fas fa-check-double me-1"></i>Seleccionar Todos
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="deselectAllPermisos">
+                            <i class="fas fa-times me-1"></i>Deseleccionar Todos
+                        </button>
                     </div>
                 </div>
                 
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <div class="alert alert-light border">
+                    <i class="fas fa-lightbulb me-2 text-warning"></i>
+                    <strong>Consejo:</strong> Pasa el cursor sobre el ícono 
+                    <i class="fas fa-question-circle text-primary"></i> para ver qué hace cada permiso.
+                </div>
+                
+                <!-- Pestañas por módulo/aplicación -->
+                <ul class="nav nav-tabs mb-3" id="modulosTabs" role="tablist">
+                    {% for app, modelos in permisos_por_app.items %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if forloop.first %}active{% endif %}" 
+                                id="tab-{{ app }}" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#content-{{ app }}" 
+                                type="button" 
+                                role="tab">
+                            {% if app == 'usuarios' %}
+                                <i class="fas fa-users-cog me-2"></i>Usuarios
+                            {% elif app == 'inventario' %}
+                                <i class="fas fa-warehouse me-2"></i>Inventario
+                            {% elif app == 'ventas' %}
+                                <i class="fas fa-shopping-cart me-2"></i>Ventas
+                            {% elif app == 'reportes' %}
+                                <i class="fas fa-chart-bar me-2"></i>Reportes
+                            {% else %}
+                                <i class="fas fa-folder me-2"></i>{{ app|title }}
+                            {% endif %}
+                            <span class="badge bg-secondary ms-1">
+                                {% for modelo, permisos_list in modelos.items %}
+                                    {{ permisos_list|length }}{% if not forloop.last %}+{% endif %}
+                                {% endfor %}
+                            </span>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                <!-- Contenido de pestañas -->
+                <div class="tab-content border rounded p-3" id="modulosTabsContent">
+                    {% for app, modelos in permisos_por_app.items %}
+                    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                         id="content-{{ app }}" 
+                         role="tabpanel">
+                        
+                        <!-- Acordeón por modelo dentro de cada app -->
+                        <div class="accordion mb-3" id="accordion-{{ app }}">
+                            {% for modelo, permisos_list in modelos.items %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" 
+                                            type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse-{{ app }}-{{ modelo }}" 
+                                            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+                                        <span class="fw-bold">
+                                            {% if modelo == 'usuario' %}
+                                                <i class="fas fa-user me-2"></i>Usuarios
+                                            {% elif modelo == 'rol' %}
+                                                <i class="fas fa-user-tag me-2"></i>Roles
+                                            {% elif modelo == 'producto' %}
+                                                <i class="fas fa-box me-2"></i>Productos
+                                            {% elif modelo == 'venta' %}
+                                                <i class="fas fa-cash-register me-2"></i>Ventas
+                                            {% elif modelo == 'cliente' %}
+                                                <i class="fas fa-address-book me-2"></i>Clientes
+                                            {% elif modelo == 'proveedor' %}
+                                                <i class="fas fa-truck me-2"></i>Proveedores
+                                            {% else %}
+                                                <i class="fas fa-cog me-2"></i>{{ modelo|title }}
+                                            {% endif %}
+                                        </span>
+                                        <span class="badge bg-primary ms-2">{{ permisos_list|length }}</span>
+                                    </button>
+                                </h2>
+                                <div id="collapse-{{ app }}-{{ modelo }}" 
+                                     class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                                     data-bs-parent="#accordion-{{ app }}">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            {% for permiso in permisos_list %}
+                                            <div class="col-md-6 mb-3">
+                                                <div class="card permission-card h-100">
+                                                    <div class="card-body">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input permission-checkbox" 
+                                                                   type="checkbox" 
+                                                                   name="permisos" 
+                                                                   value="{{ permiso.id }}" 
+                                                                   id="permiso_{{ permiso.id }}"
+                                                                   {% if rol and permiso in rol.permisos.all %}checked{% endif %}>
+                                                            <label class="form-check-label permission-label d-flex align-items-start w-100" 
+                                                                   for="permiso_{{ permiso.id }}">
+                                                                <div class="flex-grow-1">
+                                                                    <div class="fw-bold text-dark">
+                                                                        {% if 'add' in permiso.codename %}
+                                                                            <i class="fas fa-plus-circle me-2 text-success"></i>Crear
+                                                                        {% elif 'change' in permiso.codename %}
+                                                                            <i class="fas fa-edit me-2 text-warning"></i>Modificar
+                                                                        {% elif 'delete' in permiso.codename %}
+                                                                            <i class="fas fa-trash me-2 text-danger"></i>Eliminar
+                                                                        {% elif 'view' in permiso.codename %}
+                                                                            <i class="fas fa-eye me-2 text-info"></i>Ver
+                                                                        {% else %}
+                                                                            <i class="fas fa-key me-2 text-primary"></i>
+                                                                        {% endif %}
+                                                                        {{ permiso.name|capfirst }}
+                                                                    </div>
+                                                                    <small class="text-muted d-block mt-1">
+                                                                        {% if 'add' in permiso.codename %}
+                                                                            Permite crear nuevos registros de {{ modelo }}
+                                                                        {% elif 'change' in permiso.codename %}
+                                                                            Permite editar registros existentes de {{ modelo }}
+                                                                        {% elif 'delete' in permiso.codename %}
+                                                                            Permite eliminar registros de {{ modelo }}
+                                                                        {% elif 'view' in permiso.codename %}
+                                                                            Permite ver la lista y detalles de {{ modelo }}
+                                                                        {% else %}
+                                                                            {{ permiso.codename }}
+                                                                        {% endif %}
+                                                                    </small>
+                                                                </div>
+                                                                <i class="fas fa-question-circle tooltip-icon ms-2" 
+                                                                   data-bs-toggle="tooltip" 
+                                                                   data-bs-placement="top" 
+                                                                   data-bs-html="true"
+                                                                   title="<strong>{{ permiso.name }}</strong><br>
+                                                                          Código: <code>{{ permiso.codename }}</code><br>
+                                                                          {% if 'add' in permiso.codename %}
+                                                                              Este permiso permite registrar nuevos elementos en el sistema.
+                                                                          {% elif 'change' in permiso.codename %}
+                                                                              Este permiso permite actualizar información existente.
+                                                                          {% elif 'delete' in permiso.codename %}
+                                                                              Este permiso permite borrar elementos del sistema (usar con cuidado).
+                                                                          {% elif 'view' in permiso.codename %}
+                                                                              Este permiso permite consultar información sin modificarla.
+                                                                          {% else %}
+                                                                              {{ permiso.name }}
+                                                                          {% endif %}"></i>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <div class="text-center mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary select-all-module" 
+                                                    data-module="{{ app }}-{{ modelo }}">
+                                                <i class="fas fa-check-square me-1"></i>
+                                                Seleccionar todos de {{ modelo|title }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="button" class="btn btn-outline-success select-all-app" data-app="{{ app }}">
+                                <i class="fas fa-check-double me-1"></i>
+                                Seleccionar toda la aplicación {{ app|title }}
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Resumen de permisos seleccionados -->
+                <div class="alert alert-light border mt-4" id="resumenPermisos">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="alert-heading mb-0">
+                                <i class="fas fa-clipboard-list me-2"></i>Resumen de Permisos
+                            </h6>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="badge bg-primary fs-6" id="contadorPermisos">0</span>
+                            <span class="text-muted ms-2">permisos seleccionados</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                     <a href="{% url 'usuarios:lista_roles' %}" class="btn btn-secondary">
-                        <i class="fas fa-times me-2"></i>Cancelar
+                        <i class="fas fa-arrow-left me-2"></i>Cancelar
                     </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Guardar
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Guardar Permisos
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips con HTML habilitado
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            html: true
+        });
+    });
+    
+    // Contador de permisos
+    function actualizarContador() {
+        const checkboxes = document.querySelectorAll('.permission-checkbox:checked');
+        document.getElementById('contadorPermisos').textContent = checkboxes.length;
+    }
+    
+    // Seleccionar todos los permisos
+    document.getElementById('selectAllPermisos').addEventListener('click', function() {
+        document.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = true);
+        actualizarContador();
+    });
+    
+    // Deseleccionar todos los permisos
+    document.getElementById('deselectAllPermisos').addEventListener('click', function() {
+        document.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = false);
+        actualizarContador();
+    });
+    
+    // Seleccionar todos de un módulo específico
+    document.querySelectorAll('.select-all-module').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const module = this.dataset.module;
+            const container = document.getElementById('collapse-' + module);
+            if (container) {
+                container.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = true);
+                actualizarContador();
+            }
+        });
+    });
+    
+    // Seleccionar toda una aplicación
+    document.querySelectorAll('.select-all-app').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const app = this.dataset.app;
+            const container = document.getElementById('content-' + app);
+            if (container) {
+                container.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = true);
+                actualizarContador();
+            }
+        });
+    });
+    
+    // Actualizar contador al cambiar checkboxes
+    document.querySelectorAll('.permission-checkbox').forEach(cb => {
+        cb.addEventListener('change', actualizarContador);
+    });
+    
+    // Inicializar contador
+    actualizarContador();
+});
+</script>
 {% endblock %}

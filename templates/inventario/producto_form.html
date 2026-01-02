@@ -22,69 +22,88 @@
         </div>
     </div>
 
-    <!-- Formulario en pestañas -->
-    <div class="card">
-        <div class="card-header p-0">
-            <ul class="nav nav-tabs card-header-tabs" id="producto-tabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="basico-tab" data-bs-toggle="tab" data-bs-target="#basico" type="button" role="tab">
-                        <i class="fas fa-info-circle me-1"></i> Información Básica
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="precios-tab" data-bs-toggle="tab" data-bs-target="#precios" type="button" role="tab">
-                        <i class="fas fa-dollar-sign me-1"></i> Precios y Stock
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="adicional-tab" data-bs-toggle="tab" data-bs-target="#adicional" type="button" role="tab">
-                        <i class="fas fa-cog me-1"></i> Configuración
-                    </button>
-                </li>
-            </ul>
+    <!-- Progress Indicator -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="wizard-progress">
+                <div class="wizard-step active" data-step="1">
+                    <div class="wizard-step-circle">1</div>
+                    <div class="wizard-step-label">Básico</div>
+                </div>
+                <div class="wizard-step-line"></div>
+                <div class="wizard-step" data-step="2">
+                    <div class="wizard-step-circle">2</div>
+                    <div class="wizard-step-label">Precios</div>
+                </div>
+                <div class="wizard-step-line"></div>
+                <div class="wizard-step" data-step="3">
+                    <div class="wizard-step-circle">3</div>
+                    <div class="wizard-step-label">Config</div>
+                </div>
+                <div class="wizard-step-line"></div>
+                <div class="wizard-step" data-step="4">
+                    <div class="wizard-step-circle">4</div>
+                    <div class="wizard-step-label">Revisar</div>
+                </div>
+            </div>
         </div>
-        
+    </div>
+
+    <!-- Formulario -->
+    <div class="card">
         <div class="card-body">
             <form method="post" id="producto-form" novalidate>
                 {% csrf_token %}
                 
-                <div class="tab-content" id="producto-tabs-content">
-                    <!-- Pestaña: Información Básica -->
-                    <div class="tab-pane fade show active" id="basico" role="tabpanel">
+                <div class="wizard-content">
+                    <!-- Paso 1: Información Básica -->
+                    <div class="wizard-pane active" data-step="1">
+                        <h5 class="mb-3">
+                            <i class="fas fa-info-circle text-primary me-2"></i>
+                            Paso 1: Información Básica
+                        </h5>
                         <div class="row g-3">
-                            <!-- Nombre del producto -->
                             <div class="col-12">
                                 <label for="{{ form.nombre.id_for_label }}" class="form-label fw-semibold required">Nombre del Producto</label>
                                 <input type="text" 
-                                       class="form-control{% if form.nombre.errors %} is-invalid{% endif %}" 
+                                       class="form-control" 
                                        id="{{ form.nombre.id_for_label }}" 
                                        name="{{ form.nombre.name }}" 
                                        value="{{ form.nombre.value|default:'' }}"
-                                       placeholder="Ej: Filtro de aceite para motor" required>
-                                {% if form.nombre.errors %}
-                                    <div class="invalid-feedback">{{ form.nombre.errors.0 }}</div>
-                                {% endif %}
+                                       placeholder="Ej: Filtro de aceite para motor" 
+                                       data-required="true"
+                                       autocomplete="off">
+                                <div class="invalid-feedback"></div>
                             </div>
                             
-                            <!-- Código y Categoría -->
-                            <div class="col-md-4">
-                                <label for="{{ form.codigo_unico.id_for_label }}" class="form-label fw-semibold required">Código</label>
-                                <input type="text" 
-                                       class="form-control{% if form.codigo_unico.errors %} is-invalid{% endif %}" 
-                                       id="{{ form.codigo_unico.id_for_label }}" 
-                                       name="{{ form.codigo_unico.name }}" 
-                                       value="{{ form.codigo_unico.value|default:'' }}"
-                                       placeholder="Código único" required>
-                                {% if form.codigo_unico.errors %}
-                                    <div class="invalid-feedback">{{ form.codigo_unico.errors.0 }}</div>
-                                {% endif %}
+                            <div class="col-md-6">
+                                <label for="{{ form.codigo_unico.id_for_label }}" class="form-label fw-semibold required">Código del Producto</label>
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="{{ form.codigo_unico.id_for_label }}" 
+                                           name="{{ form.codigo_unico.name }}" 
+                                           value="{{ form.codigo_unico.value|default:'' }}"
+                                           placeholder="Se generará automáticamente" 
+                                           data-required="true"
+                                           autocomplete="off">
+                                    <button type="button" class="btn btn-outline-success" id="btn-generar-codigo" title="Generar código automáticamente">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback"></div>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Se genera automático o puedes editarlo
+                                </small>
                             </div>
                             
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label for="{{ form.categoria.id_for_label }}" class="form-label fw-semibold required">Categoría</label>
-                                <select class="form-select{% if form.categoria.errors %} is-invalid{% endif %}" 
+                                <select class="form-select" 
                                         id="{{ form.categoria.id_for_label }}" 
-                                        name="{{ form.categoria.name }}" required>
+                                        name="{{ form.categoria.name }}" 
+                                        data-required="true">
                                     <option value="">-- Seleccionar --</option>
                                     {% for choice in form.categoria.field.queryset %}
                                         <option value="{{ choice.pk }}" 
@@ -93,16 +112,15 @@
                                         </option>
                                     {% endfor %}
                                 </select>
-                                {% if form.categoria.errors %}
-                                    <div class="invalid-feedback">{{ form.categoria.errors.0 }}</div>
-                                {% endif %}
+                                <div class="invalid-feedback"></div>
                             </div>
                             
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label for="{{ form.marca.id_for_label }}" class="form-label fw-semibold required">Marca</label>
-                                <select class="form-select{% if form.marca.errors %} is-invalid{% endif %}" 
+                                <select class="form-select" 
                                         id="{{ form.marca.id_for_label }}" 
-                                        name="{{ form.marca.name }}" required>
+                                        name="{{ form.marca.name }}" 
+                                        data-required="true">
                                     <option value="">-- Seleccionar --</option>
                                     {% for choice in form.marca.field.queryset %}
                                         <option value="{{ choice.pk }}" 
@@ -111,50 +129,44 @@
                                         </option>
                                     {% endfor %}
                                 </select>
-                                {% if form.marca.errors %}
-                                    <div class="invalid-feedback">{{ form.marca.errors.0 }}</div>
-                                {% endif %}
+                                <div class="invalid-feedback"></div>
                             </div>
                             
-                            <!-- Descripción -->
                             <div class="col-12">
-                                <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-semibold">Descripción</label>
-                                <textarea class="form-control{% if form.descripcion.errors %} is-invalid{% endif %}" 
+                                <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-semibold">Descripción (Opcional)</label>
+                                <textarea class="form-control" 
                                           id="{{ form.descripcion.id_for_label }}" 
                                           name="{{ form.descripcion.name }}" 
-                                          rows="2"
+                                          rows="3"
                                           placeholder="Descripción detallada del producto...">{{ form.descripcion.value|default:'' }}</textarea>
-                                {% if form.descripcion.errors %}
-                                    <div class="invalid-feedback">{{ form.descripcion.errors.0 }}</div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Pestaña: Precios y Stock -->
-                    <div class="tab-pane fade" id="precios" role="tabpanel">
+                    <!-- Paso 2: Precios y Stock -->
+                    <div class="wizard-pane" data-step="2">
+                        <h5 class="mb-3">
+                            <i class="fas fa-dollar-sign text-success me-2"></i>
+                            Paso 2: Precios y Stock
+                        </h5>
                         <div class="row g-3">
-                            <!-- Precios con calculadora integrada -->
                             <div class="col-md-6">
                                 <label for="{{ form.precio_compra.id_for_label }}" class="form-label fw-semibold required">Precio de Compra</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
                                     <input type="number" 
-                                           class="form-control{% if form.precio_compra.errors %} is-invalid{% endif %}" 
+                                           class="form-control" 
                                            id="{{ form.precio_compra.id_for_label }}" 
                                            name="{{ form.precio_compra.name }}" 
                                            value="{{ form.precio_compra.value|default:'' }}"
                                            step="0.01" 
                                            min="0"
-                                           placeholder="0.00" required>
-                                    {% if form.precio_compra.errors %}
-                                        <div class="invalid-feedback">{{ form.precio_compra.errors.0 }}</div>
-                                    {% endif %}
+                                           placeholder="0.00" 
+                                           data-required="true"
+                                           autocomplete="off">
                                 </div>
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Se calculará automáticamente el precio de venta
-                                </small>
+                                <div class="invalid-feedback"></div>
+                                <small class="text-muted">Se calculará automáticamente el precio de venta</small>
                             </div>
                             
                             <div class="col-md-6">
@@ -162,121 +174,184 @@
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
                                     <input type="number" 
-                                           class="form-control{% if form.precio_venta.errors %} is-invalid{% endif %}" 
+                                           class="form-control" 
                                            id="{{ form.precio_venta.id_for_label }}" 
                                            name="{{ form.precio_venta.name }}" 
                                            value="{{ form.precio_venta.value|default:'' }}"
                                            step="0.01" 
                                            min="0"
-                                           placeholder="0.00" required>
-                                    <button type="button" id="btn-calcular-precio" class="btn btn-outline-primary" title="Calcular precio automáticamente">
+                                           placeholder="0.00" 
+                                           data-required="true"
+                                           autocomplete="off">
+                                    <button type="button" id="btn-calcular-precio" class="btn btn-outline-primary" tabindex="-1">
                                         <i class="fas fa-calculator"></i>
                                     </button>
-                                    {% if form.precio_venta.errors %}
-                                        <div class="invalid-feedback">{{ form.precio_venta.errors.0 }}</div>
-                                    {% endif %}
                                 </div>
-                                <small class="text-muted">
-                                    <i class="fas fa-magic me-1"></i>
-                                    Calculado con % de ganancia de la categoría
-                                </small>
+                                <div class="invalid-feedback"></div>
                             </div>
                             
-                            <!-- Stock -->
                             <div class="col-md-4">
-                                <label for="{{ form.stock_actual.id_for_label }}" class="form-label fw-semibold">Stock Actual</label>
+                                <label for="{{ form.stock_actual.id_for_label }}" class="form-label fw-semibold required">Stock Actual</label>
                                 <input type="number" 
-                                       class="form-control{% if form.stock_actual.errors %} is-invalid{% endif %}" 
+                                       class="form-control" 
                                        id="{{ form.stock_actual.id_for_label }}" 
                                        name="{{ form.stock_actual.name }}" 
-                                       value="{{ form.stock_actual.value|default:'0' }}"
+                                       value="{{ form.stock_actual.value|default:'' }}"
                                        min="0"
-                                       placeholder="0">
-                                {% if form.stock_actual.errors %}
-                                    <div class="invalid-feedback">{{ form.stock_actual.errors.0 }}</div>
-                                {% endif %}
+                                       placeholder="Cantidad en stock"
+                                       data-required="true"
+                                       autocomplete="off">
+                                <div class="invalid-feedback"></div>
                             </div>
                             
                             <div class="col-md-4">
-                                <label for="{{ form.stock_minimo.id_for_label }}" class="form-label fw-semibold">Stock Mínimo</label>
+                                <label for="{{ form.stock_minimo.id_for_label }}" class="form-label fw-semibold required">Stock Mínimo</label>
                                 <input type="number" 
-                                       class="form-control{% if form.stock_minimo.errors %} is-invalid{% endif %}" 
+                                       class="form-control" 
                                        id="{{ form.stock_minimo.id_for_label }}" 
                                        name="{{ form.stock_minimo.name }}" 
-                                       value="{{ form.stock_minimo.value|default:'5' }}"
+                                       value="{{ form.stock_minimo.value|default:'' }}"
                                        min="0"
-                                       placeholder="5">
-                                {% if form.stock_minimo.errors %}
-                                    <div class="invalid-feedback">{{ form.stock_minimo.errors.0 }}</div>
-                                {% endif %}
-                                <small class="text-muted">Para alertas de stock bajo</small>
+                                       placeholder="Cantidad mínima"
+                                       data-required="true"
+                                       autocomplete="off">
+                                <div class="invalid-feedback"></div>
+                                <small class="text-muted">Para alertas</small>
                             </div>
                             
                             <div class="col-md-4">
-                                <label for="{{ form.ubicacion_almacen.id_for_label }}" class="form-label fw-semibold">Ubicación</label>
+                                <label for="{{ form.ubicacion_almacen.id_for_label }}" class="form-label fw-semibold">Ubicación (Opcional)</label>
                                 <input type="text" 
-                                       class="form-control{% if form.ubicacion_almacen.errors %} is-invalid{% endif %}" 
+                                       class="form-control" 
                                        id="{{ form.ubicacion_almacen.id_for_label }}" 
                                        name="{{ form.ubicacion_almacen.name }}" 
                                        value="{{ form.ubicacion_almacen.value|default:'' }}"
-                                       placeholder="Ej: A-1, B-15">
-                                {% if form.ubicacion_almacen.errors %}
-                                    <div class="invalid-feedback">{{ form.ubicacion_almacen.errors.0 }}</div>
-                                {% endif %}
-                                <small class="text-muted">Posición en almacén</small>
+                                       placeholder="Ej: A-1"
+                                       autocomplete="off">
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Pestaña: Configuración -->
-                    <div class="tab-pane fade" id="adicional" role="tabpanel">
+                    <!-- Paso 3: Configuración -->
+                    <div class="wizard-pane" data-step="3">
+                        <h5 class="mb-3">
+                            <i class="fas fa-cog text-info me-2"></i>
+                            Paso 3: Configuración
+                        </h5>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-header py-2">
-                                        <h6 class="mb-0"><i class="fas fa-toggle-on me-1"></i> Estado del Producto</h6>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Estado del Producto</h6>
                                     </div>
                                     <div class="card-body">
-                                        <div class="form-check form-switch mb-3">
+                                        <div class="form-check form-switch">
                                             <input type="checkbox" 
-                                                   class="form-check-input{% if form.activo.errors %} is-invalid{% endif %}" 
+                                                   class="form-check-input" 
                                                    id="{{ form.activo.id_for_label }}" 
                                                    name="{{ form.activo.name }}" 
                                                    value="True"
-                                                   {% if form.activo.value %}checked{% endif %}>
-                                            <label for="{{ form.activo.id_for_label }}" class="form-check-label fw-semibold">
+                                                   {% if form.activo.value or es_nuevo %}checked{% endif %}>
+                                            <label for="{{ form.activo.id_for_label }}" class="form-check-label">
                                                 Producto activo
                                             </label>
-                                            {% if form.activo.errors %}
-                                                <div class="invalid-feedback">{{ form.activo.errors.0 }}</div>
-                                            {% endif %}
                                         </div>
-                                        <small class="text-muted">Los productos inactivos no aparecen en ventas</small>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-header py-2">
-                                        <h6 class="mb-0"><i class="fas fa-percent me-1"></i> Configuración Fiscal</h6>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Configuración Fiscal</h6>
                                     </div>
                                     <div class="card-body">
-                                        <div class="form-check form-switch mb-3">
+                                        <div class="form-check form-switch">
                                             <input type="checkbox" 
-                                                   class="form-check-input{% if form.incluye_iva.errors %} is-invalid{% endif %}" 
+                                                   class="form-check-input" 
                                                    id="{{ form.incluye_iva.id_for_label }}" 
                                                    name="{{ form.incluye_iva.name }}" 
                                                    value="True"
                                                    {% if form.incluye_iva.value %}checked{% endif %}>
-                                            <label for="{{ form.incluye_iva.id_for_label }}" class="form-check-label fw-semibold">
+                                            <label for="{{ form.incluye_iva.id_for_label }}" class="form-check-label">
                                                 Incluye IVA
                                             </label>
-                                            {% if form.incluye_iva.errors %}
-                                                <div class="invalid-feedback">{{ form.incluye_iva.errors.0 }}</div>
-                                            {% endif %}
                                         </div>
-                                        <small class="text-muted">Marca si el precio incluye impuestos</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Paso 4: Revisión -->
+                    <div class="wizard-pane" data-step="4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Paso 4: Revisar Información
+                        </h5>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Revisa que toda la información sea correcta antes de guardar
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <strong>Información Básica</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-sm mb-0">
+                                            <tr>
+                                                <td width="40%"><strong>Nombre:</strong></td>
+                                                <td id="review-nombre">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Código:</strong></td>
+                                                <td id="review-codigo">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Categoría:</strong></td>
+                                                <td id="review-categoria">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Marca:</strong></td>
+                                                <td id="review-marca">-</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <strong>Precios y Stock</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-sm mb-0">
+                                            <tr>
+                                                <td width="40%"><strong>P. Compra:</strong></td>
+                                                <td id="review-precio-compra">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>P. Venta:</strong></td>
+                                                <td id="review-precio-venta">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Stock Actual:</strong></td>
+                                                <td id="review-stock">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Stock Mínimo:</strong></td>
+                                                <td id="review-stock-minimo">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Ubicación:</strong></td>
+                                                <td id="review-ubicacion">-</td>
+                                            </tr>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -284,23 +359,23 @@
                     </div>
                 </div>
                 
-                <!-- Botones de acción fijos -->
+                <!-- Botones de navegación -->
                 <div class="row mt-4 pt-3 border-top">
                     <div class="col-12">
                         <div class="d-flex justify-content-between align-items-center">
-                            <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i> Cancelar
-                            </a>
-                            <div class="btn-group">
-                                <button type="submit" class="btn btn-primary px-4">
-                                    <i class="fas fa-save me-1"></i> 
-                                    {% if es_nuevo %}Crear Producto{% else %}Guardar Cambios{% endif %}
+                            <button type="button" class="btn btn-outline-secondary" id="btn-prev">
+                                <i class="fas fa-arrow-left me-1"></i> Anterior
+                            </button>
+                            
+                            <small class="text-muted">Paso <span id="current-step">1</span> de 4</small>
+                            
+                            <div>
+                                <button type="button" class="btn btn-primary" id="btn-next">
+                                    Siguiente <i class="fas fa-arrow-right ms-1"></i>
                                 </button>
-                                {% if not es_nuevo %}
-                                    <a href="{% url 'inventario:detalle_producto' producto.id %}" class="btn btn-outline-primary">
-                                        <i class="fas fa-eye me-1"></i> Ver Detalle
-                                    </a>
-                                {% endif %}
+                                <button type="submit" class="btn btn-success d-none" id="btn-submit">
+                                    <i class="fas fa-save me-1"></i> Guardar Producto
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -314,220 +389,442 @@
 {% block inventory_js %}
 <script>
 $(document).ready(function() {
-    // Variables para los campos del formulario
-    const $precioCompra = $('#id_precio_compra');
-    const $precioVenta = $('#id_precio_venta');
-    const $categoria = $('#id_categoria');
-    const $btnCalcular = $('#btn-calcular-precio');
+    // ==================== PREVENIR ENTER EN TODO EL FORMULARIO ====================
+    $('#producto-form').on('keypress', function(e) {
+        if (e.which === 13 || e.keyCode === 13) {
+            e.preventDefault();
+            return false;
+        }
+    });
     
-    // Función para calcular el precio de venta
-    function calcularPrecioVenta() {
-        const precioCompra = parseFloat($precioCompra.val());
-        const categoriaId = $categoria.val();
+    // ==================== GENERAR CÓDIGO ÚNICO ====================
+    function generarCodigoUnico() {
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+        return `PROD-${timestamp}-${random}`;
+    }
+    
+    function inicializarCodigo() {
+        const $codigoInput = $('#id_codigo_unico');
         
-        if (!precioCompra || precioCompra <= 0) {
-            mostrarNotificacion('Ingresa un precio de compra válido', 'warning');
+        if (!$codigoInput.val() || $codigoInput.val().trim() === '') {
+            const codigoGenerado = generarCodigoUnico();
+            $codigoInput.val(codigoGenerado);
+            
+            $codigoInput.addClass('campo-generado');
+            setTimeout(() => $codigoInput.removeClass('campo-generado'), 2000);
+        }
+    }
+    
+    $('#btn-generar-codigo').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const $btn = $(this);
+        const $input = $('#id_codigo_unico');
+        
+        if ($input.val() && $input.val().trim() !== '') {
+            if (!confirm('¿Estás seguro de generar un nuevo código? El código actual se perderá.')) {
+                return;
+            }
+        }
+        
+        $btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+        
+        setTimeout(() => {
+            const nuevoCodigo = generarCodigoUnico();
+            $input.val(nuevoCodigo);
+            
+            $input.addClass('campo-generado');
+            setTimeout(() => $input.removeClass('campo-generado'), 2000);
+            
+            $btn.html('<i class="fas fa-sync-alt"></i>').prop('disabled', false);
+            
+            mostrarNotificacion('Código generado exitosamente', 'success');
+            autoGuardar();
+        }, 500);
+    });
+    
+    // ==================== WIZARD CONTROL ====================
+    let currentStep = 1;
+    const totalSteps = 4;
+    let formSubmitting = false; // Flag para controlar el envío
+    
+    const STORAGE_KEY = 'producto_borrador';
+    
+    // Auto-guardar
+    function autoGuardar() {
+        const formData = {
+            nombre: $('#id_nombre').val(),
+            codigo_unico: $('#id_codigo_unico').val(),
+            categoria: $('#id_categoria').val(),
+            marca: $('#id_marca').val(),
+            descripcion: $('#id_descripcion').val(),
+            precio_compra: $('#id_precio_compra').val(),
+            precio_venta: $('#id_precio_venta').val(),
+            stock_actual: $('#id_stock_actual').val(),
+            stock_minimo: $('#id_stock_minimo').val(),
+            ubicacion_almacen: $('#id_ubicacion_almacen').val(),
+            activo: $('#id_activo').is(':checked'),
+            incluye_iva: $('#id_incluye_iva').is(':checked'),
+            currentStep: currentStep
+        };
+        
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+        mostrarIndicadorGuardado();
+    }
+    
+    function cargarDatosGuardados() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        
+        if (saved) {
+            const formData = JSON.parse(saved);
+            
+            // Solo cargar si tiene contenido significativo
+            if (formData.nombre || formData.codigo_unico) {
+                $('#id_nombre').val(formData.nombre || '');
+                $('#id_codigo_unico').val(formData.codigo_unico || '');
+                $('#id_categoria').val(formData.categoria || '');
+                $('#id_marca').val(formData.marca || '');
+                $('#id_descripcion').val(formData.descripcion || '');
+                $('#id_precio_compra').val(formData.precio_compra || '');
+                $('#id_precio_venta').val(formData.precio_venta || '');
+                $('#id_stock_actual').val(formData.stock_actual || '');
+                $('#id_stock_minimo').val(formData.stock_minimo || '');
+                $('#id_ubicacion_almacen').val(formData.ubicacion_almacen || '');
+                $('#id_activo').prop('checked', formData.activo !== false);
+                $('#id_incluye_iva').prop('checked', formData.incluye_iva === true);
+                
+                if (formData.currentStep) {
+                    currentStep = formData.currentStep;
+                }
+                
+                mostrarAlertaRecuperacion();
+            }
+        }
+    }
+    
+    function mostrarAlertaRecuperacion() {
+        const alert = $(`
+            <div class="alert alert-warning alert-dismissible fade show">
+                <i class="fas fa-history me-2"></i>
+                <strong>Borrador recuperado</strong> - Continúa donde lo dejaste
+                <button type="button" class="btn btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="btn-descartar-borrador">
+                    <i class="fas fa-trash me-1"></i>Descartar y empezar de nuevo
+                </button>
+            </div>
+        `);
+        $('.container-fluid').prepend(alert);
+        
+        // Botón para descartar borrador
+        $('#btn-descartar-borrador').on('click', function() {
+            if (confirm('¿Descartar el borrador y empezar de nuevo?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
+        });
+        
+        setTimeout(() => alert.fadeOut(() => alert.remove()), 10000);
+    }
+    
+    function mostrarIndicadorGuardado() {
+        $('#indicador-guardado').remove();
+        const ind = $('<div id="indicador-guardado" class="position-fixed bottom-0 end-0 m-3" style="z-index: 1050;"><div class="bg-success text-white px-3 py-2 rounded shadow-sm"><i class="fas fa-check me-1"></i> Guardado</div></div>');
+        $('body').append(ind);
+        setTimeout(() => ind.fadeOut(400, () => ind.remove()), 1500);
+    }
+    
+    // Auto-guardar en cada cambio
+    let autoGuardarTimeout;
+    $('#producto-form input, #producto-form select, #producto-form textarea').on('input change', function() {
+        clearTimeout(autoGuardarTimeout);
+        autoGuardarTimeout = setTimeout(autoGuardar, 500);
+    });
+    
+    // Validar paso
+    function validarPaso(step) {
+        let isValid = true;
+        let firstInvalid = null;
+        
+        $(`.wizard-pane[data-step="${step}"] [data-required="true"]`).each(function() {
+            const $field = $(this);
+            const value = $field.val();
+            
+            $field.removeClass('is-invalid');
+            $field.siblings('.invalid-feedback').text('');
+            
+            if (!value || value === '') {
+                isValid = false;
+                $field.addClass('is-invalid');
+                
+                const label = $field.closest('.col-12, .col-md-6, .col-md-4').find('label').first().text().replace('*', '').trim();
+                $field.siblings('.invalid-feedback').text(`${label} es obligatorio`);
+                
+                if (!firstInvalid) firstInvalid = $field;
+            }
+            
+            if ($field.attr('type') === 'number' && value) {
+                const num = parseFloat(value);
+                if (num < 0) {
+                    isValid = false;
+                    $field.addClass('is-invalid');
+                    $field.siblings('.invalid-feedback').text('No puede ser negativo');
+                    if (!firstInvalid) firstInvalid = $field;
+                }
+            }
+        });
+        
+        if (!isValid && firstInvalid) {
+            firstInvalid.focus();
+        }
+        
+        return isValid;
+    }
+    
+    // Actualizar wizard UI
+    function actualizarWizardUI() {
+        $('.wizard-step').removeClass('active completed');
+        $(`.wizard-step[data-step="${currentStep}"]`).addClass('active');
+        
+        for (let i = 1; i < currentStep; i++) {
+            $(`.wizard-step[data-step="${i}"]`).addClass('completed');
+        }
+        
+        $('.wizard-pane').removeClass('active');
+        $(`.wizard-pane[data-step="${currentStep}"]`).addClass('active');
+        
+        $('#current-step').text(currentStep);
+        $('#btn-prev').prop('disabled', currentStep === 1);
+        
+        if (currentStep === totalSteps) {
+            $('#btn-next').addClass('d-none');
+            $('#btn-submit').removeClass('d-none');
+            actualizarResumen();
+        } else {
+            $('#btn-next').removeClass('d-none');
+            $('#btn-submit').addClass('d-none');
+        }
+        
+        autoGuardar();
+    }
+    
+    // Actualizar resumen
+    function actualizarResumen() {
+        $('#review-nombre').text($('#id_nombre').val() || '-');
+        $('#review-codigo').text($('#id_codigo_unico').val() || '-');
+        $('#review-categoria').text($('#id_categoria option:selected').text() || '-');
+        $('#review-marca').text($('#id_marca option:selected').text() || '-');
+        
+        const pc = parseFloat($('#id_precio_compra').val()) || 0;
+        const pv = parseFloat($('#id_precio_venta').val()) || 0;
+        
+        $('#review-precio-compra').html(`<strong>$${pc.toFixed(2)}</strong>`);
+        $('#review-precio-venta').html(`<strong>$${pv.toFixed(2)}</strong>`);
+        $('#review-stock').text($('#id_stock_actual').val() || '0');
+        $('#review-stock-minimo').text($('#id_stock_minimo').val() || '0');
+        $('#review-ubicacion').text($('#id_ubicacion_almacen').val() || 'Sin ubicación');
+    }
+    
+    // Navegación
+    $('#btn-next').on('click', function(e) {
+        e.preventDefault();
+        
+        if (validarPaso(currentStep)) {
+            currentStep++;
+            actualizarWizardUI();
+            $('html, body').animate({ scrollTop: 0 }, 300);
+        }
+    });
+    
+    $('#btn-prev').on('click', function(e) {
+        e.preventDefault();
+        
+        if (currentStep > 1) {
+            currentStep--;
+            actualizarWizardUI();
+            $('html, body').animate({ scrollTop: 0 }, 300);
+        }
+    });
+    
+    // Enviar formulario SOLO en paso 4
+    $('#producto-form').on('submit', function(e) {
+        // Si ya estamos enviando, no hacer nada
+        if (formSubmitting) {
+            return true;
+        }
+        
+        e.preventDefault();
+        
+        // Verificar que estamos en el paso 4
+        if (currentStep !== 4) {
+            mostrarNotificacion('Debes completar todos los pasos antes de guardar', 'warning');
+            return false;
+        }
+        
+        // Validar todos los pasos anteriores
+        for (let i = 1; i <= 3; i++) {
+            if (!validarPaso(i)) {
+                currentStep = i;
+                actualizarWizardUI();
+                mostrarNotificacion(`Por favor completa el Paso ${i}`, 'warning');
+                return false;
+            }
+        }
+        
+        // Todo OK, limpiar borrador y preparar envío
+        localStorage.removeItem(STORAGE_KEY);
+        
+        // Deshabilitar botón
+        $('#btn-submit').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Guardando...');
+        
+        // Marcar como enviando
+        formSubmitting = true;
+        
+        // Enviar el formulario de forma normal
+        this.submit();
+    });
+    
+    // Calcular precio SOLO con botón
+    $('#btn-calcular-precio').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const pc = parseFloat($('#id_precio_compra').val());
+        const cat = $('#id_categoria').val();
+        
+        if (!pc || pc <= 0) {
+            mostrarNotificacion('Ingresa precio de compra', 'warning');
             return;
         }
         
-        if (!categoriaId) {
-            mostrarNotificacion('Selecciona una categoría', 'warning');
+        if (!cat) {
+            mostrarNotificacion('Selecciona categoría', 'warning');
             return;
         }
         
-        // Mostrar loading
-        $btnCalcular.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
         
         $.ajax({
             url: '{% url "inventario:calcular_precio_venta" %}',
             method: 'GET',
-            data: {
-                'precio_compra': precioCompra,
-                'categoria_id': categoriaId
-            },
+            data: { precio_compra: pc, categoria_id: cat },
             success: function(response) {
                 if (response.success) {
-                    $precioVenta.val(response.precio_venta.toFixed(2));
-                    
-                    mostrarNotificacion(
-                        'Precio calculado: $' + response.precio_venta.toFixed(2) + ' (' + response.porcentaje_ganancia + '% ganancia)',
-                        'success'
-                    );
-                    
-                    // Efecto visual
-                    $precioVenta.addClass('campo-actualizado');
-                    setTimeout(function() {
-                        $precioVenta.removeClass('campo-actualizado');
-                    }, 2000);
-                } else {
-                    mostrarNotificacion(response.message || 'Error al calcular', 'danger');
+                    $('#id_precio_venta').val(response.precio_venta.toFixed(2));
+                    mostrarNotificacion(`Precio: $${response.precio_venta.toFixed(2)}`, 'success');
+                    autoGuardar();
                 }
-            },
-            error: function() {
-                mostrarNotificacion('Error de conexión', 'danger');
             },
             complete: function() {
-                $btnCalcular.prop('disabled', false).html('<i class="fas fa-calculator"></i>');
+                $('#btn-calcular-precio').prop('disabled', false).html('<i class="fas fa-calculator"></i>');
             }
         });
-    }
+    });
     
-    // Función para mostrar notificaciones tipo toast
     function mostrarNotificacion(mensaje, tipo) {
         $('.toast-notification').remove();
-        
-        var iconClass = 'fas fa-check-circle';
-        if (tipo === 'warning') iconClass = 'fas fa-exclamation-triangle';
-        if (tipo === 'danger') iconClass = 'fas fa-times-circle';
-        
-        var toast = $('<div class="toast-notification position-fixed top-0 end-0 m-3" style="z-index: 9999;">' +
-            '<div class="alert alert-' + tipo + ' alert-dismissible fade show shadow-sm" role="alert">' +
-                '<i class="' + iconClass + ' me-2"></i>' + mensaje +
-                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
-            '</div>' +
-        '</div>');
-        
+        const icon = tipo === 'success' ? 'check-circle' : tipo === 'warning' ? 'exclamation-triangle' : 'times-circle';
+        const toast = $(`<div class="toast-notification position-fixed top-0 end-0 m-3" style="z-index: 9999;"><div class="alert alert-${tipo} alert-dismissible fade show"><i class="fas fa-${icon} me-2"></i>${mensaje}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div></div>`);
         $('body').append(toast);
-        
-        if (tipo === 'success') {
-            setTimeout(function() {
-                toast.fadeOut(500, function() {
-                    toast.remove();
-                });
-            }, 3000);
-        }
+        if (tipo === 'success') setTimeout(() => toast.fadeOut(500, () => toast.remove()), 3000);
     }
     
-    // Event listeners optimizados
-    $precioCompra.on('blur', function() {
-        const precioCompra = parseFloat($(this).val());
-        const categoriaId = $categoria.val();
-        
-        if (precioCompra > 0 && categoriaId) {
-            calcularPrecioVenta();
-        }
-    });
+    // ==================== INICIALIZACIÓN ====================
     
-    $categoria.on('change', function() {
-        const precioCompra = parseFloat($precioCompra.val());
-        
-        if (precioCompra > 0) {
-            calcularPrecioVenta();
-        }
-        
-        mostrarInfoCategoria();
-    });
+    // PRIMERO: Verificar si estamos editando un producto existente
+    const esEdicion = {% if not es_nuevo %}true{% else %}false{% endif %};
     
-    $btnCalcular.on('click', function(e) {
-        e.preventDefault();
-        calcularPrecioVenta();
-    });
-    
-    // Función para mostrar información de categoría
-    function mostrarInfoCategoria() {
-        const categoriaId = $categoria.val();
-        
-        if (categoriaId) {
-            $.ajax({
-                url: '{% url "inventario:api_categoria_porcentaje" %}',
-                method: 'GET',
-                data: {'categoria_id': categoriaId},
-                success: function(response) {
-                    if (response.success) {
-                        $('#info-categoria').remove();
-                        $categoria.closest('.col-md-4').append(
-                            '<small id="info-categoria" class="text-success">' +
-                                '<i class="fas fa-percentage me-1"></i>' +
-                                '<strong>Ganancia:</strong> ' + response.porcentaje_ganancia + '%' +
-                            '</small>'
-                        );
-                    }
-                }
-            });
-        } else {
-            $('#info-categoria').remove();
-        }
+    if (esEdicion) {
+        // Si estamos editando, NO cargar borrador, limpiar cualquier borrador previo
+        localStorage.removeItem(STORAGE_KEY);
+    } else {
+        // Si es nuevo producto, cargar borrador si existe
+        cargarDatosGuardados();
     }
     
-    // Trigger inicial
-    if ($categoria.val()) {
-        mostrarInfoCategoria();
+    // Generar código solo si está vacío
+    if (!$('#id_codigo_unico').val() || $('#id_codigo_unico').val().trim() === '') {
+        inicializarCodigo();
     }
+    
+    actualizarWizardUI();
 });
 </script>
 
 <style>
-/* Estilos compactos y profesionales */
-.form-label {
-    margin-bottom: 0.25rem;
-    font-size: 0.875rem;
+.wizard-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
 }
 
-.form-control, .form-select {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
+.wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 0 0 auto;
 }
 
-.card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
+.wizard-step-circle {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: #e9ecef;
+    border: 3px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #6c757d;
+    transition: all 0.3s;
 }
 
-.nav-tabs .nav-link {
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    border: none;
+.wizard-step.active .wizard-step-circle {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.wizard-step.completed .wizard-step-circle {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.wizard-step-label {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
     color: #6c757d;
 }
 
-.nav-tabs .nav-link.active {
-    background-color: white;
-    border-bottom: 2px solid #0d6efd;
+.wizard-step.active .wizard-step-label {
     color: #0d6efd;
-    font-weight: 500;
+    font-weight: 600;
 }
 
-.tab-content {
-    padding: 1rem 0;
+.wizard-step-line {
+    flex: 1;
+    height: 3px;
+    background: #dee2e6;
+    margin: 0 1rem;
+    position: relative;
+    top: -20px;
 }
 
-.campo-actualizado {
-    background-color: #d4edda !important;
-    border-color: #28a745 !important;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+.wizard-step.completed ~ .wizard-step-line {
+    background: #28a745;
 }
 
-.required::after {
-    content: " *";
-    color: #dc3545;
-    font-weight: bold;
+.wizard-pane {
+    display: none;
 }
 
-.form-check-input:checked {
-    background-color: #28a745;
-    border-color: #28a745;
-}
-
-.btn-group .btn {
-    font-size: 0.875rem;
-}
-
-/* Responsividad mejorada */
-@media (max-width: 768px) {
-    .nav-tabs .nav-link {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.8rem;
-    }
-    
-    .container-fluid {
-        padding: 0.5rem;
-    }
-}
-
-/* Animaciones suaves */
-.tab-pane {
-    animation: fadeIn 0.3s ease-out;
+.wizard-pane.active {
+    display: block;
+    animation: fadeIn 0.3s;
 }
 
 @keyframes fadeIn {
@@ -535,11 +832,22 @@ $(document).ready(function() {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Toast notifications */
-.toast-notification .alert {
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
+.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.campo-generado {
+    background-color: #d4edda !important;
+    border-color: #28a745 !important;
+    transition: all 0.5s ease;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+@media (max-width: 768px) {
+    .wizard-progress { padding: 0.5rem; }
+    .wizard-step-circle { width: 35px; height: 35px; }
+    .wizard-step-label { font-size: 0.65rem; }
 }
 </style>
 {% endblock %}

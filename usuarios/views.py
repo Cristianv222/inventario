@@ -120,37 +120,81 @@ def lista_roles(request):
 @login_required
 @user_passes_test(is_admin)
 def crear_rol(request):
+    """Vista unificada para crear rol CON permisos en el mismo formulario"""
     if request.method == 'POST':
         form = RolForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Rol creado correctamente.')
+            rol = form.save()
+            
+            # Guardar permisos seleccionados
+            permisos_ids = request.POST.getlist('permisos')
+            if permisos_ids:
+                rol.permisos.set(permisos_ids)
+            
+            messages.success(request, f'Rol "{rol.nombre}" creado correctamente con {len(permisos_ids)} permisos.')
             return redirect('usuarios:lista_roles')
     else:
         form = RolForm()
     
+    # Organizar permisos por aplicación y modelo para el template
+    permisos_por_app = {}
+    for ct in ContentType.objects.all().order_by('app_label', 'model'):
+        app = ct.app_label
+        if app not in permisos_por_app:
+            permisos_por_app[app] = {}
+            
+        model = ct.model
+        if model not in permisos_por_app[app]:
+            permisos_por_app[app][model] = []
+            
+        permisos = Permission.objects.filter(content_type=ct).order_by('codename')
+        permisos_por_app[app][model].extend(permisos)
+    
     return render(request, 'usuarios/form_rol.html', {
         'form': form,
-        'titulo': 'Nuevo Rol'
+        'titulo': 'Crear Nuevo Rol',
+        'permisos_por_app': permisos_por_app,
+        'rol': None
     })
 
 @login_required
 @user_passes_test(is_admin)
 def editar_rol(request, rol_id):
+    """Vista unificada para editar rol CON permisos en el mismo formulario"""
     rol = get_object_or_404(Rol, id=rol_id)
     
     if request.method == 'POST':
         form = RolForm(request.POST, instance=rol)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Rol actualizado correctamente.')
+            rol = form.save()
+            
+            # Actualizar permisos seleccionados
+            permisos_ids = request.POST.getlist('permisos')
+            rol.permisos.set(permisos_ids)  # Esto reemplaza todos los permisos con los nuevos
+            
+            messages.success(request, f'Rol "{rol.nombre}" actualizado correctamente con {len(permisos_ids)} permisos.')
             return redirect('usuarios:lista_roles')
     else:
         form = RolForm(instance=rol)
     
+    # Organizar permisos por aplicación y modelo para el template
+    permisos_por_app = {}
+    for ct in ContentType.objects.all().order_by('app_label', 'model'):
+        app = ct.app_label
+        if app not in permisos_por_app:
+            permisos_por_app[app] = {}
+            
+        model = ct.model
+        if model not in permisos_por_app[app]:
+            permisos_por_app[app][model] = []
+            
+        permisos = Permission.objects.filter(content_type=ct).order_by('codename')
+        permisos_por_app[app][model].extend(permisos)
+    
     return render(request, 'usuarios/form_rol.html', {
         'form': form,
-        'titulo': 'Editar Rol',
+        'titulo': f'Editar Rol: {rol.nombre}',
+        'permisos_por_app': permisos_por_app,
         'rol': rol
     })
 
@@ -220,7 +264,10 @@ def crear_permiso(request):
 @login_required
 @user_passes_test(is_admin)
 def asignar_permisos_rol(request, rol_id):
-    """Vista para que administradores asignen permisos a roles"""
+    """
+    Vista LEGACY para asignar permisos (ahora se hace en crear_rol/editar_rol)
+    Puedes mantenerla por compatibilidad o eliminarla
+    """
     rol = get_object_or_404(Rol, id=rol_id)
     
     if request.method == 'POST':
