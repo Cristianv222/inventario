@@ -791,6 +791,134 @@
     .print-option-title {
         font-weight: 500;
     }
+    /* ========== MENÚ FLOTANTE DE ACCESOS RÁPIDOS ========== */
+.quick-access-menu {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+}
+
+.quick-access-toggle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quick-access-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.6);
+}
+
+.quick-access-toggle.active {
+    background: #dc3545;
+}
+
+.quick-access-toggle.active i {
+    transform: rotate(45deg);
+}
+
+.quick-access-options {
+    position: absolute;
+    bottom: 75px;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+.quick-access-options.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.quick-access-btn {
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 30px;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    color: #495057;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    white-space: nowrap;
+    min-width: 200px;
+}
+
+.quick-access-btn:hover {
+    background: #3f51b5;
+    color: white;
+    border-color: #3f51b5;
+    transform: translateX(-5px);
+    box-shadow: 0 4px 12px rgba(63, 81, 181, 0.3);
+    text-decoration: none;
+}
+
+.quick-access-btn i {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+}
+
+.quick-access-btn .badge {
+    margin-left: auto;
+    background: #dc3545;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+}
+
+/* Overlay cuando el menú está abierto */
+.quick-access-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.quick-access-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .quick-access-menu {
+        bottom: 80px;
+    }
+    
+    .quick-access-btn {
+        min-width: 180px;
+        font-size: 0.875rem;
+    }
+}
 </style>
 {% endblock %}
 
@@ -1164,6 +1292,96 @@
 <input type="hidden" id="selectedCustomerId" value="">
 <input type="hidden" id="selectedOrderId" value="">
 <input type="hidden" id="lastSaleData" value="">
+
+<!-- Modal: Listar Ventas -->
+<div class="modal fade" id="allSalesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-receipt-cutoff"></i>
+                    Todas las Ventas
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filtros -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="salesFechaInicio" placeholder="Fecha inicio">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="salesFechaFin" placeholder="Fecha fin">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="salesEstadoFilter">
+                            <option value="">Todos los estados</option>
+                            <option value="COMPLETADA">Completada</option>
+                            <option value="ANULADA">Anulada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100" onclick="filterAllSales()">
+                            <i class="bi bi-search"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Ventas -->
+                <div id="allSalesList" style="max-height: 400px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 2rem;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin-top: 1rem;">Cargando ventas...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Órdenes Pendientes de Facturar -->
+<div class="modal fade" id="pendingOrdersListModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-clock-history"></i>
+                    Órdenes Pendientes de Facturar
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="pendingOrdersList" style="max-height: 500px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 2rem;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin-top: 1rem;">Cargando órdenes pendientes...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Menú Flotante de Accesos Rápidos -->
+<div class="quick-access-overlay" id="quickAccessOverlay" onclick="toggleQuickAccess()"></div>
+
+<div class="quick-access-menu">
+    <div class="quick-access-options" id="quickAccessOptions">
+        <a href="#" class="quick-access-btn" onclick="showAllSalesModal(event)">
+            <i class="bi bi-receipt-cutoff"></i>
+            <span>Listar Ventas</span>
+        </a>
+        
+        <a href="#" class="quick-access-btn" onclick="showPendingOrdersModal(event)">
+            <i class="bi bi-clock-history"></i>
+            <span>Órdenes Pendientes</span>
+            <span class="badge" id="pendingOrdersBadge">0</span>
+        </a>
+    </div>
+    
+    <button class="quick-access-toggle" id="quickAccessToggle" onclick="toggleQuickAccess()">
+        <i class="bi bi-lightning-charge"></i>
+    </button>
+</div>
 
 {% csrf_token %}
 {% endblock %}
@@ -2361,5 +2579,196 @@
     }
 
     console.log('POS inicializado correctamente');
+    // ========== MENÚ FLOTANTE DE ACCESOS RÁPIDOS ==========
+
+function toggleQuickAccess() {
+    const options = document.getElementById('quickAccessOptions');
+    const toggle = document.getElementById('quickAccessToggle');
+    const overlay = document.getElementById('quickAccessOverlay');
+    
+    options.classList.toggle('show');
+    toggle.classList.toggle('active');
+    overlay.classList.toggle('show');
+}
+
+function showAllSalesModal(event) {
+    event.preventDefault();
+    toggleQuickAccess();
+    
+    const modal = new bootstrap.Modal(document.getElementById('allSalesModal'));
+    modal.show();
+    loadAllSales();
+}
+
+function showPendingOrdersModal(event) {
+    event.preventDefault();
+    toggleQuickAccess();
+    
+    const modal = new bootstrap.Modal(document.getElementById('pendingOrdersListModal'));
+    modal.show();
+    loadPendingOrders();
+}
+
+function loadAllSales() {
+    const listContainer = document.getElementById('allSalesList');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 1rem;">Cargando ventas...</p>
+        </div>
+    `;
+    
+    const fechaInicio = document.getElementById('salesFechaInicio')?.value || '';
+    const fechaFin = document.getElementById('salesFechaFin')?.value || '';
+    const estado = document.getElementById('salesEstadoFilter')?.value || '';
+    
+    let url = '/ventas/api/todas-ventas/?';
+    if (fechaInicio) url += 'fecha_inicio=' + fechaInicio + '&';
+    if (fechaFin) url += 'fecha_fin=' + fechaFin + '&';
+    if (estado) url += 'estado=' + estado + '&';
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.ventas) {
+                displayAllSalesList(data.ventas);
+            } else {
+                listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6c757d;"><i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.5;"></i><p>No se encontraron ventas</p></div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading sales:', error);
+            listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: #dc3545;"><i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i><p>Error al cargar ventas</p></div>';
+        });
+}
+
+function displayAllSalesList(ventas) {
+    const listContainer = document.getElementById('allSalesList');
+    if (!listContainer) return;
+    
+    if (ventas.length === 0) {
+        listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6c757d;"><i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.5;"></i><p>No hay ventas registradas</p></div>';
+        return;
+    }
+    
+    listContainer.innerHTML = ventas.map(venta => `
+        <div class="modal-item" onclick="viewSaleDetails(${venta.id})">
+            <div class="item-header">
+                <h6 class="item-title">${escapeHtml(venta.numero_factura)}</h6>
+                <span class="item-price">S/ ${parseFloat(venta.total).toFixed(2)}</span>
+            </div>
+            <div class="item-meta">
+                <span>${escapeHtml(venta.cliente_nombre)}</span>
+                <span>${escapeHtml(venta.fecha_hora)}</span>
+            </div>
+            <div style="margin-top: 8px;">
+                <span class="badge ${venta.estado === 'COMPLETADA' ? 'bg-success' : 'bg-danger'}" style="font-size: 0.75rem;">
+                    ${escapeHtml(venta.estado)}
+                </span>
+                <span class="badge bg-info" style="font-size: 0.75rem; margin-left: 5px;">
+                    ${escapeHtml(venta.tipo_pago)}
+                </span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filterAllSales() {
+    loadAllSales();
+}
+
+function viewSaleDetails(ventaId) {
+    window.open(`/ventas/detalle/${ventaId}/`, '_blank');
+}
+
+function loadPendingOrders() {
+    const listContainer = document.getElementById('pendingOrdersList');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 1rem;">Cargando órdenes pendientes...</p>
+        </div>
+    `;
+    
+    fetch('/ventas/api/ordenes-completadas/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.ordenes) {
+                displayPendingOrdersList(data.ordenes);
+                updatePendingOrdersBadge(data.ordenes.length);
+            } else {
+                listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6c757d;"><i class="bi bi-check-circle" style="font-size: 3rem; opacity: 0.5;"></i><p>No hay órdenes pendientes</p></div>';
+                updatePendingOrdersBadge(0);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading pending orders:', error);
+            listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: #dc3545;"><i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i><p>Error al cargar órdenes</p></div>';
+        });
+}
+
+function displayPendingOrdersList(ordenes) {
+    const listContainer = document.getElementById('pendingOrdersList');
+    if (!listContainer) return;
+    
+    if (ordenes.length === 0) {
+        listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6c757d;"><i class="bi bi-check-circle" style="font-size: 3rem; opacity: 0.5;"></i><p>No hay órdenes pendientes de facturar</p></div>';
+        return;
+    }
+    
+    listContainer.innerHTML = ordenes.map(orden => `
+        <div class="modal-item" onclick="facturarOrden(${orden.id})">
+            <div class="item-header">
+                <h6 class="item-title">O.T. #${escapeHtml(orden.numero_orden)}</h6>
+                <span class="item-price">S/ ${parseFloat(orden.precio_total).toFixed(2)}</span>
+            </div>
+            <div class="item-meta">
+                <span>${escapeHtml(orden.cliente_nombre)}</span>
+                <span>${escapeHtml(orden.vehiculo || 'Sin vehículo')}</span>
+            </div>
+            <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; color: #6c757d;">
+                    <i class="bi bi-calendar"></i> ${escapeHtml(orden.fecha_completado || 'Sin fecha')}
+                </span>
+                <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); facturarOrden(${orden.id})">
+                    <i class="bi bi-shop"></i> Facturar
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function facturarOrden(ordenId) {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('pendingOrdersListModal'));
+    if (modal) modal.hide();
+    
+    setTimeout(() => {
+        selectOrder(ordenId);
+    }, 500);
+}
+
+function updatePendingOrdersBadge(count) {
+    const badge = document.getElementById('pendingOrdersBadge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline' : 'none';
+    }
+}
+
+// Cargar contador de órdenes pendientes al inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/ventas/api/ordenes-completadas/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.ordenes) {
+                updatePendingOrdersBadge(data.ordenes.length);
+            }
+        })
+        .catch(error => console.error('Error loading pending orders count:', error));
+});
 </script>
 {% endblock %}

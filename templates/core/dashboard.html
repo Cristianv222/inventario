@@ -1,120 +1,183 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Dashboard - VPMOTOS{% endblock %}
+{% block title %}Dashboard - OPENMOTORS{% endblock %}
+
+{% block extra_css %}
+<style>
+body {
+    background-image: url('{% static 'img/logo-open.png' %}');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+    background-size: 50%;
+    background-color: #f0f2f5;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(240, 242, 245, 0.75);
+    z-index: -1;
+}
+
+.welcome-text {
+    text-align: center;
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+.welcome-text h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(255, 255, 255, 0.8);
+}
+
+.welcome-text p {
+    font-size: 1.2rem;
+    color: var(--gray-700);
+    text-shadow: 0 1px 5px rgba(255, 255, 255, 0.8);
+}
+
+.quick-access-card {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 20px;
+    padding: 40px 30px;
+    text-align: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+.quick-access-card:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.quick-access-card i {
+    font-size: 3.5rem;
+    margin-bottom: 20px;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+}
+
+.quick-access-card:hover i {
+    transform: scale(1.2) rotate(-8deg);
+}
+
+.quick-access-card h3 {
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
+}
+
+.border-primary-custom {
+    border-left: 5px solid var(--primary);
+}
+
+.border-success-custom {
+    border-left: 5px solid var(--success);
+}
+
+.border-warning-custom {
+    border-left: 5px solid var(--warning);
+}
+
+.border-accent-custom {
+    border-left: 5px solid var(--accent);
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Estadísticas Principales -->
-<div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Ventas del Día</h6>
-                        <h3 class="mb-0">$0.00</h3>
-                    </div>
-                    <div class="icon-shape bg-primary text-white rounded-circle shadow-sm p-2">
-                        <i class="fas fa-shopping-cart fa-lg"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Productos</h6>
-                        <h3 class="mb-0">{{ total_productos }}</h3>
-                    </div>
-                    <div class="icon-shape bg-success text-white rounded-circle shadow-sm p-2">
-                        <i class="fas fa-box fa-lg"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Clientes</h6>
-                        <h3 class="mb-0">{{ total_clientes }}</h3>
-                    </div>
-                    <div class="icon-shape bg-warning text-white rounded-circle shadow-sm p-2">
-                        <i class="fas fa-users fa-lg"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Servicios Activos</h6>
-                        <h3 class="mb-0">0</h3>
-                    </div>
-                    <div class="icon-shape bg-danger text-white rounded-circle shadow-sm p-2">
-                        <i class="fas fa-tools fa-lg"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Welcome Section -->
+<div class="welcome-text">
+    <h1>¡Bienvenido, {{ user.nombre }}!</h1>
+    <p>
+        {{ user.rol.nombre|default:"Usuario" }}
+        <span class="mx-3">•</span>
+        <i class="fas fa-clock me-2"></i><span id="current-time"></span>
+        <span class="mx-3">•</span>
+        <i class="fas fa-calendar me-2"></i>{{ "now"|date:"d/m/Y" }}
+    </p>
 </div>
 
-<!-- Acciones Rápidas y Gráfico -->
-<div class="row mb-4">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-chart-bar"></i> Actividad Reciente
+<!-- Quick Access Cards -->
+<div class="row g-4">
+    {% if perms.ventas.add_venta %}
+    <div class="col-xl-3 col-lg-6 col-md-6">
+        <a href="{% url 'ventas:crear_venta' %}" class="text-decoration-none">
+            <div class="quick-access-card border-primary-custom">
+                <i class="fas fa-cash-register text-primary"></i>
+                <h3 class="mb-2 fw-bold text-dark">Nueva Venta</h3>
+                <p class="text-muted mb-0">Registrar venta en el sistema</p>
             </div>
-            <div class="card-body">
-                <div style="height: 300px; background-color: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <p class="text-muted mb-0">Gráfico de ventas de los últimos 7 días</p>
-                </div>
-            </div>
-        </div>
+        </a>
     </div>
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-bolt"></i> Acciones Rápidas
+    {% endif %}
+    
+    {% if perms.taller.add_ordentrabajo %}
+    <div class="col-xl-3 col-lg-6 col-md-6">
+        <a href="{% url 'taller:orden_create' %}" class="text-decoration-none">
+            <div class="quick-access-card border-success-custom">
+                <i class="fas fa-tools text-success"></i>
+                <h3 class="mb-2 fw-bold text-dark">Nueva Orden</h3>
+                <p class="text-muted mb-0">Crear orden de trabajo</p>
             </div>
-            <div class="card-body p-2">
-                <div class="row g-2">
-                    <div class="col-6">
-                        <div class="card bg-light p-3 text-center">
-                            <i class="fas fa-cash-register text-primary mb-2"></i>
-                            <h6 class="mb-0">Nueva Venta</h6>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="card bg-light p-3 text-center">
-                            <i class="fas fa-tools text-primary mb-2"></i>
-                            <h6 class="mb-0">Nuevo Servicio</h6>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="card bg-light p-3 text-center">
-                            <i class="fas fa-user-plus text-primary mb-2"></i>
-                            <h6 class="mb-0">Nuevo Cliente</h6>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="card bg-light p-3 text-center">
-                            <i class="fas fa-box text-primary mb-2"></i>
-                            <h6 class="mb-0">Nuevo Producto</h6>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </a>
     </div>
+    {% endif %}
+    
+    {% if perms.clientes.add_cliente %}
+    <div class="col-xl-3 col-lg-6 col-md-6">
+        <a href="{% url 'clientes:crear_cliente' %}" class="text-decoration-none">
+            <div class="quick-access-card border-warning-custom">
+                <i class="fas fa-user-plus text-warning"></i>
+                <h3 class="mb-2 fw-bold text-dark">Nuevo Cliente</h3>
+                <p class="text-muted mb-0">Registrar cliente nuevo</p>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    
+    {% if perms.inventario.add_producto %}
+    <div class="col-xl-3 col-lg-6 col-md-6">
+        <a href="{% url 'inventario:crear_producto' %}" class="text-decoration-none">
+            <div class="quick-access-card border-accent-custom">
+                <i class="fas fa-box" style="color: var(--accent);"></i>
+                <h3 class="mb-2 fw-bold text-dark">Nuevo Producto</h3>
+                <p class="text-muted mb-0">Agregar al inventario</p>
+            </div>
+        </a>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('es-EC', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    const timeElement = document.getElementById('current-time');
+    if (timeElement) {
+        timeElement.textContent = timeString;
+    }
+}
+
+updateTime();
+setInterval(updateTime, 1000);
+</script>
 {% endblock %}

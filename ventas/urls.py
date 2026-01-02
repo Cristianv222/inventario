@@ -5,18 +5,19 @@ from . import views
 app_name = 'ventas'
 
 urlpatterns = [
-    # ========== DASHBOARD Y GESTIÓN DE VENTAS ==========
-    path('', views.lista_ventas, name='lista_ventas'),  # Dashboard principal
+    # ========== PUNTO DE VENTA (POS) - PÁGINA PRINCIPAL ==========
+    path('', views.punto_venta, name='punto_venta'),  # POS como página principal
+    path('pos/', views.punto_venta, name='pos'),  # Alias
+    path('pos/procesar/', views.api_procesar_venta_pos, name='api_procesar_venta_pos'),
+    path('pos/orden/<int:orden_id>/', views.pos_con_orden, name='pos_con_orden'),
+    
+    # ========== GESTIÓN DE VENTAS ==========
+    path('lista/', views.lista_ventas, name='lista_ventas'),  # Lista de ventas movida aquí
     path('detalle/<int:venta_id>/', views.detalle_venta, name='detalle_venta'),
     path('crear/', views.crear_venta, name='crear_venta'),
     path('<int:venta_id>/editar/', views.editar_venta, name='editar_venta'),
     path('<int:venta_id>/anular/', views.anular_venta, name='anular_venta'),
     path('<int:venta_id>/agregar-producto/', views.agregar_producto, name='agregar_producto'),
-    
-    # ========== PUNTO DE VENTA (POS) ==========
-    path('pos/', views.punto_venta, name='punto_venta'),
-    path('pos/procesar/', views.api_procesar_venta_pos, name='api_procesar_venta_pos'),
-    path('pos/orden/<int:orden_id>/', views.pos_con_orden, name='pos_con_orden'),
     
     # ========== APIs DEL DASHBOARD ==========
     path('api/dashboard-stats/', views.api_dashboard_stats, name='api_dashboard_stats'),
@@ -28,7 +29,7 @@ urlpatterns = [
     # ========== APIs DEL POS ==========
     path('api/buscar-producto/', views.api_buscar_producto, name='api_buscar_producto'),
     path('api/productos/', views.api_productos, name='api_productos'),
-    path('api/productos-populares/', views.api_productos_populares, name='api_productos_populares'),  # NUEVA
+    path('api/productos-populares/', views.api_productos_populares, name='api_productos_populares'),
     path('api/clientes/', views.api_buscar_clientes, name='api_buscar_clientes'),
     path('api/tecnicos/', views.api_tecnicos, name='api_tecnicos'),
     path('api/servicios/', views.api_servicios, name='api_servicios'),
