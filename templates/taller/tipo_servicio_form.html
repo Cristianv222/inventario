@@ -4,7 +4,6 @@
 
 {% block extra_css %}
 <style>
-    /* Estilos para formulario de servicio */
     .content-wrapper {
         padding: 1rem;
     }
@@ -199,6 +198,7 @@
         padding: 1rem;
         margin-bottom: 1rem;
         transition: var(--transition);
+        cursor: pointer;
     }
     
     .feature-toggle:hover {
@@ -211,17 +211,18 @@
         background-color: rgba(67, 97, 238, 0.05);
     }
     
+    /* NUEVO: Ocultar el checkbox real de Django */
+    .feature-toggle input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
     .switch {
         position: relative;
         display: inline-block;
         width: 50px;
         height: 24px;
-    }
-    
-    .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
     }
     
     .slider {
@@ -248,15 +249,14 @@
         border-radius: 50%;
     }
     
-    input:checked + .slider {
+    .slider.checked {
         background-color: var(--primary);
     }
     
-    input:checked + .slider:before {
+    .slider.checked:before {
         transform: translateX(26px);
     }
     
-    /* Estilos corregidos para el grupo de categoría */
     .input-group .form-floating {
         flex-grow: 1;
     }
@@ -275,7 +275,6 @@
         border-bottom-right-radius: 0;
     }
     
-    /* Estilos para el modal */
     .modal-header {
         background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
         color: white;
@@ -327,6 +326,7 @@
         border-top: 2px solid var(--primary);
         border-radius: 50%;
         animation: spin 1s linear infinite;
+        margin-left: 10px;
     }
     
     @keyframes spin {
@@ -450,94 +450,82 @@
                     <div class="section-header">
                         <h4 class="section-title">
                             <i class="fas fa-dollar-sign text-primary"></i>
-                            Precios y Tiempo
+                            Precio y Tiempo
                         </h4>
                     </div>
                     
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-floating required-field">
-                                {{ form.precio_base }}
-                                <label for="{{ form.precio_base.id_for_label }}">Precio Base</label>
+                                {{ form.precio }}
+                                <label for="{{ form.precio.id_for_label }}">Precio del Servicio (S/)</label>
                             </div>
-                            <div class="help-text">Precio base del servicio (sin mano de obra)</div>
+                            <div class="help-text">Precio del servicio (sin IVA)</div>
+                            {% if form.precio.errors %}
+                                <div class="validation-feedback">{{ form.precio.errors.0 }}</div>
+                            {% endif %}
                         </div>
                         
-                        <div class="col-md-4">
-                            <div class="form-floating required-field">
-                                {{ form.precio_mano_obra }}
-                                <label for="{{ form.precio_mano_obra.id_for_label }}">Precio Mano de Obra</label>
-                            </div>
-                            <div class="help-text">Costo de la mano de obra técnica</div>
-                        </div>
-                        
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-floating required-field">
                                 {{ form.tiempo_estimado_horas }}
                                 <label for="{{ form.tiempo_estimado_horas.id_for_label }}">Tiempo Estimado (horas)</label>
                             </div>
                             <div class="help-text">Tiempo promedio de ejecución</div>
+                            {% if form.tiempo_estimado_horas.errors %}
+                                <div class="validation-feedback">{{ form.tiempo_estimado_horas.errors.0 }}</div>
+                            {% endif %}
                         </div>
                         
                         <div class="col-12">
                             <div class="price-calculator">
                                 <h6 class="mb-3">
-                                    <i class="fas fa-calculator me-2"></i>Calculadora de Precios
+                                    <i class="fas fa-calculator me-2"></i>Calculadora de Precio Final
                                 </h6>
                                 
                                 <div class="price-row">
                                     <span>Precio Base:</span>
-                                    <span id="calc-precio-base">$0.00</span>
+                                    <span id="calc-precio-base">S/ 0.00</span>
                                 </div>
                                 
                                 <div class="price-row">
-                                    <span>Mano de Obra:</span>
-                                    <span id="calc-mano-obra">$0.00</span>
+                                    <span>IVA (15%):</span>
+                                    <span id="calc-iva">S/ 0.00</span>
                                 </div>
                                 
                                 <div class="price-row">
-                                    <span>Subtotal:</span>
-                                    <span id="calc-subtotal">$0.00</span>
-                                </div>
-                                
-                                <div class="price-row">
-                                    <span>IVA (12%):</span>
-                                    <span id="calc-iva">$0.00</span>
-                                </div>
-                                
-                                <div class="price-row">
-                                    <span>PRECIO TOTAL:</span>
-                                    <span id="calc-total">$0.00</span>
+                                    <span>PRECIO TOTAL AL CLIENTE:</span>
+                                    <span id="calc-total">S/ 0.00</span>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="feature-toggle" id="ivaToggle">
+                            <div class="feature-toggle" id="ivaToggle" onclick="toggleSwitch('incluye_iva')">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h6 class="mb-1">¿Incluye IVA?</h6>
-                                        <small class="text-muted">El precio ya incluye el IVA</small>
+                                        <h6 class="mb-1">¿Aplicar IVA al precio?</h6>
+                                        <small class="text-muted">Agregar 15% de IVA sobre el precio base</small>
                                     </div>
-                                    <label class="switch">
+                                    <div class="switch">
                                         {{ form.incluye_iva }}
-                                        <span class="slider"></span>
-                                    </label>
+                                        <span class="slider" id="slider_incluye_iva"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="feature-toggle" id="activoToggle">
+                            <div class="feature-toggle" id="activoToggle" onclick="toggleSwitch('activo')">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1">Servicio Activo</h6>
                                         <small class="text-muted">Disponible para venta</small>
                                     </div>
-                                    <label class="switch">
+                                    <div class="switch">
                                         {{ form.activo }}
-                                        <span class="slider"></span>
-                                    </label>
+                                        <span class="slider" id="slider_activo"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -563,16 +551,16 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="feature-toggle" id="repuestosToggle">
+                            <div class="feature-toggle" id="repuestosToggle" onclick="toggleSwitch('requiere_repuestos')">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1">¿Requiere Repuestos?</h6>
                                         <small class="text-muted">El servicio necesita repuestos adicionales</small>
                                     </div>
-                                    <label class="switch">
+                                    <div class="switch">
                                         {{ form.requiere_repuestos }}
-                                        <span class="slider"></span>
-                                    </label>
+                                        <span class="slider" id="slider_requiere_repuestos"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -599,7 +587,7 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span>Precio Total:</span>
-                            <strong id="previewPrecio">${{ object.get_precio_total|default:"0.00" }}</strong>
+                            <strong id="previewPrecio">S/ {{ object.precio|default:"0.00" }}</strong>
                         </div>
                         <div class="d-flex justify-content-between mb-1">
                             <span>Tiempo:</span>
@@ -629,10 +617,6 @@
                     </button>
                     {% endif %}
                     
-                    <button type="button" class="btn btn-outline-info" onclick="previsualizarFactura()">
-                        <i class="fas fa-eye me-2"></i>Previsualizar
-                    </button>
-                    
                     <a href="{% url 'taller:tipo_servicio_list' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-times me-2"></i>Cancelar
                     </a>
@@ -644,12 +628,12 @@
 
 <!-- Modal para Nueva Categoría -->
 <div class="modal fade" id="modalNuevaCategoria" tabindex="-1" aria-labelledby="modalNuevaCategoriaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalNuevaCategoriaLabel">
                     <i class="fas fa-folder-plus me-2"></i>
-                    Nueva Categoría de Servicio
+                    Nueva Categoría
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -657,68 +641,41 @@
                 <form id="formNuevaCategoria">
                     {% csrf_token %}
                     
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="form-floating quick-form-field">
-                                <input type="text" class="form-control" id="categoriaNombre" name="nombre" required>
-                                <label for="categoriaNombre">Nombre de la Categoría *</label>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="form-floating quick-form-field">
-                                <input type="text" class="form-control" id="categoriaCodigo" name="codigo" required>
-                                <label for="categoriaCodigo">Código *</label>
-                            </div>
-                            <small class="text-muted">
-                                <i class="fas fa-magic me-1"></i>
-                                <span class="link-primary" onclick="generarCodigoCategoria()" style="cursor: pointer;">Auto-generar código</span>
-                            </small>
-                        </div>
-                        
-                        <div class="col-12">
-                            <div class="form-floating quick-form-field">
-                                <textarea class="form-control" id="categoriaDescripcion" name="descripcion" style="height: 80px;"></textarea>
-                                <label for="categoriaDescripcion">Descripción</label>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label class="form-label">Color de la Categoría</label>
-                            <input type="color" class="form-control form-control-color" id="categoriaColor" name="color" value="#007bff">
-                            
-                            <div class="color-picker-container">
-                                <div class="color-option" style="background-color: #007bff;" onclick="seleccionarColor('#007bff')"></div>
-                                <div class="color-option" style="background-color: #28a745;" onclick="seleccionarColor('#28a745')"></div>
-                                <div class="color-option" style="background-color: #dc3545;" onclick="seleccionarColor('#dc3545')"></div>
-                                <div class="color-option" style="background-color: #ffc107;" onclick="seleccionarColor('#ffc107')"></div>
-                                <div class="color-option" style="background-color: #6f42c1;" onclick="seleccionarColor('#6f42c1')"></div>
-                                <div class="color-option" style="background-color: #fd7e14;" onclick="seleccionarColor('#fd7e14')"></div>
-                                <div class="color-option" style="background-color: #20c997;" onclick="seleccionarColor('#20c997')"></div>
-                                <div class="color-option" style="background-color: #6c757d;" onclick="seleccionarColor('#6c757d')"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="categoriaRequiereDiagnostico" name="requiere_diagnostico">
-                                <label class="form-check-label" for="categoriaRequiereDiagnostico">
-                                    Requiere Diagnóstico Previo
-                                </label>
-                            </div>
-                            
-                            <div class="mt-2">
-                                <div class="form-floating">
-                                    <input type="number" class="form-control" id="categoriaTiempoEstimado" name="tiempo_estimado_horas" step="0.25" min="0">
-                                    <label for="categoriaTiempoEstimado">Tiempo Estimado (horas)</label>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="quick-form-field">
+                        <label for="categoriaNombre" class="form-label">Nombre de la Categoría *</label>
+                        <input type="text" class="form-control" id="categoriaNombre" name="nombre" required>
+                        <small class="form-text text-muted">Ej: Mantenimiento Preventivo, Reparación de Motor</small>
                     </div>
                     
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        La nueva categoría estará disponible inmediatamente después de crearla.
+                    <div class="quick-form-field">
+                        <label for="categoriaCodigo" class="form-label">Código *</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="categoriaCodigo" name="codigo" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="generarCodigoCategoria()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Código único para identificar la categoría</small>
+                    </div>
+                    
+                    <div class="quick-form-field">
+                        <label for="categoriaDescripcion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="categoriaDescripcion" name="descripcion" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="quick-form-field">
+                        <label class="form-label">Color de la Categoría</label>
+                        <input type="hidden" id="categoriaColor" name="color" value="#007bff">
+                        <div class="color-picker-container">
+                            <div class="color-option selected" style="background-color: #007bff;" onclick="seleccionarColor('#007bff')"></div>
+                            <div class="color-option" style="background-color: #28a745;" onclick="seleccionarColor('#28a745')"></div>
+                            <div class="color-option" style="background-color: #dc3545;" onclick="seleccionarColor('#dc3545')"></div>
+                            <div class="color-option" style="background-color: #ffc107;" onclick="seleccionarColor('#ffc107')"></div>
+                            <div class="color-option" style="background-color: #17a2b8;" onclick="seleccionarColor('#17a2b8')"></div>
+                            <div class="color-option" style="background-color: #6610f2;" onclick="seleccionarColor('#6610f2')"></div>
+                            <div class="color-option" style="background-color: #fd7e14;" onclick="seleccionarColor('#fd7e14')"></div>
+                            <div class="color-option" style="background-color: #6c757d;" onclick="seleccionarColor('#6c757d')"></div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -727,9 +684,8 @@
                     <i class="fas fa-times me-2"></i>Cancelar
                 </button>
                 <button type="button" class="btn btn-primary" onclick="crearCategoria()">
-                    <div class="loading-spinner me-2"></div>
-                    <i class="fas fa-save me-2"></i>
-                    Crear Categoría
+                    <i class="fas fa-save me-2"></i>Crear Categoría
+                    <span class="loading-spinner"></span>
                 </button>
             </div>
         </div>
@@ -739,118 +695,233 @@
 
 {% block extra_js %}
 <script>
+// ============================================
+// FUNCIÓN TOGGLE MEJORADA (SIN PROBLEMAS)
+// ============================================
+function toggleSwitch(fieldName) {
+    console.log('🎯 Toggle clicked:', fieldName);
+    
+    const checkbox = document.getElementById('id_' + fieldName);
+    const slider = document.getElementById('slider_' + fieldName);
+    const toggle = document.getElementById(fieldName + 'Toggle');
+    
+    if (!checkbox) {
+        console.error('❌ Checkbox no encontrado:', 'id_' + fieldName);
+        return;
+    }
+    
+    // Toggle el estado
+    checkbox.checked = !checkbox.checked;
+    
+    console.log('✅ Nuevo estado de', fieldName + ':', checkbox.checked);
+    
+    // Actualizar UI
+    if (slider) {
+        if (checkbox.checked) {
+            slider.classList.add('checked');
+        } else {
+            slider.classList.remove('checked');
+        }
+    }
+    
+    if (toggle) {
+        if (checkbox.checked) {
+            toggle.classList.add('active');
+        } else {
+            toggle.classList.remove('active');
+        }
+    }
+    
+    // Si es el IVA, recalcular precios
+    if (fieldName === 'incluye_iva') {
+        updateCalculator();
+        updatePreview();
+    }
+}
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar calculadora
+    console.log('🚀 Inicializando formulario de servicio...');
+    
+    // Inicializar estados de todos los switches
+    initializeSwitch('incluye_iva');
+    initializeSwitch('activo');
+    initializeSwitch('requiere_repuestos');
+    
+    // Inicializar calculadora y preview
     updateCalculator();
     updatePreview();
     
-    // Event listeners para cálculo automático
-    document.getElementById('id_precio_base').addEventListener('input', updateCalculator);
-    document.getElementById('id_precio_mano_obra').addEventListener('input', updateCalculator);
-    document.getElementById('id_incluye_iva').addEventListener('change', updateCalculator);
+    // Event listeners para campos
+    const precioInput = document.getElementById('id_precio');
+    const nombreInput = document.getElementById('id_nombre');
+    const codigoInput = document.getElementById('id_codigo');
+    const descripcionInput = document.getElementById('id_descripcion');
+    const tiempoInput = document.getElementById('id_tiempo_estimado_horas');
+    const dificultadSelect = document.getElementById('id_nivel_dificultad');
+    const categoriaSelect = document.getElementById('id_categoria');
     
-    // Event listeners para preview
-    document.getElementById('id_nombre').addEventListener('input', updatePreview);
-    document.getElementById('id_codigo').addEventListener('input', updatePreview);
-    document.getElementById('id_descripcion').addEventListener('input', updatePreview);
-    document.getElementById('id_tiempo_estimado_horas').addEventListener('input', updatePreview);
-    document.getElementById('id_nivel_dificultad').addEventListener('change', updatePreview);
-    document.getElementById('id_categoria').addEventListener('change', updatePreview);
+    if (precioInput) {
+        precioInput.addEventListener('input', function() {
+            console.log('💰 Precio cambió a:', this.value);
+            updateCalculator();
+            updatePreview();
+        });
+    }
     
-    // Toggle switches
-    document.querySelectorAll('.feature-toggle input[type="checkbox"]').forEach(toggle => {
-        toggle.addEventListener('change', function() {
-            const parent = this.closest('.feature-toggle');
-            if (this.checked) {
-                parent.classList.add('active');
-            } else {
-                parent.classList.remove('active');
+    if (nombreInput) nombreInput.addEventListener('input', updatePreview);
+    if (codigoInput) codigoInput.addEventListener('input', updatePreview);
+    if (descripcionInput) descripcionInput.addEventListener('input', updatePreview);
+    if (tiempoInput) tiempoInput.addEventListener('input', updatePreview);
+    if (dificultadSelect) dificultadSelect.addEventListener('change', updatePreview);
+    if (categoriaSelect) categoriaSelect.addEventListener('change', updatePreview);
+    
+    // Auto-generar código de categoría
+    const categoriaNombreInput = document.getElementById('categoriaNombre');
+    if (categoriaNombreInput) {
+        categoriaNombreInput.addEventListener('input', function() {
+            const codigo = document.getElementById('categoriaCodigo');
+            if (codigo && !codigo.value) {
+                generarCodigoCategoria();
             }
         });
-        
-        // Inicializar estado
-        if (toggle.checked) {
-            toggle.closest('.feature-toggle').classList.add('active');
-        }
-    });
+    }
     
-    // Auto-generar código de categoría cuando se escribe el nombre
-    document.getElementById('categoriaNombre').addEventListener('input', function() {
-        const codigo = document.getElementById('categoriaCodigo');
-        if (!codigo.value) {
-            generarCodigoCategoria();
-        }
-    });
+    console.log('✅ JavaScript cargado completamente');
 });
 
-function updateCalculator() {
-    const precioBase = parseFloat(document.getElementById('id_precio_base').value) || 0;
-    const manoObra = parseFloat(document.getElementById('id_precio_mano_obra').value) || 0;
-    const incluyeIva = document.getElementById('id_incluye_iva').checked;
+function initializeSwitch(fieldName) {
+    const checkbox = document.getElementById('id_' + fieldName);
+    const slider = document.getElementById('slider_' + fieldName);
+    const toggle = document.getElementById(fieldName + 'Toggle');
     
-    const subtotal = precioBase + manoObra;
-    const iva = incluyeIva ? 0 : subtotal * 0.12;
-    const total = subtotal + iva;
+    if (!checkbox) {
+        console.warn('⚠️ Checkbox no encontrado:', 'id_' + fieldName);
+        return;
+    }
+    
+    console.log('🔧 Inicializando switch:', fieldName, '- Estado:', checkbox.checked);
+    
+    // Aplicar estado inicial
+    if (slider) {
+        if (checkbox.checked) {
+            slider.classList.add('checked');
+        } else {
+            slider.classList.remove('checked');
+        }
+    }
+    
+    if (toggle) {
+        if (checkbox.checked) {
+            toggle.classList.add('active');
+        } else {
+            toggle.classList.remove('active');
+        }
+    }
+}
+
+function updateCalculator() {
+    console.log('🔢 Actualizando calculadora...');
+    
+    const precioInput = document.getElementById('id_precio');
+    const ivaCheckbox = document.getElementById('id_incluye_iva');
+    
+    if (!precioInput) {
+        console.error('❌ Campo precio no encontrado');
+        return;
+    }
+    
+    const precioBase = parseFloat(precioInput.value) || 0;
+    const aplicarIva = ivaCheckbox ? ivaCheckbox.checked : false;
+    
+    console.log('📊 Precio Base:', precioBase, '- Aplicar IVA:', aplicarIva);
+    
+    const iva = aplicarIva ? (precioBase * 0.15) : 0;
+    const total = precioBase + iva;
     
     // Actualizar display
-    document.getElementById('calc-precio-base').textContent = `${precioBase.toFixed(2)}`;
-    document.getElementById('calc-mano-obra').textContent = `${manoObra.toFixed(2)}`;
-    document.getElementById('calc-subtotal').textContent = `${subtotal.toFixed(2)}`;
-    document.getElementById('calc-iva').textContent = `${iva.toFixed(2)}`;
-    document.getElementById('calc-total').textContent = `${total.toFixed(2)}`;
+    const precioBaseEl = document.getElementById('calc-precio-base');
+    const ivaEl = document.getElementById('calc-iva');
+    const totalEl = document.getElementById('calc-total');
+    const previewPrecioEl = document.getElementById('previewPrecio');
     
-    // Actualizar preview
-    document.getElementById('previewPrecio').textContent = `${total.toFixed(2)}`;
+    if (precioBaseEl) precioBaseEl.textContent = `S/ ${precioBase.toFixed(2)}`;
+    if (ivaEl) ivaEl.textContent = `S/ ${iva.toFixed(2)}`;
+    if (totalEl) totalEl.textContent = `S/ ${total.toFixed(2)}`;
+    if (previewPrecioEl) previewPrecioEl.textContent = `S/ ${total.toFixed(2)}`;
+    
+    console.log('✅ Calculadora actualizada - Total:', total.toFixed(2));
 }
 
 function updatePreview() {
-    const nombre = document.getElementById('id_nombre').value || 'Nombre del Servicio';
-    const codigo = document.getElementById('id_codigo').value || 'CODIGO';
-    const descripcion = document.getElementById('id_descripcion').value || 'Descripción del servicio...';
-    const tiempo = document.getElementById('id_tiempo_estimado_horas').value || '0';
-    const dificultad = document.getElementById('id_nivel_dificultad').selectedOptions[0]?.text || 'Básico';
-    const categoria = document.getElementById('id_categoria').selectedOptions[0]?.text || '';
+    const nombreInput = document.getElementById('id_nombre');
+    const codigoInput = document.getElementById('id_codigo');
+    const descripcionInput = document.getElementById('id_descripcion');
+    const tiempoInput = document.getElementById('id_tiempo_estimado_horas');
+    const dificultadSelect = document.getElementById('id_nivel_dificultad');
+    const categoriaSelect = document.getElementById('id_categoria');
     
-    // Actualizar textos
-    document.getElementById('previewNombre').textContent = nombre;
-    document.getElementById('previewCodigo').textContent = codigo;
-    document.getElementById('previewDescripcion').textContent = descripcion;
-    document.getElementById('previewTiempo').textContent = `${tiempo}h`;
-    document.getElementById('previewDificultad').textContent = dificultad;
+    const nombre = nombreInput ? nombreInput.value || 'Nombre del Servicio' : 'Nombre del Servicio';
+    const codigo = codigoInput ? codigoInput.value || 'CODIGO' : 'CODIGO';
+    const descripcion = descripcionInput ? descripcionInput.value || 'Descripción del servicio...' : 'Descripción del servicio...';
+    const tiempo = tiempoInput ? tiempoInput.value || '0' : '0';
+    const dificultad = dificultadSelect ? (dificultadSelect.selectedOptions[0]?.text || 'Básico') : 'Básico';
+    const categoria = categoriaSelect ? (categoriaSelect.selectedOptions[0]?.text || '') : '';
+    
+    const previewNombreEl = document.getElementById('previewNombre');
+    const previewCodigoEl = document.getElementById('previewCodigo');
+    const previewDescripcionEl = document.getElementById('previewDescripcion');
+    const previewTiempoEl = document.getElementById('previewTiempo');
+    const previewDificultadEl = document.getElementById('previewDificultad');
+    
+    if (previewNombreEl) previewNombreEl.textContent = nombre;
+    if (previewCodigoEl) previewCodigoEl.textContent = codigo;
+    if (previewDescripcionEl) previewDescripcionEl.textContent = descripcion;
+    if (previewTiempoEl) previewTiempoEl.textContent = `${tiempo}h`;
+    if (previewDificultadEl) previewDificultadEl.textContent = dificultad;
     
     // Actualizar icono basado en categoría
     const iconElement = document.querySelector('#previewIcon i');
-    if (categoria.toUpperCase().includes('MANTENIMIENTO')) {
-        iconElement.className = 'fas fa-tools';
-    } else if (categoria.toUpperCase().includes('REPARACION')) {
-        iconElement.className = 'fas fa-wrench';
-    } else if (categoria.toUpperCase().includes('DIAGNOSTICO')) {
-        iconElement.className = 'fas fa-search';
-    } else if (categoria.toUpperCase().includes('ELECTRICO')) {
-        iconElement.className = 'fas fa-bolt';
-    } else {
-        iconElement.className = 'fas fa-cog';
+    if (iconElement) {
+        if (categoria.toUpperCase().includes('MANTENIMIENTO')) {
+            iconElement.className = 'fas fa-tools';
+        } else if (categoria.toUpperCase().includes('REPARACION')) {
+            iconElement.className = 'fas fa-wrench';
+        } else if (categoria.toUpperCase().includes('DIAGNOSTICO')) {
+            iconElement.className = 'fas fa-search';
+        } else if (categoria.toUpperCase().includes('ELECTRICO')) {
+            iconElement.className = 'fas fa-bolt';
+        } else {
+            iconElement.className = 'fas fa-cog';
+        }
     }
     
     // Actualizar preview de dificultad
-    const difficultyValue = document.getElementById('id_nivel_dificultad').value;
-    const difficultyPreview = document.getElementById('difficultyPreview');
-    if (difficultyPreview) {
-        difficultyPreview.className = `difficulty-preview difficulty-${difficultyValue.toLowerCase()}`;
-        difficultyPreview.textContent = dificultad;
+    if (dificultadSelect) {
+        const difficultyValue = dificultadSelect.value;
+        const difficultyPreview = document.getElementById('difficultyPreview');
+        if (difficultyPreview) {
+            difficultyPreview.className = `difficulty-preview difficulty-${difficultyValue.toLowerCase()}`;
+            difficultyPreview.textContent = dificultad;
+        }
     }
 }
 
 function generarCodigo() {
-    const nombre = document.getElementById('id_nombre').value;
-    const categoria = document.getElementById('id_categoria').selectedOptions[0]?.text || '';
+    const nombreInput = document.getElementById('id_nombre');
+    const categoriaSelect = document.getElementById('id_categoria');
+    const codigoInput = document.getElementById('id_codigo');
     
-    if (!nombre) {
+    if (!nombreInput || !nombreInput.value) {
         alert('Primero ingrese el nombre del servicio');
         return;
     }
     
-    // Generar código basado en categoría y nombre
+    const nombre = nombreInput.value;
+    const categoria = categoriaSelect ? (categoriaSelect.selectedOptions[0]?.text || '') : '';
+    
     let prefijo = 'SERV';
     
     if (categoria.toUpperCase().includes('MANTENIMIENTO')) {
@@ -863,42 +934,45 @@ function generarCodigo() {
         prefijo = 'ELEC';
     }
     
-    // Tomar primeras letras del nombre
     const nombreCorto = nombre.substring(0, 3).toUpperCase();
-    
-    // Generar número aleatorio
     const numero = Math.floor(Math.random() * 900) + 100;
-    
     const codigoGenerado = `${prefijo}-${nombreCorto}${numero}`;
     
-    document.getElementById('id_codigo').value = codigoGenerado;
-    updatePreview();
+    if (codigoInput) {
+        codigoInput.value = codigoGenerado;
+        updatePreview();
+    }
 }
 
 function generarCodigoCategoria() {
-    const nombre = document.getElementById('categoriaNombre').value;
-    if (!nombre) return;
+    const nombreInput = document.getElementById('categoriaNombre');
+    const codigoInput = document.getElementById('categoriaCodigo');
     
-    // Tomar primeras 4 letras del nombre
+    if (!nombreInput || !nombreInput.value) return;
+    
+    const nombre = nombreInput.value;
     let codigo = nombre.substring(0, 4).toUpperCase();
     
-    // Agregar número aleatorio si es muy corto
     if (codigo.length < 3) {
         codigo += Math.floor(Math.random() * 90) + 10;
     }
     
-    document.getElementById('categoriaCodigo').value = codigo;
+    if (codigoInput) {
+        codigoInput.value = codigo;
+    }
 }
 
 function seleccionarColor(color) {
-    document.getElementById('categoriaColor').value = color;
+    const colorInput = document.getElementById('categoriaColor');
+    if (colorInput) {
+        colorInput.value = color;
+    }
     
-    // Actualizar selección visual
     document.querySelectorAll('.color-option').forEach(option => {
         option.classList.remove('selected');
     });
     
-    const colorOption = document.querySelector(`[style*="${color}"]`);
+    const colorOption = document.querySelector(`.color-option[style*="${color}"]`);
     if (colorOption) {
         colorOption.classList.add('selected');
     }
@@ -906,22 +980,25 @@ function seleccionarColor(color) {
 
 async function crearCategoria() {
     const form = document.getElementById('formNuevaCategoria');
-    const formData = new FormData(form);
-    const loadingSpinner = document.querySelector('.loading-spinner');
-    const saveButton = document.querySelector('.modal-footer .btn-primary');
+    if (!form) return;
     
-    // Validar campos requeridos
-    const nombre = document.getElementById('categoriaNombre').value.trim();
-    const codigo = document.getElementById('categoriaCodigo').value.trim();
+    const nombreInput = document.getElementById('categoriaNombre');
+    const codigoInput = document.getElementById('categoriaCodigo');
+    
+    const nombre = nombreInput ? nombreInput.value.trim() : '';
+    const codigo = codigoInput ? codigoInput.value.trim() : '';
     
     if (!nombre || !codigo) {
         alert('Por favor complete los campos obligatorios: Nombre y Código');
         return;
     }
     
-    // Mostrar loading
-    loadingSpinner.style.display = 'inline-block';
-    saveButton.disabled = true;
+    const formData = new FormData(form);
+    const loadingSpinner = document.querySelector('.loading-spinner');
+    const saveButton = document.querySelector('#modalNuevaCategoria .modal-footer .btn-primary');
+    
+    if (loadingSpinner) loadingSpinner.style.display = 'inline-block';
+    if (saveButton) saveButton.disabled = true;
     
     try {
         const response = await fetch('/taller/categoria/crear-ajax/', {
@@ -936,27 +1013,29 @@ async function crearCategoria() {
         const data = await response.json();
         
         if (data.success) {
-            // Agregar nueva opción al select
             const categoriaSelect = document.getElementById('id_categoria');
-            const newOption = document.createElement('option');
-            newOption.value = data.categoria.id;
-            newOption.textContent = data.categoria.nombre;
-            newOption.selected = true;
+            if (categoriaSelect) {
+                const newOption = document.createElement('option');
+                newOption.value = data.categoria.id;
+                newOption.textContent = data.categoria.nombre;
+                newOption.selected = true;
+                categoriaSelect.appendChild(newOption);
+            }
             
-            categoriaSelect.appendChild(newOption);
+            const modalElement = document.getElementById('modalNuevaCategoria');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) modal.hide();
             
-            // Cerrar modal y mostrar mensaje de éxito
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaCategoria'));
-            modal.hide();
-            
-            // Limpiar formulario
             form.reset();
-            document.getElementById('categoriaColor').value = '#007bff';
+            const colorInput = document.getElementById('categoriaColor');
+            if (colorInput) colorInput.value = '#007bff';
             
-            // Actualizar preview
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector('.color-option[style*="#007bff"]')?.classList.add('selected');
+            
             updatePreview();
-            
-            // Mostrar notificación de éxito
             mostrarNotificacion('Categoría creada exitosamente', 'success');
             
         } else {
@@ -967,14 +1046,12 @@ async function crearCategoria() {
         console.error('Error:', error);
         mostrarNotificacion(error.message || 'Error al crear la categoría', 'error');
     } finally {
-        // Ocultar loading
-        loadingSpinner.style.display = 'none';
-        saveButton.disabled = false;
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
+        if (saveButton) saveButton.disabled = false;
     }
 }
 
 function mostrarNotificacion(mensaje, tipo = 'info') {
-    // Crear elemento de notificación
     const notificacion = document.createElement('div');
     notificacion.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
     notificacion.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
@@ -987,7 +1064,6 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     
     document.body.appendChild(notificacion);
     
-    // Auto-remover después de 5 segundos
     setTimeout(() => {
         if (notificacion.parentNode) {
             notificacion.remove();
@@ -1005,47 +1081,46 @@ function probarEnPOS() {
     }
 }
 
-function previsualizarFactura() {
-    // Crear preview modal o abrir en nueva ventana
-    const previewData = {
-        nombre: document.getElementById('id_nombre').value,
-        codigo: document.getElementById('id_codigo').value,
-        precio: document.getElementById('calc-total').textContent,
-        tiempo: document.getElementById('id_tiempo_estimado_horas').value
-    };
-    
-    // Aquí podrías abrir un modal o nueva ventana con preview
-    alert(`Preview: ${previewData.nombre} - ${previewData.precio} - ${previewData.tiempo}h`);
-}
-
 // Validación antes de enviar
-document.getElementById('servicioForm').addEventListener('submit', function(e) {
-    const requiredFields = ['id_nombre', 'id_codigo', 'id_precio_base', 'id_precio_mano_obra', 'id_tiempo_estimado_horas'];
-    let isValid = true;
-    
-    requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field.value.trim()) {
-            field.classList.add('is-invalid');
-            isValid = false;
-        } else {
-            field.classList.remove('is-invalid');
+const servicioForm = document.getElementById('servicioForm');
+if (servicioForm) {
+    servicioForm.addEventListener('submit', function(e) {
+        const requiredFields = ['id_nombre', 'id_codigo', 'id_precio', 'id_tiempo_estimado_horas'];
+        let isValid = true;
+        
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field && !field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else if (field) {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Por favor complete todos los campos requeridos.');
         }
     });
-    
-    if (!isValid) {
-        e.preventDefault();
-        alert('Por favor complete todos los campos requeridos.');
-    }
-});
+}
 
 // Limpiar modal cuando se cierre
-document.getElementById('modalNuevaCategoria').addEventListener('hidden.bs.modal', function() {
-    document.getElementById('formNuevaCategoria').reset();
-    document.getElementById('categoriaColor').value = '#007bff';
-    document.querySelectorAll('.color-option').forEach(option => {
-        option.classList.remove('selected');
+const modalNuevaCategoria = document.getElementById('modalNuevaCategoria');
+if (modalNuevaCategoria) {
+    modalNuevaCategoria.addEventListener('hidden.bs.modal', function() {
+        const form = document.getElementById('formNuevaCategoria');
+        if (form) form.reset();
+        
+        const colorInput = document.getElementById('categoriaColor');
+        if (colorInput) colorInput.value = '#007bff';
+        
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        document.querySelector('.color-option[style*="#007bff"]')?.classList.add('selected');
     });
-});
+}
 </script>
 {% endblock %}

@@ -41,7 +41,15 @@
                             <td>{{ usuario.usuario }}</td>
                             <td>{{ usuario.nombre }} {{ usuario.apellido }}</td>
                             <td>{{ usuario.email }}</td>
-                            <td>{{ usuario.rol.nombre|default:"Sin rol" }}</td>
+                            <td>
+                                {% if usuario.is_superuser %}
+                                    <span class="badge bg-danger">Super Admin</span>
+                                {% elif usuario.is_staff %}
+                                     <span class="badge bg-primary">Administrador</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Usuario</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if usuario.activo %}
                                 <span class="badge bg-success">Activo</span>

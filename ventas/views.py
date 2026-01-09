@@ -79,16 +79,16 @@ def lista_ventas(request):
     if ingresos_ayer > 0:
         crecimiento_ingresos = ((ingresos_hoy - ingresos_ayer) / ingresos_ayer) * 100
     
-    # Órdenes pendientes de facturar
+    # ✅ CAMBIO: Órdenes pendientes (no completadas)
     ordenes_pendientes = OrdenTrabajo.objects.filter(
-        estado='COMPLETADO',
+        estado='PENDIENTE',
         facturado=False
     ).select_related('cliente')
     
     ordenes_pendientes_count = ordenes_pendientes.count()
     ordenes_ayer = OrdenTrabajo.objects.filter(
-        fecha_completado__date=yesterday,
-        estado='COMPLETADO',
+        fecha_ingreso__date=yesterday,
+        estado='PENDIENTE',
         facturado=False
     ).count()
     
@@ -111,7 +111,7 @@ def lista_ventas(request):
     urgencia_ordenes = 0
     if ordenes_pendientes_count > 0:
         ordenes_urgentes = ordenes_pendientes.filter(
-            fecha_completado__lt=today - timedelta(days=2)
+            fecha_ingreso__lt=today - timedelta(days=2)
         ).count()
         urgencia_ordenes = (ordenes_urgentes / ordenes_pendientes_count) * 100
     
@@ -407,8 +407,8 @@ def punto_venta(request):
             data = json.loads(request.body)
             logger.info(f"Datos recibidos en POS: {data}")
             
-            if not data.get('items'):
-                return JsonResponse({'success': False, 'mensaje': 'No hay productos en la venta'})
+            if not data.get('items') and not data.get('orden_trabajo_id'):
+                return JsonResponse({'success': False, 'mensaje': 'No hay productos en la venta ni orden de trabajo'})
             
             # ========== OBTENER O CREAR CLIENTE ==========
             cliente = None
@@ -437,10 +437,10 @@ def punto_venta(request):
             )
             logger.info(f"Venta creada con ID: {venta.id}, Número: {venta.numero_factura}")
             
-            # ========== PROCESAR ITEMS ==========
+            # ========== PROCESAR ITEMS (si existen) ==========
             detalles_creados = 0
             
-            for item_index, item in enumerate(data['items']):
+            for item_index, item in enumerate(data.get('items', [])):
                 logger.info(f"Procesando item {item_index + 1}: {item}")
                 
                 if item['tipo'] == 'producto':
@@ -457,7 +457,7 @@ def punto_venta(request):
                                 'mensaje': f'Stock insuficiente para {producto.nombre}. Disponible: {producto.stock_actual}'
                             })
                         
-                        # Crear detalle de venta
+                        # Crear detalle de venta para PRODUCTO (con IVA 15%)
                         detalle = DetalleVenta.objects.create(
                             venta=venta,
                             producto=producto,
@@ -492,23 +492,28 @@ def punto_venta(request):
                             tecnico = Tecnico.objects.get(id=item['tecnico_id'])
                             logger.info(f"Técnico asignado: {tecnico.get_nombre_completo()}")
                         
-                        # Crear detalle de servicio
+                        # ✅ Crear detalle de servicio SIN IVA
+                        cantidad = Decimal(str(item['cantidad']))
+                        precio_unitario = Decimal(str(item['precio_unitario']))
+                        subtotal = cantidad * precio_unitario
+                        descuento = Decimal(str(item.get('descuento', '0.00')))
+                        
                         detalle = DetalleVenta.objects.create(
                             venta=venta,
                             tipo_servicio=tipo_servicio,
                             tecnico=tecnico,
-                            cantidad=Decimal(str(item['cantidad'])),
-                            precio_unitario=Decimal(str(item['precio_unitario'])),
-                            subtotal=Decimal(str(item['subtotal'])),
-                            iva_porcentaje=Decimal('15.00'),  # Servicios también con IVA
-                            iva=Decimal(str(item['iva'])),
-                            descuento=Decimal(str(item.get('descuento', '0.00'))),
-                            total=Decimal(str(item['total'])),
+                            cantidad=cantidad,
+                            precio_unitario=precio_unitario,
+                            subtotal=subtotal,
+                            iva_porcentaje=Decimal('0.00'),  # ✅ Servicios SIN IVA
+                            iva=Decimal('0.00'),              # ✅ Servicios SIN IVA
+                            descuento=descuento,
+                            total=subtotal - descuento,       # ✅ Total = Subtotal - Descuento
                             es_servicio=True
                         )
                         
                         detalles_creados += 1
-                        logger.info(f"Detalle creado para servicio: {tipo_servicio.nombre}")
+                        logger.info(f"Detalle creado para servicio: {tipo_servicio.nombre} SIN IVA")
                         
                     except (TipoServicio.DoesNotExist, Tecnico.DoesNotExist) as e:
                         venta.delete()
@@ -518,32 +523,33 @@ def punto_venta(request):
                 else:
                     logger.warning(f"Tipo de item desconocido: {item.get('tipo')}")
             
-            logger.info(f"Detalles creados: {detalles_creados} de {len(data['items'])} items")
+            logger.info(f"Detalles creados: {detalles_creados} de {len(data.get('items', []))} items")
             
             # ========== MANEJAR ORDEN DE TRABAJO ==========
             if data.get('orden_trabajo_id'):
                 try:
                     orden = OrdenTrabajo.objects.get(id=data['orden_trabajo_id'])
+                    
+                    # ✅ MARCAR COMO COMPLETADA Y FACTURADA AL MISMO TIEMPO
+                    orden.estado = 'COMPLETADO'
+                    orden.fecha_completado = timezone.now()
                     orden.facturado = True
                     orden.venta = venta
-                    
-                    if orden.estado != 'COMPLETADO':
-                        orden.estado = 'COMPLETADO'
-                        orden.fecha_completado = timezone.now()
-                    
                     orden.save()
-                    logger.info(f"Orden de trabajo {orden.numero_orden} marcada como facturada")
+                    
+                    logger.info(f"Orden de trabajo {orden.numero_orden} marcada como COMPLETADA y facturada")
                         
                 except OrdenTrabajo.DoesNotExist:
                     logger.warning(f"Orden de trabajo ID {data['orden_trabajo_id']} no encontrada")
             
-            # ========== VERIFICAR DETALLES CREADOS ==========
-            detalles_en_bd = DetalleVenta.objects.filter(venta=venta).count()
-            logger.info(f"Detalles en BD después de crear venta: {detalles_en_bd}")
-            
-            if detalles_en_bd == 0:
-                logger.error("No se crearon detalles de venta")
-                return JsonResponse({'success': False, 'mensaje': 'Error: No se pudieron crear los detalles de la venta'})
+            # ========== VERIFICAR DETALLES CREADOS (solo si hay items) ==========
+            if data.get('items'):
+                detalles_en_bd = DetalleVenta.objects.filter(venta=venta).count()
+                logger.info(f"Detalles en BD después de crear venta: {detalles_en_bd}")
+                
+                if detalles_en_bd == 0:
+                    logger.error("No se crearon detalles de venta")
+                    return JsonResponse({'success': False, 'mensaje': 'Error: No se pudieron crear los detalles de la venta'})
             
             # ========== MANEJO DE IMPRESIÓN ==========
             if data.get('imprimir'):
@@ -567,7 +573,7 @@ def punto_venta(request):
                 'venta_id': venta.id,
                 'numero_factura': venta.numero_factura,
                 'mensaje': 'Venta registrada correctamente',
-                'detalles_creados': detalles_en_bd,
+                'detalles_creados': DetalleVenta.objects.filter(venta=venta).count(),
                 'total': float(venta.total)
             }
             
@@ -591,8 +597,9 @@ def pos_con_orden(request, orden_id):
     try:
         orden = get_object_or_404(OrdenTrabajo, pk=orden_id)
         
-        if orden.estado != 'COMPLETADO':
-            messages.error(request, 'Solo se pueden facturar órdenes completadas')
+        # ✅ CAMBIAR VALIDACIÓN A PENDIENTES
+        if orden.estado != 'PENDIENTE':
+            messages.error(request, f'Solo se pueden facturar órdenes PENDIENTES. Estado actual: {orden.get_estado_display()}')
             return redirect('taller:detalle_orden', orden_id=orden_id)
         
         if orden.facturado:
@@ -726,16 +733,14 @@ def api_servicios(request):
         
         servicios_data = []
         for servicio in servicios:
-            precio_total = servicio.precio_base + (servicio.precio_mano_obra or 0)
-            
+            # ✅ SIMPLIFICADO - solo un precio
             servicios_data.append({
                 'id': servicio.id,
                 'codigo': servicio.codigo,
                 'nombre': servicio.nombre,
                 'descripcion': servicio.descripcion or '',
-                'precio_base': float(servicio.precio_base),
-                'precio_mano_obra': float(servicio.precio_mano_obra or 0),
-                'precio_total': float(precio_total),
+                'precio': float(servicio.precio),  # ✅ CAMBIADO
+                'precio_total': float(servicio.precio),  # ✅ CAMBIADO
                 'categoria': servicio.categoria.nombre if servicio.categoria else None,
                 'tiempo_estimado': float(servicio.tiempo_estimado_horas or 0),
                 'nivel_dificultad': servicio.nivel_dificultad,
@@ -752,12 +757,13 @@ def api_servicios(request):
 
 @login_required
 def api_ordenes_completadas(request):
-    """API para obtener órdenes completadas pendientes de facturar - CORREGIDA"""
+    """API para obtener órdenes PENDIENTES listas para facturar"""
     try:
         search = request.GET.get('q', '').strip()
         
+        # ✅ CAMBIAR A PENDIENTES en lugar de COMPLETADAS
         ordenes = OrdenTrabajo.objects.filter(
-            estado='COMPLETADO',
+            estado='PENDIENTE',
             facturado=False
         ).select_related('cliente', 'tecnico_principal')
         
@@ -775,7 +781,7 @@ def api_ordenes_completadas(request):
         for orden in ordenes:
             # ✅ CALCULAR PRECIO REAL DESDE SERVICIOS Y REPUESTOS
             servicios_total = orden.servicios.aggregate(
-                total=Sum('precio_total')
+                total=Sum('precio_servicio')
             )['total'] or Decimal('0.00')
             
             repuestos_total = orden.repuestos_utilizados.aggregate(
@@ -808,7 +814,7 @@ def api_ordenes_completadas(request):
             cliente_nombre = f"{orden.cliente.nombres} {orden.cliente.apellidos}".strip()
             vehiculo = f"{orden.moto_marca} {orden.moto_modelo}".strip()
             tecnico_principal = orden.tecnico_principal.get_nombre_completo() if orden.tecnico_principal else 'Sin técnico'
-            fecha_completado = orden.fecha_completado.strftime('%d/%m/%Y %H:%M') if orden.fecha_completado else 'N/A'
+            fecha_ingreso = orden.fecha_ingreso.strftime('%d/%m/%Y %H:%M')
             
             ordenes_data.append({
                 'id': orden.id,
@@ -817,8 +823,8 @@ def api_ordenes_completadas(request):
                 'cliente_id': orden.cliente.id,
                 'vehiculo': vehiculo,
                 'placa': orden.moto_placa,
-                'precio_total': precio_total_real,  # ✅ USAR PRECIO REAL CALCULADO
-                'fecha_completado': fecha_completado,
+                'precio_total': precio_total_real,
+                'fecha_ingreso': fecha_ingreso,
                 'tecnico_principal': tecnico_principal,
                 'estado': orden.estado,
                 'descripcion_problema': orden.motivo_ingreso[:100] + '...' if len(orden.motivo_ingreso or '') > 100 else orden.motivo_ingreso or ''
@@ -834,14 +840,15 @@ def api_ordenes_completadas(request):
 
 @login_required  
 def api_orden_datos_pos(request, orden_id):
-    """API para obtener datos completos de una orden para el POS - MEJORADA"""
+    """API para obtener datos SIMPLIFICADOS de una orden para el POS"""
     try:
         orden = get_object_or_404(OrdenTrabajo, pk=orden_id)
         
-        if orden.estado != 'COMPLETADO':
+        # ✅ VALIDAR QUE LA ORDEN ESTÉ PENDIENTE
+        if orden.estado != 'PENDIENTE':
             return JsonResponse({
                 'success': False, 
-                'message': 'Solo se pueden facturar órdenes completadas'
+                'message': f'Solo se pueden facturar órdenes PENDIENTES. Estado actual: {orden.get_estado_display()}'
             })
         
         if orden.facturado:
@@ -850,9 +857,9 @@ def api_orden_datos_pos(request, orden_id):
                 'message': 'Esta orden ya ha sido facturada'
             })
         
-        # ✅ ASEGURAR CONSISTENCIA DE PRECIOS ANTES DE DEVOLVER DATOS
+        # ✅ CALCULAR PRECIO TOTAL
         servicios_total = orden.servicios.aggregate(
-            total=Sum('precio_total')
+            total=Sum('precio_servicio')
         )['total'] or Decimal('0.00')
         
         repuestos_total = orden.repuestos_utilizados.aggregate(
@@ -861,7 +868,7 @@ def api_orden_datos_pos(request, orden_id):
         
         precio_total_calculado = servicios_total + repuestos_total
         
-        # Verificar y corregir inconsistencias
+        # Actualizar orden si hay inconsistencias
         if abs(float(orden.precio_total) - float(precio_total_calculado)) > 0.01:
             orden.precio_mano_obra = servicios_total
             orden.precio_repuestos = repuestos_total
@@ -872,62 +879,26 @@ def api_orden_datos_pos(request, orden_id):
                 'precio_total', 'saldo_pendiente'
             ])
         
-        servicios = []
-        for servicio_orden in orden.servicios.all():
-            tecnico_nombre = None
-            tecnico_id = None
-            if servicio_orden.tecnico_asignado:
-                tecnico_id = servicio_orden.tecnico_asignado.id
-                tecnico_nombre = servicio_orden.tecnico_asignado.get_nombre_completo()
-            
-            servicios.append({
-                'id': servicio_orden.tipo_servicio.id,
-                'codigo': servicio_orden.tipo_servicio.codigo,
-                'nombre': servicio_orden.tipo_servicio.nombre,
-                'precio_total': float(servicio_orden.precio_total),
-                'cantidad': 1,
-                'tecnico_id': tecnico_id,
-                'tecnico_nombre': tecnico_nombre,
-                'categoria': servicio_orden.tipo_servicio.categoria.nombre if servicio_orden.tipo_servicio.categoria else None,
-            })
-        
-        repuestos = []
-        for repuesto_orden in orden.repuestos_utilizados.all():
-            codigo = getattr(repuesto_orden.producto, 'codigo_unico', None) or getattr(repuesto_orden.producto, 'codigo_barras', None) or 'N/A'
-            
-            repuestos.append({
-                'id': repuesto_orden.producto.id,
-                'codigo': codigo,
-                'nombre': repuesto_orden.producto.nombre,
-                'cantidad': float(repuesto_orden.cantidad),
-                'precio_unitario': float(repuesto_orden.precio_unitario),
-                'stock_disponible': float(repuesto_orden.producto.stock_actual + repuesto_orden.cantidad),
-                'categoria': getattr(repuesto_orden.producto, 'categoria', None)
-            })
-        
+        # ✅ DATOS DEL CLIENTE
         cliente_nombre = f"{orden.cliente.nombres} {orden.cliente.apellidos}".strip()
         vehiculo_info = f"{orden.moto_marca} {orden.moto_modelo} - {orden.moto_placa}"
         tecnico_principal = orden.tecnico_principal.get_nombre_completo() if orden.tecnico_principal else 'Sin técnico'
-        fecha_completado = orden.fecha_completado.strftime('%d/%m/%Y %H:%M') if orden.fecha_completado else 'N/A'
         
+        # ✅ ESTRUCTURA SIMPLIFICADA - SIN DESGLOSE
         orden_data = {
             'id': orden.id,
-            'numero_orden': orden.numero_orden,
+            'numero_orden': str(orden.numero_orden),
             'cliente': {
                 'id': orden.cliente.id,
-                'nombre_completo': cliente_nombre,
-                'identificacion': orden.cliente.identificacion
+                'nombre_completo': str(cliente_nombre),
+                'identificacion': str(orden.cliente.identificacion)
             },
-            'vehiculo': vehiculo_info,
-            'tecnico_principal': tecnico_principal,
-            'fecha_completado': fecha_completado,
-            'servicios': servicios,
-            'repuestos': repuestos,
-            'precio_mano_obra': float(orden.precio_mano_obra),  # ✅ USAR VALORES CORREGIDOS
-            'precio_repuestos': float(orden.precio_repuestos),  # ✅ USAR VALORES CORREGIDOS
-            'precio_total': float(orden.precio_total),          # ✅ USAR VALORES CORREGIDOS
-            'descripcion_problema': orden.motivo_ingreso or '',
-            'observaciones': orden.observaciones_tecnico or ''
+            'vehiculo': str(vehiculo_info),
+            'tecnico_principal': str(tecnico_principal),
+            'precio_total': float(orden.precio_total),
+            'descripcion_problema': str(orden.motivo_ingreso or ''),
+            'observaciones': str(orden.observaciones_tecnico or ''),
+            # ✅ NO SE ENVÍAN servicios ni repuestos desglosados
         }
         
         return JsonResponse({
@@ -935,12 +906,23 @@ def api_orden_datos_pos(request, orden_id):
             'orden': orden_data
         })
         
+    except OrdenTrabajo.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Orden de trabajo no encontrada'
+        }, status=404)
     except Exception as e:
         import logging
+        import traceback
         logger = logging.getLogger(__name__)
-        logger.error(f"Error en api_orden_datos_pos: {str(e)}", exc_info=True)
-        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
-
+        logger.error(f"Error en api_orden_datos_pos: {str(e)}")
+        logger.error(traceback.format_exc())
+        
+        return JsonResponse({
+            'success': False,
+            'message': f'Error al cargar orden: {str(e)}'
+        }, status=500)
+        
 @login_required
 def api_buscar_clientes(request):
     """API para buscar clientes"""
@@ -1308,10 +1290,10 @@ def importar_orden_trabajo(request, orden_id):
     try:
         orden = get_object_or_404(OrdenTrabajo, pk=orden_id)
         
-        if orden.estado != 'COMPLETADO':
+        if orden.estado != 'PENDIENTE':
             return JsonResponse({
                 'success': False, 
-                'mensaje': 'Solo se pueden facturar órdenes completadas'
+                'mensaje': 'Solo se pueden facturar órdenes pendientes'
             })
         
         if orden.facturado:
@@ -1569,7 +1551,7 @@ def api_dashboard_stats(request):
         
         # Órdenes pendientes
         ordenes_pendientes = OrdenTrabajo.objects.filter(
-            estado='COMPLETADO',
+            estado='PENDIENTE',
             facturado=False
         ).count()
         

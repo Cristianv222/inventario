@@ -75,24 +75,80 @@ class TipoServicioForm(forms.ModelForm):
     class Meta:
         model = TipoServicio
         fields = [
-            'categoria', 'nombre', 'codigo', 'descripcion',
-            'precio_base', 'precio_mano_obra', 'incluye_iva',
-            'activo', 'tiempo_estimado_horas', 'requiere_repuestos',
-            'requiere_especialidad', 'nivel_dificultad'
+            'categoria',
+            'nombre',
+            'codigo',
+            'descripcion',
+            'precio',
+            'activo',
+            'tiempo_estimado_horas',
+            'requiere_repuestos',
+            'requiere_especialidad',
+            'nivel_dificultad'
         ]
+        
+        labels = {
+            'categoria': 'Categoría',
+            'nombre': 'Nombre del Servicio',
+            'codigo': 'Código',
+            'descripcion': 'Descripción',
+            'precio': 'Precio del Servicio',
+            'activo': 'Activo',
+            'tiempo_estimado_horas': 'Tiempo Estimado (horas)',
+            'requiere_repuestos': 'Requiere Repuestos',
+            'requiere_especialidad': 'Requiere Especialidad',
+            'nivel_dificultad': 'Nivel de Dificultad'
+        }
+        
         widgets = {
-            'categoria': forms.Select(attrs={'class': 'form-select'}),
-            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
-            'codigo': forms.TextInput(attrs={'class': 'form-control'}),
-            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'precio_base': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'precio_mano_obra': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'incluye_iva': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'tiempo_estimado_horas': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
-            'requiere_repuestos': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'requiere_especialidad': forms.Select(attrs={'class': 'form-select'}),
-            'nivel_dificultad': forms.Select(attrs={'class': 'form-select'}),
+            'categoria': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Cambio de Aceite'
+            }),
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: SERV-001'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descripción del servicio...'
+            }),
+            'precio': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: 25.00',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'tiempo_estimado_horas': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: 1.5',
+                'step': '0.25',
+                'min': '0'
+            }),
+            'requiere_repuestos': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'requiere_especialidad': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'nivel_dificultad': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'activo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+        
+        help_texts = {
+            'precio': 'Precio total del servicio sin IVA',
+            'codigo': 'Código único para identificar el servicio',
+            'tiempo_estimado_horas': 'Tiempo aproximado que toma realizar el servicio',
+            'requiere_repuestos': 'Marcar si el servicio normalmente requiere repuestos',
         }
 
 
@@ -204,72 +260,146 @@ class OrdenTrabajoForm(forms.ModelForm):
         return orden
 
 
+# ============================================
+# ✅ CORREGIDO: ServicioOrdenForm
+# ============================================
 class ServicioOrdenForm(forms.ModelForm):
     """Formulario para servicios en órdenes"""
     class Meta:
         model = ServicioOrden
         fields = [
-            'tipo_servicio', 'tecnico_asignado', 'precio_base',
-            'precio_mano_obra', 'tiempo_estimado', 'observaciones',
-            'requiere_aprobacion'  # Agregar este campo si existe en el modelo
+            'tipo_servicio',
+            'tecnico_asignado',
+            'precio_servicio',  # ✅ CORREGIDO - nombre real del campo en el modelo
+            'observaciones'
         ]
+        
+        labels = {
+            'tipo_servicio': 'Servicio',
+            'tecnico_asignado': 'Técnico Asignado',
+            'precio_servicio': 'Precio Total',
+            'observaciones': 'Observaciones'
+        }
+        
         widgets = {
-            'tipo_servicio': forms.Select(attrs={'class': 'form-select'}),
-            'tecnico_asignado': forms.Select(attrs={'class': 'form-select'}),
-            'precio_base': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'precio_mano_obra': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tiempo_estimado': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
-            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'requiere_aprobacion': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tipo_servicio': forms.Select(attrs={
+                'class': 'form-select servicio-select',
+                'data-precio-url': '/taller/ajax/precio-servicio/'
+            }),
+            'tecnico_asignado': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'precio_servicio': forms.NumberInput(attrs={  # ✅ CORREGIDO
+                'class': 'form-control precio-servicio',
+                'step': '0.01',
+                'min': '0',
+                'readonly': 'readonly'
+            }),
+            'observaciones': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Observaciones adicionales...'
+            })
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filtrar solo técnicos activos para la asignación
-        if 'tecnico_asignado' in self.fields:
-            self.fields['tecnico_asignado'].queryset = Tecnico.objects.filter(
-                estado='ACTIVO', activo=True
-            )
+        
+        # Filtrar solo servicios activos
+        self.fields['tipo_servicio'].queryset = TipoServicio.objects.filter(activo=True)
+        
+        # Filtrar solo técnicos activos
+        self.fields['tecnico_asignado'].queryset = Tecnico.objects.filter(
+            estado='ACTIVO', activo=True
+        )
+        
+        # ✅ Hacer campos opcionales
+        self.fields['tecnico_asignado'].required = False
+        self.fields['precio_servicio'].required = False  # ✅ CORREGIDO
+        self.fields['observaciones'].required = False
 
 
+# ============================================
+# ✅ CORREGIDO: RepuestoOrdenForm
+# ============================================
 class RepuestoOrdenForm(forms.ModelForm):
     """Formulario para repuestos en órdenes"""
-    producto_codigo = forms.CharField(
-        label="Código",
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
-    
     class Meta:
         model = RepuestoOrden
-        fields = ['producto', 'cantidad', 'precio_unitario', 
-                 'servicio_asociado', 'observaciones']
-        widgets = {
-            'producto': forms.HiddenInput(),
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'step': '0.01'}),
-            'precio_unitario': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'servicio_asociado': forms.Select(attrs={'class': 'form-select'}),
-            'observaciones': forms.TextInput(attrs={'class': 'form-control'}),
+        fields = [
+            'producto',
+            'cantidad',
+            'precio_unitario',
+            'observaciones'
+        ]
+        
+        labels = {
+            'producto': 'Producto/Repuesto',
+            'cantidad': 'Cantidad',
+            'precio_unitario': 'Precio Unitario',
+            'observaciones': 'Observaciones'
         }
+        
+        widgets = {
+            'producto': forms.Select(attrs={
+                'class': 'form-select producto-select',
+                'data-precio-url': '/taller/ajax/precio-producto/'
+            }),
+            'cantidad': forms.NumberInput(attrs={
+                'class': 'form-control cantidad-input',
+                'min': '0.01',
+                'step': '0.01',
+                'value': '1'
+            }),
+            'precio_unitario': forms.NumberInput(attrs={
+                'class': 'form-control precio-unitario',
+                'step': '0.01',
+                'min': '0',
+                'readonly': 'readonly'
+            }),
+            'observaciones': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Observaciones...'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Filtrar solo productos activos con stock
+        self.fields['producto'].queryset = Producto.objects.filter(
+            activo=True,
+            stock_actual__gt=0
+        )
+        
+        # ✅ Hacer campos opcionales
+        self.fields['precio_unitario'].required = False
+        self.fields['observaciones'].required = False
 
 
-# Formsets para órdenes de trabajo con prefijos
+# ============================================
+# ✅ FORMSETS CORREGIDOS
+# ============================================
 ServicioOrdenFormSet = inlineformset_factory(
-    OrdenTrabajo, ServicioOrden,
+    OrdenTrabajo,
+    ServicioOrden,
     form=ServicioOrdenForm,
-    extra=1, 
+    extra=1,
     can_delete=True,
-    min_num=0,  # Permitir órdenes sin servicios inicialmente
-    validate_min=False
+    min_num=0,
+    validate_min=False,
+    max_num=20
 )
 
 RepuestoOrdenFormSet = inlineformset_factory(
-    OrdenTrabajo, RepuestoOrden,
+    OrdenTrabajo,
+    RepuestoOrden,
     form=RepuestoOrdenForm,
-    extra=1, 
+    extra=1,
     can_delete=True,
-    min_num=0,  # Permitir órdenes sin repuestos inicialmente
-    validate_min=False
+    min_num=0,
+    validate_min=False,
+    max_num=50
 )
 
 
@@ -320,31 +450,23 @@ class EvaluacionServicioForm(forms.ModelForm):
 
 class BusquedaOrdenForm(forms.Form):
     """Formulario para buscar órdenes de trabajo"""
-    numero_orden = forms.CharField(
+    busqueda = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Número de orden'
-        })
-    )
-    cliente = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Nombre o identificación del cliente'
-        })
-    )
-    placa = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Placa de la moto'
+            'placeholder': 'Buscar por número de orden, cliente o placa...'
         })
     )
     estado = forms.ChoiceField(
         required=False,
-        choices=[('', 'Todos')] + OrdenTrabajo.ESTADO_CHOICES,
+        choices=[('', 'Todos los estados')] + list(OrdenTrabajo.ESTADO_CHOICES),
         widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    tecnico = forms.ModelChoiceField(
+        queryset=Tecnico.objects.filter(estado='ACTIVO', activo=True),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        empty_label='Todos los técnicos'
     )
     fecha_desde = forms.DateField(
         required=False,

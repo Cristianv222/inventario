@@ -255,17 +255,37 @@ class TecnicoCreateView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form)
     
     def form_invalid(self, form):
+        # AGREGAR ESTOS PRINTS
         print("=" * 50)
-        print("FORMULARIO INVÁLIDO - TÉCNICO")
+        print("FORMULARIO INVÁLIDO - ORDEN DE TRABAJO")
         print("Errores del formulario:")
         for field, errors in form.errors.items():
             print(f"  {field}: {errors}")
-        print("Datos enviados:")
-        for field, value in form.data.items():
+        print("=" * 50)
+        print("Datos POST recibidos:")
+        for field, value in self.request.POST.items():
             print(f"  {field}: {value}")
         print("=" * 50)
         
-        messages.error(self.request, 'Error al crear el técnico. Revisa los campos marcados.')
+        # También revisar formsets
+        context = self.get_context_data()
+        servicios_formset = context['servicios_formset']
+        repuestos_formset = context['repuestos_formset']
+        
+        if not servicios_formset.is_valid():
+            print("ERRORES EN FORMSET DE SERVICIOS:")
+            print(servicios_formset.errors)
+            print("=" * 50)
+        
+        if not repuestos_formset.is_valid():
+            print("ERRORES EN FORMSET DE REPUESTOS:")
+            print(repuestos_formset.errors)
+            print("=" * 50)
+        
+        messages.error(
+            self.request,
+            'Por favor corrija los errores en el formulario.'
+        )
         return super().form_invalid(form)
 
 class TecnicoUpdateView(LoginRequiredMixin, UpdateView):
@@ -471,12 +491,44 @@ class OrdenTrabajoCreateView(LoginRequiredMixin, CreateView):
     
     @transaction.atomic
     def form_valid(self, form):
+        # DEBUG: Agregar al inicio
+        print("=" * 50)
+        print("FORM_VALID LLAMADO - OrdenTrabajoCreateView")
+        print("Datos del formulario principal:")
+        for field, value in form.cleaned_data.items():
+            print(f"  {field}: {value}")
+        print("=" * 50)
+        
         context = self.get_context_data()
         servicios_formset = context['servicios_formset']
         repuestos_formset = context['repuestos_formset']
         
+        # DEBUG: Validar formsets
+        servicios_valido = servicios_formset.is_valid()
+        repuestos_valido = repuestos_formset.is_valid()
+        
+        print(f"Servicios formset válido: {servicios_valido}")
+        print(f"Repuestos formset válido: {repuestos_valido}")
+        
+        if not servicios_valido:
+            print("ERRORES EN SERVICIOS FORMSET:")
+            for i, errors in enumerate(servicios_formset.errors):
+                if errors:
+                    print(f"  Formulario {i}: {errors}")
+            print(f"  Non-form errors: {servicios_formset.non_form_errors()}")
+            print("=" * 50)
+        
+        if not repuestos_valido:
+            print("ERRORES EN REPUESTOS FORMSET:")
+            for i, errors in enumerate(repuestos_formset.errors):
+                if errors:
+                    print(f"  Formulario {i}: {errors}")
+            print(f"  Non-form errors: {repuestos_formset.non_form_errors()}")
+            print("=" * 50)
+        
         # Validar formsets
         if servicios_formset.is_valid() and repuestos_formset.is_valid():
+            print("✓ TODOS LOS FORMSETS VÁLIDOS - Guardando orden...")
             # Asignar usuario de creación
             form.instance.usuario_creacion = self.request.user
             # Guardar la orden primero
@@ -497,6 +549,9 @@ class OrdenTrabajoCreateView(LoginRequiredMixin, CreateView):
                 observaciones='Orden creada'
             )
             
+            print(f"✓ Orden creada exitosamente: #{self.object.numero_orden}")
+            print("=" * 50)
+            
             messages.success(
                 self.request, 
                 f'Orden #{self.object.numero_orden} creada exitosamente.'
@@ -509,15 +564,17 @@ class OrdenTrabajoCreateView(LoginRequiredMixin, CreateView):
             else:
                 return redirect(self.get_success_url())
         else:
+            print("✗ FORMSETS INVÁLIDOS - Llamando form_invalid")
+            print("=" * 50)
             # Si hay errores en los formsets, mostrarlos
             return self.form_invalid(form)
-    
-    def form_invalid(self, form):
-        messages.error(
-            self.request,
-            'Por favor corrija los errores en el formulario.'
-        )
-        return super().form_invalid(form)
+        
+        def form_invalid(self, form):
+            messages.error(
+                self.request,
+                'Por favor corrija los errores en el formulario.'
+            )
+            return super().form_invalid(form)
     
     def get_success_url(self):
         return reverse_lazy('taller:orden_detail', kwargs={'pk': self.object.pk})
@@ -526,6 +583,20 @@ class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
     model = OrdenTrabajo
     form_class = OrdenTrabajoForm
     template_name = 'taller/orden_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Verificar que la orden no esté completada antes de permitir edición"""
+        orden = self.get_object()
+        
+        # Si la orden está completada, redirigir al detalle
+        if orden.estado in ['COMPLETADO', 'ENTREGADO']:
+            messages.warning(
+                request, 
+                f'No se puede editar la orden #{orden.numero_orden} porque ya está {orden.get_estado_display()}. Solo puedes verla.'
+            )
+            return redirect('taller:orden_detail', pk=orden.pk)
+        
+        return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -561,10 +632,21 @@ class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
             activo=True
         )
         
+        # AGREGAR ESTA LÍNEA - Indicar que es edición
+        context['es_edicion'] = True
+        
         return context
     
     @transaction.atomic
     def form_valid(self, form):
+        # Verificar nuevamente que no esté completada
+        if self.object.estado in ['COMPLETADO', 'ENTREGADO']:
+            messages.error(
+                self.request,
+                'No se puede editar una orden completada o entregada.'
+            )
+            return redirect('taller:orden_detail', pk=self.object.pk)
+        
         context = self.get_context_data()
         servicios_formset = context['servicios_formset']
         repuestos_formset = context['repuestos_formset']

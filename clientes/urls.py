@@ -6,8 +6,8 @@ app_name = 'clientes'
 urlpatterns = [
     # ========== VISTAS PRINCIPALES (URLs específicas primero) ==========
     path('', views.lista_clientes, name='lista_clientes'),
-    path('nuevo/', views.crear_cliente, name='crear_cliente'),  # ← Movido aquí
-    path('reportes/', views.reporte_clientes, name='reporte_clientes'),  # ← Movido aquí
+    path('nuevo/', views.crear_cliente, name='crear_cliente'),
+    path('reportes/', views.reporte_clientes, name='reporte_clientes'),
     
     # URLs con parámetros después
     path('<int:cliente_id>/', views.detalle_cliente, name='detalle_cliente'),
@@ -33,6 +33,11 @@ urlpatterns = [
     path('api/sri/buscar/', views.api_buscar_sri, name='api_buscar_sri'),
     path('api/puntos/procesar/', views.api_procesar_puntos_venta, name='api_procesar_puntos_venta'),
     
+    # ✅ NUEVAS RUTAS PARA CREACIÓN RÁPIDA DESDE POS
+    path('api/crear-rapido/', views.api_crear_cliente_rapido, name='api_crear_cliente_rapido'),
+    path('api/validar-identificacion/', views.api_validar_identificacion, name='api_validar_identificacion'),
+    
     # URLs de API con parámetros después
     path('api/<int:cliente_id>/puntos/', views.api_cliente_puntos, name='api_cliente_puntos'),
+    path('<int:cliente_id>/historial/json/', views.api_historial_cliente, name='api_historial_cliente'),
 ]

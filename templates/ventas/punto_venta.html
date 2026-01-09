@@ -7,791 +7,760 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
 
 <style>
-    /* Reset y estilos base */
-    .pos-container {
-        padding: 1rem;
-        min-height: calc(100vh - 120px);
-    }
-
-    /* Layout principal limpio */
-    .pos-main {
-        display: grid;
-        grid-template-columns: 1fr 350px;
-        gap: 1.5rem;
-    }
-
-    /* Cards limpias */
-    .card {
-        border: none;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 1.5rem;
-    }
-
-    .card-header {
-        background: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-        padding: 1rem 1.5rem;
-        border-radius: 8px 8px 0 0 !important;
-    }
-
-    .card-header h5 {
-        margin: 0;
-        font-weight: 500;
-        color: #495057;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .card-body {
-        padding: 1.5rem;
-    }
-
-    /* Quick actions */
-    .quick-actions {
-        background: #f8f9fa;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .actions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 0.5rem;
-    }
-
-    .action-btn {
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 0.75rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        color: #495057;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.25rem;
-        font-size: 0.875rem;
-    }
-
-    .action-btn:hover {
-        background: #3f51b5;
-        color: white;
-        border-color: #3f51b5;
-        text-decoration: none;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(63,81,181,0.2);
-    }
-
-    .action-btn i {
-        font-size: 1.1rem;
-    }
-
-    /* Tabla de productos limpia */
-    .products-area {
-        overflow-y: auto;
-        max-height: 400px;
-    }
-
-    .table {
-        margin: 0;
-        font-size: 0.875rem;
-    }
-
-    .table thead th {
-        background: #3f51b5;
-        color: white;
-        border: none;
-        font-weight: 500;
-        padding: 0.75rem;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .table tbody td {
-        padding: 0.75rem;
-        vertical-align: middle;
-        border-color: #dee2e6;
-    }
-
-    .table tbody tr:hover {
-        background: #f8f9fa;
-        cursor: pointer;
-    }
-
-    .product-code {
-        font-family: 'Courier New', monospace;
-        background: #e9ecef;
-        color: #495057;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.8rem;
-        font-weight: 500;
-    }
-
-    /* Estado vacío limpio */
-    .empty-products-state {
-        text-align: center;
-        padding: 3rem 2rem;
-        color: #6c757d;
-    }
-
-    .empty-products-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-
-    .empty-products-state h4 {
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
-
-    .empty-products-state p {
-        margin-bottom: 1.5rem;
-    }
-
-    .search-tips {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        max-width: 300px;
-        margin: 0 auto;
-    }
-
-    .tip-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem;
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        font-size: 0.875rem;
-    }
-
-    .tip-item i {
-        color: #3f51b5;
-        font-size: 1rem;
-    }
-
-    /* Carrito limpio */
-    .cart-panel {
-        display: flex;
-        flex-direction: column;
-        height: fit-content;
-    }
-
-    .cart-header {
-        background: #28a745;
-        color: white;
-    }
-
-    .cart-count {
-        background: rgba(255,255,255,0.2);
-        padding: 0.25rem 0.5rem;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 500;
-    }
-
-    /* Items del carrito */
-    .cart-items {
-        max-height: 300px;
-        overflow-y: auto;
-    }
-
-    .cart-item {
-        padding: 1rem;
-        border-bottom: 1px solid #dee2e6;
-        display: grid;
-        grid-template-columns: 1fr auto auto auto;
-        gap: 0.75rem;
-        align-items: center;
-    }
-
-    .cart-item:last-child {
-        border-bottom: none;
-    }
-
-    .cart-item:hover {
-        background: #f8f9fa;
-    }
-
-    .item-info .item-name {
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-        font-size: 0.875rem;
-    }
-
-    .item-info .item-code {
-        font-size: 0.75rem;
-        color: #6c757d;
-        font-family: 'Courier New', monospace;
-    }
-
-    .item-info .item-price {
-        font-size: 0.8rem;
-        color: #28a745;
-        margin-top: 0.25rem;
-    }
-
-    .item-info .item-technician {
-        font-size: 0.75rem;
-        color: #3f51b5;
-        background: #e3f2fd;
-        padding: 0.125rem 0.375rem;
-        border-radius: 10px;
-        margin-top: 0.25rem;
-        display: inline-block;
-    }
-
-    .quantity-controls {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 0.25rem;
-    }
-
-    .qty-btn {
-        width: 24px;
-        height: 24px;
-        border: none;
-        border-radius: 4px;
-        background: #3f51b5;
-        color: white;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.875rem;
-        transition: background 0.3s ease;
-    }
-
-    .qty-btn:hover {
-        background: #2c387e;
-    }
-
-    .qty-display {
-        min-width: 24px;
-        text-align: center;
-        font-weight: 500;
-        font-size: 0.875rem;
-        color: #495057;
-    }
-
-    .item-total {
-        font-weight: 600;
-        color: #28a745;
-        font-size: 0.875rem;
-        text-align: right;
-    }
-
-    .remove-btn {
-        width: 24px;
-        height: 24px;
-        border: none;
-        border-radius: 50%;
-        background: #dc3545;
-        color: white;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        transition: background 0.3s ease;
-    }
-
-    .remove-btn:hover {
-        background: #c82333;
-    }
-
-    /* Estado vacío del carrito */
-    .empty-cart {
-        text-align: center;
-        padding: 2rem 1rem;
-        color: #6c757d;
-    }
-
-    .empty-cart i {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-
-    .empty-cart h5 {
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
-
-    .empty-cart p {
-        margin-bottom: 1rem;
-        font-size: 0.875rem;
-    }
-
-    /* Secciones del carrito */
-    .cart-section {
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .cart-section:last-child {
-        border-bottom: none;
-    }
-
-    .section-title {
-        font-size: 0.8rem;
-        font-weight: 500;
-        color: #6c757d;
-        margin-bottom: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    /* Cliente */
-    .customer-card {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 0.75rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .customer-card:hover {
-        border-color: #3f51b5;
-        background: rgba(63,81,181,0.05);
-    }
-
-    .customer-name {
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-        font-size: 0.875rem;
-    }
-
-    .customer-id {
-        font-size: 0.75rem;
-        color: #6c757d;
-    }
-
-    /* Métodos de pago */
-    .payment-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-    }
-
-    .payment-option {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 0.75rem 0.5rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.8rem;
-        font-weight: 500;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.25rem;
-    }
-
-    .payment-option:hover {
-        border-color: #3f51b5;
-        background: rgba(63,81,181,0.05);
-    }
-
-    .payment-option.active {
-        background: #3f51b5;
-        color: white;
-        border-color: #3f51b5;
-    }
-
-    .payment-option i {
-        font-size: 1rem;
-    }
-
-    /* Totales */
-    .totals-section {
-        padding: 1rem 1.5rem;
-        background: #f8f9fa;
-    }
-
-    .total-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-    }
-
-    .total-row:last-child {
-        margin-bottom: 0;
-        padding-top: 0.5rem;
-        border-top: 1px solid #dee2e6;
-        font-weight: 600;
-        font-size: 1rem;
-    }
-
-    .total-label {
-        color: #6c757d;
-    }
-
-    .total-value {
-        font-weight: 500;
-        color: #495057;
-    }
-
-    .total-row:last-child .total-value {
-        color: #28a745;
-    }
-
-    /* Botón de checkout */
-    .checkout-section {
-        padding: 1.5rem;
-    }
-
-    .checkout-btn {
-        width: 100%;
-        background: #28a745;
-        border: none;
-        border-radius: 6px;
-        color: white;
-        padding: 1rem;
-        font-weight: 500;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: background 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-    }
-
-    .checkout-btn:hover:not(:disabled) {
-        background: #218838;
-    }
-
-    .checkout-btn:disabled {
-        background: #6c757d;
-        cursor: not-allowed;
-    }
-
-    /* Paginación */
-    .pagination-section {
-        padding: 1rem 1.5rem;
-        border-top: 1px solid #dee2e6;
-        background: #f8f9fa;
-        display: flex;
-        justify-content: between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-
-    .pagination-info {
-        color: #6c757d;
-        font-size: 0.875rem;
-    }
-
-    .pagination-controls {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .pagination-controls .btn {
-        padding: 0.375rem 0.75rem;
-        font-size: 0.875rem;
-    }
-
-    .pagination-controls span {
-        font-size: 0.875rem;
-        font-weight: 500;
-        margin: 0 0.5rem;
-    }
-
-    /* Modales limpios */
-    .modal-content {
-        border: none;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .modal-header {
-        background: #3f51b5;
-        color: white;
-        border-bottom: none;
-        border-radius: 8px 8px 0 0;
-    }
-
-    .modal-title {
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .modal-search {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        margin-bottom: 1rem;
-        font-size: 0.875rem;
-    }
-
-    .modal-search:focus {
-        outline: none;
-        border-color: #3f51b5;
-        box-shadow: 0 0 0 2px rgba(63,81,181,0.2);
-    }
-
-    .modal-item {
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 1rem;
-        margin-bottom: 0.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .modal-item:hover {
-        border-color: #3f51b5;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .item-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 0.5rem;
-    }
-
-    .item-title {
-        font-weight: 500;
-        margin: 0;
-        font-size: 0.875rem;
-    }
-
-    .item-price {
-        font-weight: 600;
-        color: #28a745;
-        font-size: 0.875rem;
-    }
-
-    .item-meta {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        color: #6c757d;
-    }
-
-    /* Botones estándar */
-    .btn {
-        border-radius: 6px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .btn-primary {
-        background: #3f51b5;
-        border-color: #3f51b5;
-    }
-
-    .btn-primary:hover {
-        background: #2c387e;
-        border-color: #2c387e;
-    }
-
-    .btn-success {
-        background: #28a745;
-        border-color: #28a745;
-    }
-
-    .btn-success:hover {
-        background: #218838;
-        border-color: #218838;
-    }
-
-    .btn-secondary {
-        background: #6c757d;
-        border-color: #6c757d;
-    }
-
-    .btn-secondary:hover {
-        background: #545b62;
-        border-color: #545b62;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .pos-main {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-
-        .cart-panel {
-            order: -1;
-        }
-
-        .actions-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .payment-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* Loading spinner */
-    .loading-spinner {
-        display: inline-block;
-        width: 1rem;
-        height: 1rem;
-        border: 2px solid #f3f3f3;
-        border-top-color: #3f51b5;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    /* Toast notifications */
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-    }
-
-    .toast {
-        background: white;
-        border-radius: 6px;
-        padding: 1rem;
-        margin-bottom: 0.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        border-left: 4px solid #28a745;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        min-width: 250px;
-        animation: slideInRight 0.3s ease;
-        font-size: 0.875rem;
-    }
-
-    .toast.error {
-        border-left-color: #dc3545;
-    }
-
-    .toast.warning {
-        border-left-color: #ffc107;
-    }
-
-    .toast.info {
-        border-left-color: #17a2b8;
-    }
-
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    /* Estilos para confirmación de venta */
-    .confirmation-modal .modal-body {
-        text-align: center;
-        padding: 2rem;
-    }
-
-    .confirmation-total {
-        font-size: 2rem;
-        font-weight: 600;
-        color: #28a745;
-        margin: 1rem 0;
-    }
-
-    .confirmation-details {
-        background: #f8f9fa;
-        border-radius: 6px;
-        padding: 1rem;
-        margin: 1rem 0;
-        text-align: left;
-    }
-
-    .confirmation-detail {
-        display: flex;
-        justify-content: space-between;
-        margin: 0.5rem 0;
-        font-size: 0.875rem;
-    }
-
-    .print-question {
-        margin: 1rem 0;
-        padding: 1rem;
-        background: #e3f2fd;
-        border-left: 4px solid #2196f3;
-        border-radius: 0 6px 6px 0;
-    }
-
-    .print-options {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: center;
-        margin: 1rem 0;
-    }
-
-    .print-option-btn {
-        padding: 1rem;
-        border: 1px solid #dee2e6;
-        background: white;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-        min-width: 80px;
-        font-size: 0.8rem;
-    }
-
-    .print-option-btn:hover {
-        border-color: #3f51b5;
-        background: rgba(63,81,181,0.05);
-    }
-
-    .print-option-btn.selected {
-        border-color: #3f51b5;
-        background: #3f51b5;
-        color: white;
-    }
-
-    .print-option-btn i {
-        font-size: 1.2rem;
-    }
-
-    .print-option-title {
-        font-weight: 500;
-    }
-    /* ========== MENÚ FLOTANTE DE ACCESOS RÁPIDOS ========== */
+/* ========== ESTILOS EXISTENTES (mantener todo lo que ya tienes) ========== */
+/* Reset y estilos base */
+.pos-container {
+    padding: 1rem;
+    min-height: calc(100vh - 120px);
+}
+
+/* Layout principal */
+.pos-main {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 1.5rem;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+    border-radius: 8px 8px 0 0 !important;
+}
+
+.card-header h5 {
+    margin: 0;
+    font-weight: 500;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Quick actions */
+.quick-actions {
+    background: #f8f9fa;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.action-btn {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.75rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: #495057;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.action-btn:hover {
+    background: #3f51b5;
+    color: white;
+    border-color: #3f51b5;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(63,81,181,0.2);
+}
+
+.action-btn i {
+    font-size: 1.1rem;
+}
+
+/* ✅ NUEVOS ESTILOS PARA EL MODAL DE CREAR CLIENTE */
+.customer-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.btn-create-customer {
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-create-customer:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.form-floating {
+    position: relative;
+}
+
+.form-floating > .form-control,
+.form-floating > .form-select {
+    height: calc(3.5rem + 2px);
+    padding: 1rem 0.75rem;
+}
+
+.form-floating > label {
+    padding: 1rem 0.75rem;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+}
+
+.input-icon.success {
+    color: #28a745;
+}
+
+.input-icon.error {
+    color: #dc3545;
+}
+
+.validation-message {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.validation-message.success {
+    color: #28a745;
+}
+
+.validation-message.error {
+    color: #dc3545;
+}
+
+.validation-message i {
+    font-size: 0.875rem;
+}
+
+/* Carrito */
+.cart-items-display {
+    background: white;
+}
+
+.cart-panel {
+    display: flex;
+    flex-direction: column;
+    height: fit-content;
+}
+
+.cart-header {
+    background: #28a745;
+    color: white;
+}
+
+.cart-count {
+    background: rgba(255,255,255,0.2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Items del carrito */
+.cart-items {
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+.cart-item {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item:hover {
+    background: #f8f9fa;
+}
+
+.item-info .item-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.item-info .item-code {
+    font-size: 0.75rem;
+    color: #6c757d;
+    font-family: 'Courier New', monospace;
+}
+
+.item-info .item-price {
+    font-size: 0.8rem;
+    color: #28a745;
+    margin-top: 0.25rem;
+}
+
+.item-info .item-technician {
+    font-size: 0.75rem;
+    color: #3f51b5;
+    background: #e3f2fd;
+    padding: 0.125rem 0.375rem;
+    border-radius: 10px;
+    margin-top: 0.25rem;
+    display: inline-block;
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.25rem;
+}
+
+.qty-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    background: #3f51b5;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    transition: background 0.3s ease;
+}
+
+.qty-btn:hover {
+    background: #2c387e;
+}
+
+.qty-display {
+    min-width: 24px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #495057;
+}
+
+.item-total {
+    font-weight: 600;
+    color: #28a745;
+    font-size: 0.875rem;
+    text-align: right;
+}
+
+.remove-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    transition: background 0.3s ease;
+}
+
+.remove-btn:hover {
+    background: #c82333;
+}
+
+/* Estado vacío del carrito */
+.empty-cart {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #6c757d;
+}
+
+.empty-cart i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-cart h5 {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.empty-cart p {
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.search-tips {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.tip-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.tip-item i {
+    color: #3f51b5;
+    font-size: 1rem;
+}
+
+/* Secciones del carrito */
+.cart-section {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.section-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Cliente */
+.customer-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.customer-card:hover {
+    border-color: #3f51b5;
+    background: rgba(63,81,181,0.05);
+}
+
+.customer-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.customer-id {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* Métodos de pago */
+.payment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.payment-option {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.payment-option:hover {
+    border-color: #3f51b5;
+    background: rgba(63,81,181,0.05);
+}
+
+.payment-option.active {
+    background: #3f51b5;
+    color: white;
+    border-color: #3f51b5;
+}
+
+.payment-option i {
+    font-size: 1rem;
+}
+
+/* Totales */
+.totals-section {
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.total-row:last-child {
+    margin-bottom: 0;
+    padding-top: 0.5rem;
+    border-top: 1px solid #dee2e6;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.total-label {
+    color: #6c757d;
+}
+
+.total-value {
+    font-weight: 500;
+    color: #495057;
+}
+
+.total-row:last-child .total-value {
+    color: #28a745;
+}
+
+/* Botón de checkout */
+.checkout-section {
+    padding: 1.5rem;
+}
+
+.checkout-btn {
+    width: 100%;
+    background: #28a745;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    padding: 1rem;
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.checkout-btn:hover:not(:disabled) {
+    background: #218838;
+}
+
+.checkout-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Modales */
+.modal-content {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    background: #3f51b5;
+    color: white;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+}
+
+.modal-title {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-search {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.modal-search:focus {
+    outline: none;
+    border-color: #3f51b5;
+    box-shadow: 0 0 0 2px rgba(63,81,181,0.2);
+}
+
+.modal-item {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-item:hover {
+    border-color: #3f51b5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.item-title {
+    font-weight: 500;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.item-price {
+    font-weight: 600;
+    color: #28a745;
+    font-size: 0.875rem;
+}
+
+.item-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #6c757d;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Botones */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: #3f51b5;
+    border-color: #3f51b5;
+}
+
+.btn-primary:hover {
+    background: #2c387e;
+    border-color: #2c387e;
+}
+
+.btn-success {
+    background: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background: #218838;
+    border-color: #218838;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+    border-color: #545b62;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid #f3f3f3;
+    border-top-color: #3f51b5;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+}
+
+.toast {
+    background: white;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-left: 4px solid #28a745;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 250px;
+    animation: slideInRight 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.toast.error {
+    border-left-color: #dc3545;
+}
+
+.toast.warning {
+    border-left-color: #ffc107;
+}
+
+.toast.info {
+    border-left-color: #17a2b8;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Confirmación de venta */
+.confirmation-modal {
+    text-align: center;
+    padding: 2rem;
+}
+
+.confirmation-total {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #28a745;
+    margin: 1rem 0;
+}
+
+.confirmation-details {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+    text-align: left;
+}
+
+.confirmation-detail {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+}
+
+.print-question {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    border-radius: 0 6px 6px 0;
+}
+
+.print-question h6 {
+    margin-bottom: 1rem;
+}
+
+.print-options {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+.print-option-btn {
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 80px;
+    font-size: 0.8rem;
+}
+
+.print-option-btn:hover {
+    border-color: #3f51b5;
+    background: rgba(63,81,181,0.05);
+}
+
+.print-option-btn.selected {
+    border-color: #3f51b5;
+    background: #3f51b5;
+    color: white;
+}
+
+.print-option-btn i {
+    font-size: 1.2rem;
+}
+
+.print-option-title {
+    font-weight: 500;
+}
+
+/* Menú flotante de accesos rápidos */
 .quick-access-menu {
     position: fixed;
     bottom: 20px;
@@ -803,12 +772,12 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    background: linear-gradient(135deg, #3f51b5 0%, #2c387e 100%);
     border: none;
     color: white;
     font-size: 1.5rem;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+    box-shadow: 0 4px 15px rgba(63, 81, 181, 0.4);
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
@@ -817,7 +786,7 @@
 
 .quick-access-toggle:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.6);
+    box-shadow: 0 6px 20px rgba(63, 81, 181, 0.6);
 }
 
 .quick-access-toggle.active {
@@ -889,7 +858,6 @@
     font-size: 0.75rem;
 }
 
-/* Overlay cuando el menú está abierto */
 .quick-access-overlay {
     position: fixed;
     top: 0;
@@ -908,8 +876,37 @@
     visibility: visible;
 }
 
+/* Animaciones */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+    .pos-main {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .cart-panel {
+        order: -1;
+    }
+
+    .actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .payment-grid {
+        grid-template-columns: 1fr;
+    }
+    
     .quick-access-menu {
         bottom: 80px;
     }
@@ -924,7 +921,7 @@
 
 {% block content %}
 <div class="pos-container">
-    <!-- Main Content - SIN HEADER -->
+    <!-- Main Content -->
     <div class="pos-main">
         <!-- Panel de Productos -->
         <div class="card">
@@ -978,41 +975,6 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Tabla oculta para cuando se busquen productos -->
-                <div id="productsTableContainer" style="display: none;">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Producto</th>
-                                <th>Stock</th>
-                                <th>Precio</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productsTableBody">
-                        </tbody>
-                    </table>
-                    
-                    <div class="pagination-section">
-                        <div class="pagination-info">
-                            Mostrando <span id="recordsInfo">0-0 de 0</span> registros
-                        </div>
-                        <div class="pagination-controls">
-                            <button class="btn btn-sm btn-outline-primary" id="prevBtn" onclick="previousPage()">
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                            <span id="pageInfo">1</span>
-                            <button class="btn btn-sm btn-outline-primary" id="nextBtn" onclick="nextPage()">
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearSearch()">
-                                <i class="bi bi-x-circle me-1"></i>Limpiar búsqueda
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -1039,19 +1001,19 @@
             <div class="cart-section">
                 <div class="section-title">Método de Pago</div>
                 <div class="payment-grid">
-                    <div class="payment-option active" data-method="EFECTIVO" onclick="selectPayment(this, 'EFECTIVO')">
+                    <div class="payment-option" data-method="EFECTIVO" onclick="selectPaymentMethod('EFECTIVO')">
                         <i class="bi bi-cash"></i>
                         <span>Efectivo</span>
                     </div>
-                    <div class="payment-option" data-method="TARJETA" onclick="selectPayment(this, 'TARJETA')">
+                    <div class="payment-option" data-method="TARJETA" onclick="selectPaymentMethod('TARJETA')">
                         <i class="bi bi-credit-card"></i>
                         <span>Tarjeta</span>
                     </div>
-                    <div class="payment-option" data-method="TRANSFERENCIA" onclick="selectPayment(this, 'TRANSFERENCIA')">
+                    <div class="payment-option" data-method="TRANSFERENCIA" onclick="selectPaymentMethod('TRANSFERENCIA')">
                         <i class="bi bi-bank"></i>
                         <span>Transfer</span>
                     </div>
-                    <div class="payment-option" data-method="CREDITO" onclick="selectPayment(this, 'CREDITO')">
+                    <div class="payment-option" data-method="CREDITO" onclick="selectPaymentMethod('CREDITO')">
                         <i class="bi bi-credit-card-2-front"></i>
                         <span>Crédito</span>
                     </div>
@@ -1161,7 +1123,7 @@
     </div>
 </div>
 
-<!-- Modal de Clientes -->
+<!-- ✅ MODAL DE CLIENTES (MEJORADO) -->
 <div class="modal fade" id="customerModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1173,6 +1135,14 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- ✅ BOTONES DE ACCIÓN -->
+                <div class="customer-header-actions">
+                    <button class="btn-create-customer" onclick="showCreateCustomerModal()">
+                        <i class="bi bi-person-plus"></i>
+                        <span>Nuevo Cliente</span>
+                    </button>
+                </div>
+                
                 <input type="text" id="customerSearch" class="modal-search" 
                        placeholder="Buscar cliente por nombre o identificación...">
                 <div id="customerResults">
@@ -1186,6 +1156,106 @@
     </div>
 </div>
 
+<!-- ✅ MODAL PARA CREAR CLIENTE RÁPIDO -->
+<div class="modal fade" id="createCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: #28a745;">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i>
+                    Nuevo Cliente Rápido
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createCustomerForm" onsubmit="handleCreateCustomer(event)">
+                    <!-- Nombres -->
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="newCustomerNombres" 
+                               placeholder="Nombres" required>
+                        <label for="newCustomerNombres">
+                            <i class="bi bi-person"></i> Nombres *
+                        </label>
+                    </div>
+
+                    <!-- Apellidos -->
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="newCustomerApellidos" 
+                               placeholder="Apellidos" required>
+                        <label for="newCustomerApellidos">
+                            <i class="bi bi-person"></i> Apellidos *
+                        </label>
+                    </div>
+
+                    <!-- Tipo de Identificación -->
+                    <div class="form-floating mb-3">
+                        <select class="form-select" id="newCustomerTipoId" required>
+                            <option value="CEDULA" selected>Cédula</option>
+                            <option value="RUC">RUC</option>
+                            <option value="PASAPORTE">Pasaporte</option>
+                        </select>
+                        <label for="newCustomerTipoId">
+                            <i class="bi bi-card-text"></i> Tipo de Identificación *
+                        </label>
+                    </div>
+
+                    <!-- Identificación con validación -->
+                    <div class="form-floating mb-3">
+                        <div class="input-with-icon">
+                            <input type="text" class="form-control" id="newCustomerIdentificacion" 
+                                   placeholder="Identificación" required
+                                   oninput="validateIdentification()">
+                            <span class="input-icon" id="identificationIcon"></span>
+                        </div>
+                        <label for="newCustomerIdentificacion">
+                            <i class="bi bi-card-text"></i> Identificación *
+                        </label>
+                        <div class="validation-message" id="identificationValidation"></div>
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div class="form-floating mb-3">
+                        <input type="tel" class="form-control" id="newCustomerTelefono" 
+                               placeholder="Teléfono">
+                        <label for="newCustomerTelefono">
+                            <i class="bi bi-telephone"></i> Teléfono
+                        </label>
+                    </div>
+
+                    <!-- Email (opcional) -->
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="newCustomerEmail" 
+                               placeholder="Email">
+                        <label for="newCustomerEmail">
+                            <i class="bi bi-envelope"></i> Email
+                        </label>
+                    </div>
+
+                    <!-- Dirección (opcional) -->
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" id="newCustomerDireccion" 
+                                  placeholder="Dirección" style="height: 80px;"></textarea>
+                        <label for="newCustomerDireccion">
+                            <i class="bi bi-geo-alt"></i> Dirección
+                        </label>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="modal">
+                            <i class="bi bi-x"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-success flex-fill" id="btnCreateCustomer">
+                            <i class="bi bi-check"></i> Crear Cliente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RESTO DE MODALES (Órdenes, Servicios, Productos, etc.) - MANTENER COMO ESTÁ -->
 <!-- Modal de Órdenes -->
 <div class="modal fade" id="ordersModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -1285,14 +1355,6 @@
     </div>
 </div>
 
-<!-- Toast Container -->
-<div class="toast-container" id="toastContainer"></div>
-
-<!-- Campos ocultos -->
-<input type="hidden" id="selectedCustomerId" value="">
-<input type="hidden" id="selectedOrderId" value="">
-<input type="hidden" id="lastSaleData" value="">
-
 <!-- Modal: Listar Ventas -->
 <div class="modal fade" id="allSalesModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -1361,6 +1423,7 @@
         </div>
     </div>
 </div>
+
 <!-- Menú Flotante de Accesos Rápidos -->
 <div class="quick-access-overlay" id="quickAccessOverlay" onclick="toggleQuickAccess()"></div>
 
@@ -1383,6 +1446,13 @@
     </button>
 </div>
 
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ✅ CAMPOS OCULTOS -->
+<input type="hidden" id="selectedCustomerId" value="">
+<input type="hidden" id="selectedOrderId" value="">
+
 {% csrf_token %}
 {% endblock %}
 
@@ -1400,1199 +1470,1129 @@
 </script>
 
 <script>
-    // Variables globales
-    let cart = [];
-    let technicians = [];
-    let services = [];
-    let products = [];
-    let topProducts = [];
-    let selectedService = null;
-    let currentPaymentMethod = 'EFECTIVO';
-    let selectedPrintType = 'none';
-    let lastSaleData = null;
-    let currentPage = 1;
-    let recordsPerPage = 10;
-    let filteredProducts = [];
-    const IVA_RATE = 0.15; // 15% IVA
+// Variables globales
+let cart = [];
+let technicians = [];
+let services = [];
+let products = [];
+let selectedService = null;
+let currentPaymentMethod = null;
+let selectedPrintType = 'none';
+let lastSaleData = null;
+const IVA_RATE = 0.15;
+let validationTimeout = null;
 
-    // Variables de usuario
-    let USER_ID = window.POS_CONFIG ? window.POS_CONFIG.USER_ID : 1;
-    let USER_NAME = window.POS_CONFIG ? window.POS_CONFIG.USER_NAME : 'Admin Usuario';
+// Variables de usuario
+let USER_ID = window.POS_CONFIG ? window.POS_CONFIG.USER_ID : 1;
+let USER_NAME = window.POS_CONFIG ? window.POS_CONFIG.USER_NAME : 'Admin Usuario';
 
-    // Inicialización
-    document.addEventListener('DOMContentLoaded', function() {
-        initializePOS();
-        loadInitialData();
-        setupEventListeners();
+// ========== INICIALIZACIÓN ==========
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializePOS();
+    loadInitialData();
+    setupEventListeners();
+    loadPendingOrdersCount();
+});
+
+function initializePOS() {
+    updateCartDisplay();
+    updateCartCount();
+    updateTotals();
+    checkOrderInURL();
+    
+    document.querySelectorAll('.payment-option').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.transform = 'scale(1)';
     });
+    
+    console.log('POS inicializado correctamente');
+}
 
-    function initializePOS() {
-        updateCartDisplay();
-        updateCartCount();
-        updateTotals();
-        checkOrderInURL();
-        console.log('POS inicializado correctamente');
-    }
+function loadInitialData() {
+    loadTechnicians();
+    loadServices();
+}
 
-    function loadInitialData() {
-        loadTechnicians();
-        loadServices();
-    }
-
-    function setupEventListeners() {
-        // Búsquedas en modales
-        const customerSearch = document.getElementById('customerSearch');
-        if (customerSearch) {
-            customerSearch.addEventListener('input', debounce(searchCustomers, 300));
-        }
-        
-        const orderSearch = document.getElementById('orderSearch');
-        if (orderSearch) {
-            orderSearch.addEventListener('input', debounce(searchOrders, 300));
-        }
-        
-        const serviceSearch = document.getElementById('serviceSearch');
-        if (serviceSearch) {
-            serviceSearch.addEventListener('input', debounce(searchServices, 300));
-        }
-        
-        const productSearch = document.getElementById('productSearch');
-        if (productSearch) {
-            productSearch.addEventListener('input', debounce(searchProducts, 300));
-        }
-        
-        // Teclas de acceso rápido
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'F12') {
-                e.preventDefault();
-                processCheckout();
-            }
-        });
-    }
-
-    // Cargar datos desde las APIs de Django
-    function loadTechnicians() {
-        fetch('/ventas/api/tecnicos/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    technicians = data.tecnicos || [];
-                    console.log('Técnicos cargados:', technicians.length);
-                }
-            })
-            .catch(error => console.error('Error loading technicians:', error));
-    }
-
-    function loadServices() {
-        fetch('/ventas/api/servicios/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    services = data.servicios || [];
-                    console.log('Servicios cargados:', services.length);
-                }
-            })
-            .catch(error => console.error('Error loading services:', error));
-    }
-
-    function loadProducts() {
-        return fetch('/ventas/api/productos/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    products = data.productos || [];
-                    console.log('Productos cargados:', products.length);
-                    return products;
-                }
-                return [];
-            })
-            .catch(error => {
-                console.error('Error loading products:', error);
-                showToast('Error al cargar productos', 'error');
-                return [];
-            });
-    }
-
-    function loadTopProducts() {
-        return fetch('/ventas/api/productos-populares/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    topProducts = data.productos || [];
-                    console.log('Productos populares cargados:', topProducts.length);
-                    return topProducts;
-                } else {
-                    topProducts = products.slice(0, 12);
-                    return topProducts;
-                }
-            })
-            .catch(error => {
-                console.log('Usando productos normales como populares');
-                topProducts = products.slice(0, 12);
-                return topProducts;
-            });
-    }
-
-    function displayProductsTable() {
-        const tbody = document.getElementById('productsTableBody');
-        const tableContainer = document.getElementById('productsTableContainer');
-        const cartDisplay = document.querySelector('.cart-items-display');
-        
-        if (!tbody || !tableContainer) return;
-        
-        if (filteredProducts.length === 0) {
-            // Mostrar estado del carrito si no hay productos filtrados
-            tableContainer.style.display = 'none';
-            if (cartDisplay) {
-                cartDisplay.style.display = 'block';
-            }
-            return;
-        }
-        
-        // Ocultar carrito y mostrar tabla
-        if (cartDisplay) {
-            cartDisplay.style.display = 'none';
-        }
-        tableContainer.style.display = 'block';
-        
-        const startIndex = (currentPage - 1) * recordsPerPage;
-        const endIndex = startIndex + recordsPerPage;
-        const pageProducts = filteredProducts.slice(startIndex, endIndex);
-        
-        tbody.innerHTML = pageProducts.map(product => `
-            <tr onclick="selectProductFromTable(${product.id})" style="cursor: pointer;" title="Click para agregar al carrito">
-                <td>
-                    <span class="product-code">${escapeHtml(product.codigo)}</span>
-                </td>
-                <td>${escapeHtml(product.nombre)}</td>
-                <td>
-                    <span class="badge ${product.stock > 10 ? 'bg-success' : product.stock > 0 ? 'bg-warning text-dark' : 'bg-danger'}">
-                        ${product.stock}
-                    </span>
-                </td>
-                <td class="text-success fw-bold">S/ ${product.precio.toFixed(2)}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary" 
-                            onclick="event.stopPropagation(); selectProductFromTable(${product.id})" 
-                            title="Agregar al carrito"
-                            ${product.stock <= 0 ? 'disabled' : ''}>
-                        <i class="bi bi-cart-plus"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        
-        updatePaginationInfo();
-    }
-
-    function filterByCategory(category) {
-        // Cargar productos si no están cargados
-        if (products.length === 0) {
-            showLoading('Cargando productos...');
-            loadProducts().then(() => {
-                hideLoading();
-                applyFilter(category);
-            });
-            return;
-        }
-        
-        applyFilter(category);
+function setupEventListeners() {
+    const customerSearch = document.getElementById('customerSearch');
+    if (customerSearch) {
+        customerSearch.addEventListener('input', debounce(searchCustomers, 300));
     }
     
-    function applyFilter(category) {
-        switch(category) {
-            case 'populares':
-                if (topProducts.length === 0) {
-                    loadTopProducts().then(() => {
-                        filteredProducts = [...topProducts];
-                        currentPage = 1;
-                        displayProductsTable();
-                    });
-                } else {
-                    filteredProducts = [...topProducts];
-                }
-                break;
-            case 'bajo_stock':
-                filteredProducts = products.filter(p => p.stock <= 5);
-                break;
-            default:
-                filteredProducts = [...products];
-        }
-        
-        currentPage = 1;
-        displayProductsTable();
-        showToast(`Filtro aplicado: ${category}`, 'info');
+    const orderSearch = document.getElementById('orderSearch');
+    if (orderSearch) {
+        orderSearch.addEventListener('input', debounce(searchOrders, 300));
     }
+    
+    const serviceSearch = document.getElementById('serviceSearch');
+    if (serviceSearch) {
+        serviceSearch.addEventListener('input', debounce(searchServices, 300));
+    }
+    
+    const productSearch = document.getElementById('productSearch');
+    if (productSearch) {
+        productSearch.addEventListener('input', debounce(searchProducts, 300));
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12') {
+            e.preventDefault();
+            processCheckout();
+        }
+    });
+}
 
-    function selectProductFromTable(productId) {
-        const product = products.find(p => p.id === productId);
-        if (product) {
-            if (product.stock <= 0) {
-                showToast('Sin stock disponible', 'warning');
+// ========== CARGAR DATOS DESDE APIS ==========
+
+function loadTechnicians() {
+    fetch('/ventas/api/tecnicos/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                technicians = data.tecnicos || [];
+                console.log('Técnicos cargados:', technicians.length);
+            }
+        })
+        .catch(error => console.error('Error loading technicians:', error));
+}
+
+function loadServices() {
+    fetch('/ventas/api/servicios/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                services = data.servicios || [];
+                console.log('Servicios cargados:', services.length);
+            }
+        })
+        .catch(error => console.error('Error loading services:', error));
+}
+
+function loadProducts() {
+    return fetch('/ventas/api/productos/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                products = data.productos || [];
+                console.log('Productos cargados:', products.length);
+                return products;
+            }
+            return [];
+        })
+        .catch(error => {
+            console.error('Error loading products:', error);
+            showToast('Error al cargar productos', 'error');
+            return [];
+        });
+}
+
+function loadPendingOrdersCount() {
+    fetch('/ventas/api/ordenes-completadas/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.ordenes) {
+                updatePendingOrdersBadge(data.ordenes.length);
+            }
+        })
+        .catch(error => console.error('Error loading pending orders count:', error));
+}
+
+// ========== GESTIÓN DEL CARRITO ==========
+
+function addToCart(item) {
+    if (item.type === 'product') {
+        const existingItem = cart.find(cartItem => 
+            cartItem.id === item.id && cartItem.type === item.type
+        );
+        
+        if (existingItem) {
+            if (existingItem.quantity >= item.stock) {
+                showToast('Stock insuficiente', 'warning');
                 return;
             }
-            
-            addToCart({
-                id: product.id,
-                code: product.codigo,
-                name: product.nombre,
-                type: 'product',
-                price: product.precio,
-                stock: product.stock,
-                category: product.categoria || 'Sin categoría'
-            });
-            
-            showToast('Producto agregado al carrito', 'success');
-        }
-    }
-
-    function addToCart(item) {
-        if (item.type === 'product') {
-            const existingItem = cart.find(cartItem => 
-                cartItem.id === item.id && cartItem.type === item.type
-            );
-            
-            if (existingItem) {
-                if (existingItem.quantity >= item.stock) {
-                    showToast('Stock insuficiente', 'warning');
-                    return;
-                }
-                existingItem.quantity++;
-            } else {
-                cart.push({
-                    ...item,
-                    quantity: 1,
-                    technician_id: null,
-                    technician_name: null
-                });
-            }
+            existingItem.quantity++;
         } else {
             cart.push({
                 ...item,
-                quantity: 1
+                quantity: item.quantity || 1,
+                technician_id: null,
+                technician_name: null
             });
         }
-        
-        updateCartDisplay();
-        updateCartCount();
-        updateTotals();
-        enableCheckoutIfReady();
+    } else {
+        cart.push({
+            ...item,
+            quantity: item.quantity || 1
+        });
     }
+    
+    updateCartDisplay();
+    updateCartCount();
+    updateTotals();
+    enableCheckoutIfReady();
+}
 
-    function updateCartDisplay() {
-        const cartItems = document.getElementById('cartItems');
-        if (!cartItems) return;
+function updateCartDisplay() {
+    const cartItems = document.getElementById('cartItems');
+    if (!cartItems) return;
+    
+    if (cart.length === 0) {
+        cartItems.innerHTML = `
+            <div class="empty-cart">
+                <i class="bi bi-cart3"></i>
+                <h5>Carrito vacío</h5>
+                <p>Usa los botones de arriba para agregar productos y servicios</p>
+                <div class="search-tips">
+                    <div class="tip-item">
+                        <i class="bi bi-file-text"></i>
+                        <span>Órdenes para facturar</span>
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-box-seam"></i>
+                        <span>Explorar productos</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    cartItems.innerHTML = cart.map((item, index) => {
+        const subtotalItem = item.price * item.quantity;
         
-        if (cart.length === 0) {
-            cartItems.innerHTML = `
-                <div class="empty-cart">
-                    <i class="bi bi-cart3"></i>
-                    <h5>Carrito vacío</h5>
-                    <p>Usa los botones de arriba para agregar productos y servicios</p>
-                    <div class="search-tips">
-                        <div class="tip-item">
-                            <i class="bi bi-file-text"></i>
-                            <span>Órdenes para facturar</span>
+        if (item.type === 'orden_trabajo') {
+            return `
+                <div class="cart-item" style="border-left: 4px solid #0d6efd;">
+                    <div class="item-info">
+                        <div class="item-name">
+                            <i class="bi bi-file-earmark-text text-primary"></i> ${escapeHtml(item.name)}
                         </div>
-                        <div class="tip-item">
-                            <i class="bi bi-box-seam"></i>
-                            <span>Explorar productos</span>
+                        <div class="item-code">
+                            <span class="badge bg-primary">ORDEN DE TRABAJO</span> ${escapeHtml(item.code)}
                         </div>
+                        ${item.description ? `<div class="item-description" style="font-size: 0.85rem; color: #6c757d; margin-top: 4px;">${escapeHtml(item.description)}</div>` : ''}
+                        <div class="item-price" style="margin-top: 8px; font-weight: 600; color: #0d6efd;">
+                            Total: S/ ${item.price.toFixed(2)}
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="quantity-badge" style="background: #0d6efd; color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+                            x1
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart(${index})" title="Eliminar">
+                            <i class="bi bi-x"></i>
+                        </button>
                     </div>
                 </div>
             `;
-            return;
         }
         
-        cartItems.innerHTML = cart.map((item, index) => {
-            const subtotalItem = item.price * item.quantity;
-            
-            return `
-                <div class="cart-item">
-                    <div class="item-info">
-                        <div class="item-name">${escapeHtml(item.name)}</div>
-                        <div class="item-code">${escapeHtml(item.code)}</div>
-                        <div class="item-price">S/ ${item.price.toFixed(2)} c/u</div>
-                        ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
-                    </div>
-                    <div class="quantity-controls">
-                        <button class="qty-btn" onclick="updateQuantity(${index}, ${item.quantity - 1})">
-                            <i class="bi bi-dash"></i>
-                        </button>
-                        <span class="qty-display">${item.quantity}</span>
-                        <button class="qty-btn" onclick="updateQuantity(${index}, ${item.quantity + 1})">
-                            <i class="bi bi-plus"></i>
-                        </button>
-                    </div>
-                    <div class="item-total">S/ ${subtotalItem.toFixed(2)}</div>
-                    <button class="remove-btn" onclick="removeFromCart(${index})" title="Eliminar">
-                        <i class="bi bi-x"></i>
+        return `
+            <div class="cart-item">
+                <div class="item-info">
+                    <div class="item-name">${escapeHtml(item.name)}</div>
+                    <div class="item-code">${escapeHtml(item.code)}</div>
+                    <div class="item-price">S/ ${item.price.toFixed(2)} c/u</div>
+                    ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
+                </div>
+                <div class="quantity-controls">
+                    <button class="qty-btn" onclick="updateQuantity(${index}, ${item.quantity - 1})">
+                        <i class="bi bi-dash"></i>
+                    </button>
+                    <span class="qty-display">${item.quantity}</span>
+                    <button class="qty-btn" onclick="updateQuantity(${index}, ${item.quantity + 1})">
+                        <i class="bi bi-plus"></i>
                     </button>
                 </div>
-            `;
-        }).join('');
-    }
+                <div class="item-total">S/ ${subtotalItem.toFixed(2)}</div>
+                <button class="remove-btn" onclick="removeFromCart(${index})" title="Eliminar">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+}
 
-    function updateQuantity(index, newQuantity) {
-        const quantity = parseInt(newQuantity);
-        
-        if (quantity <= 0) {
-            removeFromCart(index);
-            return;
-        }
-        
-        const item = cart[index];
-        if (item.type === 'product' && item.stock && quantity > item.stock) {
-            showToast('Stock insuficiente', 'warning');
-            updateCartDisplay();
-            return;
-        }
-        
-        cart[index].quantity = quantity;
+function updateQuantity(index, newQuantity) {
+    const quantity = parseInt(newQuantity);
+    
+    if (quantity <= 0) {
+        removeFromCart(index);
+        return;
+    }
+    
+    const item = cart[index];
+    if (item.type === 'product' && item.stock && quantity > item.stock) {
+        showToast('Stock insuficiente', 'warning');
         updateCartDisplay();
-        updateTotals();
+        return;
     }
+    
+    cart[index].quantity = quantity;
+    updateCartDisplay();
+    updateTotals();
+}
 
-    function removeFromCart(index) {
-        cart.splice(index, 1);
-        updateCartDisplay();
-        updateCartCount();
-        updateTotals();
-        enableCheckoutIfReady();
-        showToast('Producto eliminado', 'info');
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    updateCartDisplay();
+    updateCartCount();
+    updateTotals();
+    enableCheckoutIfReady();
+    showToast('Producto eliminado', 'info');
+}
+
+function updateCartCount() {
+    const count = cart.reduce((total, item) => total + item.quantity, 0);
+    
+    const itemCountBadge = document.getElementById('itemCountBadge');
+    if (itemCountBadge) {
+        itemCountBadge.textContent = `${count} items`;
     }
+    
+    const cartCount = document.getElementById('cartCount');
+    if (cartCount) {
+        cartCount.textContent = `${count} items`;
+    }
+}
 
-    function updateCartCount() {
-        const count = cart.reduce((total, item) => total + item.quantity, 0);
+function updateTotals() {
+    let subtotalTotal = 0;
+    let subtotalProductos = 0;
+    let subtotalServicios = 0;
+    let subtotalOrdenes = 0;
+    
+    cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        subtotalTotal += itemTotal;
         
-        const itemCountBadge = document.getElementById('itemCountBadge');
-        if (itemCountBadge) {
-            itemCountBadge.textContent = `${count} items`;
+        if (item.type === 'product') {
+            subtotalProductos += itemTotal;
+        } else if (item.type === 'service') {
+            subtotalServicios += itemTotal;
+        } else if (item.type === 'orden_trabajo') {
+            subtotalOrdenes += itemTotal;
         }
+    });
+    
+    const tax = subtotalProductos * IVA_RATE;
+    const discount = 0;
+    const total = subtotalTotal + tax - discount;
+    
+    const subtotalElement = document.getElementById('subtotalAmount');
+    const taxElement = document.getElementById('taxAmount');
+    const discountElement = document.getElementById('discountAmount');
+    const totalElement = document.getElementById('totalAmount');
+    
+    if (subtotalElement) subtotalElement.textContent = `S/ ${subtotalTotal.toFixed(2)}`;
+    if (taxElement) taxElement.textContent = `S/ ${tax.toFixed(2)}`;
+    if (discountElement) discountElement.textContent = `S/ ${discount.toFixed(2)}`;
+    if (totalElement) totalElement.textContent = `S/ ${total.toFixed(2)}`;
+}
+
+// ========== PROCESAMIENTO DE VENTA ==========
+
+function selectPrintOption(type) {
+    selectedPrintType = type;
+    document.querySelectorAll('.print-option-btn').forEach(btn => btn.classList.remove('selected'));
+    const selectedBtn = document.querySelector(`[data-print="${type}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('selected');
+    }
+}
+
+function confirmSale() {
+    const confirmationModal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
+    if (confirmationModal) {
+        confirmationModal.hide();
+    }
+    processSale();
+}
+
+function processSale() {
+    console.log('🚀 Iniciando procesamiento de venta...');
+    
+    let subtotalTotal = 0;
+    let subtotalProductos = 0;
+    let subtotalServicios = 0;
+    let subtotalOrdenes = 0;
+    
+    cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        subtotalTotal += itemTotal;
         
-        const cartCount = document.getElementById('cartCount');
-        if (cartCount) {
-            cartCount.textContent = `${count} items`;
+        if (item.type === 'product') {
+            subtotalProductos += itemTotal;
+        } else if (item.type === 'service') {
+            subtotalServicios += itemTotal;
+        } else if (item.type === 'orden_trabajo') {
+            subtotalOrdenes += itemTotal;
         }
-    }
-
-    function updateTotals() {
-        let subtotal = 0;
-        cart.forEach(item => {
-            subtotal += item.price * item.quantity;
-        });
-        
-        const tax = subtotal * IVA_RATE;
-        const discount = 0;
-        const total = subtotal + tax - discount;
-        
-        const subtotalElement = document.getElementById('subtotalAmount');
-        const taxElement = document.getElementById('taxAmount');
-        const discountElement = document.getElementById('discountAmount');
-        const totalElement = document.getElementById('totalAmount');
-        
-        if (subtotalElement) subtotalElement.textContent = `S/ ${subtotal.toFixed(2)}`;
-        if (taxElement) taxElement.textContent = `S/ ${tax.toFixed(2)}`;
-        if (discountElement) discountElement.textContent = `S/ ${discount.toFixed(2)}`;
-        if (totalElement) totalElement.textContent = `S/ ${total.toFixed(2)}`;
-    }
-
-    function selectPayment(button, method) {
-        document.querySelectorAll('.payment-option').forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-        currentPaymentMethod = method;
-        showToast(`Método seleccionado: ${method}`, 'success');
-    }
-
-    function processCheckout() {
-        if (cart.length === 0) {
-            showToast('El carrito está vacío', 'warning');
-            return;
-        }
-        
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const tax = subtotal * IVA_RATE;
-        const total = subtotal + tax;
-        
-        // Actualizar modal de confirmación
-        document.getElementById('confirmationTotal').textContent = `S/ ${total.toFixed(2)}`;
-        document.getElementById('confirmationCustomer').textContent = document.getElementById('customerName').textContent;
-        document.getElementById('confirmationPayment').textContent = currentPaymentMethod;
-        document.getElementById('confirmationItems').textContent = cart.length;
-        
-        // Resetear selección de impresión
-        selectedPrintType = 'none';
-        document.querySelectorAll('.print-option-btn').forEach(btn => btn.classList.remove('selected'));
-        document.querySelector('[data-print="none"]').classList.add('selected');
-        
-        // Mostrar modal de confirmación
-        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
-        modal.show();
-    }
-
-    function selectPrintOption(type) {
-        selectedPrintType = type;
-        document.querySelectorAll('.print-option-btn').forEach(btn => btn.classList.remove('selected'));
-        document.querySelector(`[data-print="${type}"]`).classList.add('selected');
-    }
-
-    function confirmSale() {
-        const confirmationModal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
-        if (confirmationModal) {
-            confirmationModal.hide();
-        }
-        
-        processSale();
-    }
-
-    function processSale() {
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const tax = subtotal * IVA_RATE;
-        const total = subtotal + tax;
-        
-        const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
-        const selectedOrderIdElement = document.getElementById('selectedOrderId');
-        
-        const saleData = {
-            // Datos del cliente
-            cliente_id: selectedCustomerIdElement ? selectedCustomerIdElement.value || null : null,
+    });
+    
+    const tax = subtotalProductos * IVA_RATE;
+    const total = subtotalTotal + tax;
+    
+    const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
+    const selectedOrderIdElement = document.getElementById('selectedOrderId');
+    
+    const saleData = {
+        cliente_id: selectedCustomerIdElement ? selectedCustomerIdElement.value || null : null,
+        tipo_pago: currentPaymentMethod,
+        items: cart.map(item => {
+            if (item.type === 'orden_trabajo') {
+                return null;
+            }
             
-            // Datos de pago
-            tipo_pago: currentPaymentMethod,
+            const itemSubtotal = item.price * item.quantity;
+            const itemIva = item.type === 'product' ? (itemSubtotal * IVA_RATE) : 0;
+            const itemTotal = itemSubtotal + itemIva;
             
-            // Items - CORREGIDO para coincidir con el backend
-            items: cart.map(item => ({
+            return {
                 tipo: item.type === 'product' ? 'producto' : 'servicio',
                 id: item.id,
                 cantidad: item.quantity,
                 precio_unitario: item.price,
-                subtotal: item.price * item.quantity,
-                iva: (item.price * item.quantity) * IVA_RATE,
+                subtotal: itemSubtotal,
+                iva: itemIva,
                 descuento: 0,
-                total: (item.price * item.quantity) * (1 + IVA_RATE),
+                total: itemTotal,
                 tecnico_id: item.technician_id || null
-            })),
-            
-            // Totales
-            subtotal: subtotal,
-            iva: tax,
-            descuento: 0,
-            total: total,
-            
-            // Orden de trabajo si existe
-            orden_trabajo_id: selectedOrderIdElement ? selectedOrderIdElement.value || null : null,
-            
-            // Opciones de impresión
-            imprimir: selectedPrintType !== 'none',
-            tipo_impresion: selectedPrintType === 'ticket' ? 'ticket' : 'factura',
-            
-            // Observaciones
-            observaciones: ''
-        };
+            };
+        }).filter(item => item !== null), 
+        subtotal: subtotalTotal,
+        iva: tax,
+        descuento: 0,
+        total: total,
+        orden_trabajo_id: selectedOrderIdElement ? selectedOrderIdElement.value || null : null,
+        imprimir: selectedPrintType !== 'none',
+        tipo_impresion: selectedPrintType === 'ticket' ? 'ticket' : 'factura',
+        observaciones: ''
+    };
+    
+    showLoading('Procesando venta...');
+    
+    fetch('/ventas/pos/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify(saleData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
         
-        console.log('Datos de venta enviados:', saleData);
-        
-        showLoading('Procesando venta...');
-        
-        fetch('/ventas/pos/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify(saleData)
-        })
-        .then(response => {
-            console.log('Response status:', response.status);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Response data:', data);
-            hideLoading();
+        if (data.success) {
+            lastSaleData = {
+                ...saleData,
+                numero_factura: data.numero_factura || data.venta_id,
+                total_amount: total,
+                venta_id: data.venta_id
+            };
             
-            if (data.success) {
-                lastSaleData = {
-                    ...saleData,
-                    numero_factura: data.numero_factura || data.venta_id,
-                    total_amount: total,
-                    venta_id: data.venta_id
-                };
-                
-                showToast('Venta procesada exitosamente', 'success');
-                
-                // Manejar impresión
-                if (selectedPrintType === 'ticket') {
-                    printThermalTicket(data.venta_id);
-                } else if (selectedPrintType === 'pdf') {
-                    printInvoicePDF(data.venta_id);
-                } else {
-                    showToast(`Venta completada. Factura #${data.numero_factura || data.venta_id}`, 'success');
-                    resetPOS();
-                }
+            showToast('✅ Venta procesada exitosamente', 'success');
+            
+            if (selectedPrintType === 'ticket') {
+                printThermalTicket(data.venta_id);
+            } else if (selectedPrintType === 'pdf') {
+                printInvoicePDF(data.venta_id);
             } else {
-                console.error('Error en la venta:', data);
-                showToast(data.mensaje || data.message || 'Error al procesar la venta', 'error');
+                showToast(`Venta completada. Factura #${data.numero_factura || data.venta_id}`, 'success');
+                resetPOS();
+            }
+        } else {
+            showToast(data.mensaje || data.message || 'Error al procesar la venta', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error processing sale:', error);
+        hideLoading();
+        showToast('Error de conexión: ' + error.message, 'error');
+    });
+}
+
+function printThermalTicket(ventaId) {
+    showLoading('Enviando a impresora térmica...');
+    
+    fetch(`/ventas/imprimir-ticket/?id=${ventaId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            printer_name: 'default',
+            printer_type: 'GENERIC_80MM',
+            open_drawer: false
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            showToast('Ticket impreso correctamente', 'success');
+        } else {
+            showToast('Error al imprimir ticket: ' + data.message, 'error');
+        }
+        resetPOS();
+    })
+    .catch(error => {
+        hideLoading();
+        showToast('Error de conexión al imprimir: ' + error.message, 'error');
+        resetPOS();
+    });
+}
+
+function printInvoicePDF(ventaId) {
+    showLoading('Generando factura PDF...');
+    
+    const pdfUrl = `/ventas/factura-pdf/?id=${ventaId}`;
+    window.open(pdfUrl, '_blank');
+    
+    setTimeout(() => {
+        hideLoading();
+        showToast('Factura PDF generada', 'success');
+        resetPOS();
+    }, 2000);
+}
+
+function resetPOS() {
+    cart = [];
+    selectedPrintType = 'none';
+    lastSaleData = null;
+    currentPaymentMethod = null;
+    
+    const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
+    const selectedOrderIdElement = document.getElementById('selectedOrderId');
+    
+    if (selectedCustomerIdElement) selectedCustomerIdElement.value = '';
+    if (selectedOrderIdElement) selectedOrderIdElement.value = '';
+    
+    const customerNameElement = document.getElementById('customerName');
+    const customerIDElement = document.getElementById('customerID');
+    
+    if (customerNameElement) customerNameElement.textContent = 'Consumidor Final';
+    if (customerIDElement) customerIDElement.textContent = '9999999999';
+    
+    document.querySelectorAll('.payment-option').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.transform = 'scale(1)';
+    });
+    
+    updateCartDisplay();
+    updateCartCount();
+    updateTotals();
+    enableCheckoutIfReady();
+    loadPendingOrdersCount();
+}
+
+function selectPaymentMethod(method) {
+    currentPaymentMethod = method;
+    
+    document.querySelectorAll('.payment-option').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.transform = 'scale(1)';
+    });
+    
+    const selectedBtn = document.querySelector(`[data-method="${method}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+        selectedBtn.style.transform = 'scale(1.05)';
+        
+        setTimeout(() => {
+            selectedBtn.style.transform = 'scale(1)';
+        }, 200);
+    }
+    
+    console.log('💳 Método de pago seleccionado:', method);
+}
+
+// ========== MODALES - CLIENTES ==========
+
+function showCustomerModal() {
+    const modal = new bootstrap.Modal(document.getElementById('customerModal'));
+    modal.show();
+    loadCustomers();
+}
+
+function loadCustomers() {
+    const resultsContainer = document.getElementById('customerResults');
+    if (!resultsContainer) return;
+    
+    resultsContainer.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 1rem;">Cargando clientes...</p>
+        </div>
+    `;
+    
+    fetch('/ventas/api/clientes/?q=')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.clientes.length > 0) {
+                displayCustomers(data.clientes);
+            } else {
+                resultsContainer.innerHTML = '<p style="text-align: center;">No se encontraron clientes</p>';
             }
         })
         .catch(error => {
-            console.error('Error processing sale:', error);
-            hideLoading();
-            showToast('Error de conexión: ' + error.message, 'error');
+            console.error('Error loading customers:', error);
+            resultsContainer.innerHTML = '<p style="text-align: center;">Error al cargar clientes</p>';
         });
-    }
+}
 
-    function printThermalTicket(ventaId) {
-        showLoading('Enviando a impresora térmica...');
-        
-        fetch(`/ventas/imprimir-ticket/?id=${ventaId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify({
-                printer_name: 'default',
-                printer_type: 'GENERIC_80MM',
-                open_drawer: false
-            })
+function searchCustomers() {
+    const customerSearch = document.getElementById('customerSearch');
+    const resultsContainer = document.getElementById('customerResults');
+    
+    if (!customerSearch || !resultsContainer) return;
+    
+    const search = customerSearch.value.trim();
+    
+    if (search.length < 2) {
+        resultsContainer.innerHTML = '<p style="text-align: center;">Ingrese al menos 2 caracteres</p>';
+        return;
+    }
+    
+    fetch(`/ventas/api/clientes/?q=${encodeURIComponent(search)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.clientes.length > 0) {
+                displayCustomers(data.clientes);
+            } else {
+                resultsContainer.innerHTML = '<p style="text-align: center;">No se encontraron clientes</p>';
+            }
         })
+        .catch(error => {
+            console.error('Error searching customers:', error);
+            resultsContainer.innerHTML = '<p style="text-align: center;">Error al buscar</p>';
+        });
+}
+
+function displayCustomers(customers) {
+    const resultsContainer = document.getElementById('customerResults');
+    if (!resultsContainer) return;
+    
+    resultsContainer.innerHTML = customers.map(customer => `
+        <div class="modal-item" onclick="selectCustomer(${customer.id}, '${escapeHtml(customer.nombre_completo)}', '${escapeHtml(customer.identificacion)}')">
+            <div class="item-header">
+                <h6 class="item-title">${escapeHtml(customer.nombre_completo)}</h6>
+            </div>
+            <div class="item-meta">
+                <span>ID: ${escapeHtml(customer.identificacion)}</span>
+                <span>${customer.telefono ? escapeHtml(customer.telefono) : 'Sin teléfono'}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectCustomer(customerId, customerName, customerID) {
+    const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
+    const customerNameElement = document.getElementById('customerName');
+    const customerIDElement = document.getElementById('customerID');
+    
+    if (selectedCustomerIdElement) selectedCustomerIdElement.value = customerId;
+    if (customerNameElement) customerNameElement.textContent = customerName;
+    if (customerIDElement) customerIDElement.textContent = customerID;
+    
+    const customerModal = document.getElementById('customerModal');
+    if (customerModal) {
+        const modalInstance = bootstrap.Modal.getInstance(customerModal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+    }
+    
+    showToast('Cliente seleccionado', 'success');
+}
+
+// ========== CREAR CLIENTE RÁPIDO ==========
+
+function showCreateCustomerModal() {
+    const customerModal = document.getElementById('customerModal');
+    if (customerModal) {
+        const modalInstance = bootstrap.Modal.getInstance(customerModal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+    }
+    
+    setTimeout(() => {
+        const createModal = new bootstrap.Modal(document.getElementById('createCustomerModal'));
+        createModal.show();
+        document.getElementById('createCustomerForm').reset();
+        clearValidationMessages();
+    }, 300);
+}
+
+function validateIdentification() {
+    if (validationTimeout) {
+        clearTimeout(validationTimeout);
+    }
+    
+    const identificacion = document.getElementById('newCustomerIdentificacion').value.trim();
+    const tipo = document.getElementById('newCustomerTipoId').value;
+    const icon = document.getElementById('identificationIcon');
+    const validation = document.getElementById('identificationValidation');
+    
+    icon.className = 'input-icon';
+    validation.innerHTML = '';
+    validation.className = 'validation-message';
+    
+    if (identificacion.length === 0) {
+        return;
+    }
+    
+    icon.innerHTML = '<div class="loading-spinner" style="width: 1rem; height: 1rem;"></div>';
+    
+    validationTimeout = setTimeout(() => {
+        fetch(`/clientes/api/validar-identificacion/?identificacion=${encodeURIComponent(identificacion)}&tipo=${tipo}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.existe) {
+                    icon.className = 'input-icon error';
+                    icon.innerHTML = '<i class="bi bi-x-circle"></i>';
+                    validation.className = 'validation-message error';
+                    validation.innerHTML = `<i class="bi bi-x-circle"></i> ${data.mensaje}`;
+                } else if (data.valido) {
+                    icon.className = 'input-icon success';
+                    icon.innerHTML = '<i class="bi bi-check-circle"></i>';
+                    validation.className = 'validation-message success';
+                    validation.innerHTML = `<i class="bi bi-check-circle"></i> ${data.mensaje}`;
+                } else {
+                    icon.className = 'input-icon error';
+                    icon.innerHTML = '<i class="bi bi-x-circle"></i>';
+                    validation.className = 'validation-message error';
+                    validation.innerHTML = `<i class="bi bi-x-circle"></i> ${data.mensaje}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error validating identification:', error);
+                icon.className = '';
+                icon.innerHTML = '';
+            });
+    }, 500);
+}
+
+function clearValidationMessages() {
+    const icon = document.getElementById('identificationIcon');
+    const validation = document.getElementById('identificationValidation');
+    
+    if (icon) {
+        icon.className = 'input-icon';
+        icon.innerHTML = '';
+    }
+    
+    if (validation) {
+        validation.className = 'validation-message';
+        validation.innerHTML = '';
+    }
+}
+
+function handleCreateCustomer(event) {
+    event.preventDefault();
+    
+    const btnCreate = document.getElementById('btnCreateCustomer');
+    const originalText = btnCreate.innerHTML;
+    
+    btnCreate.disabled = true;
+    btnCreate.innerHTML = '<span class="loading-spinner" style="width: 1rem; height: 1rem;"></span> Creando...';
+    
+    const customerData = {
+        nombres: document.getElementById('newCustomerNombres').value.trim(),
+        apellidos: document.getElementById('newCustomerApellidos').value.trim(),
+        identificacion: document.getElementById('newCustomerIdentificacion').value.trim(),
+        tipo_identificacion: document.getElementById('newCustomerTipoId').value,
+        telefono: document.getElementById('newCustomerTelefono').value.trim(),
+        email: document.getElementById('newCustomerEmail').value.trim(),
+        direccion: document.getElementById('newCustomerDireccion').value.trim()
+    };
+    
+    fetch('/clientes/api/crear-rapido/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify(customerData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Cliente creado exitosamente', 'success');
+            
+            const createModal = bootstrap.Modal.getInstance(document.getElementById('createCustomerModal'));
+            if (createModal) {
+                createModal.hide();
+            }
+            
+            setTimeout(() => {
+                selectCustomer(
+                    data.cliente.id,
+                    data.cliente.nombre_completo,
+                    data.cliente.identificacion
+                );
+            }, 300);
+        } else {
+            showToast(data.mensaje || 'Error al crear cliente', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating customer:', error);
+        showToast('Error de conexión: ' + error.message, 'error');
+    })
+    .finally(() => {
+        btnCreate.disabled = false;
+        btnCreate.innerHTML = originalText;
+    });
+}
+
+// ========== MODALES - ÓRDENES DE TRABAJO ==========
+
+function showOrdersModal() {
+    const modal = new bootstrap.Modal(document.getElementById('ordersModal'));
+    modal.show();
+    loadOrders();
+}
+
+function loadOrders() {
+    const resultsContainer = document.getElementById('orderResults');
+    if (!resultsContainer) return;
+    
+    resultsContainer.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 1rem;">Cargando órdenes...</p>
+        </div>
+    `;
+    
+    fetch('/ventas/api/ordenes-completadas/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.ordenes && data.ordenes.length > 0) {
+                displayOrders(data.ordenes);
+            } else {
+                resultsContainer.innerHTML = '<p style="text-align: center;">No hay órdenes disponibles</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading orders:', error);
+            resultsContainer.innerHTML = '<p style="text-align: center;">Error al cargar órdenes</p>';
+        });
+}
+
+function displayOrders(orders) {
+    const resultsContainer = document.getElementById('orderResults');
+    if (!resultsContainer) return;
+    
+    resultsContainer.innerHTML = orders.map(order => `
+        <div class="modal-item" onclick="selectOrder(${order.id})">
+            <div class="item-header">
+                <h6 class="item-title">O.T. #${escapeHtml(order.numero_orden)}</h6>
+                <span class="item-price">S/ ${order.precio_total.toFixed(2)}</span>
+            </div>
+            <div class="item-meta">
+                <span>${escapeHtml(order.cliente_nombre)}</span>
+                <span>${escapeHtml(order.vehiculo || 'Sin vehículo')}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function searchOrders() {
+    const orderSearch = document.getElementById('orderSearch');
+    if (!orderSearch) return;
+    
+    const search = orderSearch.value.trim().toLowerCase();
+    const allOrders = document.querySelectorAll('#orderResults .modal-item');
+    
+    allOrders.forEach(order => {
+        const text = order.textContent.toLowerCase();
+        order.style.display = text.includes(search) ? 'block' : 'none';
+    });
+}
+
+function selectOrder(orderId) {
+    const ordersModal = document.getElementById('ordersModal');
+    if (ordersModal) {
+        const modalInstance = bootstrap.Modal.getInstance(ordersModal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+    }
+    
+    showLoading('Cargando orden...');
+    
+    fetch(`/ventas/api/orden/${orderId}/datos-pos/`)
         .then(response => response.json())
         .then(data => {
             hideLoading();
+            
             if (data.success) {
-                showToast('Ticket impreso correctamente', 'success');
+                processOrderData(data.orden);
             } else {
-                showToast('Error al imprimir ticket: ' + data.message, 'error');
+                showToast(data.message || 'Error al cargar orden', 'error');
             }
-            resetPOS();
         })
         .catch(error => {
+            console.error('Error loading order:', error);
             hideLoading();
-            showToast('Error de conexión al imprimir: ' + error.message, 'error');
-            resetPOS();
+            showToast('Error al cargar orden', 'error');
         });
-    }
+}
 
-    function printInvoicePDF(ventaId) {
-        showLoading('Generando factura PDF...');
-        
-        const pdfUrl = `/ventas/factura-pdf/?id=${ventaId}`;
-        window.open(pdfUrl, '_blank');
-        
-        setTimeout(() => {
-            hideLoading();
-            showToast('Factura PDF generada', 'success');
-            resetPOS();
-        }, 2000);
-    }
-
-    function resetPOS() {
-        cart = [];
-        selectedPrintType = 'none';
-        lastSaleData = null;
-        
-        // Resetear cliente
-        document.getElementById('selectedCustomerId').value = '';
-        document.getElementById('customerName').textContent = 'Consumidor Final';
-        document.getElementById('customerID').textContent = '9999999999';
-        
-        // Resetear método de pago
-        selectPaymentMethod('EFECTIVO');
-        
-        updateCartDisplay();
-        updateCartCount();
-        updateTotals();
-        enableCheckoutIfReady();
-    }
-
-    function selectPaymentMethod(method) {
-        currentPaymentMethod = method;
-        document.querySelectorAll('.payment-option').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-method="${method}"]`).classList.add('active');
-    }
-
-    // Funciones de modales
-    function showCustomerModal() {
-        const modal = new bootstrap.Modal(document.getElementById('customerModal'));
-        modal.show();
-        loadCustomers();
-    }
-
-    function loadCustomers() {
-        const resultsContainer = document.getElementById('customerResults');
-        if (!resultsContainer) return;
-        
-        resultsContainer.innerHTML = `
-            <div style="text-align: center; padding: 2rem;">
-                <div class="loading-spinner"></div>
-                <p style="margin-top: 1rem;">Cargando clientes...</p>
-            </div>
-        `;
-        
-        fetch('/ventas/api/clientes/?q=')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.clientes.length > 0) {
-                    displayCustomers(data.clientes);
-                } else {
-                    resultsContainer.innerHTML = '<p style="text-align: center;">No se encontraron clientes</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading customers:', error);
-                resultsContainer.innerHTML = '<p style="text-align: center;">Error al cargar clientes</p>';
-            });
-    }
-
-    function searchCustomers() {
-        const customerSearch = document.getElementById('customerSearch');
-        const resultsContainer = document.getElementById('customerResults');
-        
-        if (!customerSearch || !resultsContainer) return;
-        
-        const search = customerSearch.value.trim();
-        
-        if (search.length < 2) {
-            resultsContainer.innerHTML = '<p style="text-align: center;">Ingrese al menos 2 caracteres</p>';
-            return;
-        }
-        
-        fetch(`/ventas/api/clientes/?q=${encodeURIComponent(search)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.clientes.length > 0) {
-                    displayCustomers(data.clientes);
-                } else {
-                    resultsContainer.innerHTML = '<p style="text-align: center;">No se encontraron clientes</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error searching customers:', error);
-                resultsContainer.innerHTML = '<p style="text-align: center;">Error al buscar</p>';
-            });
-    }
-
-    function displayCustomers(customers) {
-        const resultsContainer = document.getElementById('customerResults');
-        if (!resultsContainer) return;
-        
-        resultsContainer.innerHTML = customers.map(customer => `
-            <div class="modal-item" onclick="selectCustomer(${customer.id}, '${escapeHtml(customer.nombre_completo)}', '${escapeHtml(customer.identificacion)}')">
-                <div class="item-header">
-                    <h6 class="item-title">${escapeHtml(customer.nombre_completo)}</h6>
-                </div>
-                <div class="item-meta">
-                    <span>ID: ${escapeHtml(customer.identificacion)}</span>
-                    <span>${customer.telefono ? escapeHtml(customer.telefono) : 'Sin teléfono'}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function selectCustomer(customerId, customerName, customerID) {
-        const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
-        const customerNameElement = document.getElementById('customerName');
-        const customerIDElement = document.getElementById('customerID');
-        
-        if (selectedCustomerIdElement) selectedCustomerIdElement.value = customerId;
-        if (customerNameElement) customerNameElement.textContent = customerName;
-        if (customerIDElement) customerIDElement.textContent = customerID;
-        
-        const customerModal = document.getElementById('customerModal');
-        if (customerModal) {
-            const modalInstance = bootstrap.Modal.getInstance(customerModal);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
-        }
-        
-        showToast('Cliente seleccionado', 'success');
-    }
-
-    function showOrdersModal() {
-        const modal = new bootstrap.Modal(document.getElementById('ordersModal'));
-        modal.show();
-        loadOrders();
-    }
-
-    function loadOrders() {
-        const resultsContainer = document.getElementById('orderResults');
-        if (!resultsContainer) return;
-        
-        resultsContainer.innerHTML = `
-            <div style="text-align: center; padding: 2rem;">
-                <div class="loading-spinner"></div>
-                <p style="margin-top: 1rem;">Cargando órdenes...</p>
-            </div>
-        `;
-        
-        fetch('/ventas/api/ordenes-completadas/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.ordenes && data.ordenes.length > 0) {
-                    displayOrders(data.ordenes);
-                } else {
-                    resultsContainer.innerHTML = '<p style="text-align: center;">No hay órdenes disponibles</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading orders:', error);
-                resultsContainer.innerHTML = '<p style="text-align: center;">Error al cargar órdenes</p>';
-            });
-    }
-
-    function displayOrders(orders) {
-        const resultsContainer = document.getElementById('orderResults');
-        if (!resultsContainer) return;
-        
-        resultsContainer.innerHTML = orders.map(order => `
-            <div class="modal-item" onclick="selectOrder(${order.id})">
-                <div class="item-header">
-                    <h6 class="item-title">O.T. #${escapeHtml(order.numero_orden)}</h6>
-                    <span class="item-price">S/ ${order.precio_total.toFixed(2)}</span>
-                </div>
-                <div class="item-meta">
-                    <span>${escapeHtml(order.cliente_nombre)}</span>
-                    <span>${escapeHtml(order.vehiculo || 'Sin vehículo')}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function searchOrders() {
-        const orderSearch = document.getElementById('orderSearch');
-        if (!orderSearch) return;
-        
-        const search = orderSearch.value.trim().toLowerCase();
-        const allOrders = document.querySelectorAll('#orderResults .modal-item');
-        
-        allOrders.forEach(order => {
-            const text = order.textContent.toLowerCase();
-            order.style.display = text.includes(search) ? 'block' : 'none';
-        });
-    }
-
-    function selectOrder(orderId) {
-        const ordersModal = document.getElementById('ordersModal');
-        if (ordersModal) {
-            const modalInstance = bootstrap.Modal.getInstance(ordersModal);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
-        }
-        
-        showLoading('Cargando orden...');
-        
-        fetch(`/ventas/api/orden/${orderId}/datos-pos/`)
-            .then(response => response.json())
-            .then(data => {
-                hideLoading();
-                if (data.success) {
-                    processOrderData(data.orden);
-                } else {
-                    showToast('Error al cargar orden', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error loading order:', error);
-                hideLoading();
-                showToast('Error al cargar orden', 'error');
-            });
-    }
-
-    function processOrderData(orderData) {
-        cart = [];
-        
-        if (orderData.cliente) {
-            selectCustomer(orderData.cliente.id, orderData.cliente.nombre_completo, orderData.cliente.identificacion);
-        }
-        
-        if (orderData.servicios) {
-            orderData.servicios.forEach(service => {
-                addToCart({
-                    id: service.id,
-                    code: service.codigo,
-                    name: service.nombre,
-                    type: 'service',
-                    price: service.precio_total,
-                    technician_id: service.tecnico_id,
-                    technician_name: service.tecnico_nombre
-                });
-            });
-        }
-        
-        if (orderData.repuestos) {
-            orderData.repuestos.forEach(part => {
-                addToCart({
-                    id: part.id,
-                    code: part.codigo,
-                    name: part.nombre,
-                    type: 'product',
-                    price: part.precio_unitario,
-                    stock: part.stock_disponible
-                });
-                
-                if (part.cantidad > 1 && cart.length > 0) {
-                    cart[cart.length - 1].quantity = part.cantidad;
-                }
-            });
-        }
-        
-        updateCartDisplay();
-        updateCartCount();
-        updateTotals();
-        enableCheckoutIfReady();
-        showToast('Orden cargada exitosamente', 'success');
-    }
-
-    function showServicesModal() {
-        const modal = new bootstrap.Modal(document.getElementById('servicesModal'));
-        modal.show();
-        displayServices(services);
-    }
-
-    function displayServices(serviceList) {
-        const resultsContainer = document.getElementById('serviceResults');
-        if (!resultsContainer) return;
-        
-        if (serviceList.length === 0) {
-            resultsContainer.innerHTML = '<p style="text-align: center;">No hay servicios disponibles</p>';
-            return;
-        }
-        
-        resultsContainer.innerHTML = serviceList.map(service => `
-            <div class="modal-item" onclick="selectServiceFromModal(${service.id})">
-                <div class="item-header">
-                    <h6 class="item-title">${escapeHtml(service.nombre)}</h6>
-                    <span class="item-price">S/ ${service.precio_total.toFixed(2)}</span>
-                </div>
-                <div class="item-meta">
-                    <span>Código: ${escapeHtml(service.codigo)}</span>
-                    <span>${service.categoria ? escapeHtml(service.categoria) : 'Servicio'}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function searchServices() {
-        const serviceSearch = document.getElementById('serviceSearch');
-        if (!serviceSearch) return;
-        
-        const search = serviceSearch.value.trim().toLowerCase();
-        const filteredServices = services.filter(service => 
-            service.nombre.toLowerCase().includes(search) ||
-            service.codigo.toLowerCase().includes(search)
+function processOrderData(orderData) {
+    cart = [];
+    
+    if (orderData.cliente) {
+        selectCustomer(
+            orderData.cliente.id, 
+            orderData.cliente.nombre_completo, 
+            orderData.cliente.identificacion
         );
-        displayServices(filteredServices);
     }
+    
+    const ordenItem = {
+        id: orderData.id,
+        code: orderData.numero_orden,
+        name: `Orden ${orderData.numero_orden} - ${orderData.vehiculo}`,
+        type: 'orden_trabajo',
+        price: orderData.precio_total,
+        quantity: 1,
+        description: orderData.descripcion_problema || '',
+        vehiculo: orderData.vehiculo,
+        stock: 999
+    };
+    
+    cart.push(ordenItem);
+    
+    const selectedOrderIdElement = document.getElementById('selectedOrderId');
+    if (selectedOrderIdElement) {
+        selectedOrderIdElement.value = orderData.id;
+    }
+    
+    updateCartDisplay();
+    updateCartCount();
+    updateTotals();
+    enableCheckoutIfReady();
+    
+    showToast(`Orden ${orderData.numero_orden} cargada - Total: S/ ${orderData.precio_total.toFixed(2)}`, 'success');
+}
 
-    function selectServiceFromModal(serviceId) {
-        const service = services.find(s => s.id === serviceId);
-        if (service) {
-            const servicesModal = document.getElementById('servicesModal');
-            if (servicesModal) {
-                const modalInstance = bootstrap.Modal.getInstance(servicesModal);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
+// ========== MODALES - SERVICIOS ==========
+
+function showServicesModal() {
+    const modal = new bootstrap.Modal(document.getElementById('servicesModal'));
+    modal.show();
+    displayServices(services);
+}
+
+function displayServices(serviceList) {
+    const resultsContainer = document.getElementById('serviceResults');
+    if (!resultsContainer) return;
+    
+    if (serviceList.length === 0) {
+        resultsContainer.innerHTML = '<p style="text-align: center;">No hay servicios disponibles</p>';
+        return;
+    }
+    
+    resultsContainer.innerHTML = serviceList.map(service => `
+        <div class="modal-item" onclick="selectServiceFromModal(${service.id})">
+            <div class="item-header">
+                <h6 class="item-title">${escapeHtml(service.nombre)}</h6>
+                <span class="item-price">S/ ${service.precio_total.toFixed(2)}</span>
+            </div>
+            <div class="item-meta">
+                <span>Código: ${escapeHtml(service.codigo)}</span>
+                <span>${service.categoria ? escapeHtml(service.categoria) : 'Servicio'}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function searchServices() {
+    const serviceSearch = document.getElementById('serviceSearch');
+    if (!serviceSearch) return;
+    
+    const search = serviceSearch.value.trim().toLowerCase();
+    const filteredServices = services.filter(service => 
+        service.nombre.toLowerCase().includes(search) ||
+        service.codigo.toLowerCase().includes(search)
+    );
+    displayServices(filteredServices);
+}
+
+function selectServiceFromModal(serviceId) {
+    const service = services.find(s => s.id === serviceId);
+    if (service) {
+        const servicesModal = document.getElementById('servicesModal');
+        if (servicesModal) {
+            const modalInstance = bootstrap.Modal.getInstance(servicesModal);
+            if (modalInstance) {
+                modalInstance.hide();
             }
-            selectTechnicianForService(service);
         }
+        selectTechnicianForService(service);
     }
+}
 
-    function selectTechnicianForService(service) {
-        selectedService = service;
-        const selectedServiceNameElement = document.getElementById('selectedServiceName');
-        if (selectedServiceNameElement) {
-            selectedServiceNameElement.textContent = service.nombre;
-        }
-        
-        const technicianList = document.getElementById('technicianList');
-        if (technicianList) {
-            technicianList.innerHTML = `
-                <div class="modal-item" onclick="assignTechnician(null)">
-                    <h6 class="item-title">Sin técnico asignado</h6>
-                </div>
-                ${technicians.map(tech => `
-                    <div class="modal-item" onclick="assignTechnician(${tech.id})">
-                        <div class="item-header">
-                            <h6 class="item-title">${escapeHtml(tech.nombre)}</h6>
-                        </div>
-                        <div class="item-meta">
-                            <span>${tech.especialidad ? escapeHtml(tech.especialidad) : 'Técnico general'}</span>
-                            <span class="badge ${tech.disponible ? 'bg-success' : 'bg-warning text-dark'}">${tech.disponible ? 'Disponible' : 'Ocupado'}</span>
-                        </div>
+function selectTechnicianForService(service) {
+    selectedService = service;
+    const selectedServiceNameElement = document.getElementById('selectedServiceName');
+    if (selectedServiceNameElement) {
+        selectedServiceNameElement.textContent = service.nombre;
+    }
+    
+    const technicianList = document.getElementById('technicianList');
+    if (technicianList) {
+        technicianList.innerHTML = `
+            <div class="modal-item" onclick="assignTechnician(null)">
+                <h6 class="item-title">Sin técnico asignado</h6>
+            </div>
+            ${technicians.map(tech => `
+                <div class="modal-item" onclick="assignTechnician(${tech.id})">
+                    <div class="item-header">
+                        <h6 class="item-title">${escapeHtml(tech.nombre)}</h6>
                     </div>
-                `).join('')}
-            `;
-        }
-        
-        const modal = new bootstrap.Modal(document.getElementById('technicianModal'));
-        modal.show();
+                    <div class="item-meta">
+                        <span>${tech.especialidad ? escapeHtml(tech.especialidad) : 'Técnico general'}</span>
+                        <span class="badge ${tech.disponible ? 'bg-success' : 'bg-warning text-dark'}">${tech.disponible ? 'Disponible' : 'Ocupado'}</span>
+                    </div>
+                </div>
+            `).join('')}
+        `;
     }
+    
+    const modal = new bootstrap.Modal(document.getElementById('technicianModal'));
+    modal.show();
+}
 
-    function assignTechnician(technicianId) {
-        if (!selectedService) return;
-        
-        const technician = technicians.find(t => t.id == technicianId);
+function assignTechnician(technicianId) {
+    if (!selectedService) return;
+    
+    const technician = technicians.find(t => t.id == technicianId);
+    
+    addToCart({
+        id: selectedService.id,
+        code: selectedService.codigo,
+        name: selectedService.nombre,
+        type: 'service',
+        price: selectedService.precio_total,
+        technician_id: technicianId,
+        technician_name: technician ? technician.nombre : null
+    });
+    
+    const technicianModal = document.getElementById('technicianModal');
+    if (technicianModal) {
+        const modalInstance = bootstrap.Modal.getInstance(technicianModal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+    }
+    
+    selectedService = null;
+    showToast('Servicio agregado al carrito', 'success');
+}
+
+// ========== MODALES - PRODUCTOS ==========
+
+function showProductsModal() {
+    const modal = new bootstrap.Modal(document.getElementById('productsModal'));
+    modal.show();
+    
+    if (products.length === 0) {
+        showLoading('Cargando productos...');
+        loadProducts().then(() => {
+            hideLoading();
+            displayProductsInModal(products);
+        });
+    } else {
+        displayProductsInModal(products);
+    }
+}
+
+function displayProductsInModal(productList) {
+    const resultsContainer = document.getElementById('productResults');
+    if (!resultsContainer) return;
+    
+    if (productList.length === 0) {
+        resultsContainer.innerHTML = '<p style="text-align: center;">No hay productos disponibles</p>';
+        return;
+    }
+    
+    resultsContainer.innerHTML = productList.map(product => `
+        <div class="modal-item" onclick="selectProductFromModal(${product.id})">
+            <div class="item-header">
+                <h6 class="item-title">${escapeHtml(product.nombre)}</h6>
+                <span class="item-price">S/ ${product.precio.toFixed(2)}</span>
+            </div>
+            <div class="item-meta">
+                <span>Código: ${escapeHtml(product.codigo)}</span>
+                <span class="badge ${product.stock > 10 ? 'bg-success' : product.stock > 0 ? 'bg-warning text-dark' : 'bg-danger'}">Stock: ${product.stock}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function searchProducts() {
+    const productSearch = document.getElementById('productSearch');
+    if (!productSearch) return;
+    
+    const search = productSearch.value.trim().toLowerCase();
+    const filteredProductsModal = products.filter(product => 
+        product.nombre.toLowerCase().includes(search) ||
+        product.codigo.toLowerCase().includes(search)
+    );
+    displayProductsInModal(filteredProductsModal);
+}
+
+function selectProductFromModal(productId) {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+        if (product.stock <= 0) {
+            showToast('Sin stock disponible', 'warning');
+            return;
+        }
         
         addToCart({
-            id: selectedService.id,
-            code: selectedService.codigo,
-            name: selectedService.nombre,
-            type: 'service',
-            price: selectedService.precio_total,
-            technician_id: technicianId,
-            technician_name: technician ? technician.nombre : null
+            id: product.id,
+            code: product.codigo,
+            name: product.nombre,
+            type: 'product',
+            price: product.precio,
+            stock: product.stock,
+            category: product.categoria || 'Sin categoría'
         });
         
-        const technicianModal = document.getElementById('technicianModal');
-        if (technicianModal) {
-            const modalInstance = bootstrap.Modal.getInstance(technicianModal);
+        const productsModal = document.getElementById('productsModal');
+        if (productsModal) {
+            const modalInstance = bootstrap.Modal.getInstance(productsModal);
             if (modalInstance) {
                 modalInstance.hide();
             }
         }
         
-        selectedService = null;
-        showToast('Servicio agregado al carrito', 'success');
+        showToast('Producto agregado al carrito', 'success');
     }
+}
 
-    function showProductsModal() {
-        const modal = new bootstrap.Modal(document.getElementById('productsModal'));
-        modal.show();
-        
-        if (products.length === 0) {
-            showLoading('Cargando productos...');
-            loadProducts().then(() => {
-                hideLoading();
-                displayProductsInModal(products);
-            });
-        } else {
-            displayProductsInModal(products);
-        }
-    }
-
-    function displayProductsInModal(productList) {
-        const resultsContainer = document.getElementById('productResults');
-        if (!resultsContainer) return;
-        
-        if (productList.length === 0) {
-            resultsContainer.innerHTML = '<p style="text-align: center;">No hay productos disponibles</p>';
-            return;
-        }
-        
-        resultsContainer.innerHTML = productList.map(product => `
-            <div class="modal-item" onclick="selectProductFromModal(${product.id})">
-                <div class="item-header">
-                    <h6 class="item-title">${escapeHtml(product.nombre)}</h6>
-                    <span class="item-price">S/ ${product.precio.toFixed(2)}</span>
-                </div>
-                <div class="item-meta">
-                    <span>Código: ${escapeHtml(product.codigo)}</span>
-                    <span class="badge ${product.stock > 10 ? 'bg-success' : product.stock > 0 ? 'bg-warning text-dark' : 'bg-danger'}">Stock: ${product.stock}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function searchProducts() {
-        const productSearch = document.getElementById('productSearch');
-        if (!productSearch) return;
-        
-        const search = productSearch.value.trim().toLowerCase();
-        const filteredProductsModal = products.filter(product => 
-            product.nombre.toLowerCase().includes(search) ||
-            product.codigo.toLowerCase().includes(search)
-        );
-        displayProductsInModal(filteredProductsModal);
-    }
-
-    function selectProductFromModal(productId) {
-        const product = products.find(p => p.id === productId);
-        if (product) {
-            if (product.stock <= 0) {
-                showToast('Sin stock disponible', 'warning');
-                return;
-            }
-            
-            addToCart({
-                id: product.id,
-                code: product.codigo,
-                name: product.nombre,
-                type: 'product',
-                price: product.precio,
-                stock: product.stock,
-                category: product.categoria || 'Sin categoría'
-            });
-            
-            const productsModal = document.getElementById('productsModal');
-            if (productsModal) {
-                const modalInstance = bootstrap.Modal.getInstance(productsModal);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            }
-            
-            showToast('Producto agregado al carrito', 'success');
-        }
-    }
-
-    // Paginación
-    function updatePaginationInfo() {
-        const startIndex = (currentPage - 1) * recordsPerPage + 1;
-        const endIndex = Math.min(currentPage * recordsPerPage, filteredProducts.length);
-        const total = filteredProducts.length;
-
-        document.getElementById('recordsInfo').textContent = `${startIndex}-${endIndex} de ${total}`;
-        document.getElementById('pageInfo').textContent = `Página ${currentPage}`;
-
-        document.getElementById('prevBtn').disabled = currentPage === 1;
-        document.getElementById('nextBtn').disabled = endIndex >= total;
-    }
-
-    function previousPage() {
-        if (currentPage > 1) {
-            currentPage--;
-            displayProductsTable();
-        }
-    }
-
-    function nextPage() {
-        const maxPage = Math.ceil(filteredProducts.length / recordsPerPage);
-        if (currentPage < maxPage) {
-            currentPage++;
-            displayProductsTable();
-        }
-    }
-
-    function clearSearch() {
-        filteredProducts = [];
-        currentPage = 1;
-        displayProductsTable();
-    }
-
-    // Funciones auxiliares
-    function enableCheckoutIfReady() {
-        const checkoutBtn = document.getElementById('checkoutBtn');
-        if (checkoutBtn) {
-            checkoutBtn.disabled = cart.length === 0;
-        }
-    }
-
-    function checkOrderInURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const orderId = urlParams.get('orden_id');
-        if (orderId) {
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setTimeout(() => selectOrder(orderId), 1000);
-        }
-    }
-
-    function showToast(message, type = 'info') {
-        const toastContainer = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        
-        const icons = {
-            success: 'bi-check-circle',
-            error: 'bi-x-circle',
-            warning: 'bi-exclamation-triangle',
-            info: 'bi-info-circle'
-        };
-
-        toast.className = `toast ${type}`;
-        toast.innerHTML = `
-            <i class="bi ${icons[type]}"></i>
-            <span>${message}</span>
-        `;
-
-        toastContainer.appendChild(toast);
-
-        setTimeout(() => {
-            toast.remove();
-        }, 3000);
-    }
-
-    function showLoading(message = 'Cargando...') {
-        const loadingHtml = `
-            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
-                <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <div class="loading-spinner" style="margin-bottom: 1rem;"></div>
-                    <p style="margin: 0; color: #495057; font-weight: 500;">${message}</p>
-                </div>
-            </div>
-        `;
-        
-        const loadingElement = document.createElement('div');
-        loadingElement.innerHTML = loadingHtml;
-        loadingElement.id = 'loadingOverlay';
-        document.body.appendChild(loadingElement);
-    }
-
-    function hideLoading() {
-        const loadingElement = document.getElementById('loadingOverlay');
-        if (loadingElement) {
-            loadingElement.remove();
-        }
-    }
-
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-
-    function getCsrfToken() {
-        if (window.POS_CONFIG && window.POS_CONFIG.CSRF_TOKEN) {
-            return window.POS_CONFIG.CSRF_TOKEN;
-        }
-        
-        const cookieValue = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('csrftoken='))
-            ?.split('=')[1];
-        
-        if (cookieValue) {
-            return cookieValue;
-        }
-        
-        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (csrfInput) {
-            return csrfInput.value;
-        }
-        
-        console.warn('No se encontró token CSRF');
-        return '';
-    }
-
-    function escapeHtml(text) {
-        if (typeof text !== 'string') return text;
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    console.log('POS inicializado correctamente');
-    // ========== MENÚ FLOTANTE DE ACCESOS RÁPIDOS ==========
+// ========== MENÚ FLOTANTE DE ACCESOS RÁPIDOS ==========
 
 function toggleQuickAccess() {
     const options = document.getElementById('quickAccessOptions');
     const toggle = document.getElementById('quickAccessToggle');
     const overlay = document.getElementById('quickAccessOverlay');
     
-    options.classList.toggle('show');
-    toggle.classList.toggle('active');
-    overlay.classList.toggle('show');
+    if (options) options.classList.toggle('show');
+    if (toggle) toggle.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('show');
 }
 
 function showAllSalesModal(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     toggleQuickAccess();
     
     const modal = new bootstrap.Modal(document.getElementById('allSalesModal'));
@@ -2601,7 +2601,7 @@ function showAllSalesModal(event) {
 }
 
 function showPendingOrdersModal(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     toggleQuickAccess();
     
     const modal = new bootstrap.Modal(document.getElementById('pendingOrdersListModal'));
@@ -2732,7 +2732,7 @@ function displayPendingOrdersList(ordenes) {
             </div>
             <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 0.75rem; color: #6c757d;">
-                    <i class="bi bi-calendar"></i> ${escapeHtml(orden.fecha_completado || 'Sin fecha')}
+                    <i class="bi bi-calendar"></i> ${escapeHtml(orden.fecha_ingreso || 'Sin fecha')}
                 </span>
                 <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); facturarOrden(${orden.id})">
                     <i class="bi bi-shop"></i> Facturar
@@ -2759,16 +2759,193 @@ function updatePendingOrdersBadge(count) {
     }
 }
 
-// Cargar contador de órdenes pendientes al inicializar
-document.addEventListener('DOMContentLoaded', function() {
-    fetch('/ventas/api/ordenes-completadas/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.ordenes) {
-                updatePendingOrdersBadge(data.ordenes.length);
-            }
-        })
-        .catch(error => console.error('Error loading pending orders count:', error));
-});
+function processCheckout() {
+    if (cart.length === 0) {
+        showToast('⚠️ El carrito está vacío', 'warning');
+        return false;
+    }
+    
+    if (!currentPaymentMethod || currentPaymentMethod === '' || currentPaymentMethod === null) {
+        showToast('⚠️ Debe seleccionar un método de pago antes de continuar', 'error');
+        
+        const paymentButtons = document.querySelectorAll('.payment-option');
+        paymentButtons.forEach(btn => {
+            btn.style.animation = 'pulse 0.5s';
+            setTimeout(() => {
+                btn.style.animation = '';
+            }, 500);
+        });
+        
+        return false;
+    }
+    
+    let subtotalTotal = 0;
+    let subtotalProductos = 0;
+    let subtotalServicios = 0;
+    let subtotalOrdenes = 0;
+    
+    cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        subtotalTotal += itemTotal;
+        
+        if (item.type === 'product') {
+            subtotalProductos += itemTotal;
+        } else if (item.type === 'service') {
+            subtotalServicios += itemTotal;
+        } else if (item.type === 'orden_trabajo') {
+            subtotalOrdenes += itemTotal;
+        }
+    });
+    
+    const tax = subtotalProductos * IVA_RATE;
+    const total = subtotalTotal + tax;
+    
+    const confirmationTotal = document.getElementById('confirmationTotal');
+    if (confirmationTotal) {
+        confirmationTotal.textContent = `S/ ${total.toFixed(2)}`;
+    }
+    
+    const confirmationCustomer = document.getElementById('confirmationCustomer');
+    const customerNameElement = document.getElementById('customerName');
+    if (confirmationCustomer && customerNameElement) {
+        confirmationCustomer.textContent = customerNameElement.textContent;
+    }
+    
+    const confirmationPayment = document.getElementById('confirmationPayment');
+    if (confirmationPayment) {
+        const paymentNames = {
+            'EFECTIVO': 'Efectivo',
+            'TARJETA': 'Tarjeta',
+            'TRANSFERENCIA': 'Transfer',
+            'CREDITO': 'Crédito'
+        };
+        confirmationPayment.textContent = paymentNames[currentPaymentMethod] || currentPaymentMethod;
+    }
+    
+    const confirmationItems = document.getElementById('confirmationItems');
+    if (confirmationItems) {
+        confirmationItems.textContent = cart.length;
+    }
+    
+    selectPrintOption('none');
+    
+    try {
+        const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        confirmationModal.show();
+    } catch (error) {
+        console.error('❌ Error abriendo modal:', error);
+    }
+}
+
+// ========== FUNCIONES AUXILIARES ==========
+
+function enableCheckoutIfReady() {
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    if (checkoutBtn) {
+        checkoutBtn.disabled = cart.length === 0;
+    }
+}
+
+function checkOrderInURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('orden_id');
+    if (orderId) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => selectOrder(orderId), 1000);
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+    
+    const toast = document.createElement('div');
+    
+    const icons = {
+        success: 'bi-check-circle',
+        error: 'bi-x-circle',
+        warning: 'bi-exclamation-triangle',
+        info: 'bi-info-circle'
+    };
+
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="bi ${icons[type]}"></i>
+        <span>${message}</span>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+function showLoading(message = 'Cargando...') {
+    const loadingHtml = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <div class="loading-spinner" style="margin-bottom: 1rem;"></div>
+                <p style="margin: 0; color: #495057; font-weight: 500;">${message}</p>
+            </div>
+        </div>
+    `;
+    
+    const loadingElement = document.createElement('div');
+    loadingElement.innerHTML = loadingHtml;
+    loadingElement.id = 'loadingOverlay';
+    document.body.appendChild(loadingElement);
+}
+
+function hideLoading() {
+    const loadingElement = document.getElementById('loadingOverlay');
+    if (loadingElement) {
+        loadingElement.remove();
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function getCsrfToken() {
+    if (window.POS_CONFIG && window.POS_CONFIG.CSRF_TOKEN) {
+        return window.POS_CONFIG.CSRF_TOKEN;
+    }
+    
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+    
+    if (cookieValue) {
+        return cookieValue;
+    }
+    
+    const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfInput) {
+        return csrfInput.value;
+    }
+    
+    console.warn('No se encontró token CSRF');
+    return '';
+}
+
+function escapeHtml(text) {
+    if (typeof text !== 'string') return text;
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+console.log('✅ POS inicializado correctamente');
 </script>
 {% endblock %}

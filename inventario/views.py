@@ -9,11 +9,11 @@ from django.contrib import messages
 from django.db.models import Q, Sum, Count, Case, When, IntegerField, F, Avg, DecimalField
 from django.core.paginator import Paginator
 from django.template.loader import get_template
-from django.db import transaction  # ← ESTA IMPORTACIÓN FALTABA
-from django.core.files.storage import default_storage  # ← NUEVA
-from django.core.files.base import ContentFile  # ← NUEVA
-from django.utils import timezone  # ← NUEVA
-from django.conf import settings  # ← NUEVA
+from django.db import transaction
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.utils import timezone
+from django.conf import settings
 
 from decimal import Decimal
 import json
@@ -22,9 +22,9 @@ import barcode
 from barcode.writer import ImageWriter
 from io import BytesIO, StringIO
 import base64
-import os  # ← NUEVA
-import tempfile  # ← NUEVA
-import pandas as pd  # ← NUEVA (opcional, si quieres usar pandas)
+import os
+import tempfile
+import pandas as pd
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -36,7 +36,10 @@ from reportlab.graphics.barcode import code128
 from .models import Producto, CategoriaProducto, Marca, InventarioAjuste, MovimientoInventario
 from .forms import ProductoForm, CategoriaProductoForm, MarcaForm, InventarioAjusteForm, ProductoSearchForm
 
-# Vistas de Productos
+# ========================================
+# VISTAS DE PRODUCTOS
+# ========================================
+
 @login_required
 def lista_productos(request):
     """Vista para listar productos con filtros"""
@@ -147,6 +150,8 @@ def crear_producto(request):
             producto = form.save()
             messages.success(request, f"Producto '{producto.nombre}' creado correctamente")
             return redirect('inventario:detalle_producto', producto_id=producto.id)
+        else:
+            messages.error(request, "Por favor corrige los errores en el formulario")
     else:
         # Inicializar con código de URL si está presente
         initial = {}
@@ -164,7 +169,7 @@ def crear_producto(request):
 
 @login_required
 def editar_producto(request, producto_id):
-    """Vista para editar un producto existente"""
+    """Vista para editar un producto existente - CORREGIDA"""
     producto = get_object_or_404(Producto, pk=producto_id)
     
     if request.method == 'POST':
@@ -173,7 +178,10 @@ def editar_producto(request, producto_id):
             producto = form.save()
             messages.success(request, f"Producto '{producto.nombre}' actualizado correctamente")
             return redirect('inventario:detalle_producto', producto_id=producto.id)
+        else:
+            messages.error(request, "Por favor corrige los errores en el formulario")
     else:
+        # ✅ CORRECCIÓN: Pasar la instancia al formulario para que cargue todos los datos
         form = ProductoForm(instance=producto)
     
     return render(request, 'inventario/producto_form.html', {
@@ -209,7 +217,10 @@ def regenerar_codigo_barras(request, producto_id):
     
     return redirect('inventario:detalle_producto', producto_id=producto.id)
 
-# Vistas de Categorías
+# ========================================
+# VISTAS DE CATEGORÍAS
+# ========================================
+
 @login_required
 def lista_categorias(request):
     """Vista para listar categorías de productos"""
@@ -268,6 +279,8 @@ def crear_categoria(request):
             categoria = form.save()
             messages.success(request, f"Categoría '{categoria.nombre}' creada correctamente")
             return redirect('inventario:lista_categorias')
+        else:
+            messages.error(request, "Por favor corrige los errores en el formulario")
     else:
         form = CategoriaProductoForm()
     
@@ -288,6 +301,8 @@ def editar_categoria(request, categoria_id):
             categoria = form.save()
             messages.success(request, f"Categoría '{categoria.nombre}' actualizada correctamente")
             return redirect('inventario:lista_categorias')
+        else:
+            messages.error(request, "Por favor corrige los errores en el formulario")
     else:
         form = CategoriaProductoForm(instance=categoria)
     
@@ -311,7 +326,10 @@ def activar_desactivar_categoria(request, categoria_id):
     
     return redirect('inventario:lista_categorias')
 
-# Vistas de Marcas
+# ========================================
+# VISTAS DE MARCAS
+# ========================================
+
 @login_required
 def lista_marcas(request):
     """Vista para listar marcas con filtros"""
@@ -371,6 +389,8 @@ def crear_marca(request):
             marca = form.save()
             messages.success(request, f"Marca '{marca.nombre}' creada correctamente")
             return redirect('inventario:lista_marcas')
+        else:
+            messages.error(request, "Por favor corrige los errores en el formulario")
     else:
         form = MarcaForm()
     
@@ -391,6 +411,8 @@ def editar_marca(request, marca_id):
             marca = form.save()
             messages.success(request, f"Marca '{marca.nombre}' actualizada correctamente")
             return redirect('inventario:lista_marcas')
+        else:
+            messages.error(request, "Por favor corrige los errores en el formulario")
     else:
         form = MarcaForm(instance=marca)
     
@@ -414,7 +436,10 @@ def activar_desactivar_marca(request, marca_id):
     
     return redirect('inventario:lista_marcas')
 
-# Vistas de Ajustes de Inventario
+# ========================================
+# VISTAS DE AJUSTES DE INVENTARIO
+# ========================================
+
 @login_required
 def lista_ajustes(request):
     """Vista para listar ajustes de inventario con filtros"""
@@ -475,6 +500,8 @@ def crear_ajuste(request):
             
             messages.success(request, f"Ajuste de inventario para '{ajuste.producto.nombre}' registrado correctamente")
             return redirect('inventario:lista_ajustes')
+        else:
+            messages.error(request, "Por favor corrige los errores en el formulario")
     else:
         # Precargar producto si viene en la URL
         initial = {}
@@ -493,78 +520,9 @@ def crear_ajuste(request):
         'form': form
     })
 
-# Vistas de Escáner
-@login_required
-def scanner_view(request):
-    """Vista para escanear códigos de barras con la cámara"""
-    return render(request, 'inventario/scanner.html', {
-        'active_page': 'inventario'
-    })
-
-# APIs para el inventario
-@login_required
-def buscar_producto_api(request):
-    """API para buscar un producto por código"""
-    codigo = request.GET.get('codigo', '')
-    
-    if not codigo:
-        return JsonResponse({'success': False, 'mensaje': 'Código requerido'})
-    
-    try:
-        producto = Producto.objects.get(codigo_unico=codigo)
-        return JsonResponse({
-            'success': True,
-            'producto': {
-                'id': producto.id,
-                'nombre': producto.nombre,
-                'codigo': producto.codigo_unico,
-                'precio': float(producto.precio_venta),
-                'stock': producto.stock_actual
-            }
-        })
-    except Producto.DoesNotExist:
-        return JsonResponse({'success': False, 'mensaje': 'Producto no encontrado'})
-
-@login_required
-def escanear_imagen(request):
-    """API para escanear códigos de barras desde una imagen subida"""
-    try:
-        # Obtener datos de la imagen
-        imagen_data = request.POST.get('imagen')
-        if not imagen_data:
-            return JsonResponse({
-                'success': False,
-                'mensaje': 'No se ha recibido ninguna imagen'
-            })
-        
-        # Decodificar imagen base64
-        formato, imgstr = imagen_data.split(';base64,')
-        imagen_bytes = base64.b64decode(imgstr)
-        imagen_stream = BytesIO(imagen_bytes)
-        
-        # Procesar la imagen con OpenCV/pyzbar (código simplificado)
-        # En una implementación real, aquí usaríamos pyzbar para detectar códigos
-        # Por ahora simularemos la detección
-        
-        # Simulación de código detectado
-        try:
-            # Aquí en una implementación real se buscaría el producto
-            return JsonResponse({
-                'success': True,
-                'codigos': [{'codigo': 'PROD-123456', 'tipo': 'CODE128'}]
-            })
-        except:
-            return JsonResponse({
-                'success': False,
-                'mensaje': 'No se detectaron códigos de barras en la imagen'
-            })
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'mensaje': f'Error al procesar la imagen: {str(e)}'
-        })
-
-# ========== NUEVAS APIs PARA CÁLCULO DE PRECIOS (CORREGIDAS) ==========
+# ========================================
+# APIS PARA CÁLCULO DE PRECIOS
+# ========================================
 
 @login_required
 def api_categoria_porcentaje(request):
@@ -592,7 +550,7 @@ def api_categoria_porcentaje(request):
 def calcular_precio_venta(request):
     """API para calcular precio de venta basado en precio de compra y categoría"""
     try:
-        # ✅ CORREGIDO: Usar Decimal en lugar de float
+        # Usar Decimal en lugar de float
         precio_compra_str = request.GET.get('precio_compra', '0')
         precio_compra = Decimal(precio_compra_str)
         categoria_id = request.GET.get('categoria_id')
@@ -606,7 +564,7 @@ def calcular_precio_venta(request):
         try:
             categoria = CategoriaProducto.objects.get(pk=categoria_id)
             
-            # ✅ CORREGIDO: Usar Decimal para todos los cálculos
+            # Usar Decimal para todos los cálculos
             porcentaje = categoria.porcentaje_ganancia / Decimal('100')
             precio_venta = precio_compra * (Decimal('1') + porcentaje)
             
@@ -624,7 +582,10 @@ def calcular_precio_venta(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
 
-# Exportar datos
+# ========================================
+# EXPORTAR DATOS
+# ========================================
+
 @login_required
 def exportar_productos(request):
     """Exportar productos a CSV"""
@@ -657,232 +618,9 @@ def exportar_productos(request):
     
     return response
 
-@login_required
-def imprimir_etiquetas(request):
-    """Vista para generar PDF de etiquetas con códigos de barras"""
-    return render(request, 'inventario/imprimir_etiquetas.html', {
-        'active_page': 'inventario'
-    })
-
-@login_required
-def generar_etiquetas_pdf(request):
-    """Vista para generar PDF de etiquetas con reportlab"""
-    # Obtener datos de la solicitud
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'mensaje': 'Método no permitido'})
-
-    try:
-        datos = json.loads(request.body)
-        productos = datos.get('productos', [])
-        config = datos.get('config', {})
-        
-        # Validar que hay productos
-        if not productos:
-            return JsonResponse({'success': False, 'mensaje': 'No se han seleccionado productos'})
-        
-        # Configurar el PDF
-        buffer = BytesIO()
-        p = canvas.Canvas(buffer, pagesize=A4)
-        width, height = A4
-        
-        # Calcular dimensiones de etiquetas según configuración
-        tipo_etiqueta = config.get('tipo', 'medium')
-        if tipo_etiqueta == 'small':
-            ancho_etiqueta = 2.5 * cm
-            alto_etiqueta = 5 * cm
-        elif tipo_etiqueta == 'medium':
-            ancho_etiqueta = 5 * cm
-            alto_etiqueta = 7 * cm
-        elif tipo_etiqueta == 'large':
-            ancho_etiqueta = 7.5 * cm
-            alto_etiqueta = 10 * cm
-        else:  # custom
-            ancho_etiqueta = float(config.get('ancho', 5)) * cm
-            alto_etiqueta = float(config.get('alto', 7)) * cm
-        
-        # Configurar disposición de etiquetas en la página
-        etiquetas_por_pagina = int(config.get('etiquetas_por_pagina', 10))
-        if etiquetas_por_pagina == 8:  # 2x4
-            cols = 2
-            rows = 4
-        elif etiquetas_por_pagina == 10:  # 2x5
-            cols = 2
-            rows = 5
-        elif etiquetas_por_pagina == 16:  # 4x4
-            cols = 4
-            rows = 4
-        elif etiquetas_por_pagina == 24:  # 4x6
-            cols = 4
-            rows = 6
-        elif etiquetas_por_pagina == 30:  # 5x6
-            cols = 5
-            rows = 6
-        else:
-            cols = 2
-            rows = 5
-        
-        # Márgenes de la página
-        margen_x = (width - (cols * ancho_etiqueta)) / 2
-        margen_y = (height - (rows * alto_etiqueta)) / 2
-        
-        # Opciones de contenido
-        mostrar_codigo = config.get('mostrar_codigo', True)
-        mostrar_precio = config.get('mostrar_precio', True)
-        mostrar_categoria = config.get('mostrar_categoria', False)
-        mostrar_marca = config.get('mostrar_marca', True)
-        mostrar_logo = config.get('mostrar_logo', False)
-        
-        # Dibujar etiquetas
-        producto_index = 0
-        total_productos = len(productos)
-        
-        while producto_index < total_productos:
-            for row in range(rows):
-                for col in range(cols):
-                    if producto_index >= total_productos:
-                        break
-                    
-                    # Datos del producto actual
-                    producto = productos[producto_index]
-                    
-                    # Calcular posición de la etiqueta
-                    x = margen_x + (col * ancho_etiqueta)
-                    y = height - margen_y - ((row + 1) * alto_etiqueta)
-                    
-                    # Dibujar marco de la etiqueta (opcional)
-                    # p.rect(x, y, ancho_etiqueta, alto_etiqueta, stroke=1, fill=0)
-                    
-                    # Dibujar contenido
-                    # Nombre del producto
-                    p.setFont("Helvetica-Bold", 10)
-                    p.drawCentredString(x + ancho_etiqueta/2, y + alto_etiqueta - 15, 
-                                    producto['nombre'][:20])
-                    
-                    # Marca
-                    if mostrar_marca:
-                        p.setFont("Helvetica", 8)
-                        p.drawCentredString(x + ancho_etiqueta/2, y + alto_etiqueta - 30, 
-                                        producto['marca'])
-                    
-                    # Categoría
-                    if mostrar_categoria:
-                        p.setFont("Helvetica", 8)
-                        p.drawCentredString(x + ancho_etiqueta/2, y + alto_etiqueta - 45, 
-                                        producto['categoria'])
-                    
-                    # Código de barras
-                    if mostrar_codigo:
-                        barcode_value = producto['codigo']
-                        barcode = code128.Code128(barcode_value, barHeight=20*mm, barWidth=0.5*mm)
-                        drawing = Drawing(ancho_etiqueta - 10*mm, 20*mm)
-                        drawing.add(barcode)
-                        renderPDF.draw(drawing, p, x + 5*mm, y + alto_etiqueta/2 - 10*mm)
-                        
-                        # Código numérico debajo del código de barras
-                        p.setFont("Helvetica", 8)
-                        p.drawCentredString(x + ancho_etiqueta/2, y + alto_etiqueta/2 - 20*mm, 
-                                        barcode_value)
-                    
-                    # Precio
-                    if mostrar_precio:
-                        p.setFont("Helvetica-Bold", 12)
-                        p.drawCentredString(x + ancho_etiqueta/2, y + 15, 
-                                        f"${producto['precio']:.2f}")
-                    
-                    producto_index += 1
-                
-                if producto_index >= total_productos:
-                    break
-            
-            # Nueva página si quedan productos
-            if producto_index < total_productos:
-                p.showPage()
-        
-        # Finalizar y devolver PDF
-        p.save()
-        buffer.seek(0)
-        
-        # Crear respuesta con PDF
-        response = FileResponse(buffer, as_attachment=True, filename='etiquetas_productos.pdf')
-        return response
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'mensaje': f'Error al generar PDF: {str(e)}'})
-    
-# ========== APIs PARA EL POS (PRODUCTOS) ==========
-
-@login_required
-def api_productos(request):
-    """API para obtener lista de productos"""
-    try:
-        search = request.GET.get('q', '').strip()
-        limit = int(request.GET.get('limit', 50))
-        
-        productos = Producto.objects.filter(activo=True)
-        
-        if search:
-            productos = productos.filter(
-                Q(nombre__icontains=search) |
-                Q(codigo_unico__icontains=search)
-            )
-        
-        productos = productos.select_related('categoria', 'marca')[:limit]
-        
-        productos_data = []
-        for producto in productos:
-            productos_data.append({
-                'id': producto.id,
-                'codigo': producto.codigo_unico,
-                'nombre': producto.nombre,
-                'precio': float(producto.precio_venta),
-                'stock': float(producto.stock_actual),
-                'categoria': producto.categoria.nombre if producto.categoria else None,
-                'marca': producto.marca.nombre if producto.marca else None,
-                'activo': producto.activo,
-                'descripcion': producto.descripcion or ''
-            })
-        
-        return JsonResponse({
-            'success': True,
-            'productos': productos_data
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
-
-@login_required
-def api_buscar_producto_por_codigo(request):
-    """API para buscar producto por código"""
-    try:
-        codigo = request.GET.get('codigo', '').strip().upper()
-        
-        if not codigo:
-            return JsonResponse({'success': False, 'message': 'Código requerido'})
-        
-        producto = Producto.objects.filter(
-            codigo_unico=codigo,
-            activo=True
-        ).first()
-        
-        if producto:
-            return JsonResponse({
-                'success': True,
-                'producto': {
-                    'id': producto.id,
-                    'codigo': producto.codigo_unico,
-                    'nombre': producto.nombre,
-                    'precio': float(producto.precio_venta),
-                    'stock': float(producto.stock_actual),
-                    'categoria': producto.categoria.nombre if producto.categoria else None,
-                    'activo': producto.activo
-                }
-            })
-        else:
-            return JsonResponse({'success': False, 'message': 'Producto no encontrado'})
-            
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
-# Agregar estas funciones a tu views.py
+# ========================================
+# GENERACIÓN DE ETIQUETAS
+# ========================================
 
 @login_required
 def imprimir_etiquetas(request):
@@ -953,9 +691,6 @@ def generar_etiquetas_pdf(request):
                     x = margen_x + (col * ancho_etiqueta)
                     y = height - margen_y - ((row + 1) * alto_etiqueta)
                     
-                    # Dibujar marco opcional (para debug)
-                    # p.rect(x, y, ancho_etiqueta, alto_etiqueta, stroke=1, fill=0)
-                    
                     # Variables para posicionamiento vertical
                     pos_y = y + alto_etiqueta - 15
                     
@@ -1000,7 +735,6 @@ def generar_etiquetas_pdf(request):
                     # Código de barras
                     if mostrar_codigo:
                         try:
-                            from reportlab.graphics.barcode import code128
                             barcode_value = str(producto['codigo'])
                             
                             # Calcular dimensiones del código de barras
@@ -1133,6 +867,87 @@ def api_categorias_marcas(request):
             'success': False,
             'mensaje': f'Error: {str(e)}'
         })
+
+# ========================================
+# APIS PARA EL POS (PRODUCTOS)
+# ========================================
+
+@login_required
+def api_productos(request):
+    """API para obtener lista de productos"""
+    try:
+        search = request.GET.get('q', '').strip()
+        limit = int(request.GET.get('limit', 50))
+        
+        productos = Producto.objects.filter(activo=True)
+        
+        if search:
+            productos = productos.filter(
+                Q(nombre__icontains=search) |
+                Q(codigo_unico__icontains=search)
+            )
+        
+        productos = productos.select_related('categoria', 'marca')[:limit]
+        
+        productos_data = []
+        for producto in productos:
+            productos_data.append({
+                'id': producto.id,
+                'codigo': producto.codigo_unico,
+                'nombre': producto.nombre,
+                'precio': float(producto.precio_venta),
+                'stock': float(producto.stock_actual),
+                'categoria': producto.categoria.nombre if producto.categoria else None,
+                'marca': producto.marca.nombre if producto.marca else None,
+                'activo': producto.activo,
+                'descripcion': producto.descripcion or ''
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'productos': productos_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+@login_required
+def api_buscar_producto_por_codigo(request):
+    """API para buscar producto por código"""
+    try:
+        codigo = request.GET.get('codigo', '').strip().upper()
+        
+        if not codigo:
+            return JsonResponse({'success': False, 'message': 'Código requerido'})
+        
+        producto = Producto.objects.filter(
+            codigo_unico=codigo,
+            activo=True
+        ).first()
+        
+        if producto:
+            return JsonResponse({
+                'success': True,
+                'producto': {
+                    'id': producto.id,
+                    'codigo': producto.codigo_unico,
+                    'nombre': producto.nombre,
+                    'precio': float(producto.precio_venta),
+                    'stock': float(producto.stock_actual),
+                    'categoria': producto.categoria.nombre if producto.categoria else None,
+                    'activo': producto.activo
+                }
+            })
+        else:
+            return JsonResponse({'success': False, 'message': 'Producto no encontrado'})
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+# ========================================
+# IMPORTACIÓN/EXPORTACIÓN CSV
+# ========================================
+
 @login_required
 def importar_productos_csv(request):
     """Vista para importar productos desde archivo CSV"""
@@ -1269,6 +1084,10 @@ def importar_productos_csv(request):
     
     # GET request - mostrar formulario
     errores_sesion = request.session.get('errores_importacion', [])
+    
+    # Limpiar errores de la sesión después de mostrarlos
+    if 'errores_importacion' in request.session:
+        del request.session['errores_importacion']
     
     return render(request, 'inventario/importar_productos.html', {
         'active_page': 'inventario',
@@ -1461,7 +1280,9 @@ def limpiar_errores_sesion(request):
     
     return JsonResponse({'success': True})
 
-# ========== FUNCIONES AUXILIARES PARA CSV ==========
+# ========================================
+# FUNCIONES AUXILIARES PARA CSV
+# ========================================
 
 def validar_fila_producto(fila, numero_fila):
     """Validar una fila del CSV y retornar errores"""

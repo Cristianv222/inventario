@@ -5,375 +5,839 @@
 
 {% block extra_css %}
 <style>
-    .client-card {
-        transition: all 0.3s ease;
-        border-left: 4px solid #e9ecef;
+    :root {
+        /* Colores sólidos principales */
+        --primary: #2563eb;
+        --primary-dark: #1e40af;
+        --success: #10b981;
+        --success-dark: #059669;
+        --warning: #f59e0b;
+        --warning-dark: #d97706;
+        --danger: #ef4444;
+        --danger-dark: #dc2626;
+        --info: #06b6d4;
+        --info-dark: #0891b2;
+        --purple: #8b5cf6;
+        --purple-dark: #7c3aed;
+        
+        /* Grises */
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-900: #111827;
+        
+        /* Espaciado */
+        --border-radius: 12px;
+        --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
     }
-    
-    .client-card:hover {
+
+    body {
+        background: #f3f4f6;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .dashboard-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* ========== HEADER ========== */
+    .dashboard-header {
+        background: white;
+        border-left: 5px solid var(--primary);
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+        box-shadow: var(--box-shadow);
+    }
+
+    .dashboard-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+    }
+
+    .dashboard-header .subtitle {
+        color: var(--gray-500);
+        font-size: 1rem;
+        margin-bottom: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-header {
+        padding: 0.8rem 2rem;
+        font-size: 1rem;
+        font-weight: 700;
+        border-radius: 10px;
+        border: none;
+        transition: var(--transition);
+    }
+
+    .btn-header.btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-header.btn-primary:hover {
+        background: var(--primary-dark);
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        border-left-color: #007bff;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     }
-    
+
+    .btn-header.btn-success {
+        background: var(--success);
+        color: white;
+    }
+
+    .btn-header.btn-success:hover {
+        background: var(--success-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    /* ========== ESTADÍSTICAS ========== */
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: var(--primary);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        box-shadow: var(--box-shadow);
+        border-left: 5px solid;
+        transition: var(--transition);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card.primary { border-color: var(--primary); }
+    .stat-card.success { border-color: var(--success); }
+    .stat-card.warning { border-color: var(--warning); }
+    .stat-card.danger { border-color: var(--danger); }
+
+    .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0;
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        color: white;
+    }
+
+    .stat-card.primary .stat-icon { background: var(--primary); }
+    .stat-card.success .stat-icon { background: var(--success); }
+    .stat-card.warning .stat-icon { background: var(--warning); }
+    .stat-card.danger .stat-icon { background: var(--danger); }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--gray-900);
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--gray-600);
+        margin-top: 0.5rem;
+    }
+
+    /* ========== FILTROS ========== */
+    .search-container {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--box-shadow);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .form-control, .form-select {
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        transition: var(--transition);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+    }
+
+    .filter-badge {
+        background: var(--primary);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        margin: 0.25rem;
+        display: inline-block;
+        font-weight: 600;
+    }
+
+    /* ========== TARJETAS DE CLIENTES ========== */
+    .client-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+        border-left: 5px solid var(--gray-200);
+        overflow: hidden;
+    }
+
+    .client-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        border-left-color: var(--primary);
+    }
+
     .client-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: var(--primary);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
         font-weight: bold;
-        font-size: 1.2rem;
+        font-size: 1.4rem;
     }
-    
-    .stats-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 15px;
+
+    .client-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.25rem;
     }
-    
-    .stats-card .card-body {
-        padding: 1.5rem;
+
+    .client-id {
+        font-size: 0.875rem;
+        color: var(--gray-600);
     }
-    
-    .stats-number {
-        font-size: 2rem;
-        font-weight: bold;
+
+    .contact-info {
+        background: var(--gray-50);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
+    .contact-info p {
         margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--gray-700);
     }
-    
-    .badge-status {
+
+    .contact-info p:last-child {
+        margin-bottom: 0;
+    }
+
+    .contact-info i {
+        width: 20px;
+        color: var(--gray-500);
+    }
+
+    /* ========== ESTADÍSTICAS DEL CLIENTE ========== */
+    .stats-row {
+        background: var(--gray-50);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: block;
+        line-height: 1;
+    }
+
+    .stat-value.text-primary { color: var(--primary); }
+    .stat-value.text-success { color: var(--success); }
+    .stat-value.text-warning { color: var(--warning); }
+
+    .stat-label-small {
         font-size: 0.75rem;
-    }
-    
-    .search-container {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-    }
-    
-    .filter-badge {
-        background: #e3f2fd;
-        color: #1976d2;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        margin: 0.25rem;
-        display: inline-block;
-    }
-    
-    .points-badge {
-        background: linear-gradient(45deg, #ff6b6b, #feca57);
-        color: white;
-        border-radius: 15px;
-        padding: 0.25rem 0.75rem;
-        font-size: 0.8rem;
+        color: var(--gray-600);
+        text-transform: uppercase;
         font-weight: 600;
+        margin-top: 0.25rem;
     }
+
+    /* ========== BADGES ========== */
+    .points-badge {
+        background: var(--warning);
+        color: white;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .status-badge.active {
+        background: var(--success);
+        color: white;
+    }
+
+    .status-badge.inactive {
+        background: var(--gray-500);
+        color: white;
+    }
+
+    /* ========== BOTONES DE ACCIÓN ========== */
+    .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--gray-100);
+    }
+
+    .btn-action {
+        padding: 0.7rem 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 8px;
+        transition: var(--transition);
+        text-decoration: none;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-view {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: var(--primary-dark);
+        color: white;
+    }
+
+    .btn-edit {
+        background: var(--success);
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: var(--success-dark);
+        color: white;
+    }
+
+    .btn-points {
+        background: var(--warning);
+        color: white;
+    }
+
+    .btn-points:hover {
+        background: var(--warning-dark);
+        color: white;
+    }
+
+    /* ========== FOOTER DE TARJETA ========== */
+    .card-footer {
+        background: var(--gray-50);
+        border-top: 1px solid var(--gray-200);
+        padding: 0.75rem 1.5rem;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+
+    /* ========== ESTADO VACÍO ========== */
+    .empty-state {
+        padding: 4rem 2rem;
+        text-align: center;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+    }
+
+    .empty-state i {
+        font-size: 5rem;
+        color: var(--gray-300);
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state h3 {
+        color: var(--gray-700);
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        color: var(--gray-500);
+        margin-bottom: 1.5rem;
+    }
+
+    /* ========== PAGINACIÓN ========== */
+    .pagination {
+        margin-top: 2rem;
+    }
+
+    .pagination .page-link {
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        margin: 0 0.25rem;
+        color: var(--primary);
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        transition: var(--transition);
+    }
+
+    .pagination .page-link:hover {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .pagination .page-item.active .page-link {
+        background: var(--primary);
+        border-color: var(--primary);
+    }
+
+    /* ========== ANIMACIONES ========== */
+    .fade-in {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 1rem;
+        }
+        
+        .dashboard-header {
+            padding: 1.5rem;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+        }
+        
+        .btn-header {
+            width: 100%;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ========== UTILIDADES ========== */
+    .text-success { color: var(--success) !important; }
+    .text-warning { color: var(--warning) !important; }
+    .text-danger { color: var(--danger) !important; }
+    .text-primary { color: var(--primary) !important; }
+    .text-info { color: var(--info) !important; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Header y Estadísticas -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="h3 mb-3">
-                <i class="fas fa-users text-primary me-2"></i>
-                Gestión de Clientes
-            </h1>
-            <p class="text-muted">Administra los clientes registrados en el sistema</p>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-primary btn-lg">
-                <i class="fas fa-plus me-2"></i>Nuevo Cliente
-            </a>
-        </div>
-    </div>
-
-    <!-- Estadísticas Rápidas -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card stats-card text-center">
-                <div class="card-body">
-                    <div class="stats-number">{{ stats.total_clientes }}</div>
-                    <div>Total Clientes</div>
-                </div>
+<div class="dashboard-container">
+    <!-- ========== HEADER ========== -->
+    <div class="dashboard-header fade-in">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1>
+                    <i class="fas fa-users me-3"></i>
+                    Gestión de Clientes
+                </h1>
+                <p class="subtitle">Administra los clientes registrados en el sistema</p>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stats-card text-center" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
-                <div class="card-body">
-                    <div class="stats-number">{{ stats.clientes_con_puntos }}</div>
-                    <div>Con Puntos</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stats-card text-center" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
-                <div class="card-body">
-                    <div class="stats-number">{{ stats.total_puntos_sistema|floatformat:0 }}</div>
-                    <div>Puntos en Sistema</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stats-card text-center" style="background: linear-gradient(135deg, #e83e8c 0%, #fd1975 100%);">
-                <div class="card-body">
-                    <div class="stats-number">{{ stats.nuevos_este_mes }}</div>
-                    <div>Nuevos Este Mes</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filtros de Búsqueda -->
-    <div class="search-container">
-        <form method="get" class="row g-3">
             <div class="col-md-4">
-                <label class="form-label">Buscar Cliente</label>
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <i class="fas fa-search"></i>
-                    </span>
+                <div class="header-actions justify-content-end">
+                    <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-header btn-primary">
+                        <i class="fas fa-plus me-2"></i>Nuevo Cliente
+                    </a>
+                    <a href="{% url 'clientes:reporte_clientes' %}" class="btn btn-header btn-success">
+                        <i class="fas fa-chart-bar me-2"></i>Reportes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ESTADÍSTICAS ========== -->
+    <div class="fade-in">
+        <h3 class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Resumen General
+        </h3>
+        
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="stat-number">{{ stats.total_clientes }}</div>
+                        <div class="stat-label">Total Clientes</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div>
+                        <div class="stat-number">{{ stats.clientes_con_puntos }}</div>
+                        <div class="stat-label">Con Puntos</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <div>
+                        <div class="stat-number">{{ stats.total_puntos_sistema|floatformat:0 }}</div>
+                        <div class="stat-label">Puntos en Sistema</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card danger">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div>
+                        <div class="stat-number">{{ stats.nuevos_este_mes }}</div>
+                        <div class="stat-label">Nuevos Este Mes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FILTROS DE BÚSQUEDA ========== -->
+    <div class="fade-in">
+        <h3 class="section-title">
+            <i class="fas fa-filter"></i>
+            Filtrar Clientes
+        </h3>
+        
+        <div class="search-container">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">
+                        <i class="fas fa-search me-1"></i>Buscar Cliente
+                    </label>
                     <input type="text" 
                            name="search" 
                            class="form-control" 
                            placeholder="Nombre, cédula, teléfono..."
                            value="{{ filtros.search }}">
                 </div>
-            </div>
-            
-            <div class="col-md-2">
-                <label class="form-label">Tipo ID</label>
-                <select name="tipo_identificacion" class="form-select">
-                    <option value="">Todos</option>
-                    {% for codigo, nombre in tipos_identificacion %}
-                        <option value="{{ codigo }}" {% if filtros.tipo_identificacion == codigo %}selected{% endif %}>
-                            {{ nombre }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="col-md-2">
-                <label class="form-label">Estado</label>
-                <select name="activo" class="form-select">
-                    <option value="">Todos</option>
-                    <option value="1" {% if filtros.activo == "1" %}selected{% endif %}>Activos</option>
-                    <option value="0" {% if filtros.activo == "0" %}selected{% endif %}>Inactivos</option>
-                </select>
-            </div>
-            
-            <div class="col-md-2">
-                <label class="form-label">&nbsp;</label>
-                <div class="d-grid gap-2 d-md-flex">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter me-1"></i>Filtrar
-                    </button>
-                    <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-undo me-1"></i>Limpiar
-                    </a>
+                
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="fas fa-id-card me-1"></i>Tipo ID
+                    </label>
+                    <select name="tipo_identificacion" class="form-select">
+                        <option value="">Todos</option>
+                        {% for codigo, nombre in tipos_identificacion %}
+                            <option value="{{ codigo }}" {% if filtros.tipo_identificacion == codigo %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </div>
-            
-            <div class="col-md-2">
-                <label class="form-label">&nbsp;</label>
-                <div class="d-grid">
-                    <a href="{% url 'clientes:reporte_clientes' %}" class="btn btn-success">
-                        <i class="fas fa-chart-bar me-1"></i>Reportes
-                    </a>
+                
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="fas fa-toggle-on me-1"></i>Estado
+                    </label>
+                    <select name="activo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="1" {% if filtros.activo == "1" %}selected{% endif %}>Activos</option>
+                        <option value="0" {% if filtros.activo == "0" %}selected{% endif %}>Inactivos</option>
+                    </select>
                 </div>
-            </div>
-        </form>
+                
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-fill">
+                            <i class="fas fa-filter me-1"></i>Filtrar
+                        </button>
+                        <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-outline-secondary flex-fill">
+                            <i class="fas fa-times me-1"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Filtros Activos -->
+        {% if filtros.search or filtros.tipo_identificacion or filtros.activo %}
+        <div class="mb-3">
+            <strong class="me-2">Filtros activos:</strong>
+            {% if filtros.search %}
+                <span class="filter-badge">
+                    <i class="fas fa-search me-1"></i>{{ filtros.search }}
+                </span>
+            {% endif %}
+            {% if filtros.tipo_identificacion %}
+                <span class="filter-badge">
+                    <i class="fas fa-id-card me-1"></i>{{ filtros.get_tipo_identificacion_display }}
+                </span>
+            {% endif %}
+            {% if filtros.activo %}
+                <span class="filter-badge">
+                    <i class="fas fa-check-circle me-1"></i>{% if filtros.activo == "1" %}Activos{% else %}Inactivos{% endif %}
+                </span>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
-    <!-- Filtros Activos -->
-    {% if filtros.search or filtros.tipo_identificacion or filtros.activo %}
-    <div class="mb-3">
-        <span class="text-muted me-2">Filtros activos:</span>
-        {% if filtros.search %}
-            <span class="filter-badge">
-                <i class="fas fa-search me-1"></i>Búsqueda: "{{ filtros.search }}"
-            </span>
-        {% endif %}
-        {% if filtros.tipo_identificacion %}
-            <span class="filter-badge">
-                <i class="fas fa-id-card me-1"></i>Tipo: {{ filtros.get_tipo_identificacion_display }}
-            </span>
-        {% endif %}
-        {% if filtros.activo %}
-            <span class="filter-badge">
-                <i class="fas fa-toggle-on me-1"></i>Estado: {% if filtros.activo == "1" %}Activos{% else %}Inactivos{% endif %}
-            </span>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Lista de Clientes -->
-    <div class="row">
-        {% if clientes %}
-            {% for cliente in clientes %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card client-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-start mb-3">
-                            <div class="client-avatar me-3">
-                                {{ cliente.nombres.0|upper }}{{ cliente.apellidos.0|upper }}
-                            </div>
-                            <div class="flex-grow-1">
-                                <h5 class="card-title mb-1">
-                                    <a href="{% url 'clientes:detalle_cliente' cliente.id %}" 
-                                       class="text-decoration-none">
+    <!-- ========== LISTA DE CLIENTES ========== -->
+    <div class="fade-in">
+        <h3 class="section-title">
+            <i class="fas fa-list"></i>
+            Listado de Clientes
+        </h3>
+        
+        <div class="row">
+            {% if clientes %}
+                {% for cliente in clientes %}
+                <div class="col-md-6 col-xl-4 mb-4">
+                    <div class="card client-card h-100">
+                        <div class="card-body">
+                            <!-- Header con Avatar y Nombre -->
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="client-avatar me-3">
+                                    {{ cliente.nombres.0|upper }}{{ cliente.apellidos.0|upper }}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="client-name">
                                         {{ cliente.get_nombre_completo }}
-                                    </a>
-                                </h5>
-                                <p class="text-muted small mb-0">
-                                    <i class="fas fa-id-card me-1"></i>
-                                    {{ cliente.get_tipo_identificacion_display }}: {{ cliente.identificacion }}
-                                </p>
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary" 
-                                        type="button" 
-                                        data-bs-toggle="dropdown">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'clientes:detalle_cliente' cliente.id %}">
-                                            <i class="fas fa-eye me-2"></i>Ver Detalle
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'clientes:editar_cliente' cliente.id %}">
-                                            <i class="fas fa-edit me-2"></i>Editar
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'clientes:gestionar_puntos' cliente.id %}">
-                                            <i class="fas fa-star me-2"></i>Gestionar Puntos
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item text-danger" 
-                                           href="#" 
-                                           onclick="confirmarDesactivacion({{ cliente.id }}, '{{ cliente.get_nombre_completo }}')">
-                                            <i class="fas fa-user-slash me-2"></i>Desactivar
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- Información de Contacto -->
-                        <div class="mb-3">
-                            {% if cliente.telefono %}
-                            <p class="small mb-1">
-                                <i class="fas fa-phone text-success me-1"></i>
-                                {{ cliente.telefono }}
-                            </p>
-                            {% endif %}
-                            {% if cliente.email %}
-                            <p class="small mb-1">
-                                <i class="fas fa-envelope text-info me-1"></i>
-                                {{ cliente.email }}
-                            </p>
-                            {% endif %}
-                            {% if cliente.direccion %}
-                            <p class="small mb-1 text-truncate">
-                                <i class="fas fa-map-marker-alt text-warning me-1"></i>
-                                {{ cliente.direccion }}
-                            </p>
-                            {% endif %}
-                        </div>
-
-                        <!-- Estadísticas del Cliente -->
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <div class="small text-muted">Compras</div>
-                                <div class="fw-bold text-primary">{{ cliente.total_compras|default:0 }}</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="small text-muted">Motos</div>
-                                <div class="fw-bold text-success">{{ cliente.total_motos|default:0 }}</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="small text-muted">Valor Total</div>
-                                <div class="fw-bold text-warning">
-                                    ${{ cliente.valor_total_compras|default:0|floatformat:0 }}
+                                    </div>
+                                    <div class="client-id">
+                                        <i class="fas fa-id-card me-1"></i>
+                                        {{ cliente.get_tipo_identificacion_display }}: {{ cliente.identificacion }}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Puntos y Estado -->
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            {% if cliente.puntos_disponibles > 0 %}
-                                <span class="points-badge">
-                                    <i class="fas fa-star me-1"></i>
-                                    {{ cliente.puntos_disponibles }} puntos
-                                </span>
-                            {% else %}
-                                <span class="badge bg-light text-dark">
-                                    <i class="fas fa-star-o me-1"></i>
-                                    Sin puntos
-                                </span>
-                            {% endif %}
-                            
-                            <span class="badge {% if cliente.activo %}bg-success{% else %}bg-secondary{% endif %} badge-status">
-                                {% if cliente.activo %}
-                                    <i class="fas fa-check-circle me-1"></i>Activo
-                                {% else %}
-                                    <i class="fas fa-pause-circle me-1"></i>Inactivo
+                            <!-- Información de Contacto -->
+                            <div class="contact-info">
+                                {% if cliente.telefono %}
+                                <p>
+                                    <i class="fas fa-phone"></i>
+                                    <strong>{{ cliente.telefono }}</strong>
+                                </p>
                                 {% endif %}
-                            </span>
+                                {% if cliente.email %}
+                                <p>
+                                    <i class="fas fa-envelope"></i>
+                                    {{ cliente.email }}
+                                </p>
+                                {% endif %}
+                                {% if cliente.direccion %}
+                                <p>
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    {{ cliente.direccion|truncatewords:8 }}
+                                </p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Estadísticas del Cliente -->
+                            <div class="stats-row">
+                                <div class="row text-center g-3">
+                                    <div class="col-4">
+                                        <div class="stat-item">
+                                            <span class="stat-value text-primary">{{ cliente.total_compras|default:0 }}</span>
+                                            <span class="stat-label-small">Compras</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="stat-item">
+                                            <span class="stat-value text-success">{{ cliente.total_motos|default:0 }}</span>
+                                            <span class="stat-label-small">Motos</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="stat-item">
+                                            <span class="stat-value text-warning">${{ cliente.valor_total_compras|default:0|floatformat:0 }}</span>
+                                            <span class="stat-label-small">Total</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Puntos y Estado -->
+                            <div class="d-flex justify-content-between align-items-center my-3">
+                                {% if cliente.puntos_disponibles > 0 %}
+                                    <span class="points-badge">
+                                        <i class="fas fa-star me-1"></i>
+                                        {{ cliente.puntos_disponibles }} PUNTOS
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge inactive">
+                                        <i class="fas fa-star me-1"></i>
+                                        SIN PUNTOS
+                                    </span>
+                                {% endif %}
+                                
+                                <span class="status-badge {% if cliente.activo %}active{% else %}inactive{% endif %}">
+                                    {% if cliente.activo %}
+                                        <i class="fas fa-check-circle me-1"></i>ACTIVO
+                                    {% else %}
+                                        <i class="fas fa-ban me-1"></i>INACTIVO
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <!-- Botones de Acción -->
+                            <div class="action-buttons">
+                                <a href="{% url 'clientes:detalle_cliente' cliente.id %}" class="btn-action btn-view">
+                                    <i class="fas fa-eye"></i>Ver
+                                </a>
+                                <a href="{% url 'clientes:editar_cliente' cliente.id %}" class="btn-action btn-edit">
+                                    <i class="fas fa-edit"></i>Editar
+                                </a>
+                                <a href="{% url 'clientes:gestionar_puntos' cliente.id %}" class="btn-action btn-points">
+                                    <i class="fas fa-star"></i>Puntos
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Footer con Fecha -->
+                        <div class="card-footer">
+                            <i class="fas fa-calendar-plus me-1"></i>
+                            Registrado: {{ cliente.fecha_registro|date:"d/m/Y" }}
                         </div>
                     </div>
-                    
-                    <!-- Fecha de Registro -->
-                    <div class="card-footer bg-transparent small text-muted">
-                        <i class="fas fa-calendar-plus me-1"></i>
-                        Registrado: {{ cliente.fecha_registro|date:"d/m/Y" }}
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Sin Clientes -->
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h3>No se encontraron clientes</h3>
+                        <p>
+                            {% if filtros.search or filtros.tipo_identificacion or filtros.activo %}
+                                No hay clientes que coincidan con los filtros aplicados.
+                            {% else %}
+                                Aún no tienes clientes registrados en el sistema.
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-header btn-primary">
+                            <i class="fas fa-plus me-2"></i>Agregar Primer Cliente
+                        </a>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <!-- Sin Clientes -->
-            <div class="col-12">
-                <div class="text-center py-5">
-                    <i class="fas fa-users fa-4x text-muted mb-4"></i>
-                    <h4 class="text-muted">No se encontraron clientes</h4>
-                    <p class="text-muted">
-                        {% if filtros.search or filtros.tipo_identificacion or filtros.activo %}
-                            No hay clientes que coincidan con los filtros aplicados.
-                        {% else %}
-                            Aún no tienes clientes registrados en el sistema.
-                        {% endif %}
-                    </p>
-                    <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Agregar Primer Cliente
-                    </a>
-                </div>
-            </div>
-        {% endif %}
+            {% endif %}
+        </div>
     </div>
 
-    <!-- Paginación -->
+    <!-- ========== PAGINACIÓN ========== -->
     {% if clientes.has_other_pages %}
     <div class="d-flex justify-content-center mt-4">
         <nav aria-label="Paginación de clientes">
-            <ul class="pagination">
+            <ul class="pagination pagination-lg">
                 {% if clientes.has_previous %}
                     <li class="page-item">
                         <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.tipo_identificacion %}tipo_identificacion={{ request.GET.tipo_identificacion }}&{% endif %}{% if request.GET.activo %}activo={{ request.GET.activo }}&{% endif %}page={{ clientes.previous_page_number }}">
-                            <i class="fas fa-chevron-left"></i>
+                            <i class="fas fa-chevron-left me-1"></i>Anterior
                         </a>
                     </li>
                 {% endif %}
@@ -393,7 +857,7 @@
                 {% if clientes.has_next %}
                     <li class="page-item">
                         <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.tipo_identificacion %}tipo_identificacion={{ request.GET.tipo_identificacion }}&{% endif %}{% if request.GET.activo %}activo={{ request.GET.activo }}&{% endif %}page={{ clientes.next_page_number }}">
-                            <i class="fas fa-chevron-right"></i>
+                            Siguiente<i class="fas fa-chevron-right ms-1"></i>
                         </a>
                     </li>
                 {% endif %}
@@ -403,26 +867,28 @@
     {% endif %}
 </div>
 
-<!-- Modal de Confirmación -->
+<!-- ========== MODAL DE CONFIRMACIÓN ========== -->
 <div class="modal fade" id="confirmModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content" style="border-radius: var(--border-radius); overflow: hidden;">
+            <div class="modal-header" style="background: var(--warning); color: white;">
                 <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    <i class="fas fa-exclamation-triangle me-2"></i>
                     Confirmar Desactivación
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>¿Está seguro que desea desactivar al cliente <strong id="clienteNombre"></strong>?</p>
-                <p class="text-muted small">El cliente no será eliminado, solo marcado como inactivo.</p>
+                <p class="mb-2">¿Está seguro que desea desactivar al cliente <strong id="clienteNombre"></strong>?</p>
+                <p class="text-muted small mb-0">El cliente no será eliminado, solo marcado como inactivo.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
                 <form method="post" id="formDesactivar" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
+                    <button type="submit" class="btn" style="background: var(--danger); color: white;">
                         <i class="fas fa-user-slash me-1"></i>Desactivar Cliente
                     </button>
                 </form>
@@ -442,16 +908,14 @@ function confirmarDesactivacion(clienteId, clienteNombre) {
     modal.show();
 }
 
-// Auto-submit del formulario al cambiar filtros
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    const selects = form.querySelectorAll('select');
-    
-    selects.forEach(select => {
-        select.addEventListener('change', function() {
-            form.submit();
-        });
+    // Animación de entrada escalonada
+    const fadeElements = document.querySelectorAll('.fade-in');
+    fadeElements.forEach((el, index) => {
+        el.style.animationDelay = `${index * 0.1}s`;
     });
+
+    console.log('Gestión de Clientes cargada correctamente');
 });
 </script>
 {% endblock %}

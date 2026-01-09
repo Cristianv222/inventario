@@ -22,7 +22,7 @@ DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 # En Railway, forzar DEBUG=False
 if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
-    DEBUG = False
+    DEBUG = True
 
 # ✅ HOSTS PERMITIDOS - Leer de variable de entorno
 ALLOWED_HOSTS = []

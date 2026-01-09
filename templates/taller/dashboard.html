@@ -5,12 +5,21 @@
 {% block extra_css %}
 <style>
     :root {
+        /* Colores sólidos principales */
         --primary: #2563eb;
-        --secondary: #7c3aed;
-        --success: #059669;
-        --warning: #d97706;
-        --danger: #dc2626;
-        --info: #0891b2;
+        --primary-dark: #1e40af;
+        --success: #10b981;
+        --success-dark: #059669;
+        --warning: #f59e0b;
+        --warning-dark: #d97706;
+        --danger: #ef4444;
+        --danger-dark: #dc2626;
+        --info: #06b6d4;
+        --info-dark: #0891b2;
+        --purple: #8b5cf6;
+        --purple-dark: #7c3aed;
+        
+        /* Grises */
         --gray-50: #f9fafb;
         --gray-100: #f3f4f6;
         --gray-200: #e5e7eb;
@@ -18,126 +27,301 @@
         --gray-500: #6b7280;
         --gray-700: #374151;
         --gray-900: #111827;
+        
+        /* Espaciado */
         --border-radius: 12px;
-        --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         --transition: all 0.3s ease;
     }
 
     body {
-        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        background: #f3f4f6;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     .dashboard-container {
-        padding: 1.5rem;
+        padding: 2rem;
         max-width: 1400px;
         margin: 0 auto;
     }
 
-    /* ========== HEADER MEJORADO ========== */
+    /* ========== HEADER ========== */
     .dashboard-header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-        color: white;
+        background: white;
+        border-left: 5px solid var(--primary);
         padding: 2rem;
         border-radius: var(--border-radius);
         margin-bottom: 2rem;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .dashboard-header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -10%;
-        width: 300px;
-        height: 300px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
+        box-shadow: var(--box-shadow);
     }
 
     .dashboard-header h1 {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 700;
+        color: var(--gray-900);
         margin-bottom: 0.5rem;
     }
 
-    /* ========== ACCIONES PRINCIPALES - MÁS PROMINENTES ========== */
-    .quick-actions-main {
+    .dashboard-header .date {
+        color: var(--gray-500);
+        font-size: 1rem;
+    }
+
+    .header-stats {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .header-stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: 8px;
+        min-width: 120px;
+    }
+
+    .header-stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .header-stat-label {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-top: 0.25rem;
+    }
+
+    /* ========== ACCIONES PRINCIPALES - REORGANIZADAS ========== */
+    .main-actions-section {
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: var(--primary);
+    }
+
+    .actions-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
 
-    .action-card {
+    .action-btn {
         background: white;
-        padding: 2rem;
+        border: 2px solid var(--gray-200);
         border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow);
+        padding: 2rem 1.5rem;
         text-align: center;
+        text-decoration: none;
         transition: var(--transition);
-        border: 2px solid transparent;
         cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
         position: relative;
         overflow: hidden;
     }
 
-    .action-card::before {
+    .action-btn::before {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
-        background: var(--primary);
+        height: 5px;
+        transition: var(--transition);
     }
 
-    .action-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+    /* Colores específicos por acción */
+    .action-btn.crear-orden {
+        border-color: var(--success);
+    }
+    .action-btn.crear-orden::before {
+        background: var(--success);
+    }
+    .action-btn.crear-orden:hover {
+        background: var(--success);
+        border-color: var(--success);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .action-btn.crear-tecnico {
         border-color: var(--primary);
     }
+    .action-btn.crear-tecnico::before {
+        background: var(--primary);
+    }
+    .action-btn.crear-tecnico:hover {
+        background: var(--primary);
+        border-color: var(--primary);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
 
-    .action-card.nueva-orden::before { background: linear-gradient(90deg, #059669, #10b981); }
-    .action-card.nuevo-tecnico::before { background: linear-gradient(90deg, #2563eb, #3b82f6); }
-    .action-card.reportes::before { background: linear-gradient(90deg, #7c3aed, #8b5cf6); }
-    .action-card.buscar::before { background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .action-btn.crear-servicio {
+        border-color: var(--purple);
+    }
+    .action-btn.crear-servicio::before {
+        background: var(--purple);
+    }
+    .action-btn.crear-servicio:hover {
+        background: var(--purple);
+        border-color: var(--purple);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .action-btn.ver-pendientes {
+        border-color: var(--warning);
+    }
+    .action-btn.ver-pendientes::before {
+        background: var(--warning);
+    }
+    .action-btn.ver-pendientes:hover {
+        background: var(--warning);
+        border-color: var(--warning);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .action-btn:hover .action-icon {
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .action-btn:hover .action-title,
+    .action-btn:hover .action-subtitle {
+        color: white;
+    }
 
     .action-icon {
-        width: 80px;
-        height: 80px;
-        border-radius: 20px;
-        margin: 0 auto 1.5rem;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2.5rem;
-        color: white;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        font-size: 2rem;
+        transition: var(--transition);
     }
 
-    .action-card.nueva-orden .action-icon { background: linear-gradient(135deg, #059669, #10b981); }
-    .action-card.nuevo-tecnico .action-icon { background: linear-gradient(135deg, #2563eb, #3b82f6); }
-    .action-card.reportes .action-icon { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
-    .action-card.buscar .action-icon { background: linear-gradient(135deg, #d97706, #f59e0b); }
+    .action-btn.crear-orden .action-icon {
+        background: var(--success);
+        color: white;
+    }
+
+    .action-btn.crear-tecnico .action-icon {
+        background: var(--primary);
+        color: white;
+    }
+
+    .action-btn.crear-servicio .action-icon {
+        background: var(--purple);
+        color: white;
+    }
+
+    .action-btn.ver-pendientes .action-icon {
+        background: var(--warning);
+        color: white;
+    }
 
     .action-title {
         font-size: 1.25rem;
         font-weight: 600;
-        margin-bottom: 0.5rem;
         color: var(--gray-900);
+        transition: var(--transition);
     }
 
     .action-subtitle {
+        font-size: 0.875rem;
         color: var(--gray-500);
+        transition: var(--transition);
+    }
+
+    .action-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: var(--danger);
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+    }
+
+    /* ========== NAVEGACIÓN SECUNDARIA ========== */
+    .secondary-nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .nav-btn {
+        background: white;
+        border: 2px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        padding: 1.25rem 1rem;
+        text-align: center;
+        text-decoration: none;
+        color: var(--gray-700);
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+    }
+
+    .nav-btn:hover {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .nav-btn i {
+        font-size: 1.75rem;
+    }
+
+    .nav-btn span {
+        font-weight: 600;
         font-size: 0.875rem;
     }
 
-    /* ========== ESTADÍSTICAS VISUALES ========== */
+    .nav-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: var(--danger);
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    /* ========== ESTADÍSTICAS - SIN DINERO ========== */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
@@ -147,20 +331,24 @@
         border-radius: var(--border-radius);
         padding: 2rem;
         box-shadow: var(--box-shadow);
-        position: relative;
-        overflow: hidden;
+        border-left: 5px solid;
         transition: var(--transition);
     }
 
     .stat-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
+
+    .stat-card.pendientes { border-color: var(--warning); }
+    .stat-card.completadas { border-color: var(--success); }
+    .stat-card.tecnicos { border-color: var(--primary); }
+    .stat-card.servicios { border-color: var(--purple); }
 
     .stat-header {
         display: flex;
-        justify-content: between;
-        align-items: flex-start;
+        align-items: center;
+        gap: 1rem;
         margin-bottom: 1.5rem;
     }
 
@@ -171,111 +359,40 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.75rem;
         color: white;
-        margin-bottom: 1rem;
     }
 
-    .stat-ordenes .stat-icon { background: linear-gradient(135deg, #dc2626, #ef4444); }
-    .stat-dinero .stat-icon { background: linear-gradient(135deg, #059669, #10b981); }
-    .stat-tecnicos .stat-icon { background: linear-gradient(135deg, #2563eb, #3b82f6); }
-    .stat-servicios .stat-icon { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+    .stat-card.pendientes .stat-icon { background: var(--warning); }
+    .stat-card.completadas .stat-icon { background: var(--success); }
+    .stat-card.tecnicos .stat-icon { background: var(--primary); }
+    .stat-card.servicios .stat-icon { background: var(--purple); }
 
     .stat-number {
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: 800;
-        margin-bottom: 0.5rem;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: var(--gray-900);
+        line-height: 1;
     }
 
     .stat-label {
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 600;
-        color: var(--gray-700);
-        margin-bottom: 1rem;
+        color: var(--gray-600);
+        margin-top: 0.5rem;
     }
-
-    .stat-progress {
-        height: 8px;
-        background: var(--gray-200);
-        border-radius: 4px;
-        overflow: hidden;
-        margin-bottom: 1rem;
-    }
-
-    .stat-progress-fill {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 1s ease-in-out;
-    }
-
-    .stat-ordenes .stat-progress-fill { background: linear-gradient(90deg, #dc2626, #ef4444); }
-    .stat-dinero .stat-progress-fill { background: linear-gradient(90deg, #059669, #10b981); }
-    .stat-tecnicos .stat-progress-fill { background: linear-gradient(90deg, #2563eb, #3b82f6); }
-    .stat-servicios .stat-progress-fill { background: linear-gradient(90deg, #7c3aed, #8b5cf6); }
 
     .stat-meta {
         display: flex;
         justify-content: space-between;
-        align-items: center;
         font-size: 0.875rem;
         color: var(--gray-500);
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--gray-200);
     }
 
-    /* ========== NAVEGACIÓN RÁPIDA MEJORADA ========== */
-    .quick-nav {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .nav-item {
-        background: white;
-        padding: 1.5rem 1rem;
-        border-radius: var(--border-radius);
-        text-align: center;
-        text-decoration: none;
-        color: var(--gray-700);
-        border: 2px solid var(--gray-200);
-        transition: var(--transition);
-        position: relative;
-    }
-
-    .nav-item:hover {
-        transform: translateY(-3px);
-        border-color: var(--primary);
-        color: var(--primary);
-        box-shadow: var(--box-shadow);
-    }
-
-    .nav-item i {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-        display: block;
-    }
-
-    .nav-item span {
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .nav-badge {
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        background: var(--danger);
-        color: white;
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 10px;
-        font-weight: 600;
-    }
-
-    /* ========== CONTENT GRID ========== */
+    /* ========== CONTENIDO PRINCIPAL ========== */
     .content-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
@@ -290,9 +407,9 @@
     }
 
     .content-header {
-        background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+        background: var(--gray-50);
         padding: 1.5rem;
-        border-bottom: 1px solid var(--gray-200);
+        border-bottom: 2px solid var(--gray-200);
     }
 
     .content-title {
@@ -305,7 +422,7 @@
         gap: 0.75rem;
     }
 
-    /* ========== ÓRDENES MEJORADAS ========== */
+    /* ========== ÓRDENES RECIENTES ========== */
     .orders-container {
         max-height: 600px;
         overflow-y: auto;
@@ -317,25 +434,18 @@
         cursor: pointer;
         transition: var(--transition);
         position: relative;
+        border-left: 4px solid transparent;
     }
 
     .order-item:hover {
         background: var(--gray-50);
-        transform: translateX(8px);
+        border-left-color: var(--primary);
     }
 
-    .order-status {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-    }
-
-    .order-status.pendiente { background: var(--warning); }
-    .order-status.en-proceso { background: var(--info); }
-    .order-status.completado { background: var(--success); }
-    .order-status.entregado { background: var(--primary); }
+    .order-item.pendiente { border-left-color: var(--warning); }
+    .order-item.en-proceso { border-left-color: var(--info); }
+    .order-item.completado { border-left-color: var(--success); }
+    .order-item.entregado { border-left-color: var(--primary); }
 
     .order-main {
         display: flex;
@@ -348,7 +458,7 @@
         font-size: 1.1rem;
         font-weight: 700;
         color: var(--primary);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.75rem;
     }
 
     .order-meta {
@@ -359,22 +469,28 @@
         color: var(--gray-600);
     }
 
+    .order-meta i {
+        color: var(--gray-400);
+        width: 16px;
+    }
+
     .order-price {
         text-align: right;
     }
 
-    .order-price .amount {
-        font-size: 1.5rem;
+    .order-price .days {
+        font-size: 1.25rem;
         font-weight: 700;
-        color: var(--success);
+        color: var(--gray-700);
     }
 
-    .order-price .days {
+    .order-price .label {
         font-size: 0.8rem;
         color: var(--gray-500);
+        margin-top: 0.25rem;
     }
 
-    /* ========== PANEL LATERAL ========== */
+    /* ========== SIDEBAR ========== */
     .sidebar-card {
         background: white;
         border-radius: var(--border-radius);
@@ -384,14 +500,14 @@
     }
 
     .sidebar-header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        background: var(--primary);
         color: white;
         padding: 1.5rem;
         text-align: center;
     }
 
     .sidebar-title {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
         font-weight: 600;
         margin: 0;
     }
@@ -437,12 +553,12 @@
         padding: 1rem;
     }
 
-    .action-button {
+    .sidebar-action-btn {
         display: block;
         width: 100%;
         padding: 1rem;
         margin-bottom: 0.75rem;
-        background: var(--gray-50);
+        background: white;
         border: 2px solid var(--gray-200);
         border-radius: var(--border-radius);
         text-decoration: none;
@@ -452,26 +568,63 @@
         text-align: left;
     }
 
-    .action-button:hover {
-        background: white;
+    .sidebar-action-btn:hover {
+        background: var(--primary);
         border-color: var(--primary);
-        color: var(--primary);
+        color: white;
         transform: translateX(4px);
     }
 
-    .action-button i {
+    .sidebar-action-btn i {
         margin-right: 0.75rem;
         width: 20px;
     }
 
-    .action-badge {
+    .sidebar-badge {
         float: right;
-        background: var(--primary);
+        background: var(--danger);
         color: white;
         padding: 0.25rem 0.5rem;
         border-radius: 8px;
         font-size: 0.75rem;
     }
+
+    /* ========== FLOATING BUTTON ========== */
+    .fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 65px;
+        height: 65px;
+        background: var(--success);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        cursor: pointer;
+        transition: var(--transition);
+        z-index: 1000;
+    }
+
+    .fab:hover {
+        background: var(--success-dark);
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 12px 30px rgba(16, 185, 129, 0.5);
+    }
+
+    /* ========== BADGES ========== */
+    .badge {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .bg-pendiente { background: var(--warning); color: white; }
+    .bg-en-proceso { background: var(--info); color: white; }
+    .bg-completado { background: var(--success); color: white; }
+    .bg-entregado { background: var(--primary); color: white; }
 
     /* ========== RESPONSIVE ========== */
     @media (max-width: 1024px) {
@@ -490,42 +643,37 @@
         }
         
         .dashboard-header h1 {
-            font-size: 2rem;
+            font-size: 1.5rem;
         }
         
-        .quick-actions-main {
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        .header-stats {
+            flex-direction: column;
             gap: 1rem;
         }
         
-        .action-card {
-            padding: 1.5rem 1rem;
+        .actions-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
         }
         
-        .action-icon {
-            width: 60px;
-            height: 60px;
-            font-size: 2rem;
+        .secondary-nav {
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         }
         
         .stats-grid {
             grid-template-columns: 1fr;
         }
-        
-        .quick-nav {
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        }
     }
 
     /* ========== ANIMACIONES ========== */
-    .animate-fade-in {
-        animation: fadeInUp 0.8s ease-out;
+    .fade-in {
+        animation: fadeIn 0.6s ease-out;
     }
 
-    @keyframes fadeInUp {
+    @keyframes fadeIn {
         from {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(20px);
         }
         to {
             opacity: 1;
@@ -533,212 +681,198 @@
         }
     }
 
-    .animate-scale {
-        animation: scaleIn 0.5s ease-out;
-    }
-
-    @keyframes scaleIn {
-        from {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-
-    /* ========== FLOATING BUTTON ========== */
-    .fab {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        width: 70px;
-        height: 70px;
-        background: linear-gradient(135deg, var(--success), #10b981);
-        color: white;
-        border: none;
-        border-radius: 50%;
-        font-size: 1.5rem;
-        box-shadow: 0 8px 25px rgba(5, 150, 105, 0.3);
-        cursor: pointer;
-        transition: var(--transition);
-        z-index: 1000;
-    }
-
-    .fab:hover {
-        transform: scale(1.1);
-        box-shadow: 0 12px 35px rgba(5, 150, 105, 0.4);
-    }
+    /* ========== UTILIDADES ========== */
+    .text-success { color: var(--success) !important; }
+    .text-warning { color: var(--warning) !important; }
+    .text-danger { color: var(--danger) !important; }
+    .text-primary { color: var(--primary) !important; }
+    .text-info { color: var(--info) !important; }
+    .text-purple { color: var(--purple) !important; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- ========== HEADER PRINCIPAL ========== -->
-    <div class="dashboard-header animate-fade-in">
+    <!-- ========== HEADER ========== -->
+    <div class="dashboard-header fade-in">
         <div class="row align-items-center">
-            <div class="col-md-8">
+            <div class="col-md-12">
                 <h1>
                     <i class="fas fa-tools me-3"></i>
                     Dashboard del Taller
                 </h1>
-                <p class="mb-0 opacity-90">
+                <p class="date mb-0">
                     <i class="fas fa-calendar-day me-2"></i>
                     {{ hoy|date:"l, d \d\e F \d\e Y" }}
                 </p>
-            </div>
-            <div class="col-md-4 text-md-end">
-                <div class="d-flex align-items-center justify-content-md-end gap-3">
-                    <div class="text-center">
-                        <div class="fs-3 fw-bold">{{ ordenes_pendientes }}</div>
-                        <small>Pendientes</small>
-                    </div>
-                    <div class="text-center">
-                        <div class="fs-3 fw-bold">${{ facturacion_mes|floatformat:0 }}</div>
-                        <small>Este Mes</small>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 
     <!-- ========== ACCIONES PRINCIPALES ========== -->
-    <div class="quick-actions-main animate-fade-in">
-        <a href="{% url 'taller:orden_create' %}" class="action-card nueva-orden">
-            <div class="action-icon">
-                <i class="fas fa-plus-circle"></i>
-            </div>
-            <div class="action-title">Nueva Orden</div>
-            <div class="action-subtitle">Crear orden de trabajo</div>
-        </a>
+    <div class="main-actions-section fade-in">
+        <h3 class="section-title">
+            <i class="fas fa-bolt"></i>
+            Acciones Principales
+        </h3>
         
-        <a href="{% url 'taller:orden_list' %}?estado=PENDIENTE" class="action-card buscar">
-            <div class="action-icon">
-                <i class="fas fa-search"></i>
-            </div>
-            <div class="action-title">Ver Pendientes</div>
-            <div class="action-subtitle">{{ ordenes_pendientes }} órdenes</div>
-        </a>
-        
-        <a href="{% url 'taller:tecnico_create' %}" class="action-card nuevo-tecnico">
-            <div class="action-icon">
-                <i class="fas fa-user-plus"></i>
-            </div>
-            <div class="action-title">Nuevo Técnico</div>
-            <div class="action-subtitle">Agregar personal</div>
-        </a>
-        
-        <a href="{% url 'taller:reporte_tecnicos' %}" class="action-card reportes">
-            <div class="action-icon">
-                <i class="fas fa-chart-bar"></i>
-            </div>
-            <div class="action-title">Reportes</div>
-            <div class="action-subtitle">Ver estadísticas</div>
-        </a>
+        <div class="actions-grid">
+            <a href="{% url 'taller:orden_create' %}" class="action-btn crear-orden">
+                <div class="action-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <div class="action-title">Nueva Orden</div>
+                <div class="action-subtitle">Crear orden de trabajo</div>
+            </a>
+            
+            <a href="{% url 'taller:tecnico_create' %}" class="action-btn crear-tecnico">
+                <div class="action-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="action-title">Nuevo Técnico</div>
+                <div class="action-subtitle">Agregar personal</div>
+            </a>
+            
+            <a href="{% url 'taller:tipo_servicio_create' %}" class="action-btn crear-servicio">
+                <div class="action-icon">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="action-title">Nuevo Servicio</div>
+                <div class="action-subtitle">Crear tipo de servicio</div>
+            </a>
+            
+            <a href="{% url 'taller:orden_list' %}?estado=PENDIENTE" class="action-btn ver-pendientes">
+                {% if ordenes_pendientes > 0 %}
+                <span class="action-badge">{{ ordenes_pendientes }}</span>
+                {% endif %}
+                <div class="action-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="action-title">Ver Pendientes</div>
+                <div class="action-subtitle">Órdenes por atender</div>
+            </a>
+        </div>
     </div>
 
-    <!-- ========== ESTADÍSTICAS VISUALES ========== -->
-    <div class="stats-grid animate-fade-in">
-        <div class="stat-card stat-ordenes">
-            <div class="stat-icon">
-                <i class="fas fa-clipboard-list"></i>
-            </div>
-            <div class="stat-number">{{ ordenes_pendientes }}</div>
-            <div class="stat-label">Órdenes Pendientes</div>
-            <div class="stat-progress">
-                <div class="stat-progress-fill" data-value="{{ ordenes_pendientes }}"></div>
-            </div>
-            <div class="stat-meta">
-                <span>Hoy: {{ ordenes_hoy }}</span>
-                <span class="text-warning">{{ ordenes_vencidas|default:0 }} vencidas</span>
-            </div>
-        </div>
-
-        <div class="stat-card stat-dinero">
-            <div class="stat-icon">
-                <i class="fas fa-dollar-sign"></i>
-            </div>
-            <div class="stat-number">${{ facturacion_mes|floatformat:0 }}</div>
-            <div class="stat-label">Facturación Mensual</div>
-            <div class="stat-progress">
-                <div class="stat-progress-fill" style="width: 75%"></div>
-            </div>
-            <div class="stat-meta">
-                <span>{{ ordenes_mes }} órdenes</span>
-                <span class="text-success">+15% vs mes anterior</span>
-            </div>
-        </div>
-
-        <div class="stat-card stat-tecnicos">
-            <div class="stat-icon">
+    <!-- ========== NAVEGACIÓN SECUNDARIA ========== -->
+    <div class="main-actions-section fade-in">
+        <h3 class="section-title">
+            <i class="fas fa-th-large"></i>
+            Acceso Rápido
+        </h3>
+        
+        <div class="secondary-nav">
+            <a href="{% url 'taller:orden_list' %}?estado=EN_PROCESO" class="nav-btn">
+                {% if ordenes_proceso %}
+                <span class="nav-badge">{{ ordenes_proceso }}</span>
+                {% endif %}
+                <i class="fas fa-cog"></i>
+                <span>En Proceso</span>
+            </a>
+            
+            <a href="{% url 'taller:orden_list' %}?estado=COMPLETADO" class="nav-btn">
+                <i class="fas fa-check-circle"></i>
+                <span>Completados</span>
+            </a>
+            
+            <a href="{% url 'taller:tecnico_list' %}" class="nav-btn">
                 <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-number">{{ tecnicos_activos }}</div>
-            <div class="stat-label">Técnicos Activos</div>
-            <div class="stat-progress">
-                <div class="stat-progress-fill" style="width: 90%"></div>
-            </div>
-            <div class="stat-meta">
-                <span>{{ evaluacion_promedio|floatformat:1 }}★ promedio</span>
-                <span>{{ tecnicos_disponibles|default:tecnicos_activos }} disponibles</span>
-            </div>
-        </div>
-
-        <div class="stat-card stat-servicios">
-            <div class="stat-icon">
+                <span>Técnicos</span>
+            </a>
+            
+            <a href="{% url 'taller:tipo_servicio_list' %}" class="nav-btn">
                 <i class="fas fa-wrench"></i>
-            </div>
-            <div class="stat-number">{{ servicios_mes|default:0 }}</div>
-            <div class="stat-label">Servicios del Mes</div>
-            <div class="stat-progress">
-                <div class="stat-progress-fill" style="width: 65%"></div>
-            </div>
-            <div class="stat-meta">
-                <span>{{ promedio_servicios_dia|floatformat:1 }}/día</span>
-                <span>{{ tipos_servicios_activos|default:0 }} tipos</span>
-            </div>
+                <span>Servicios</span>
+            </a>
+            
+            <a href="{% url 'taller:orden_list' %}" class="nav-btn">
+                <i class="fas fa-list"></i>
+                <span>Todas las Órdenes</span>
+            </a>
+            
+            <a href="{% url 'taller:reporte_tecnicos' %}" class="nav-btn">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reportes</span>
+            </a>
         </div>
     </div>
 
-    <!-- ========== NAVEGACIÓN RÁPIDA ========== -->
-    <div class="quick-nav animate-fade-in">
-        <a href="{% url 'taller:orden_list' %}?estado=EN_PROCESO" class="nav-item">
-            <i class="fas fa-cog text-primary"></i>
-            <span>En Proceso</span>
-            {% if ordenes_proceso %}
-            <div class="nav-badge">{{ ordenes_proceso }}</div>
-            {% endif %}
-        </a>
+    <!-- ========== ESTADÍSTICAS - SIN DINERO ========== -->
+    <div class="main-actions-section fade-in">
+        <h3 class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Estado del Taller
+        </h3>
         
-        <a href="{% url 'taller:orden_list' %}?estado=COMPLETADO" class="nav-item">
-            <i class="fas fa-check-circle text-success"></i>
-            <span>Completados</span>
-        </a>
-        
-        <a href="{% url 'taller:tecnico_list' %}" class="nav-item">
-            <i class="fas fa-users-cog text-info"></i>
-            <span>Técnicos</span>
-        </a>
-        
-        <a href="{% url 'taller:tipo_servicio_list' %}" class="nav-item">
-            <i class="fas fa-cogs text-warning"></i>
-            <span>Servicios</span>
-        </a>
-        
-        <a href="{% url 'taller:orden_list' %}" class="nav-item">
-            <i class="fas fa-list text-secondary"></i>
-            <span>Todas</span>
-        </a>
-        
-        <a href="{% url 'taller:reporte_servicios' %}" class="nav-item">
-            <i class="fas fa-chart-line text-purple"></i>
-            <span>Reportes</span>
-        </a>
+        <div class="stats-grid">
+            <div class="stat-card pendientes">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                        <div class="stat-number">{{ ordenes_pendientes }}</div>
+                        <div class="stat-label">Órdenes Pendientes</div>
+                    </div>
+                </div>
+                <div class="stat-meta">
+                    <span><i class="fas fa-calendar-day me-1"></i> Hoy: {{ ordenes_hoy }}</span>
+                    <span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i> Por atender</span>
+                </div>
+            </div>
+
+            <div class="stat-card completadas">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <div class="stat-number">{{ ordenes_mes }}</div>
+                        <div class="stat-label">Órdenes Completadas</div>
+                    </div>
+                </div>
+                <div class="stat-meta">
+                    <span><i class="fas fa-calendar me-1"></i> Este mes</span>
+                    <span class="text-success"><i class="fas fa-arrow-up me-1"></i> {{ ordenes_completadas_hoy|default:0 }} hoy</span>
+                </div>
+            </div>
+
+            <div class="stat-card tecnicos">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="stat-number">{{ tecnicos_activos }}</div>
+                        <div class="stat-label">Técnicos Activos</div>
+                    </div>
+                </div>
+                <div class="stat-meta">
+                    <span><i class="fas fa-star me-1"></i> {{ evaluacion_promedio|floatformat:1 }}★ promedio</span>
+                    <span><i class="fas fa-user-check me-1"></i> {{ tecnicos_disponibles|default:tecnicos_activos }} disponibles</span>
+                </div>
+            </div>
+
+            <div class="stat-card servicios">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-wrench"></i>
+                    </div>
+                    <div>
+                        <div class="stat-number">{{ servicios_mes|default:0 }}</div>
+                        <div class="stat-label">Servicios Realizados</div>
+                    </div>
+                </div>
+                <div class="stat-meta">
+                    <span><i class="fas fa-calendar-week me-1"></i> Este mes</span>
+                    <span><i class="fas fa-cogs me-1"></i> {{ tipos_servicios_activos|default:0 }} tipos</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ========== CONTENIDO PRINCIPAL ========== -->
-    <div class="content-grid animate-fade-in">
+    <div class="content-grid fade-in">
         <!-- ÓRDENES RECIENTES -->
         <div class="content-card">
             <div class="content-header">
@@ -750,59 +884,57 @@
             
             <div class="orders-container">
                 {% for orden in ordenes_recientes %}
-                <div class="order-item" data-orden-url="{% url 'taller:orden_detail' orden.pk %}">>
-                    <div class="order-status {{ orden.estado|lower }}"></div>
-                    
+                <div class="order-item {{ orden.estado|lower }}" onclick="window.location.href='{% url 'taller:orden_detail' orden.pk %}'">
                     <div class="order-main">
                         <div class="order-info">
                             <h6>{{ orden.numero_orden }}</h6>
                             <div class="order-meta">
                                 <div>
-                                    <i class="fas fa-user me-1"></i>
+                                    <i class="fas fa-user"></i>
                                     {{ orden.cliente.get_nombre_completo }}
                                 </div>
                                 <div>
-                                    <i class="fas fa-motorcycle me-1"></i>
-                                    {{ orden.moto_placa }}
+                                    <i class="fas fa-motorcycle"></i>
+                                    {{ orden.moto_placa|default:"N/A" }}
                                 </div>
                                 <div>
-                                    <i class="fas fa-wrench me-1"></i>
-                                    {{ orden.tecnico_principal.get_nombre_completo }}
+                                    <i class="fas fa-wrench"></i>
+                                    {{ orden.tecnico_principal.get_nombre_completo|default:"Sin asignar" }}
                                 </div>
                                 <div>
-                                    <i class="fas fa-calendar me-1"></i>
+                                    <i class="fas fa-calendar"></i>
                                     {{ orden.fecha_ingreso|date:"d/m/Y" }}
                                 </div>
                             </div>
                         </div>
                         
                         <div class="order-price">
-                            <div class="amount">${{ orden.precio_total|floatformat:0 }}</div>
-                            <div class="days">{{ orden.get_dias_transcurridos }} días</div>
+                            <div class="days">{{ orden.get_dias_transcurridos|default:0 }}</div>
+                            <div class="label">días</div>
                         </div>
                     </div>
                     
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="badge bg-{{ orden.get_color_estado }} px-3 py-2">
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="badge bg-{{ orden.estado|lower }}">
                             {{ orden.get_estado_display }}
                         </span>
                         
-                        <div class="btn-group btn-group-sm">
-                            {% if orden.estado == 'COMPLETADO' %}
-                            <a href="{% url 'taller:generar_cotizacion_pdf' orden.pk %}" 
-                               class="btn btn-outline-primary btn-sm" target="_blank">
-                                <i class="fas fa-file-pdf"></i>
-                            </a>
-                            {% endif %}
-                        </div>
+                        {% if orden.estado == 'COMPLETADO' %}
+                        <a href="{% url 'taller:generar_cotizacion_pdf' orden.pk %}" 
+                           class="btn btn-sm btn-outline-primary" 
+                           onclick="event.stopPropagation();" 
+                           target="_blank">
+                            <i class="fas fa-file-pdf me-1"></i>PDF
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
                 {% empty %}
                 <div class="text-center py-5">
-                    <i class="fas fa-clipboard-list fs-1 text-muted mb-3"></i>
-                    <h5 class="text-muted">No hay órdenes registradas</h5>
+                    <i class="fas fa-clipboard-list" style="font-size: 4rem; color: var(--gray-300);"></i>
+                    <h5 class="text-muted mt-3">No hay órdenes registradas</h5>
                     <p class="text-muted">Comienza creando tu primera orden</p>
-                    <a href="{% url 'taller:orden_create' %}" class="btn btn-primary">
+                    <a href="{% url 'taller:orden_create' %}" class="btn btn-success mt-2">
                         <i class="fas fa-plus me-2"></i>Nueva Orden
                     </a>
                 </div>
@@ -813,7 +945,7 @@
         <!-- SIDEBAR -->
         <div>
             <!-- SERVICIOS POPULARES -->
-            <div class="sidebar-card animate-scale">
+            <div class="sidebar-card">
                 <div class="sidebar-header">
                     <h5 class="sidebar-title">
                         <i class="fas fa-star me-2"></i>
@@ -827,16 +959,16 @@
                         <div class="service-count">{{ servicio.cantidad }}</div>
                     </div>
                     {% empty %}
-                    <div class="text-center py-3">
+                    <div class="text-center py-4">
                         <i class="fas fa-chart-bar text-muted"></i>
-                        <p class="text-muted mb-0">Sin datos</p>
+                        <p class="text-muted mb-0 mt-2">Sin datos del mes</p>
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
             <!-- ACCIONES RÁPIDAS -->
-            <div class="sidebar-card animate-scale">
+            <div class="sidebar-card">
                 <div class="sidebar-header">
                     <h5 class="sidebar-title">
                         <i class="fas fa-bolt me-2"></i>
@@ -844,26 +976,31 @@
                     </h5>
                 </div>
                 <div class="action-list">
-                    <a href="{% url 'taller:orden_list' %}?estado=PENDIENTE" class="action-button">
+                    <a href="{% url 'taller:orden_list' %}?estado=PENDIENTE" class="sidebar-action-btn">
                         <i class="fas fa-clock text-warning"></i>
                         Órdenes Pendientes
-                        <span class="action-badge">{{ ordenes_pendientes }}</span>
+                        <span class="sidebar-badge">{{ ordenes_pendientes }}</span>
                     </a>
                     
-                    <a href="{% url 'taller:orden_list' %}?estado=EN_PROCESO" class="action-button">
-                        <i class="fas fa-cog text-primary"></i>
+                    <a href="{% url 'taller:orden_list' %}?estado=EN_PROCESO" class="sidebar-action-btn">
+                        <i class="fas fa-cog text-info"></i>
                         En Proceso
-                        <span class="action-badge">{{ ordenes_proceso|default:0 }}</span>
+                        <span class="sidebar-badge">{{ ordenes_proceso|default:0 }}</span>
                     </a>
                     
-                    <a href="{% url 'taller:tecnico_list' %}" class="action-button">
-                        <i class="fas fa-users text-success"></i>
+                    <a href="{% url 'taller:tecnico_list' %}" class="sidebar-action-btn">
+                        <i class="fas fa-users text-primary"></i>
                         Gestionar Técnicos
                     </a>
                     
-                    <a href="{% url 'taller:tipo_servicio_list' %}" class="action-button">
-                        <i class="fas fa-cogs text-info"></i>
+                    <a href="{% url 'taller:tipo_servicio_list' %}" class="sidebar-action-btn">
+                        <i class="fas fa-wrench text-purple"></i>
                         Tipos de Servicio
+                    </a>
+                    
+                    <a href="{% url 'taller:reporte_servicios' %}" class="sidebar-action-btn">
+                        <i class="fas fa-chart-line text-success"></i>
+                        Ver Reportes
                     </a>
                 </div>
             </div>
@@ -872,7 +1009,7 @@
 </div>
 
 <!-- FLOATING ACTION BUTTON -->
-<button class="fab" data-nueva-orden-url="{% url 'taller:orden_create' %}" title="Nueva Orden">
+<button class="fab" onclick="window.location.href='{% url 'taller:orden_create' %}'" title="Nueva Orden">
     <i class="fas fa-plus"></i>
 </button>
 
@@ -881,65 +1018,31 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Manejar clicks en órdenes
-    document.querySelectorAll('.order-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const url = this.getAttribute('data-orden-url');
-            if (url) {
-                window.location.href = url;
-            }
-        });
+    // Animación de entrada escalonada
+    const fadeElements = document.querySelectorAll('.fade-in');
+    fadeElements.forEach((el, index) => {
+        el.style.animationDelay = `${index * 0.1}s`;
     });
 
-    // Manejar floating action button
+    // Tooltip para el FAB
     const fab = document.querySelector('.fab');
     if (fab) {
-        fab.addEventListener('click', function() {
-            const url = this.getAttribute('data-nueva-orden-url');
-            if (url) {
-                window.location.href = url;
-            }
+        fab.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.1) rotate(90deg)';
+        });
+        
+        fab.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
         });
     }
 
-    // Animar las barras de progreso
-    setTimeout(() => {
-        const progressBars = document.querySelectorAll('.stat-progress-fill');
-        progressBars.forEach(bar => {
-            const value = parseInt(bar.getAttribute('data-value')) || 0;
-            // Calcular porcentaje (máximo 100, escalado según el valor)
-            const percentage = Math.min(100, Math.max(5, (value / 20) * 100));
-            bar.style.width = '0%';
-            setTimeout(() => {
-                bar.style.width = percentage + '%';
-            }, 100);
-        });
-    }, 500);
+    // Smooth scroll en el container de órdenes
+    const ordersContainer = document.querySelector('.orders-container');
+    if (ordersContainer) {
+        ordersContainer.style.scrollBehavior = 'smooth';
+    }
 
-    // Animar las estadísticas
-    const statNumbers = document.querySelectorAll('.stat-number');
-    statNumbers.forEach((stat, index) => {
-        setTimeout(() => {
-            stat.style.animation = 'scaleIn 0.6s ease-out';
-        }, index * 100);
-    });
-
-    // Hover effects para las cards de acciones
-    document.querySelectorAll('.action-card').forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-8px) scale(1.02)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) scale(1)';
-        });
-    });
-
-    // Actualizar estadísticas cada 60 segundos
-    setInterval(() => {
-        // Aquí puedes agregar código para actualizar las estadísticas via AJAX
-        console.log('Actualizando estadísticas...');
-    }, 60000);
+    console.log('Dashboard del Taller cargado correctamente');
 });
 </script>
 {% endblock %}

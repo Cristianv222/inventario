@@ -241,22 +241,17 @@ class TipoServicio(models.Model):
     codigo = models.CharField(max_length=20, unique=True)
     descripcion = models.TextField(blank=True, null=True)
     
-    # Precios
-    precio_base = models.DecimalField(
+    # ✅ CAMBIO 1: Solo un campo de precio
+    precio = models.DecimalField(
         max_digits=10, 
         decimal_places=2,
-        help_text="Precio base del servicio"
+        help_text="Precio total del servicio (sin IVA)"
     )
-    precio_mano_obra = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        default=0,
-        help_text="Precio adicional por mano de obra"
-    )
-    incluye_iva = models.BooleanField(
-        default=False,
-        help_text="Los servicios generalmente no incluyen IVA"
-    )
+    
+    # ❌ ELIMINAR ESTOS CAMPOS:
+    # precio_base = models.DecimalField(...)
+    # precio_mano_obra = models.DecimalField(...)
+    # incluye_iva = models.BooleanField(...)  # Los servicios NO tienen IVA
     
     # Configuración
     activo = models.BooleanField(default=True)
@@ -290,16 +285,14 @@ class TipoServicio(models.Model):
     def __str__(self):
         return f"{self.categoria.nombre} - {self.nombre}"
     
+    # ✅ CAMBIO 2: Simplificar método
     def get_precio_total(self):
-        """Calcula el precio total incluyendo mano de obra"""
-        return self.precio_base + self.precio_mano_obra
+        """Retorna el precio del servicio"""
+        return self.precio
     
-    def get_precio_con_iva(self):
-        """Calcula el precio con IVA si aplica"""
-        precio_total = self.get_precio_total()
-        if self.incluye_iva:
-            return precio_total * Decimal('1.12')  # 12% IVA
-        return precio_total
+    # ❌ ELIMINAR ESTE MÉTODO:
+    # def get_precio_con_iva(self):
+    #     ...
     
     def puede_realizar_tecnico(self, tecnico):
         """Verifica si un técnico puede realizar este servicio"""
@@ -542,17 +535,16 @@ class OrdenTrabajo(models.Model):
         """Actualiza los precios basado en servicios y repuestos"""
         # Calcular total de servicios
         servicios_total = self.servicios.aggregate(
-            mano_obra=Sum('precio_mano_obra'),
-            total=Sum('precio_total')
-        )
+            total=Sum('precio_servicio')
+        )['total'] or Decimal('0.00')
         
         # Calcular total de repuestos
         repuestos_total = self.repuestos_utilizados.aggregate(
             total=Sum('subtotal')
-        )['total'] or 0
+        )['total'] or Decimal('0.00')
         
         # Actualizar precios
-        self.precio_mano_obra = servicios_total['mano_obra'] or 0
+        self.precio_mano_obra = servicios_total
         self.precio_repuestos = repuestos_total
         self.precio_total = self.precio_mano_obra + self.precio_repuestos
         self.saldo_pendiente = self.precio_total - self.anticipo
@@ -561,7 +553,7 @@ class OrdenTrabajo(models.Model):
             'precio_mano_obra', 'precio_repuestos', 
             'precio_total', 'saldo_pendiente'
         ])
-    
+
     def puede_completarse(self):
         """Verifica si la orden puede marcarse como completada"""
         return (
@@ -661,10 +653,17 @@ class ServicioOrden(models.Model):
         null=True
     )
     
-    # Precios específicos para esta orden
-    precio_base = models.DecimalField(max_digits=10, decimal_places=2)
-    precio_mano_obra = models.DecimalField(max_digits=10, decimal_places=2)
-    precio_total = models.DecimalField(max_digits=10, decimal_places=2)
+    # ✅ CAMBIO 3: Solo un campo de precio
+    precio_servicio = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        help_text="Precio del servicio en esta orden"
+    )
+    
+    # ❌ ELIMINAR ESTOS CAMPOS:
+    # precio_base = models.DecimalField(...)
+    # precio_mano_obra = models.DecimalField(...)
+    # precio_total = models.DecimalField(...)
     
     # Control de tiempo
     tiempo_estimado = models.DecimalField(
@@ -700,14 +699,12 @@ class ServicioOrden(models.Model):
     def __str__(self):
         return f"{self.orden.numero_orden} - {self.tipo_servicio.nombre}"
     
+    # ✅ CAMBIO 4: Simplificar método save
     def save(self, *args, **kwargs):
-        # Establecer precios por defecto si no están definidos
-        if not self.precio_base:
-            self.precio_base = self.tipo_servicio.precio_base
-        if not self.precio_mano_obra:
-            self.precio_mano_obra = self.tipo_servicio.precio_mano_obra
-        if not self.precio_total:
-            self.precio_total = self.precio_base + self.precio_mano_obra
+        # Establecer precio por defecto si no está definido
+        if not self.precio_servicio:
+            self.precio_servicio = self.tipo_servicio.precio
+        
         if not self.tiempo_estimado:
             self.tiempo_estimado = self.tipo_servicio.tiempo_estimado_horas
         

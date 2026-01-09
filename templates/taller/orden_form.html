@@ -862,7 +862,7 @@
         <div class="wizard-content">
             <div class="wizard-body">
                 
-                <!-- STEP 1: CLIENTE -->
+                <!-- ========== STEP 1: CLIENTE ========== -->
                 <div class="wizard-step active" data-step="1">
                     <h2 class="step-title">Información del Cliente</h2>
                     <p class="step-subtitle">Busque y seleccione el cliente para esta orden</p>
@@ -878,7 +878,7 @@
                         <div class="search-results" id="clienteSearchResults"></div>
                     </div>
 
-                    <input type="hidden" name="cliente" id="clienteId">
+                    <input type="hidden" name="cliente" id="clienteId" value="{{ form.cliente.value|default:'' }}">
                     
                     <div class="form-group">
                         <label class="form-label">Cédula del Cliente *</label>
@@ -908,7 +908,7 @@
                     </div>
                 </div>
 
-                <!-- STEP 2: MOTOCICLETA -->
+                <!-- ========== STEP 2: MOTOCICLETA ========== -->
                 <div class="wizard-step" data-step="2">
                     <h2 class="step-title">Datos de la Motocicleta</h2>
                     <p class="step-subtitle">Ingrese la información del vehículo</p>
@@ -948,7 +948,7 @@
                     </div>
                 </div>
 
-                <!-- STEP 3: SERVICIOS -->
+                <!-- ========== STEP 3: SERVICIOS ========== -->
                 <div class="wizard-step" data-step="3">
                     <h2 class="step-title">Servicios a Realizar</h2>
                     <p class="step-subtitle">Configure el servicio y los trabajos a realizar</p>
@@ -973,7 +973,7 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <input type="hidden" name="prioridad" id="prioridadInput">
+                        <input type="hidden" name="prioridad" id="prioridadInput" value="{{ form.prioridad.value|default:'' }}">
                     </div>
 
                     <div class="form-group">
@@ -998,8 +998,26 @@
                         <i class="fas fa-tools"></i> Lista de Servicios
                     </h3>
 
+                    <!-- ✅ FORMSET MANAGEMENT FORM -->
                     {{ servicios_formset.management_form }}
                     
+                    <!-- ✅ CONTENEDOR OCULTO PARA FORMSET REAL -->
+                    <div id="servicios-formset-container" style="display: none;">
+                        {% for form in servicios_formset %}
+                        <div class="servicio-formset-item" data-index="{{ forloop.counter0 }}">
+                            {% if form.instance.pk %}
+                                {{ form.id }}
+                            {% endif %}
+                            {{ form.tipo_servicio }}
+                            {{ form.tecnico_asignado }}
+                            {{ form.precio_total }}
+                            {{ form.observaciones }}
+                            {{ form.DELETE }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- ✅ DISPLAY VISUAL -->
                     <div class="items-display">
                         <div class="items-header">
                             <i class="fas fa-tools" style="color: var(--primary);"></i>
@@ -1021,13 +1039,31 @@
                     </button>
                 </div>
 
-                <!-- STEP 4: REPUESTOS -->
+                <!-- ========== STEP 4: REPUESTOS ========== -->
                 <div class="wizard-step" data-step="4">
                     <h2 class="step-title">Repuestos Necesarios</h2>
                     <p class="step-subtitle">Busque y agregue los repuestos necesarios</p>
 
+                    <!-- ✅ FORMSET MANAGEMENT FORM -->
                     {{ repuestos_formset.management_form }}
                     
+                    <!-- ✅ CONTENEDOR OCULTO PARA FORMSET REAL -->
+                    <div id="repuestos-formset-container" style="display: none;">
+                        {% for form in repuestos_formset %}
+                        <div class="repuesto-formset-item" data-index="{{ forloop.counter0 }}">
+                            {% if form.instance.pk %}
+                                {{ form.id }}
+                            {% endif %}
+                            {{ form.producto }}
+                            {{ form.cantidad }}
+                            {{ form.precio_unitario }}
+                            {{ form.observaciones }}
+                            {{ form.DELETE }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- ✅ DISPLAY VISUAL -->
                     <div class="items-display">
                         <div class="items-header">
                             <i class="fas fa-boxes" style="color: var(--primary);"></i>
@@ -1049,7 +1085,7 @@
                     </button>
                 </div>
 
-                <!-- STEP 5: RESUMEN -->
+                <!-- ========== STEP 5: RESUMEN ========== -->
                 <div class="wizard-step" data-step="5">
                     <h2 class="step-title">Resumen de la Orden</h2>
                     <p class="step-subtitle">Revise los datos antes de guardar</p>
@@ -1114,7 +1150,7 @@
                                 </div>
                             </div>
 
-                            <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid var(--border);">
+                            <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid var(--border); margin-top: 20px;">
                                 <label class="form-label">Estado</label>
                                 {{ form.estado }}
                             </div>
@@ -1124,7 +1160,7 @@
 
             </div>
 
-            <!-- Footer -->
+            <!-- ========== FOOTER ========== -->
             <div class="wizard-footer">
                 <button type="button" class="btn btn-secondary" id="btnPrev" style="display: none;">
                     <i class="fas fa-arrow-left"></i>
@@ -1152,7 +1188,7 @@
     </form>
 </div>
 
-<!-- Modal de Servicios -->
+<!-- ========== MODAL DE SERVICIOS ========== -->
 <div class="modal fade" id="servicesModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1177,7 +1213,7 @@
     </div>
 </div>
 
-<!-- Modal de Técnicos -->
+<!-- ========== MODAL DE TÉCNICOS ========== -->
 <div class="modal fade" id="technicianModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1196,7 +1232,7 @@
     </div>
 </div>
 
-<!-- Modal de Productos -->
+<!-- ========== MODAL DE PRODUCTOS ========== -->
 <div class="modal fade" id="productsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1221,45 +1257,51 @@
     </div>
 </div>
 
-{% csrf_token %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
 <script>
-console.log('🚀 Iniciando Wizard VPMOTOS (Mismo sistema que POS)...');
+console.log('🚀 Iniciando Wizard VPMOTOS - Sistema de Órdenes de Trabajo');
 
-// ===== CONFIGURACIÓN =====
+// ========================================
+// CONFIGURACIÓN GLOBAL
+// ========================================
 const CONFIG = {
     currentStep: 1,
     totalSteps: 5,
     urls: {
         buscarCliente: '{% url "taller:buscar_cliente_ajax" %}',
-        servicios: '/ventas/api/servicios/',
-        tecnicos: '/ventas/api/tecnicos/',
-        productos: '/ventas/api/productos/'
+        servicios: '/taller/ajax/servicios-disponibles/',
+        tecnicos: '/taller/api/tecnicos/',
+        productos: '/inventario/api/productos/'
     }
 };
 
-// ===== VARIABLES GLOBALES (IGUAL QUE POS) =====
-let serviciosCart = [];
-let repuestosCart = [];
+// ========================================
+// VARIABLES GLOBALES
+// ========================================
+let serviciosFormset = [];
+let repuestosFormset = [];
 let technicians = [];
 let services = [];
 let products = [];
 let selectedService = null;
 const IVA_RATE = 0.15;
 
-// ===== INICIALIZACIÓN =====
+// ========================================
+// INICIALIZACIÓN
+// ========================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ DOM cargado');
+    console.log('✅ DOM cargado - Inicializando wizard');
     initWizard();
     loadInitialData();
-    loadInitialFormData();
+    loadExistingFormsetData();
 });
 
 function initWizard() {
+    // Botones de navegación
     document.getElementById('btnNext').addEventListener('click', () => nextStep());
     document.getElementById('btnPrev').addEventListener('click', () => prevStep());
 
@@ -1272,21 +1314,39 @@ function initWizard() {
         });
     });
 
+    // Seleccionar prioridad inicial si existe
+    const prioridadInicial = document.getElementById('prioridadInput').value;
+    if (prioridadInicial) {
+        document.querySelectorAll('.priority-chip').forEach(chip => {
+            if (chip.dataset.value === prioridadInicial) {
+                chip.classList.add('selected');
+            }
+        });
+    }
+
     // Placa en mayúsculas
     const placaInput = document.querySelector('[name="moto_placa"]');
     if (placaInput) {
-        placaInput.addEventListener('input', e => e.target.value = e.target.value.toUpperCase());
+        placaInput.addEventListener('input', e => {
+            e.target.value = e.target.value.toUpperCase();
+        });
     }
 
-    // Anticipo
+    // Anticipo - recalcular totales
     const anticipoInput = document.querySelector('[name="anticipo"]');
     if (anticipoInput) {
         anticipoInput.addEventListener('input', calculateTotals);
     }
+
+    // Búsqueda de clientes
+    initClienteSearch();
 }
 
-// ===== CARGAR DATOS (IGUAL QUE POS) =====
+// ========================================
+// CARGAR DATOS INICIALES
+// ========================================
 function loadInitialData() {
+    console.log('📦 Cargando datos iniciales...');
     loadTechnicians();
     loadServices();
     loadProducts();
@@ -1298,10 +1358,16 @@ function loadTechnicians() {
         .then(data => {
             if (data.success) {
                 technicians = data.tecnicos || [];
-                console.log('✅ Técnicos cargados:', technicians.length);
+                console.log(`✅ Técnicos cargados: ${technicians.length}`);
+            } else {
+                console.warn('⚠️ No se pudieron cargar técnicos');
+                technicians = [];
             }
         })
-        .catch(error => console.error('❌ Error loading technicians:', error));
+        .catch(error => {
+            console.error('❌ Error cargando técnicos:', error);
+            technicians = [];
+        });
 }
 
 function loadServices() {
@@ -1310,10 +1376,16 @@ function loadServices() {
         .then(data => {
             if (data.success) {
                 services = data.servicios || [];
-                console.log('✅ Servicios cargados:', services.length);
+                console.log(`✅ Servicios cargados: ${services.length}`);
+            } else {
+                console.warn('⚠️ No se pudieron cargar servicios');
+                services = [];
             }
         })
-        .catch(error => console.error('❌ Error loading services:', error));
+        .catch(error => {
+            console.error('❌ Error cargando servicios:', error);
+            services = [];
+        });
 }
 
 function loadProducts() {
@@ -1322,15 +1394,89 @@ function loadProducts() {
         .then(data => {
             if (data.success) {
                 products = data.productos || [];
-                console.log('✅ Productos cargados:', products.length);
+                console.log(`✅ Productos cargados: ${products.length}`);
+            } else {
+                console.warn('⚠️ No se pudieron cargar productos');
+                products = [];
             }
         })
-        .catch(error => console.error('❌ Error loading products:', error));
+        .catch(error => {
+            console.error('❌ Error cargando productos:', error);
+            products = [];
+        });
 }
 
-// ===== WIZARD NAVIGATION =====
+// ========================================
+// CARGAR DATOS EXISTENTES (MODO EDICIÓN)
+// ========================================
+function loadExistingFormsetData() {
+    console.log('📦 Cargando datos existentes del formset...');
+    
+    // ✅ CARGAR SERVICIOS EXISTENTES
+    const servicioForms = document.querySelectorAll('.servicio-formset-item');
+    servicioForms.forEach((formItem, index) => {
+        const tipoServicioInput = formItem.querySelector('[name$="-tipo_servicio"]');
+        const tecnicoInput = formItem.querySelector('[name$="-tecnico_asignado"]');
+        const precioInput = formItem.querySelector('[name$="-precio_servicio"]');
+        const deleteInput = formItem.querySelector('[name$="-DELETE"]');
+        
+        if (tipoServicioInput && tipoServicioInput.value && (!deleteInput || !deleteInput.checked)) {
+            const serviceId = parseInt(tipoServicioInput.value);
+            const technicianId = tecnicoInput && tecnicoInput.value ? parseInt(tecnicoInput.value) : null;
+            const price = precioInput && precioInput.value ? parseFloat(precioInput.value) : 0;
+            
+            serviciosFormset.push({
+                formIndex: index,
+                id: serviceId,
+                technician_id: technicianId,
+                price: price,
+                quantity: 1,
+                isExisting: true
+            });
+        }
+    });
+    
+    // ✅ CARGAR REPUESTOS EXISTENTES
+    const repuestoForms = document.querySelectorAll('.repuesto-formset-item');
+    repuestoForms.forEach((formItem, index) => {
+        const productoInput = formItem.querySelector('[name$="-producto"]');
+        const cantidadInput = formItem.querySelector('[name$="-cantidad"]');
+        const precioInput = formItem.querySelector('[name$="-precio_unitario"]');
+        const deleteInput = formItem.querySelector('[name$="-DELETE"]');
+        
+        if (productoInput && productoInput.value && (!deleteInput || !deleteInput.checked)) {
+            const productId = parseInt(productoInput.value);
+            const quantity = cantidadInput && cantidadInput.value ? parseFloat(cantidadInput.value) : 1;
+            const price = precioInput && precioInput.value ? parseFloat(precioInput.value) : 0;
+            
+            repuestosFormset.push({
+                formIndex: index,
+                id: productId,
+                quantity: quantity,
+                price: price,
+                isExisting: true
+            });
+        }
+    });
+    
+    console.log(`✅ Cargados ${serviciosFormset.length} servicios y ${repuestosFormset.length} repuestos existentes`);
+    
+    // Esperar a que se carguen los datos de API y luego mostrar
+    setTimeout(() => {
+        updateServiciosDisplay();
+        updateRepuestosDisplay();
+        updateServiciosCount();
+        updateRepuestosCount();
+        calculateTotals();
+    }, 1000);
+}
+
+// ========================================
+// NAVEGACIÓN DEL WIZARD
+// ========================================
 function nextStep() {
     if (!validateStep(CONFIG.currentStep)) return;
+    
     if (CONFIG.currentStep < CONFIG.totalSteps) {
         CONFIG.currentStep++;
         updateWizard();
@@ -1345,19 +1491,27 @@ function prevStep() {
 }
 
 function updateWizard() {
+    // Actualizar steps visibles
     document.querySelectorAll('.wizard-step').forEach(step => step.classList.remove('active'));
-    document.querySelector(`.wizard-step[data-step="${CONFIG.currentStep}"]`).classList.add('active');
+    const currentStepEl = document.querySelector(`.wizard-step[data-step="${CONFIG.currentStep}"]`);
+    if (currentStepEl) currentStepEl.classList.add('active');
 
+    // Actualizar indicadores de progreso
     document.querySelectorAll('.step').forEach(step => {
         const stepNum = parseInt(step.dataset.step);
         step.classList.remove('active', 'completed');
-        if (stepNum < CONFIG.currentStep) step.classList.add('completed');
-        else if (stepNum === CONFIG.currentStep) step.classList.add('active');
+        if (stepNum < CONFIG.currentStep) {
+            step.classList.add('completed');
+        } else if (stepNum === CONFIG.currentStep) {
+            step.classList.add('active');
+        }
     });
 
+    // Actualizar barra de progreso
     const progress = ((CONFIG.currentStep - 1) / (CONFIG.totalSteps - 1)) * 100;
     document.getElementById('progressLine').style.width = progress + '%';
 
+    // Mostrar/ocultar botones
     document.getElementById('btnPrev').style.display = CONFIG.currentStep > 1 ? 'inline-flex' : 'none';
     
     if (CONFIG.currentStep === CONFIG.totalSteps) {
@@ -1369,6 +1523,7 @@ function updateWizard() {
         document.getElementById('btnSubmit').style.display = 'none';
     }
 
+    // Scroll al inicio
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1381,17 +1536,21 @@ function validateStep(step) {
             }
             break;
         case 2:
-            if (!document.querySelector('[name="moto_placa"]').value || 
-                !document.querySelector('[name="moto_marca"]').value || 
-                !document.querySelector('[name="moto_modelo"]').value) {
-                alert('⚠️ Complete los campos de la motocicleta');
+            const placa = document.querySelector('[name="moto_placa"]');
+            const marca = document.querySelector('[name="moto_marca"]');
+            const modelo = document.querySelector('[name="moto_modelo"]');
+            
+            if (!placa.value || !marca.value || !modelo.value) {
+                alert('⚠️ Complete los campos obligatorios de la motocicleta (Placa, Marca, Modelo)');
                 return false;
             }
             break;
         case 3:
-            if (!document.querySelector('[name="tecnico_principal"]').value || 
-                !document.querySelector('[name="motivo_ingreso"]').value) {
-                alert('⚠️ Complete los campos del servicio');
+            const tecnico = document.querySelector('[name="tecnico_principal"]');
+            const motivo = document.querySelector('[name="motivo_ingreso"]');
+            
+            if (!tecnico.value || !motivo.value) {
+                alert('⚠️ Complete los campos obligatorios (Técnico Principal, Motivo de Ingreso)');
                 return false;
             }
             break;
@@ -1399,38 +1558,67 @@ function validateStep(step) {
     return true;
 }
 
-// ===== CLIENTES (IGUAL QUE POS) =====
-const clienteSearchInput = document.getElementById('clienteSearchInput');
-const clienteSearchBox = document.getElementById('clienteSearchBox');
-let clienteSearchTimeout;
+// ========================================
+// BÚSQUEDA DE CLIENTES
+// ========================================
+function initClienteSearch() {
+    const clienteSearchInput = document.getElementById('clienteSearchInput');
+    const clienteSearchBox = document.getElementById('clienteSearchBox');
+    let clienteSearchTimeout;
 
-if (clienteSearchInput) {
-    clienteSearchInput.addEventListener('input', function() {
-        clearTimeout(clienteSearchTimeout);
-        const query = this.value.trim();
-        if (query.length >= 3) {
-            clienteSearchBox.classList.add('loading');
-            clienteSearchTimeout = setTimeout(() => buscarCliente(query), 300);
-        } else {
+    if (clienteSearchInput) {
+        clienteSearchInput.addEventListener('input', function() {
+            clearTimeout(clienteSearchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length >= 3) {
+                clienteSearchBox.classList.add('loading');
+                clienteSearchTimeout = setTimeout(() => buscarCliente(query), 300);
+            } else {
+                hideClienteResults();
+            }
+        });
+    }
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (clienteSearchBox && !clienteSearchBox.contains(e.target)) {
             hideClienteResults();
         }
     });
-}
 
-document.addEventListener('click', (e) => {
-    if (clienteSearchBox && !clienteSearchBox.contains(e.target)) hideClienteResults();
-});
+    // Cargar cliente en modo edición
+    {% if object and object.cliente %}
+    selectCliente({
+        id: {{ object.cliente.id }},
+        nombres: "{{ object.cliente.nombres|escapejs }}",
+        apellidos: "{{ object.cliente.apellidos|escapejs }}",
+        identificacion: "{{ object.cliente.identificacion|escapejs }}",
+        telefono: "{{ object.cliente.telefono|default:''|escapejs }}",
+        email: "{{ object.cliente.email|default:''|escapejs }}",
+        direccion: "{{ object.cliente.direccion|default:''|escapejs }}"
+    });
+    {% endif %}
+}
 
 function buscarCliente(query) {
     fetch(`${CONFIG.urls.buscarCliente}?q=${encodeURIComponent(query)}`)
         .then(response => response.json())
         .then(data => showClienteResults(data))
-        .catch(error => console.error('❌ Error:', error))
-        .finally(() => clienteSearchBox.classList.remove('loading'));
+        .catch(error => {
+            console.error('❌ Error buscando cliente:', error);
+            showToast('Error al buscar cliente', 'error');
+        })
+        .finally(() => {
+            const searchBox = document.getElementById('clienteSearchBox');
+            if (searchBox) searchBox.classList.remove('loading');
+        });
 }
 
 function showClienteResults(results) {
     const resultsDiv = document.getElementById('clienteSearchResults');
+    if (!resultsDiv) return;
+    
     resultsDiv.innerHTML = '';
 
     if (!results || results.length === 0) {
@@ -1443,8 +1631,8 @@ function showClienteResults(results) {
         const item = document.createElement('div');
         item.className = 'search-result-item';
         item.innerHTML = `
-            <div class="result-title">${cliente.nombres} ${cliente.apellidos}</div>
-            <div class="result-details">Cédula: ${cliente.identificacion}${cliente.telefono ? ` | Tel: ${cliente.telefono}` : ''}</div>
+            <div class="result-title">${escapeHtml(cliente.nombres)} ${escapeHtml(cliente.apellidos)}</div>
+            <div class="result-details">Cédula: ${escapeHtml(cliente.identificacion)}${cliente.telefono ? ` | Tel: ${escapeHtml(cliente.telefono)}` : ''}</div>
         `;
         item.addEventListener('click', () => selectCliente(cliente));
         resultsDiv.appendChild(item);
@@ -1466,10 +1654,13 @@ function selectCliente(cliente) {
 }
 
 function hideClienteResults() {
-    document.getElementById('clienteSearchResults').classList.remove('show');
+    const resultsDiv = document.getElementById('clienteSearchResults');
+    if (resultsDiv) resultsDiv.classList.remove('show');
 }
 
-// ===== SERVICIOS (IGUAL QUE POS) =====
+// ========================================
+// SERVICIOS - MODALES Y GESTIÓN
+// ========================================
 function showServicesModal() {
     const modal = new bootstrap.Modal(document.getElementById('servicesModal'));
     modal.show();
@@ -1481,7 +1672,7 @@ function displayServicesInModal(serviceList) {
     if (!resultsContainer) return;
     
     if (serviceList.length === 0) {
-        resultsContainer.innerHTML = '<p style="text-align: center;">No hay servicios disponibles</p>';
+        resultsContainer.innerHTML = '<p style="text-align: center; padding: 2rem; color: #999;">No hay servicios disponibles</p>';
         return;
     }
     
@@ -1489,7 +1680,7 @@ function displayServicesInModal(serviceList) {
         <div class="modal-item" onclick="selectServiceFromModal(${service.id})">
             <div class="item-header">
                 <h6 class="item-title">${escapeHtml(service.nombre)}</h6>
-                <span class="item-price">$${service.precio_total.toFixed(2)}</span>
+                <span class="item-price">$${(service.precio || 0).toFixed(2)}</span>
             </div>
             <div class="item-meta">
                 <span>Código: ${escapeHtml(service.codigo)}</span>
@@ -1513,12 +1704,15 @@ function searchServicesInModal() {
 
 function selectServiceFromModal(serviceId) {
     const service = services.find(s => s.id === serviceId);
-    if (service) {
-        const servicesModal = bootstrap.Modal.getInstance(document.getElementById('servicesModal'));
-        if (servicesModal) servicesModal.hide();
-        
-        selectTechnicianForService(service);
+    if (!service) {
+        showToast('Servicio no encontrado', 'error');
+        return;
     }
+    
+    const servicesModal = bootstrap.Modal.getInstance(document.getElementById('servicesModal'));
+    if (servicesModal) servicesModal.hide();
+    
+    selectTechnicianForService(service);
 }
 
 function selectTechnicianForService(service) {
@@ -1551,18 +1745,7 @@ function assignTechnician(technicianId) {
     
     const technician = technicians.find(t => t.id == technicianId);
     
-    addServiceToCart({
-        id: selectedService.id,
-        code: selectedService.codigo,
-        name: selectedService.nombre,
-        type: 'service',
-        price: selectedService.precio_total,
-        precio_base: selectedService.precio_base || 0,
-        precio_mano_obra: selectedService.precio_mano_obra || 0,
-        tiempo_estimado: selectedService.tiempo_estimado || 0,
-        technician_id: technicianId,
-        technician_name: technician ? technician.nombre : null
-    });
+    addServiceToFormset(selectedService, technicianId, technician ? technician.nombre : null);
     
     const technicianModal = bootstrap.Modal.getInstance(document.getElementById('technicianModal'));
     if (technicianModal) technicianModal.hide();
@@ -1571,15 +1754,24 @@ function assignTechnician(technicianId) {
     showToast('Servicio agregado', 'success');
 }
 
-function addServiceToCart(item) {
-    const existingItem = serviciosCart.find(cartItem => cartItem.id === item.id);
+function addServiceToFormset(service, technicianId, technicianName) {
+    const existingIndex = serviciosFormset.findIndex(item => 
+        item.id === service.id && item.technician_id === technicianId
+    );
     
-    if (existingItem) {
-        existingItem.quantity++;
+    if (existingIndex !== -1) {
+        serviciosFormset[existingIndex].quantity++;
     } else {
-        serviciosCart.push({
-            ...item,
-            quantity: 1
+        serviciosFormset.push({
+            formIndex: null,
+            id: service.id,
+            code: service.codigo,
+            name: service.nombre,
+            technician_id: technicianId,
+            technician_name: technicianName,
+            price: service.precio || 0,
+            quantity: 1,
+            isExisting: false
         });
     }
     
@@ -1590,8 +1782,9 @@ function addServiceToCart(item) {
 
 function updateServiciosDisplay() {
     const serviciosList = document.getElementById('serviciosList');
+    if (!serviciosList) return;
     
-    if (serviciosCart.length === 0) {
+    if (serviciosFormset.length === 0) {
         serviciosList.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-tools"></i>
@@ -1602,13 +1795,13 @@ function updateServiciosDisplay() {
         return;
     }
     
-    serviciosList.innerHTML = serviciosCart.map((item, index) => {
+    serviciosList.innerHTML = serviciosFormset.map((item, index) => {
         const subtotal = item.price * item.quantity;
         return `
             <div class="item-row">
                 <div class="item-info">
                     <div class="item-name">${escapeHtml(item.name)}</div>
-                    <div class="item-code">${escapeHtml(item.code)}</div>
+                    <div class="item-code">${escapeHtml(item.code || '')}</div>
                     <div class="item-price">$${item.price.toFixed(2)} c/u</div>
                     ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
                 </div>
@@ -1622,7 +1815,7 @@ function updateServiciosDisplay() {
                     </button>
                 </div>
                 <div class="item-total">$${subtotal.toFixed(2)}</div>
-                <button type="button" class="remove-btn" onclick="removeServicio(${index})">
+                <button type="button" class="remove-btn" onclick="removeServicio(${index})" title="Eliminar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1636,24 +1829,27 @@ function updateServicioQuantity(index, newQuantity) {
         return;
     }
     
-    serviciosCart[index].quantity = parseInt(newQuantity);
+    serviciosFormset[index].quantity = parseInt(newQuantity);
     updateServiciosDisplay();
     calculateTotals();
 }
 
 function removeServicio(index) {
-    serviciosCart.splice(index, 1);
+    serviciosFormset.splice(index, 1);
     updateServiciosDisplay();
     updateServiciosCount();
     calculateTotals();
 }
 
 function updateServiciosCount() {
-    const count = serviciosCart.reduce((total, item) => total + item.quantity, 0);
-    document.getElementById('serviciosCountBadge').textContent = `${count} servicio${count !== 1 ? 's' : ''}`;
+    const count = serviciosFormset.reduce((total, item) => total + item.quantity, 0);
+    const badge = document.getElementById('serviciosCountBadge');
+    if (badge) badge.textContent = `${count} servicio${count !== 1 ? 's' : ''}`;
 }
 
-// ===== PRODUCTOS (IGUAL QUE POS) =====
+// ========================================
+// PRODUCTOS - MODALES Y GESTIÓN
+// ========================================
 function showProductsModal() {
     const modal = new bootstrap.Modal(document.getElementById('productsModal'));
     modal.show();
@@ -1665,22 +1861,25 @@ function displayProductsInModal(productList) {
     if (!resultsContainer) return;
     
     if (productList.length === 0) {
-        resultsContainer.innerHTML = '<p style="text-align: center;">No hay productos disponibles</p>';
+        resultsContainer.innerHTML = '<p style="text-align: center; padding: 2rem; color: #999;">No hay productos disponibles</p>';
         return;
     }
     
-    resultsContainer.innerHTML = productList.map(product => `
-        <div class="modal-item" onclick="selectProductFromModal(${product.id})">
-            <div class="item-header">
-                <h6 class="item-title">${escapeHtml(product.nombre)}</h6>
-                <span class="item-price">$${product.precio.toFixed(2)}</span>
+    resultsContainer.innerHTML = productList.map(product => {
+        const stockClass = product.stock > 10 ? 'bg-success' : product.stock > 0 ? 'bg-warning' : 'bg-danger';
+        return `
+            <div class="modal-item" onclick="selectProductFromModal(${product.id})">
+                <div class="item-header">
+                    <h6 class="item-title">${escapeHtml(product.nombre)}</h6>
+                    <span class="item-price">$${(product.precio || 0).toFixed(2)}</span>
+                </div>
+                <div class="item-meta">
+                    <span>Código: ${escapeHtml(product.codigo)}</span>
+                    <span class="badge ${stockClass}">Stock: ${product.stock}</span>
+                </div>
             </div>
-            <div class="item-meta">
-                <span>Código: ${escapeHtml(product.codigo)}</span>
-                <span class="badge ${product.stock > 10 ? 'bg-success' : product.stock > 0 ? 'bg-warning' : 'bg-danger'}">Stock: ${product.stock}</span>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function searchProductsInModal() {
@@ -1697,21 +1896,17 @@ function searchProductsInModal() {
 
 function selectProductFromModal(productId) {
     const product = products.find(p => p.id === productId);
-    if (!product) return;
+    if (!product) {
+        showToast('Producto no encontrado', 'error');
+        return;
+    }
     
     if (product.stock <= 0) {
         showToast('Sin stock disponible', 'warning');
         return;
     }
     
-    addProductToCart({
-        id: product.id,
-        code: product.codigo,
-        name: product.nombre,
-        type: 'product',
-        price: product.precio,
-        stock: product.stock
-    });
+    addProductToFormset(product);
     
     const productsModal = bootstrap.Modal.getInstance(document.getElementById('productsModal'));
     if (productsModal) productsModal.hide();
@@ -1719,19 +1914,26 @@ function selectProductFromModal(productId) {
     showToast('Producto agregado', 'success');
 }
 
-function addProductToCart(item) {
-    const existingItem = repuestosCart.find(cartItem => cartItem.id === item.id);
+function addProductToFormset(product) {
+    const existingIndex = repuestosFormset.findIndex(item => item.id === product.id);
     
-    if (existingItem) {
-        if (existingItem.quantity >= item.stock) {
+    if (existingIndex !== -1) {
+        const currentQty = repuestosFormset[existingIndex].quantity;
+        if (currentQty >= product.stock) {
             showToast('Stock insuficiente', 'warning');
             return;
         }
-        existingItem.quantity++;
+        repuestosFormset[existingIndex].quantity++;
     } else {
-        repuestosCart.push({
-            ...item,
-            quantity: 1
+        repuestosFormset.push({
+            formIndex: null,
+            id: product.id,
+            code: product.codigo,
+            name: product.nombre,
+            price: product.precio || 0,
+            stock: product.stock,
+            quantity: 1,
+            isExisting: false
         });
     }
     
@@ -1742,8 +1944,9 @@ function addProductToCart(item) {
 
 function updateRepuestosDisplay() {
     const repuestosList = document.getElementById('repuestosList');
+    if (!repuestosList) return;
     
-    if (repuestosCart.length === 0) {
+    if (repuestosFormset.length === 0) {
         repuestosList.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-boxes"></i>
@@ -1754,14 +1957,14 @@ function updateRepuestosDisplay() {
         return;
     }
     
-    repuestosList.innerHTML = repuestosCart.map((item, index) => {
+    repuestosList.innerHTML = repuestosFormset.map((item, index) => {
         const subtotal = item.price * item.quantity;
         return `
             <div class="item-row">
                 <div class="item-info">
                     <div class="item-name">${escapeHtml(item.name)}</div>
-                    <div class="item-code">${escapeHtml(item.code)}</div>
-                    <div class="item-price">$${item.price.toFixed(2)} c/u | Stock: ${item.stock}</div>
+                    <div class="item-code">${escapeHtml(item.code || '')}</div>
+                    <div class="item-price">$${item.price.toFixed(2)} c/u | Stock: ${item.stock || 0}</div>
                 </div>
                 <div class="quantity-controls">
                     <button type="button" class="qty-btn" onclick="updateRepuestoQuantity(${index}, ${item.quantity - 1})">
@@ -1773,7 +1976,7 @@ function updateRepuestosDisplay() {
                     </button>
                 </div>
                 <div class="item-total">$${subtotal.toFixed(2)}</div>
-                <button type="button" class="remove-btn" onclick="removeRepuesto(${index})">
+                <button type="button" class="remove-btn" onclick="removeRepuesto(${index})" title="Eliminar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1787,79 +1990,102 @@ function updateRepuestoQuantity(index, newQuantity) {
         return;
     }
     
-    const item = repuestosCart[index];
+    const item = repuestosFormset[index];
     if (newQuantity > item.stock) {
         showToast('Stock insuficiente', 'warning');
         return;
     }
     
-    repuestosCart[index].quantity = parseInt(newQuantity);
+    repuestosFormset[index].quantity = parseFloat(newQuantity);
     updateRepuestosDisplay();
     calculateTotals();
 }
 
 function removeRepuesto(index) {
-    repuestosCart.splice(index, 1);
+    repuestosFormset.splice(index, 1);
     updateRepuestosDisplay();
     updateRepuestosCount();
     calculateTotals();
 }
 
 function updateRepuestosCount() {
-    const count = repuestosCart.reduce((total, item) => total + item.quantity, 0);
-    document.getElementById('repuestosCountBadge').textContent = `${count} repuesto${count !== 1 ? 's' : ''}`;
+    const count = repuestosFormset.reduce((total, item) => total + item.quantity, 0);
+    const badge = document.getElementById('repuestosCountBadge');
+    if (badge) badge.textContent = `${count} repuesto${count !== 1 ? 's' : ''}`;
 }
 
-// ===== CÁLCULOS =====
+// ========================================
+// CÁLCULOS Y TOTALES
+// ========================================
 function calculateTotals() {
-    let totalServicios = serviciosCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    let totalRepuestos = repuestosCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    // Total servicios (SIN IVA)
+    let totalServicios = serviciosFormset.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
+    // Total repuestos (SIN IVA)
+    let totalRepuestos = repuestosFormset.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // IVA solo sobre repuestos (15%)
     const iva = totalRepuestos * IVA_RATE;
+    
+    // Total general
     const total = totalServicios + totalRepuestos + iva;
     
+    // Actualizar UI
     document.getElementById('totalServicios').textContent = `$${totalServicios.toFixed(2)}`;
     document.getElementById('totalRepuestos').textContent = `$${totalRepuestos.toFixed(2)}`;
     document.getElementById('totalIva').textContent = `$${iva.toFixed(2)}`;
     document.getElementById('totalGeneral').textContent = `$${total.toFixed(2)}`;
     
-    const anticipo = parseFloat(document.querySelector('[name="anticipo"]')?.value) || 0;
+    // Calcular saldo pendiente
+    const anticipoInput = document.querySelector('[name="anticipo"]');
+    const anticipo = anticipoInput ? parseFloat(anticipoInput.value) || 0 : 0;
     const saldo = total - anticipo;
     document.getElementById('saldoPendiente').textContent = `$${saldo.toFixed(2)}`;
 }
 
-// ===== RESUMEN =====
+// ========================================
+// RESUMEN FINAL
+// ========================================
 function updateResumen() {
     calculateTotals();
     
+    // Cliente
     const clienteNombre = document.getElementById('clienteNombre').textContent;
     const clienteTel = document.getElementById('clienteTelefono').textContent;
     document.getElementById('resumenCliente').innerHTML = `<strong>${clienteNombre}</strong><br>Tel: ${clienteTel}`;
 
+    // Motocicleta
     const placa = document.querySelector('[name="moto_placa"]').value;
     const marca = document.querySelector('[name="moto_marca"]').value;
     const modelo = document.querySelector('[name="moto_modelo"]').value;
     document.getElementById('resumenMoto').innerHTML = `<strong>${placa}</strong> - ${marca} ${modelo}`;
 
-    let serviciosHTML = '<ul style="margin: 0; padding-left: 20px;">';
-    serviciosCart.forEach(item => {
-        serviciosHTML += `<li>${item.name} - Cant: ${item.quantity}</li>`;
-    });
-    serviciosHTML += '</ul>';
+    // Servicios
+    let serviciosHTML = serviciosFormset.length > 0 
+        ? '<ul style="margin: 0; padding-left: 20px;">' + serviciosFormset.map(item => 
+            `<li>${escapeHtml(item.name)} - Cant: ${item.quantity}</li>`
+          ).join('') + '</ul>'
+        : '<p style="color: #999;">Sin servicios</p>';
     document.getElementById('resumenServicios').innerHTML = serviciosHTML;
 
-    let repuestosHTML = '<ul style="margin: 0; padding-left: 20px;">';
-    repuestosCart.forEach(item => {
-        repuestosHTML += `<li>${item.name} - Cant: ${item.quantity}</li>`;
-    });
-    repuestosHTML += '</ul>';
+    // Repuestos
+    let repuestosHTML = repuestosFormset.length > 0
+        ? '<ul style="margin: 0; padding-left: 20px;">' + repuestosFormset.map(item => 
+            `<li>${escapeHtml(item.name)} - Cant: ${item.quantity}</li>`
+          ).join('') + '</ul>'
+        : '<p style="color: #999;">Sin repuestos</p>';
     document.getElementById('resumenRepuestos').innerHTML = repuestosHTML;
 }
 
-// ===== SUBMIT FORM =====
+// ========================================
+// SUBMIT FORM - SINCRONIZACIÓN
+// ========================================
 document.getElementById('wizardForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    console.log('📤 Preparando envío del formulario...');
+    
+    // Validar cliente
     if (!document.getElementById('clienteId').value) {
         alert('⚠️ Seleccione un cliente');
         CONFIG.currentStep = 1;
@@ -1867,9 +2093,11 @@ document.getElementById('wizardForm').addEventListener('submit', function(e) {
         return false;
     }
     
-    // Sincronizar con formsets
+    // Sincronizar formsets
     syncServiciosFormset();
     syncRepuestosFormset();
+    
+    console.log('✅ Formsets sincronizados. Enviando...');
     
     // Enviar formulario
     this.submit();
@@ -1877,82 +2105,88 @@ document.getElementById('wizardForm').addEventListener('submit', function(e) {
 
 function syncServiciosFormset() {
     const totalForms = document.querySelector('[name="servicios-TOTAL_FORMS"]');
-    totalForms.value = serviciosCart.length;
+    if (!totalForms) return;
     
-    // Limpiar formset
-    document.querySelectorAll('[name^="servicios-"]').forEach(input => {
-        if (!input.name.includes('TOTAL_FORMS') && !input.name.includes('INITIAL_FORMS') && !input.name.includes('MAX_NUM_FORMS')) {
-            input.remove();
+    totalForms.value = serviciosFormset.length;
+    
+    // Limpiar formset container
+    const container = document.getElementById('servicios-formset-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Recrear formset items
+    serviciosFormset.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'servicio-formset-item';
+        
+        let html = '';
+        
+        // Si es existente, incluir ID
+        if (item.isExisting && item.formIndex !== undefined) {
+            html += `<input type="hidden" name="servicios-${index}-id" value="${item.formIndex}">`;
         }
+        
+        html += `
+            <input type="hidden" name="servicios-${index}-tipo_servicio" value="${item.id}">
+            <input type="hidden" name="servicios-${index}-tecnico_asignado" value="${item.technician_id || ''}">
+            <input type="hidden" name="servicios-${index}-precio_servicio" value="${item.price}">
+            <input type="hidden" name="servicios-${index}-observaciones" value="">
+            <input type="hidden" name="servicios-${index}-DELETE" value="">
+        `;
+        
+        div.innerHTML = html;
+        container.appendChild(div);
     });
     
-    // Agregar items del cart
-    serviciosCart.forEach((item, index) => {
-        addHiddenInput(`servicios-${index}-tipo_servicio`, item.id);
-        addHiddenInput(`servicios-${index}-tecnico_asignado`, item.technician_id || '');
-        addHiddenInput(`servicios-${index}-precio_base`, item.precio_base);
-        addHiddenInput(`servicios-${index}-precio_mano_obra`, item.precio_mano_obra);
-        addHiddenInput(`servicios-${index}-tiempo_estimado`, item.tiempo_estimado);
-        addHiddenInput(`servicios-${index}-cantidad`, item.quantity);
-    });
+    console.log(`✅ Servicios sincronizados: ${serviciosFormset.length}`);
 }
 
 function syncRepuestosFormset() {
     const totalForms = document.querySelector('[name="repuestos-TOTAL_FORMS"]');
-    totalForms.value = repuestosCart.length;
+    if (!totalForms) return;
     
-    // Limpiar formset
-    document.querySelectorAll('[name^="repuestos-"]').forEach(input => {
-        if (!input.name.includes('TOTAL_FORMS') && !input.name.includes('INITIAL_FORMS') && !input.name.includes('MAX_NUM_FORMS')) {
-            input.remove();
+    totalForms.value = repuestosFormset.length;
+    
+    // Limpiar formset container
+    const container = document.getElementById('repuestos-formset-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Recrear formset items
+    repuestosFormset.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'repuesto-formset-item';
+        
+        let html = '';
+        
+        // Si es existente, incluir ID
+        if (item.isExisting && item.formIndex !== undefined) {
+            html += `<input type="hidden" name="repuestos-${index}-id" value="${item.formIndex}">`;
         }
+        
+        html += `
+            <input type="hidden" name="repuestos-${index}-producto" value="${item.id}">
+            <input type="hidden" name="repuestos-${index}-cantidad" value="${item.quantity}">
+            <input type="hidden" name="repuestos-${index}-precio_unitario" value="${item.price}">
+            <input type="hidden" name="repuestos-${index}-observaciones" value="">
+            <input type="hidden" name="repuestos-${index}-DELETE" value="">
+        `;
+        
+        div.innerHTML = html;
+        container.appendChild(div);
     });
     
-    // Agregar items del cart
-    repuestosCart.forEach((item, index) => {
-        addHiddenInput(`repuestos-${index}-producto`, item.id);
-        addHiddenInput(`repuestos-${index}-cantidad`, item.quantity);
-        addHiddenInput(`repuestos-${index}-precio_unitario`, item.price);
-    });
+    console.log(`✅ Repuestos sincronizados: ${repuestosFormset.length}`);
 }
 
-function addHiddenInput(name, value) {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = name;
-    input.value = value;
-    document.getElementById('wizardForm').appendChild(input);
-}
-
-// ===== CARGAR DATOS INICIALES EN EDICIÓN =====
-function loadInitialFormData() {
-    {% if object and object.cliente %}
-    selectCliente({
-        id: {{ object.cliente.id }},
-        nombres: "{{ object.cliente.nombres|escapejs }}",
-        apellidos: "{{ object.cliente.apellidos|escapejs }}",
-        identificacion: "{{ object.cliente.identificacion|escapejs }}",
-        telefono: "{{ object.cliente.telefono|default:''|escapejs }}",
-        email: "{{ object.cliente.email|default:''|escapejs }}",
-        direccion: "{{ object.cliente.direccion|default:''|escapejs }}"
-    });
-    {% endif %}
-
-    const prioridadValue = '{{ form.prioridad.value|default:"" }}';
-    if (prioridadValue) {
-        document.querySelectorAll('.priority-chip').forEach(chip => {
-            if (chip.dataset.value === prioridadValue) {
-                chip.classList.add('selected');
-                document.getElementById('prioridadInput').value = prioridadValue;
-            }
-        });
-    }
-}
-
-// ===== UTILIDADES =====
+// ========================================
+// UTILIDADES
+// ========================================
 function showToast(message, type = 'info') {
     console.log(`[${type.toUpperCase()}] ${message}`);
-    // Aquí puedes agregar un toast visual si lo deseas
+    // Aquí puedes agregar un sistema de toasts visual si lo deseas
 }
 
 function escapeHtml(text) {
@@ -1962,6 +2196,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-console.log('✅ Wizard listo (Sistema POS integrado)');
+console.log('✅ Wizard VPMOTOS inicializado correctamente');
 </script>
 {% endblock %}

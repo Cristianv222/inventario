@@ -1,135 +1,971 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ titulo }} - VPMOTOS{% endblock %}
+{% block title %}{{ titulo }} - OPENMOTORS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos generales */
+    .section-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .section-card:hover {
+        box-shadow: 0 5px 25px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-title i {
+        color: #0d6efd;
+        font-size: 1.3rem;
+    }
+    
+    /* Tarjetas de permisos por módulo */
+    .permission-module-card {
+        background: #0d6efd;
+        border-radius: 12px;
+        padding: 20px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .permission-module-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.4);
+        background: #0b5ed7;
+    }
+    
+    .permission-module-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        transition: all 0.6s ease;
+    }
+    
+    .permission-module-card:hover::before {
+        top: -60%;
+        right: -60%;
+    }
+    
+    .permission-module-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .permission-module-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .permission-module-count {
+        font-size: 0.85rem;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .permission-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255,255,255,0.25);
+        backdrop-filter: blur(10px);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 2;
+    }
+    
+    /* Modal de permisos */
+    .modal-content {
+        border-radius: 15px;
+        border: none;
+    }
+    
+    .modal-header {
+        background: #0d6efd;
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 20px 25px;
+    }
+    
+    .modal-body {
+        padding: 25px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    
+    .permission-group {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .permission-group-title {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .permission-group-title i {
+        color: #0d6efd;
+    }
+    
+    .permission-subgroup-title {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+        margin-top: 10px;
+    }
+    
+    .permission-subgroup-title i {
+        font-size: 0.8rem;
+        margin-right: 5px;
+    }
+    
+    .permission-item {
+        background: white;
+        padding: 12px 15px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .permission-item:hover {
+        background: #cfe2ff;
+        transform: translateX(5px);
+    }
+    
+    .permission-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    
+    .permission-checkbox:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .permission-label {
+        flex: 1;
+        cursor: pointer;
+        margin: 0;
+        font-size: 0.95rem;
+        color: #495057;
+    }
+    
+    .permission-code {
+        font-size: 0.75rem;
+        color: #6c757d;
+        background: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    
+    /* Validación de contraseñas */
+    .password-strength {
+        height: 5px;
+        border-radius: 3px;
+        margin-top: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .password-strength.weak {
+        width: 33%;
+        background-color: #dc3545;
+    }
+    
+    .password-strength.medium {
+        width: 66%;
+        background-color: #ffc107;
+    }
+    
+    .password-strength.strong {
+        width: 100%;
+        background-color: #28a745;
+    }
+    
+    .password-requirements {
+        font-size: 0.875rem;
+        margin-top: 10px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .requirement {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        padding: 4px 0;
+    }
+    
+    .requirement i {
+        margin-right: 8px;
+        width: 20px;
+    }
+    
+    .requirement.valid {
+        color: #28a745;
+    }
+    
+    .requirement.invalid {
+        color: #dc3545;
+    }
+    
+    .password-match {
+        font-size: 0.875rem;
+        margin-top: 10px;
+        padding: 10px 15px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .password-match.match {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .password-match.no-match {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    /* Contador de permisos */
+    .permissions-summary {
+        background: #0d6efd;
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .permissions-summary-count {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    
+    .permissions-summary-text {
+        font-size: 0.95rem;
+        opacity: 0.9;
+    }
+    
+    /* Privilegios */
+    .privilege-card {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        height: 100%;
+        cursor: pointer;
+    }
+    
+    .privilege-card:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 5px 15px rgba(13, 110, 253, 0.15);
+        transform: translateY(-3px);
+    }
+    
+    .privilege-card.active {
+        background: #0d6efd;
+        color: white;
+        border-color: transparent;
+    }
+    
+    .privilege-card input[type="checkbox"] {
+        display: none;
+    }
+    
+    .privilege-icon {
+        font-size: 2rem;
+        margin-bottom: 12px;
+        color: #0d6efd;
+    }
+    
+    .privilege-card.active .privilege-icon {
+        color: white;
+    }
+    
+    .privilege-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    
+    .privilege-desc {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 0;
+    }
+    
+    .privilege-card.active .privilege-desc {
+        color: rgba(255,255,255,0.9);
+    }
+    
+    /* Alertas */
+    .warning-alert {
+        background: #cfe2ff;
+        border-left: 4px solid #0d6efd;
+        padding: 15px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .warning-alert i {
+        font-size: 1.5rem;
+        color: #084298;
+    }
+    
+    /* Botones de acción */
+    .btn-action {
+        padding: 12px 30px;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+    
+    /* Scrollbar personalizado */
+    .modal-body::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .modal-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb {
+        background: #0d6efd;
+        border-radius: 10px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #0b5ed7;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-user me-2"></i>{{ titulo }}</h5>
+<div class="container-fluid py-4">
+    <form method="post" id="usuarioForm" novalidate>
+        {% csrf_token %}
+        
+        <!-- Información Básica -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-user"></i>
+                <span>Información Personal</span>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.usuario.id_for_label }}" class="form-label fw-semibold">
+                        Nombre de Usuario <span class="text-danger">*</span>
+                    </label>
+                    {{ form.usuario }}
+                    {% if form.usuario.help_text %}
+                    <small class="form-text text-muted d-block mt-1">{{ form.usuario.help_text }}</small>
+                    {% endif %}
+                    {% if form.usuario.errors %}
+                    <div class="text-danger mt-2">
+                        {% for error in form.usuario.errors %}
+                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
+                        Correo Electrónico <span class="text-danger">*</span>
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                    <div class="text-danger mt-2">
+                        {% for error in form.email.errors %}
+                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.nombre.id_for_label }}" class="form-label fw-semibold">
+                        Nombre <span class="text-danger">*</span>
+                    </label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                    <div class="text-danger mt-2">
+                        {% for error in form.nombre.errors %}
+                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.apellido.id_for_label }}" class="form-label fw-semibold">
+                        Apellido <span class="text-danger">*</span>
+                    </label>
+                    {{ form.apellido }}
+                    {% if form.apellido.errors %}
+                    <div class="text-danger mt-2">
+                        {% for error in form.apellido.errors %}
+                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.telefono.id_for_label }}" class="form-label fw-semibold">
+                        Teléfono
+                    </label>
+                    {{ form.telefono }}
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <form method="post" novalidate>
-                {% csrf_token %}
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.usuario.id_for_label }}" class="form-label">{{ form.usuario.label }}</label>
-                        {{ form.usuario }}
-                        {% if form.usuario.errors %}
-                        <div class="text-danger">
-                            {{ form.usuario.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
+        
+        <!-- Seguridad y Contraseña -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-lock"></i>
+                <span>Seguridad y Contraseña</span>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.password1.id_for_label }}" class="form-label fw-semibold">
+                        Contraseña {% if not usuario %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {{ form.password1 }}
+                    {% if form.password1.help_text %}
+                    <small class="form-text text-muted d-block mt-1">{{ form.password1.help_text }}</small>
+                    {% endif %}
                     
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
-                        {{ form.email }}
-                        {% if form.email.errors %}
-                        <div class="text-danger">
-                            {{ form.email.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.nombre.id_for_label }}" class="form-label">{{ form.nombre.label }}</label>
-                        {{ form.nombre }}
-                        {% if form.nombre.errors %}
-                        <div class="text-danger">
-                            {{ form.nombre.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
+                    <div id="passwordStrength" class="password-strength" style="display: none;"></div>
                     
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.apellido.id_for_label }}" class="form-label">{{ form.apellido.label }}</label>
-                        {{ form.apellido }}
-                        {% if form.apellido.errors %}
-                        <div class="text-danger">
-                            {{ form.apellido.errors }}
+                    <div id="passwordRequirements" class="password-requirements" style="display: none;">
+                        <div class="requirement" id="req-length">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Mínimo 8 caracteres</span>
                         </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.telefono.id_for_label }}" class="form-label">{{ form.telefono.label }}</label>
-                        {{ form.telefono }}
-                        {% if form.telefono.errors %}
-                        <div class="text-danger">
-                            {{ form.telefono.errors }}
+                        <div class="requirement" id="req-uppercase">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Al menos una mayúscula</span>
                         </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.rol.id_for_label }}" class="form-label">{{ form.rol.label }}</label>
-                        {{ form.rol }}
-                        {% if form.rol.errors %}
-                        <div class="text-danger">
-                            {{ form.rol.errors }}
+                        <div class="requirement" id="req-lowercase">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Al menos una minúscula</span>
                         </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.password1.id_for_label }}" class="form-label">{{ form.password1.label }}</label>
-                        {{ form.password1 }}
-                        {% if form.password1.errors %}
-                        <div class="text-danger">
-                            {{ form.password1.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.password2.id_for_label }}" class="form-label">{{ form.password2.label }}</label>
-                        {{ form.password2 }}
-                        {% if form.password2.errors %}
-                        <div class="text-danger">
-                            {{ form.password2.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="form-check">
-                            {{ form.activo }}
-                            <label class="form-check-label" for="{{ form.activo.id_for_label }}">
-                                {{ form.activo.label }}
-                            </label>
+                        <div class="requirement" id="req-number">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Al menos un número</span>
                         </div>
                     </div>
                     
-                    <div class="col-md-6 mb-3">
-                        <div class="form-check">
-                            {{ form.is_staff }}
-                            <label class="form-check-label" for="{{ form.is_staff.id_for_label }}">
-                                Acceso al Admin de Django
-                            </label>
-                        </div>
+                    {% if form.password1.errors %}
+                    <div class="text-danger mt-2">
+                        {% for error in form.password1.errors %}
+                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                        {% endfor %}
                     </div>
+                    {% endif %}
                 </div>
                 
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-secondary">
-                        <i class="fas fa-times me-2"></i>Cancelar
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Guardar
-                    </button>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.password2.id_for_label }}" class="form-label fw-semibold">
+                        Confirmar Contraseña {% if not usuario %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {{ form.password2 }}
+                    
+                    <div id="passwordMatch" class="password-match" style="display: none;"></div>
+                    
+                    {% if form.password2.errors %}
+                    <div class="text-danger mt-2">
+                        {% for error in form.password2.errors %}
+                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
+        
+        <!-- Privilegios del Sistema -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-shield-alt"></i>
+                <span>Privilegios del Sistema</span>
+            </div>
+            
+            {% if es_el_mismo %}
+            <div class="warning-alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Advertencia:</strong> Estás editando tu propia cuenta. Ten cuidado al modificar tus privilegios.
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="privilege-card {% if form.activo.value %}active{% endif %}" onclick="togglePrivilege('activo')">
+                        <div class="privilege-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="privilege-title">Usuario Activo</div>
+                        <div class="privilege-desc">El usuario puede acceder al sistema</div>
+                        {{ form.activo }}
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="privilege-card {% if form.is_staff.value %}active{% endif %}" onclick="togglePrivilege('is_staff')">
+                        <div class="privilege-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div class="privilege-title">Administrador</div>
+                        <div class="privilege-desc">Acceso al panel de administración</div>
+                        {{ form.is_staff }}
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="privilege-card {% if form.is_superuser.value %}active{% endif %}" onclick="togglePrivilege('is_superuser')">
+                        <div class="privilege-icon">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <div class="privilege-title">Super Administrador</div>
+                        <div class="privilege-desc">Acceso total al sistema</div>
+                        {{ form.is_superuser }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Permisos Específicos -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-key"></i>
+                <span>Permisos Específicos por Módulo</span>
+            </div>
+            
+            <div class="permissions-summary">
+                <div class="permissions-summary-count" id="permisosCounter">0</div>
+                <div class="permissions-summary-text">Permisos seleccionados</div>
+            </div>
+            
+            <div class="mb-3 text-center">
+                <button type="button" class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#modalTodosPermisos">
+                    <i class="fas fa-list me-2"></i>Ver Todos los Permisos
+                </button>
+                <button type="button" class="btn btn-success btn-sm me-2" id="seleccionarTodos">
+                    <i class="fas fa-check-double me-2"></i>Seleccionar Todos
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="deseleccionarTodos">
+                    <i class="fas fa-times me-2"></i>Deseleccionar Todos
+                </button>
+            </div>
+            
+            <div class="row g-3">
+                {% for app_label, app_data in permisos_organizados.items %}
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <div class="permission-module-card" data-bs-toggle="modal" data-bs-target="#modal{{ app_label }}">
+                        <div class="permission-badge" id="badge-{{ app_label }}">0</div>
+                        <div class="permission-module-icon">
+                            <i class="fas fa-{% if app_label == 'ventas' %}shopping-cart{% elif app_label == 'inventario' %}boxes{% elif app_label == 'clientes' %}users{% elif app_label == 'taller' %}tools{% elif app_label == 'usuarios' %}user-cog{% elif app_label == 'reportes' %}chart-line{% else %}cube{% endif %}"></i>
+                        </div>
+                        <div class="permission-module-name">{{ app_data.nombre }}</div>
+                        <div class="permission-module-count">
+                            {{ app_data.total_permisos }} permisos disponibles
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Errores generales -->
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Botones de acción -->
+        <div class="d-flex justify-content-end gap-3 mt-4">
+            <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-secondary btn-action">
+                <i class="fas fa-times me-2"></i>Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary btn-action" id="btnGuardar">
+                <i class="fas fa-save me-2"></i>Guardar Usuario
+            </button>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODALES DENTRO DEL FORM                   -->
+        <!-- ========================================== -->
+        
+        <!-- Modal para Todos los Permisos -->
+        <div class="modal fade" id="modalTodosPermisos" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-list me-2"></i>Todos los Permisos del Sistema</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% for app_label, app_data in permisos_organizados.items %}
+                        <div class="permission-group">
+                            <div class="permission-group-title">
+                                <i class="fas fa-{% if app_label == 'ventas' %}shopping-cart{% elif app_label == 'inventario' %}boxes{% elif app_label == 'clientes' %}users{% elif app_label == 'taller' %}tools{% elif app_label == 'usuarios' %}user-cog{% elif app_label == 'reportes' %}chart-line{% else %}cube{% endif %}"></i>
+                                {{ app_data.nombre }}
+                            </div>
+                            {% for model_name, model_data in app_data.modelos.items %}
+                                <div style="margin-bottom: 15px;">
+                                    <div class="permission-subgroup-title">
+                                        <i class="fas fa-cube"></i> {{ model_data.nombre }}
+                                    </div>
+                                    {% for permiso_data in model_data.permisos %}
+                                    <div class="permission-item">
+                                        <input 
+                                            class="form-check-input permission-checkbox permiso-checkbox-{{ app_label }}" 
+                                            type="checkbox" 
+                                            name="permisos" 
+                                            value="{{ permiso_data.id }}"
+                                            id="permiso_all_{{ permiso_data.id }}"
+                                            {% if usuario and permiso_data.id in permisos_usuario_ids %}checked{% endif %}
+                                            onchange="syncCheckbox('{{ permiso_data.id }}')"
+                                        >
+                                        <label class="permission-label" for="permiso_all_{{ permiso_data.id }}">
+                                            {{ permiso_data.nombre }}
+                                        </label>
+                                        <span class="permission-code">{{ permiso_data.codigo }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modales por Módulo -->
+        {% for app_label, app_data in permisos_organizados.items %}
+        <div class="modal fade" id="modal{{ app_label }}" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-{% if app_label == 'ventas' %}shopping-cart{% elif app_label == 'inventario' %}boxes{% elif app_label == 'clientes' %}users{% elif app_label == 'taller' %}tools{% elif app_label == 'usuarios' %}user-cog{% elif app_label == 'reportes' %}chart-line{% else %}cube{% endif %} me-2"></i>
+                            Permisos de {{ app_data.nombre }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% for model_name, model_data in app_data.modelos.items %}
+                        <div class="permission-group">
+                            <div class="permission-group-title">
+                                <i class="fas fa-cube"></i>
+                                {{ model_data.nombre }}
+                            </div>
+                            {% for permiso_data in model_data.permisos %}
+                            <div class="permission-item">
+                                <input 
+                                    class="form-check-input permission-checkbox permiso-checkbox-{{ app_label }}" 
+                                    type="checkbox" 
+                                    name="permisos" 
+                                    value="{{ permiso_data.id }}"
+                                    id="permiso_{{ permiso_data.id }}"
+                                    {% if usuario and permiso_data.id in permisos_usuario_ids %}checked{% endif %}
+                                    onchange="syncCheckbox('{{ permiso_data.id }}')"
+                                >
+                                <label class="permission-label" for="permiso_{{ permiso_data.id }}">
+                                    {{ permiso_data.nombre }}
+                                </label>
+                                <span class="permission-code">{{ permiso_data.codigo }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+    </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ============================================
+    // VALIDACIÓN DE CONTRASEÑA
+    // ============================================
+    const password1 = document.getElementById('{{ form.password1.id_for_label }}');
+    const password2 = document.getElementById('{{ form.password2.id_for_label }}');
+    const passwordStrength = document.getElementById('passwordStrength');
+    const passwordRequirements = document.getElementById('passwordRequirements');
+    const passwordMatch = document.getElementById('passwordMatch');
+    
+    if (password1) {
+        password1.addEventListener('input', function() {
+            const password = this.value;
+            
+            if (password.length > 0) {
+                passwordStrength.style.display = 'block';
+                passwordRequirements.style.display = 'block';
+                
+                const hasLength = password.length >= 8;
+                const hasUppercase = /[A-Z]/.test(password);
+                const hasLowercase = /[a-z]/.test(password);
+                const hasNumber = /[0-9]/.test(password);
+                
+                updateRequirement('req-length', hasLength);
+                updateRequirement('req-uppercase', hasUppercase);
+                updateRequirement('req-lowercase', hasLowercase);
+                updateRequirement('req-number', hasNumber);
+                
+                let strength = 0;
+                if (hasLength) strength++;
+                if (hasUppercase) strength++;
+                if (hasLowercase) strength++;
+                if (hasNumber) strength++;
+                
+                passwordStrength.className = 'password-strength';
+                if (strength <= 2) {
+                    passwordStrength.classList.add('weak');
+                } else if (strength === 3) {
+                    passwordStrength.classList.add('medium');
+                } else {
+                    passwordStrength.classList.add('strong');
+                }
+            } else {
+                passwordStrength.style.display = 'none';
+                passwordRequirements.style.display = 'none';
+            }
+            
+            if (password2.value.length > 0) {
+                checkPasswordMatch();
+            }
+        });
+    }
+    
+    if (password2) {
+        password2.addEventListener('input', checkPasswordMatch);
+    }
+    
+    function updateRequirement(id, isValid) {
+        const req = document.getElementById(id);
+        const icon = req.querySelector('i');
+        
+        if (isValid) {
+            req.classList.add('valid');
+            req.classList.remove('invalid');
+            icon.className = 'fas fa-check-circle';
+        } else {
+            req.classList.add('invalid');
+            req.classList.remove('valid');
+            icon.className = 'fas fa-times-circle';
+        }
+    }
+    
+    function checkPasswordMatch() {
+        const pass1 = password1.value;
+        const pass2 = password2.value;
+        
+        if (pass2.length > 0) {
+            passwordMatch.style.display = 'flex';
+            
+            if (pass1 === pass2) {
+                passwordMatch.className = 'password-match match';
+                passwordMatch.innerHTML = '<i class="fas fa-check-circle"></i><span>Las contraseñas coinciden</span>';
+            } else {
+                passwordMatch.className = 'password-match no-match';
+                passwordMatch.innerHTML = '<i class="fas fa-times-circle"></i><span>Las contraseñas no coinciden</span>';
+            }
+        } else {
+            passwordMatch.style.display = 'none';
+        }
+    }
+    
+    // ============================================
+    // GESTIÓN DE PERMISOS
+    // ============================================
+    
+    // Actualizar contador
+    function updateCounter() {
+        const checked = document.querySelectorAll('input[name="permisos"]:checked').length;
+        document.getElementById('permisosCounter').textContent = checked;
+        
+        // Actualizar badges por módulo
+        {% for app_label, app_data in permisos_organizados.items %}
+        const checked_{{ app_label }} = document.querySelectorAll('.permiso-checkbox-{{ app_label }}:checked').length;
+        document.getElementById('badge-{{ app_label }}').textContent = checked_{{ app_label }};
+        {% endfor %}
+    }
+    
+    // Sincronizar checkboxes entre modales
+    window.syncCheckbox = function(permisoId) {
+        const checkbox1 = document.getElementById('permiso_' + permisoId);
+        const checkbox2 = document.getElementById('permiso_all_' + permisoId);
+        
+        if (checkbox1 && checkbox2) {
+            if (event.target.id === 'permiso_' + permisoId) {
+                checkbox2.checked = checkbox1.checked;
+            } else {
+                checkbox1.checked = checkbox2.checked;
+            }
+        }
+        
+        updateCounter();
+    }
+    
+    // Seleccionar todos
+    document.getElementById('seleccionarTodos').addEventListener('click', function() {
+        document.querySelectorAll('input[name="permisos"]').forEach(cb => cb.checked = true);
+        updateCounter();
+    });
+    
+    // Deseleccionar todos
+    document.getElementById('deseleccionarTodos').addEventListener('click', function() {
+        document.querySelectorAll('input[name="permisos"]').forEach(cb => cb.checked = false);
+        updateCounter();
+    });
+    
+    // Toggle de privilegios
+    window.togglePrivilege = function(fieldName) {
+        const checkbox = document.getElementById('id_' + fieldName);
+        checkbox.checked = !checkbox.checked;
+        
+        const card = checkbox.closest('.privilege-card');
+        if (checkbox.checked) {
+            card.classList.add('active');
+        } else {
+            card.classList.remove('active');
+        }
+    }
+    
+    // Inicializar contador
+    updateCounter();
+    
+    // Escuchar cambios en todos los checkboxes
+    document.querySelectorAll('input[name="permisos"]').forEach(cb => {
+        cb.addEventListener('change', updateCounter);
+    });
+    
+    // ============================================
+    // VALIDACIÓN DEL FORMULARIO
+    // ============================================
+    const form = document.getElementById('usuarioForm');
+    const btnGuardar = document.getElementById('btnGuardar');
+    
+    form.addEventListener('submit', function(e) {
+        {% if not usuario %}
+        if (password1.value.length === 0) {
+            e.preventDefault();
+            alert('La contraseña es obligatoria para nuevos usuarios');
+            password1.focus();
+            return false;
+        }
+        {% endif %}
+        
+        if (password1.value.length > 0) {
+            if (password1.value.length < 8) {
+                e.preventDefault();
+                alert('La contraseña debe tener al menos 8 caracteres');
+                password1.focus();
+                return false;
+            }
+            
+            if (password1.value !== password2.value) {
+                e.preventDefault();
+                alert('Las contraseñas no coinciden');
+                password2.focus();
+                return false;
+            }
+        }
+        
+        btnGuardar.disabled = true;
+        btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+    });
+});
+</script>
 {% endblock %}

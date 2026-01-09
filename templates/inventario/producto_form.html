@@ -107,7 +107,8 @@
                                     <option value="">-- Seleccionar --</option>
                                     {% for choice in form.categoria.field.queryset %}
                                         <option value="{{ choice.pk }}" 
-                                                {% if form.categoria.value == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                                data-porcentaje="{{ choice.porcentaje_ganancia }}"
+                                                {% if form.categoria.value and form.categoria.value|add:"0" == choice.pk %}selected{% endif %}>
                                             {{ choice }} ({{ choice.porcentaje_ganancia }}%)
                                         </option>
                                     {% endfor %}
@@ -124,7 +125,7 @@
                                     <option value="">-- Seleccionar --</option>
                                     {% for choice in form.marca.field.queryset %}
                                         <option value="{{ choice.pk }}" 
-                                                {% if form.marca.value == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                                {% if form.marca.value and form.marca.value|add:"0" == choice.pk %}selected{% endif %}>
                                             {{ choice }}
                                         </option>
                                     {% endfor %}
@@ -158,7 +159,7 @@
                                            class="form-control" 
                                            id="{{ form.precio_compra.id_for_label }}" 
                                            name="{{ form.precio_compra.name }}" 
-                                           value="{{ form.precio_compra.value|default:'' }}"
+                                           value="{% if form.precio_compra.value %}{{ form.precio_compra.value|stringformat:'f'|cut:',' }}{% endif %}"
                                            step="0.01" 
                                            min="0"
                                            placeholder="0.00" 
@@ -177,7 +178,7 @@
                                            class="form-control" 
                                            id="{{ form.precio_venta.id_for_label }}" 
                                            name="{{ form.precio_venta.name }}" 
-                                           value="{{ form.precio_venta.value|default:'' }}"
+                                           value="{% if form.precio_venta.value %}{{ form.precio_venta.value|stringformat:'f'|cut:',' }}{% endif %}"
                                            step="0.01" 
                                            min="0"
                                            placeholder="0.00" 
@@ -389,6 +390,13 @@
 {% block inventory_js %}
 <script>
 $(document).ready(function() {
+    // ==================== VARIABLES GLOBALES ====================
+    const esEdicion = {% if not es_nuevo %}true{% else %}false{% endif %};
+    const STORAGE_KEY = 'producto_borrador';
+    let currentStep = 1;
+    const totalSteps = 4;
+    let formSubmitting = false;
+    
     // ==================== PREVENIR ENTER EN TODO EL FORMULARIO ====================
     $('#producto-form').on('keypress', function(e) {
         if (e.which === 13 || e.keyCode === 13) {
@@ -441,19 +449,21 @@ $(document).ready(function() {
             $btn.html('<i class="fas fa-sync-alt"></i>').prop('disabled', false);
             
             mostrarNotificacion('Código generado exitosamente', 'success');
-            autoGuardar();
+            
+            // Solo auto-guardar si es nuevo producto
+            if (!esEdicion) {
+                autoGuardar();
+            }
         }, 500);
     });
     
-    // ==================== WIZARD CONTROL ====================
-    let currentStep = 1;
-    const totalSteps = 4;
-    let formSubmitting = false; // Flag para controlar el envío
-    
-    const STORAGE_KEY = 'producto_borrador';
-    
-    // Auto-guardar
+    // ==================== AUTO-GUARDAR (SOLO PARA PRODUCTOS NUEVOS) ====================
     function autoGuardar() {
+        // ✅ NO GUARDAR SI ESTAMOS EDITANDO
+        if (esEdicion) {
+            return;
+        }
+        
         const formData = {
             nombre: $('#id_nombre').val(),
             codigo_unico: $('#id_codigo_unico').val(),
@@ -509,7 +519,7 @@ $(document).ready(function() {
             <div class="alert alert-warning alert-dismissible fade show">
                 <i class="fas fa-history me-2"></i>
                 <strong>Borrador recuperado</strong> - Continúa donde lo dejaste
-                <button type="button" class="btn btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="btn-descartar-borrador">
                     <i class="fas fa-trash me-1"></i>Descartar y empezar de nuevo
                 </button>
@@ -535,14 +545,16 @@ $(document).ready(function() {
         setTimeout(() => ind.fadeOut(400, () => ind.remove()), 1500);
     }
     
-    // Auto-guardar en cada cambio
+    // Auto-guardar en cada cambio (SOLO si es nuevo producto)
     let autoGuardarTimeout;
     $('#producto-form input, #producto-form select, #producto-form textarea').on('input change', function() {
-        clearTimeout(autoGuardarTimeout);
-        autoGuardarTimeout = setTimeout(autoGuardar, 500);
+        if (!esEdicion) {
+            clearTimeout(autoGuardarTimeout);
+            autoGuardarTimeout = setTimeout(autoGuardar, 500);
+        }
     });
     
-    // Validar paso
+    // ==================== VALIDACIÓN ====================
     function validarPaso(step) {
         let isValid = true;
         let firstInvalid = null;
@@ -582,7 +594,7 @@ $(document).ready(function() {
         return isValid;
     }
     
-    // Actualizar wizard UI
+    // ==================== WIZARD UI ====================
     function actualizarWizardUI() {
         $('.wizard-step').removeClass('active completed');
         $(`.wizard-step[data-step="${currentStep}"]`).addClass('active');
@@ -606,10 +618,12 @@ $(document).ready(function() {
             $('#btn-submit').addClass('d-none');
         }
         
-        autoGuardar();
+        // Solo auto-guardar si es nuevo producto
+        if (!esEdicion) {
+            autoGuardar();
+        }
     }
     
-    // Actualizar resumen
     function actualizarResumen() {
         $('#review-nombre').text($('#id_nombre').val() || '-');
         $('#review-codigo').text($('#id_codigo_unico').val() || '-');
@@ -626,7 +640,7 @@ $(document).ready(function() {
         $('#review-ubicacion').text($('#id_ubicacion_almacen').val() || 'Sin ubicación');
     }
     
-    // Navegación
+    // ==================== NAVEGACIÓN ====================
     $('#btn-next').on('click', function(e) {
         e.preventDefault();
         
@@ -647,22 +661,20 @@ $(document).ready(function() {
         }
     });
     
-    // Enviar formulario SOLO en paso 4
+    // ==================== ENVIAR FORMULARIO ====================
     $('#producto-form').on('submit', function(e) {
-        // Si ya estamos enviando, no hacer nada
         if (formSubmitting) {
             return true;
         }
         
         e.preventDefault();
         
-        // Verificar que estamos en el paso 4
         if (currentStep !== 4) {
             mostrarNotificacion('Debes completar todos los pasos antes de guardar', 'warning');
             return false;
         }
         
-        // Validar todos los pasos anteriores
+        // Validar todos los pasos
         for (let i = 1; i <= 3; i++) {
             if (!validarPaso(i)) {
                 currentStep = i;
@@ -672,20 +684,17 @@ $(document).ready(function() {
             }
         }
         
-        // Todo OK, limpiar borrador y preparar envío
+        // Limpiar borrador
         localStorage.removeItem(STORAGE_KEY);
         
         // Deshabilitar botón
         $('#btn-submit').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Guardando...');
         
-        // Marcar como enviando
         formSubmitting = true;
-        
-        // Enviar el formulario de forma normal
         this.submit();
     });
     
-    // Calcular precio SOLO con botón
+    // ==================== CALCULAR PRECIO ====================
     $('#btn-calcular-precio').on('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -695,11 +704,13 @@ $(document).ready(function() {
         
         if (!pc || pc <= 0) {
             mostrarNotificacion('Ingresa precio de compra', 'warning');
+            $('#id_precio_compra').focus();
             return;
         }
         
         if (!cat) {
             mostrarNotificacion('Selecciona categoría', 'warning');
+            $('#id_categoria').focus();
             return;
         }
         
@@ -712,9 +723,18 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     $('#id_precio_venta').val(response.precio_venta.toFixed(2));
-                    mostrarNotificacion(`Precio: $${response.precio_venta.toFixed(2)}`, 'success');
-                    autoGuardar();
+                    mostrarNotificacion(`Precio calculado: $${response.precio_venta.toFixed(2)}`, 'success');
+                    
+                    // Solo auto-guardar si es nuevo producto
+                    if (!esEdicion) {
+                        autoGuardar();
+                    }
+                } else {
+                    mostrarNotificacion(response.message || 'Error al calcular precio', 'danger');
                 }
+            },
+            error: function() {
+                mostrarNotificacion('Error al calcular precio', 'danger');
             },
             complete: function() {
                 $('#btn-calcular-precio').prop('disabled', false).html('<i class="fas fa-calculator"></i>');
@@ -722,6 +742,7 @@ $(document).ready(function() {
         });
     });
     
+    // ==================== NOTIFICACIONES ====================
     function mostrarNotificacion(mensaje, tipo) {
         $('.toast-notification').remove();
         const icon = tipo === 'success' ? 'check-circle' : tipo === 'warning' ? 'exclamation-triangle' : 'times-circle';
@@ -731,21 +752,29 @@ $(document).ready(function() {
     }
     
     // ==================== INICIALIZACIÓN ====================
-    
-    // PRIMERO: Verificar si estamos editando un producto existente
-    const esEdicion = {% if not es_nuevo %}true{% else %}false{% endif %};
+    console.log('🔧 Inicializando formulario - Modo:', esEdicion ? 'EDICIÓN' : 'NUEVO');
     
     if (esEdicion) {
-        // Si estamos editando, NO cargar borrador, limpiar cualquier borrador previo
+        // ✅ MODO EDICIÓN: Limpiar cualquier borrador y NO cargar desde localStorage
+        console.log('📝 Modo edición: Limpiando localStorage');
         localStorage.removeItem(STORAGE_KEY);
+        
+        // DEBUG: Ver valores cargados en modo edición
+        console.log('📊 Valores cargados del formulario:');
+        console.log('  - Nombre:', $('#id_nombre').val());
+        console.log('  - Categoría:', $('#id_categoria').val());
+        console.log('  - Marca:', $('#id_marca').val());
+        console.log('  - Precio Compra:', $('#id_precio_compra').val());
+        console.log('  - Precio Venta:', $('#id_precio_venta').val());
     } else {
-        // Si es nuevo producto, cargar borrador si existe
+        // ✅ MODO NUEVO: Intentar cargar borrador
+        console.log('✨ Modo nuevo: Intentando cargar borrador');
         cargarDatosGuardados();
-    }
-    
-    // Generar código solo si está vacío
-    if (!$('#id_codigo_unico').val() || $('#id_codigo_unico').val().trim() === '') {
-        inicializarCodigo();
+        
+        // Generar código solo si está vacío
+        if (!$('#id_codigo_unico').val() || $('#id_codigo_unico').val().trim() === '') {
+            inicializarCodigo();
+        }
     }
     
     actualizarWizardUI();

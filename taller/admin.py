@@ -63,7 +63,7 @@ class CategoriaServicioAdmin(admin.ModelAdmin):
 @admin.register(TipoServicio)
 class TipoServicioAdmin(admin.ModelAdmin):
     list_display = (
-        'codigo', 'nombre', 'categoria', 'get_precio_total', 
+        'codigo', 'nombre', 'categoria', 'get_precio_display',  # ✅ CAMBIADO
         'tiempo_estimado_horas', 'nivel_dificultad', 'activo'
     )
     list_filter = ('categoria', 'activo', 'nivel_dificultad', 'requiere_especialidad')
@@ -74,9 +74,9 @@ class TipoServicioAdmin(admin.ModelAdmin):
         ('Información Básica', {
             'fields': ('categoria', 'nombre', 'codigo', 'descripcion', 'activo')
         }),
-        ('Precios y Tiempo', {
+        ('Precio y Tiempo', {  # ✅ CAMBIADO
             'fields': (
-                'precio_base', 'precio_mano_obra', 'incluye_iva', 
+                'precio',  # ✅ CAMBIADO - solo un campo
                 'tiempo_estimado_horas'
             )
         }),
@@ -85,19 +85,18 @@ class TipoServicioAdmin(admin.ModelAdmin):
         }),
     )
     
-    def get_precio_total(self, obj):
-        """Mostrar precio total del servicio"""
-        total = obj.precio_base + obj.precio_mano_obra
-        return f"${total:,.2f}"
-    get_precio_total.short_description = 'Precio Total'
+    def get_precio_display(self, obj):  # ✅ CAMBIADO
+        """Mostrar precio del servicio"""
+        return f"${obj.precio:,.2f}"
+    get_precio_display.short_description = 'Precio'
 
 class ServicioOrdenInline(admin.TabularInline):
     model = ServicioOrden
     extra = 1
-    readonly_fields = ('precio_total',)
+    readonly_fields = ('precio_servicio',)  # ✅ CAMBIADO
     fields = (
         'tipo_servicio', 'tecnico_asignado',
-        'precio_base', 'precio_mano_obra', 'precio_total',
+        'precio_servicio',  # ✅ CAMBIADO - solo un campo
         'tiempo_estimado', 'completado', 'requiere_aprobacion'
     )
 
@@ -133,7 +132,7 @@ class OrdenTrabajoAdmin(admin.ModelAdmin):
     )
     readonly_fields = (
         'numero_orden', 'precio_total', 'saldo_pendiente', 
-        'usuario_creacion', 'creado_en', 'actualizado_en'  # ✅ CORREGIDO
+        'usuario_creacion', 'creado_en', 'actualizado_en'
     )
     filter_horizontal = ('tecnicos_apoyo',)
     inlines = [ServicioOrdenInline, RepuestoOrdenInline, SeguimientoOrdenInline]
@@ -146,7 +145,7 @@ class OrdenTrabajoAdmin(admin.ModelAdmin):
         ('Información de la Motocicleta', {
             'fields': (
                 'moto_marca', 'moto_modelo', 'moto_placa',
-                'moto_color', 'moto_cilindraje'
+                'moto_color', 'moto_cilindraje', 'moto_año'  # ✅ AGREGADO moto_año
             )
         }),
         ('Fechas', {
@@ -177,8 +176,8 @@ class OrdenTrabajoAdmin(admin.ModelAdmin):
         }),
         ('Control', {
             'fields': (
-                'usuario_creacion', 'creado_en', 'actualizado_en',  # ✅ CORREGIDO
-                'facturado'
+                'usuario_creacion', 'creado_en', 'actualizado_en',
+                'facturado', 'venta'  # ✅ AGREGADO venta
             )
         }),
     )
@@ -272,7 +271,7 @@ class CitaTallerAdmin(admin.ModelAdmin):
     
     def get_moto_info(self, obj):
         """Mostrar información de la moto"""
-        return obj.moto_descripcion
+        return obj.moto_descripcion or '-'
     get_moto_info.short_description = 'Motocicleta'
     
     def get_estado_badge(self, obj):

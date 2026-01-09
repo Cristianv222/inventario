@@ -1,25 +1,23 @@
 from django.shortcuts import redirect
-from django.urls import reverse, resolve
+from django.urls import reverse
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
 
 class RoleMiddleware:
     """
-    Middleware que verifica TODOS los permisos del rol del usuario.
-    NO usa rutas hardcodeadas - verifica los permisos reales de cada vista.
+    Middleware que verifica permisos de usuarios.
+    Trabaja directamente con permisos asignados al usuario (sin roles).
     """
     
     def __init__(self, get_response):
         self.get_response = get_response
         
-        # Mapeo de URLs a permisos requeridos (para las que no tienen decorador)
+        # Mapeo de URLs a permisos requeridos
         self.url_to_permission = {
             # Usuarios
             '/usuarios/usuarios/': ['view_usuario', 'change_usuario'],
             '/usuarios/usuarios/nuevo/': ['add_usuario'],
-            '/usuarios/roles/': ['view_rol'],
-            '/usuarios/roles/nuevo/': ['add_rol'],
             '/usuarios/permisos/': ['view_permission'],
+            '/usuarios/permisos/crear/': ['add_permission'],
             
             # Inventario
             '/inventario/': ['view_producto'],
@@ -47,7 +45,7 @@ class RoleMiddleware:
             '/taller/tecnicos/': ['view_tecnico'],
             '/taller/servicios/': ['view_servicio'],
             
-            # Reportes - TODOS requieren ser admin
+            # Reportes - TODOS requieren ser admin o staff
             '/reportes/': 'ADMIN_ONLY',
             '/reportes/caja/': 'ADMIN_ONLY',
             '/reportes/gastos/': 'ADMIN_ONLY',
@@ -79,6 +77,11 @@ class RoleMiddleware:
                 return redirect(reverse('usuarios:login'))
             return self.get_response(request)
         
+        # Verificar si el usuario está activo
+        if not request.user.activo:
+            messages.error(request, '⛔ Tu cuenta está inactiva. Contacta al administrador.')
+            return redirect(reverse('usuarios:login'))
+        
         # Dashboard siempre permitido para usuarios autenticados
         if request.path == '/':
             return self.get_response(request)
@@ -95,20 +98,15 @@ class RoleMiddleware:
         if '/api/' in request.path:
             return self.get_response(request)
         
-        # Verificar si el usuario tiene rol
-        if not hasattr(request.user, 'rol') or not request.user.rol or not request.user.rol.activo:
-            messages.error(request, '⛔ Tu usuario no tiene un rol asignado. Contacta al administrador.')
-            return redirect(reverse('core:dashboard'))
-        
         # Verificar permisos según la URL
         required_permissions = self.get_required_permissions(request.path)
         
         if required_permissions:
-            # Si es ADMIN_ONLY
+            # Si es ADMIN_ONLY (solo para administradores/staff)
             if required_permissions == 'ADMIN_ONLY':
                 messages.error(
                     request, 
-                    f'⛔ Esta sección es solo para administradores.'
+                    '⛔ Esta sección es solo para administradores.'
                 )
                 return redirect(reverse('core:dashboard'))
             
@@ -135,15 +133,16 @@ class RoleMiddleware:
                 # Obtener el nombre del modelo del primer permiso
                 if missing_permissions:
                     first_perm = missing_permissions[0]
-                    action = first_perm.split('_')[0]
-                    model = ' '.join(first_perm.split('_')[1:])
+                    parts = first_perm.split('_')
+                    action = parts[0]
+                    model = ' '.join(parts[1:]) if len(parts) > 1 else 'recurso'
                     
                     action_es = perm_names.get(action, action)
                     
                     messages.error(
                         request, 
                         f'⛔ No tienes permiso para acceder a esta sección. '
-                        f'Se requiere: {action_es} {model}'
+                        f'Se requiere: {action_es} {model.title()}'
                     )
                 else:
                     messages.error(request, '⛔ No tienes los permisos necesarios para esta acción.')
@@ -195,10 +194,19 @@ class RoleMiddleware:
     
     def user_has_permission(self, user, permission_codename):
         """
-        Verifica si el usuario tiene un permiso específico a través de su rol.
+        Verifica si el usuario tiene un permiso específico.
+        Ahora verifica directamente los permisos del usuario (sin roles).
         """
-        if not hasattr(user, 'rol') or not user.rol or not user.rol.activo:
+        if not user.is_authenticated:
             return False
         
-        # Verificar si el rol tiene el permiso
-        return user.rol.permisos.filter(codename=permission_codename).exists()
+        # Superusuarios tienen todos los permisos
+        if user.is_superuser:
+            return True
+        
+        # Staff tiene la mayoría de permisos
+        if user.is_staff:
+            return True
+        
+        # ✅ CORRECCIÓN: Cambiar de user.permisos a user.user_permissions
+        return user.user_permissions.filter(codename=permission_codename).exists()

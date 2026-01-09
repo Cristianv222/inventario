@@ -42,55 +42,6 @@
             --gray-700: #495057;
             --gray-800: #343a40;
             --gray-900: #212529;
-            
-            --sidebar-width: 280px;
-            
-            /* Material Design */
-            --md-primary: var(--primary);
-            --md-primary-light: var(--primary-light);
-            --md-primary-container: rgba(67, 97, 238, 0.15);
-            --md-on-primary: #ffffff;
-            --md-on-primary-container: #ffffff;
-            --md-secondary: var(--secondary);
-            --md-secondary-container: rgba(63, 55, 201, 0.15);
-            --md-on-secondary: #ffffff;
-            --md-on-secondary-container: var(--secondary);
-            --md-tertiary: var(--accent);
-            --md-tertiary-container: rgba(247, 37, 133, 0.15);
-            --md-on-tertiary: #ffffff;
-            --md-on-tertiary-container: var(--accent);
-            --md-error: var(--danger);
-            --md-error-container: rgba(249, 65, 68, 0.12);
-            --md-on-error: #ffffff;
-            --md-on-error-container: var(--danger);
-            --md-success: var(--success);
-            --md-success-container: rgba(76, 201, 240, 0.12);
-            --md-on-success: #ffffff;
-            --md-on-success-container: var(--success);
-            --md-warning: var(--warning);
-            --md-warning-container: rgba(248, 150, 30, 0.12);
-            --md-on-warning: #ffffff;
-            --md-on-warning-container: var(--warning);
-            --md-surface: #ffffff;
-            --md-surface-variant: var(--gray-100);
-            --md-on-surface: var(--gray-700);
-            --md-on-surface-variant: var(--gray-600);
-            --md-outline: var(--gray-400);
-            --md-outline-variant: var(--gray-300);
-            --md-shadow: #000000;
-            --md-elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-            --md-elevation-2: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
-            --md-elevation-3: 0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15);
-            --md-elevation-4: 0px 2px 3px 0px rgba(0, 0, 0, 0.3), 0px 6px 10px 4px rgba(0, 0, 0, 0.15);
-            --md-shape-corner-small: 8px;
-            --md-shape-corner-medium: 12px;
-            --md-shape-corner-large: 16px;
-            --md-shape-corner-extra-large: 28px;
-            --md-motion-easing-standard: cubic-bezier(0.2, 0.0, 0, 1.0);
-            --md-motion-easing-emphasized: cubic-bezier(0.2, 0.0, 0, 1.0);
-            --md-motion-duration-short: 200ms;
-            --md-motion-duration-medium: 300ms;
-            --md-motion-duration-long: 400ms;
         }
         
         * {
@@ -102,101 +53,325 @@
         body {
             font-family: 'Poppins', sans-serif;
             background-color: var(--gray-100);
-            color: var(--md-on-surface);
+            color: var(--dark);
             margin: 0;
             line-height: 1.5;
         }
         
-        /* Botón flotante para abrir sidebar */
-        .menu-toggle {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 1.3rem;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
-            z-index: 997;
-            transition: all 0.3s;
-        }
-        
-        .menu-toggle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
-        }
-        
-        /* Sidebar Overlay */
-        .sidebar-overlay {
+        /* ========== NAVBAR HORIZONTAL ========== */
+        .navbar-horizontal {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 998;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s;
-        }
-        
-        .sidebar-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        /* Sidebar */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: var(--sidebar-width);
-            height: 100vh;
+            right: 0;
+            height: 60px;
             background: white;
-            box-shadow: 2px 0 20px rgba(0,0,0,0.1);
-            transform: translateX(-100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow-y: auto;
-            overflow-x: hidden;
-            z-index: 999;
-        }
-        
-        .sidebar.show {
-            transform: translateX(0);
-        }
-        
-        .sidebar-header {
-            padding: 25px 20px;
-            border-bottom: 1px solid var(--gray-200);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            padding: 0 20px;
         }
         
-        .sidebar-header-content {
+        .navbar-brand-horizontal {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
+            text-decoration: none;
+            margin-right: 30px;
         }
         
-        .sidebar-header-logo {
-            width: 45px;
-            height: 45px;
+        .navbar-brand-horizontal img {
+            width: 40px;
+            height: 40px;
             object-fit: contain;
         }
         
-        .sidebar-header-text h3 {
+        .navbar-brand-horizontal h3 {
             font-size: 1.2rem;
             font-weight: 700;
             color: var(--dark);
             margin: 0;
         }
         
-        .sidebar-close {
+        /* Menu horizontal */
+        .navbar-menu-horizontal {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar-item-horizontal {
+            position: relative;
+        }
+        
+        .navbar-link-horizontal {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            color: var(--gray-700);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+        
+        .navbar-link-horizontal:hover {
+            background: var(--gray-100);
+            color: var(--primary);
+        }
+        
+        .navbar-link-horizontal.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        .navbar-link-horizontal i {
+            font-size: 1.1rem;
+        }
+        
+        /* Dropdown horizontal */
+        .navbar-dropdown-horizontal {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 220px;
+            margin-top: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1001;
+            overflow: hidden;
+        }
+        
+        .navbar-item-horizontal:hover .navbar-dropdown-horizontal {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .navbar-dropdown-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: var(--gray-700);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .navbar-dropdown-link:hover {
+            background: var(--gray-100);
+            color: var(--primary);
+        }
+        
+        .navbar-dropdown-link i {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .navbar-divider {
+            height: 1px;
+            background: var(--gray-200);
+            margin: 8px 0;
+        }
+        
+        /* User section */
+        .navbar-user-horizontal {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .navbar-user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .navbar-user-info:hover {
+            background: var(--gray-100);
+        }
+        
+        .navbar-user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+        }
+        
+        .navbar-user-details h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--dark);
+        }
+        
+        .navbar-user-details p {
+            font-size: 12px;
+            margin: 0;
+            color: var(--gray-600);
+        }
+        
+        .navbar-user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 260px;
+            margin-top: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1001;
+            overflow: hidden;
+        }
+        
+        .navbar-user-info:hover .navbar-user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .navbar-user-dropdown-header {
+            padding: 15px 20px;
+            background: var(--primary);
+            color: white;
+        }
+        
+        .navbar-user-dropdown-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        
+        .navbar-user-dropdown-role {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .navbar-user-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: var(--gray-700);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+        
+        .navbar-user-dropdown-item:hover {
+            background: var(--gray-100);
+            color: var(--primary);
+        }
+        
+        .navbar-user-dropdown-item.danger:hover {
+            background: rgba(249, 65, 68, 0.1);
+            color: var(--danger);
+        }
+        
+        .navbar-user-dropdown-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        /* Mobile menu button */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .mobile-menu-toggle:hover {
+            background: var(--gray-100);
+        }
+        
+        /* Mobile sidebar */
+        .mobile-sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1998;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .mobile-sidebar-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .mobile-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.1);
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            z-index: 1999;
+        }
+        
+        .mobile-sidebar.show {
+            transform: translateX(0);
+        }
+        
+        .mobile-sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .mobile-sidebar-close {
             background: var(--gray-100);
             border: none;
             width: 35px;
@@ -207,129 +382,55 @@
             transition: all 0.3s;
         }
         
-        .sidebar-close:hover {
+        .mobile-sidebar-close:hover {
             background: var(--gray-200);
             color: var(--primary);
         }
         
-        .sidebar-user {
+        .mobile-sidebar-user {
             padding: 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: var(--primary);
             color: white;
-            margin: 20px;
+            margin: 15px;
             border-radius: 12px;
         }
         
-        .sidebar-user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .sidebar-user-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-        
-        .sidebar-user-details h4 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin: 0 0 5px 0;
-        }
-        
-        .sidebar-user-details p {
-            font-size: 0.85rem;
-            margin: 0;
-            opacity: 0.9;
-        }
-        
-        .sidebar-user-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .sidebar-user-btn {
-            flex: 1;
-            padding: 8px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            border-radius: 8px;
-            text-decoration: none;
-            text-align: center;
-            font-size: 0.85rem;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .sidebar-user-btn:hover {
-            background: rgba(255,255,255,0.3);
-            color: white;
-        }
-        
-        .sidebar-menu {
+        .mobile-sidebar-menu {
             list-style: none;
-            padding: 20px 0;
+            padding: 15px;
         }
         
-        .sidebar-item {
-            margin: 5px 15px;
+        .mobile-sidebar-item {
+            margin: 5px 0;
         }
         
-        .sidebar-link {
+        .mobile-sidebar-link {
             display: flex;
             align-items: center;
+            gap: 12px;
             padding: 12px 15px;
             color: var(--gray-700);
             text-decoration: none;
             border-radius: 12px;
             transition: all 0.3s;
-            white-space: nowrap;
         }
         
-        .sidebar-link:hover {
+        .mobile-sidebar-link:hover {
             background: var(--gray-100);
             color: var(--primary);
         }
         
-        .sidebar-link.active {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        .mobile-sidebar-link.active {
+            background: var(--primary);
             color: white;
-            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
         }
         
-        .sidebar-link i {
-            min-width: 24px;
+        .mobile-sidebar-link i {
             font-size: 1.2rem;
-            margin-right: 15px;
         }
         
-        .sidebar-divider {
-            height: 1px;
-            background: var(--gray-200);
-            margin: 20px 15px;
-        }
-        
-        .sidebar-title {
-            padding: 20px 15px 10px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--gray-600);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Dropdown in sidebar */
-        .sidebar-dropdown {
+        .mobile-sidebar-dropdown {
             background: var(--gray-100);
             border-radius: 8px;
             margin-top: 5px;
@@ -338,16 +439,16 @@
             transition: max-height 0.3s ease;
         }
         
-        .sidebar-dropdown.show {
+        .mobile-sidebar-dropdown.show {
             max-height: 500px;
         }
         
-        .sidebar-dropdown .sidebar-link {
-            padding-left: 54px;
+        .mobile-sidebar-dropdown .mobile-sidebar-link {
+            padding-left: 50px;
             font-size: 0.9rem;
         }
         
-        .sidebar-link.has-dropdown::after {
+        .mobile-sidebar-link.has-dropdown::after {
             content: '\f107';
             font-family: 'Font Awesome 6 Free';
             font-weight: 900;
@@ -355,8 +456,17 @@
             transition: transform 0.3s;
         }
         
-        .sidebar-link.has-dropdown.active::after {
+        .mobile-sidebar-link.has-dropdown.active-dropdown::after {
             transform: rotate(180deg);
+        }
+        
+        .mobile-sidebar-title {
+            padding: 20px 15px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         /* Main Content */
@@ -366,206 +476,351 @@
             min-height: 100vh;
         }
         
-        /* Scrollbar */
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .sidebar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .sidebar::-webkit-scrollbar-thumb {
-            background: var(--gray-200);
-            border-radius: 10px;
-        }
-        
-        .sidebar::-webkit-scrollbar-thumb:hover {
-            background: var(--gray-600);
-        }
-        
         /* Alerts */
-        .alert-modern {
+        .alert {
             border-radius: 12px;
             border: none;
             padding: 15px 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
-        /* Material Cards - compatibilidad con templates existentes */
+        /* Cards */
         .card {
-            border-radius: var(--md-shape-corner-medium);
-            border: 1px solid var(--md-outline-variant);
-            box-shadow: var(--md-elevation-1);
-            transition: all var(--md-motion-duration-medium) var(--md-motion-easing-standard);
+            border-radius: 12px;
+            border: 1px solid var(--gray-300);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
         }
         
         .card:hover {
-            box-shadow: var(--md-elevation-2);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
         
         .card-header {
-            background-color: var(--md-surface-variant);
-            border-bottom: 1px solid var(--md-outline-variant);
+            background-color: var(--gray-100);
+            border-bottom: 1px solid var(--gray-300);
             font-weight: 500;
         }
         
-        /* Botones compatibles */
+        /* Buttons */
         .btn {
-            border-radius: var(--md-shape-corner-medium);
+            border-radius: 8px;
             font-weight: 500;
-            transition: all var(--md-motion-duration-short);
+            transition: all 0.3s;
         }
         
         .btn:hover {
             transform: translateY(-1px);
         }
         
-        /* Tablas */
+        /* Tables */
         .table {
             background: white;
         }
         
         .table-hover tbody tr:hover {
-            background-color: var(--md-surface-variant);
-        }
-        
-        /* Icon shapes */
-        .icon-shape {
-            width: 45px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
+            background-color: var(--gray-100);
         }
         
         /* Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
+            .navbar-menu-horizontal {
+                display: none;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .navbar-user-details {
+                display: none;
+            }
+            
             .main-content {
                 padding: 20px 15px;
                 padding-top: 90px;
             }
+        }
+        
+        @media (min-width: 993px) {
+            .mobile-sidebar {
+                display: none;
+            }
+            
+            .mobile-sidebar-overlay {
+                display: none;
+            }
+        }
+        
+        /* Scrollbar */
+        .mobile-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .mobile-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .mobile-sidebar::-webkit-scrollbar-thumb {
+            background: var(--gray-200);
+            border-radius: 10px;
+        }
+        
+        .mobile-sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--gray-600);
         }
     </style>
 
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Botón flotante para abrir menú -->
-    <button class="menu-toggle" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i>
-    </button>
+    <!-- Navbar Horizontal -->
+    <nav class="navbar-horizontal">
+        <!-- Brand -->
+        <a href="{% url 'core:dashboard' %}" class="navbar-brand-horizontal">
+            <img src="{% static 'img/favicon.png' %}" alt="OPENMOTORS">
+            <h3>OPENMOTORS</h3>
+        </a>
 
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
 
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <!-- Sidebar Header -->
-        <div class="sidebar-header">
-            <div class="sidebar-header-content">
-                <img src="{% static 'img/favicon.png' %}" alt="OPENMOTORS" class="sidebar-header-logo">
-                <div class="sidebar-header-text">
-                    <h3>OPENMOTORS</h3>
-                </div>
-            </div>
-            <button class="sidebar-close" onclick="closeSidebar()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <!-- User Info -->
-        <div class="sidebar-user">
-            <div class="sidebar-user-info">
-                <div class="sidebar-user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="sidebar-user-details">
-                    <h4>{{ request.user.nombre }}</h4>
-                    <p>{{ request.user.rol.nombre|default:"Usuario" }}</p>
-                </div>
-            </div>
-            <div class="sidebar-user-actions">
-                <a href="{% url 'usuarios:cambiar_password' %}" class="sidebar-user-btn">
-                    <i class="fas fa-key me-1"></i> Contraseña
-                </a>
-                <form method="post" action="{% url 'usuarios:logout' %}" style="flex: 1; margin: 0;">
-                    {% csrf_token %}
-                    <button type="submit" class="sidebar-user-btn" style="width: 100%; background: rgba(249, 65, 68, 0.2); border-color: rgba(249, 65, 68, 0.3);">
-                        <i class="fas fa-sign-out-alt me-1"></i> Salir
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Menu -->
-        <ul class="sidebar-menu">
-            <li class="sidebar-item">
-                <a href="{% url 'core:dashboard' %}" class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}" onclick="handleSidebarClick(event)">
+        <!-- Menu Horizontal (Desktop) -->
+        <ul class="navbar-menu-horizontal">
+            <li class="navbar-item-horizontal">
+                <a href="{% url 'core:dashboard' %}" class="navbar-link-horizontal {% if active_page == 'dashboard' %}active{% endif %}">
                     <i class="fas fa-home"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
             
-            <li class="sidebar-item">
-    <a href="{% url 'ventas:punto_venta' %}" class="sidebar-link {% if active_page == 'ventas' %}active{% endif %}" onclick="handleSidebarClick(event)">
-        <i class="fas fa-cash-register"></i>
-        <span>Punto de Venta</span>
-    </a>
-</li>
+            <li class="navbar-item-horizontal">
+                <a href="{% url 'ventas:punto_venta' %}" class="navbar-link-horizontal {% if active_page == 'ventas' %}active{% endif %}">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Punto de Venta</span>
+                </a>
+            </li>
             
-            <li class="sidebar-item">
-                <a href="#" class="sidebar-link has-dropdown {% if active_page == 'inventario' %}active{% endif %}" onclick="toggleDropdown(this, event)">
+            <li class="navbar-item-horizontal">
+                <a href="#" class="navbar-link-horizontal {% if active_page == 'inventario' %}active{% endif %}">
                     <i class="fas fa-boxes"></i>
                     <span>Inventario</span>
+                    <i class="fas fa-caret-down" style="font-size: 0.9rem; margin-left: 4px;"></i>
                 </a>
-                <div class="sidebar-dropdown {% if active_page == 'inventario' %}show{% endif %}">
-                    <a href="{% url 'inventario:lista_productos' %}" class="sidebar-link" onclick="handleSidebarClick(event)"><i class="fas fa-box"></i><span>Productos</span></a>
-                    <a href="{% url 'inventario:lista_categorias' %}" class="sidebar-link" onclick="handleSidebarClick(event)"><i class="fas fa-tags"></i><span>Categorías</span></a>
-                    <a href="{% url 'inventario:lista_marcas' %}" class="sidebar-link" onclick="handleSidebarClick(event)"><i class="fas fa-trademark"></i><span>Marcas</span></a>
+                <div class="navbar-dropdown-horizontal">
+                    <a href="{% url 'inventario:lista_productos' %}" class="navbar-dropdown-link">
+                        <i class="fas fa-box"></i>
+                        <span>Productos</span>
+                    </a>
+                    <a href="{% url 'inventario:lista_categorias' %}" class="navbar-dropdown-link">
+                        <i class="fas fa-tags"></i>
+                        <span>Categorías</span>
+                    </a>
+                    <a href="{% url 'inventario:lista_marcas' %}" class="navbar-dropdown-link">
+                        <i class="fas fa-trademark"></i>
+                        <span>Marcas</span>
+                    </a>
                 </div>
             </li>
             
-            <li class="sidebar-item">
-                <a href="{% url 'taller:dashboard' %}" class="sidebar-link {% if active_page == 'taller' %}active{% endif %}" onclick="handleSidebarClick(event)">
+            <li class="navbar-item-horizontal">
+                <a href="{% url 'taller:dashboard' %}" class="navbar-link-horizontal {% if active_page == 'taller' %}active{% endif %}">
                     <i class="fas fa-tools"></i>
                     <span>Taller</span>
                 </a>
             </li>
             
-            <li class="sidebar-item">
-                <a href="{% url 'clientes:lista_clientes' %}" class="sidebar-link {% if active_page == 'clientes' %}active{% endif %}" onclick="handleSidebarClick(event)">
+            <li class="navbar-item-horizontal">
+                <a href="{% url 'clientes:lista_clientes' %}" class="navbar-link-horizontal {% if active_page == 'clientes' %}active{% endif %}">
                     <i class="fas fa-users"></i>
                     <span>Clientes</span>
                 </a>
             </li>
             
-            <li class="sidebar-item">
-                <a href="{% url 'reportes:dashboard' %}" class="sidebar-link {% if active_page == 'reportes' %}active{% endif %}" onclick="handleSidebarClick(event)">
+            <li class="navbar-item-horizontal">
+                <a href="{% url 'reportes:dashboard' %}" class="navbar-link-horizontal {% if active_page == 'reportes' %}active{% endif %}">
                     <i class="fas fa-chart-line"></i>
                     <span>Reportes</span>
                 </a>
             </li>
             
-            {% if request.user.is_staff or request.user.rol.nombre == 'Administrador' %}
-            <div class="sidebar-divider"></div>
-            <div class="sidebar-title">Administración</div>
+            {% if request.user.is_staff or request.user.is_superuser %}
+            <li class="navbar-item-horizontal">
+                <a href="#" class="navbar-link-horizontal {% if active_page == 'admin' %}active{% endif %}">
+                    <i class="fas fa-cog"></i>
+                    <span>Admin</span>
+                    <i class="fas fa-caret-down" style="font-size: 0.9rem; margin-left: 4px;"></i>
+                </a>
+                <div class="navbar-dropdown-horizontal">
+                    <a href="{% url 'usuarios:lista_usuarios' %}" class="navbar-dropdown-link">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Usuarios</span>
+                    </a>
+                    <a href="{% url 'usuarios:lista_permisos' %}" class="navbar-dropdown-link">
+                        <i class="fas fa-key"></i>
+                        <span>Permisos</span>
+                    </a>
+                </div>
+            </li>
+            {% endif %}
+        </ul>
+
+        <!-- User Section -->
+        <div class="navbar-user-horizontal">
+            <div class="navbar-user-info">
+                <div class="navbar-user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="navbar-user-details">
+                    <h4>{{ request.user.nombre }}</h4>
+                    <p>{% if request.user.is_superuser %}Super Administrador{% elif request.user.is_staff %}Administrador{% else %}Usuario{% endif %}</p>
+                </div>
+                <i class="fas fa-caret-down" style="margin-left: 8px; color: var(--gray-600);"></i>
+                
+                <div class="navbar-user-dropdown">
+                    <div class="navbar-user-dropdown-header">
+                        <div class="navbar-user-dropdown-name">{{ request.user.nombre }} {{ request.user.apellido }}</div>
+                        <div class="navbar-user-dropdown-role">{% if request.user.is_superuser %}Super Administrador{% elif request.user.is_staff %}Administrador{% else %}Usuario{% endif %}</div>
+                    </div>
+                    <a href="{% url 'usuarios:cambiar_password' %}" class="navbar-user-dropdown-item">
+                        <i class="fas fa-key"></i>
+                        <span>Cambiar Contraseña</span>
+                    </a>
+                    <div class="navbar-divider"></div>
+                    <form method="post" action="{% url 'usuarios:logout' %}" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" class="navbar-user-dropdown-item danger">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Cerrar Sesión</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- Mobile Sidebar -->
+    <aside class="mobile-sidebar" id="mobileSidebar">
+        <div class="mobile-sidebar-header">
+            <div class="navbar-brand-horizontal">
+                <img src="{% static 'img/favicon.png' %}" alt="OPENMOTORS" style="width: 35px; height: 35px;">
+                <h3 style="font-size: 1.1rem;">OPENMOTORS</h3>
+            </div>
+            <button class="mobile-sidebar-close" onclick="closeMobileSidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="mobile-sidebar-user">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                <div class="navbar-user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <h4 style="font-size: 1rem; font-weight: 600; margin: 0 0 5px 0;">{{ request.user.nombre }} {{ request.user.apellido }}</h4>
+                    <p style="font-size: 0.85rem; margin: 0; opacity: 0.9;">{% if request.user.is_superuser %}Super Administrador{% elif request.user.is_staff %}Administrador{% else %}Usuario{% endif %}</p>
+                </div>
+            </div>
+        </div>
+
+        <ul class="mobile-sidebar-menu">
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'core:dashboard' %}" class="mobile-sidebar-link {% if active_page == 'dashboard' %}active{% endif %}" onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
             
-            <li class="sidebar-item">
-                <a href="{% url 'usuarios:lista_usuarios' %}" class="sidebar-link {% if active_page == 'admin' %}active{% endif %}" onclick="handleSidebarClick(event)">
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'ventas:punto_venta' %}" class="mobile-sidebar-link {% if active_page == 'ventas' %}active{% endif %}" onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Punto de Venta</span>
+                </a>
+            </li>
+            
+            <li class="mobile-sidebar-item">
+                <a href="#" class="mobile-sidebar-link has-dropdown {% if active_page == 'inventario' %}active{% endif %}" onclick="toggleMobileDropdown(this, event)">
+                    <i class="fas fa-boxes"></i>
+                    <span>Inventario</span>
+                </a>
+                <div class="mobile-sidebar-dropdown {% if active_page == 'inventario' %}show{% endif %}">
+                    <a href="{% url 'inventario:lista_productos' %}" class="mobile-sidebar-link" onclick="handleMobileSidebarClick(event)">
+                        <i class="fas fa-box"></i>
+                        <span>Productos</span>
+                    </a>
+                    <a href="{% url 'inventario:lista_categorias' %}" class="mobile-sidebar-link" onclick="handleMobileSidebarClick(event)">
+                        <i class="fas fa-tags"></i>
+                        <span>Categorías</span>
+                    </a>
+                    <a href="{% url 'inventario:lista_marcas' %}" class="mobile-sidebar-link" onclick="handleMobileSidebarClick(event)">
+                        <i class="fas fa-trademark"></i>
+                        <span>Marcas</span>
+                    </a>
+                </div>
+            </li>
+            
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'taller:dashboard' %}" class="mobile-sidebar-link {% if active_page == 'taller' %}active{% endif %}" onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-tools"></i>
+                    <span>Taller</span>
+                </a>
+            </li>
+            
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'clientes:lista_clientes' %}" class="mobile-sidebar-link {% if active_page == 'clientes' %}active{% endif %}" onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-users"></i>
+                    <span>Clientes</span>
+                </a>
+            </li>
+            
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'reportes:dashboard' %}" class="mobile-sidebar-link {% if active_page == 'reportes' %}active{% endif %}" onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Reportes</span>
+                </a>
+            </li>
+            
+            {% if request.user.is_staff or request.user.is_superuser %}
+            <div class="mobile-sidebar-title">Administración</div>
+            
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'usuarios:lista_usuarios' %}" class="mobile-sidebar-link {% if active_page == 'admin' %}active{% endif %}" onclick="handleMobileSidebarClick(event)">
                     <i class="fas fa-users-cog"></i>
                     <span>Usuarios</span>
                 </a>
             </li>
             
-            <li class="sidebar-item">
-                <a href="{% url 'usuarios:lista_roles' %}" class="sidebar-link {% if active_page == 'roles' %}active{% endif %}" onclick="handleSidebarClick(event)">
-                    <i class="fas fa-user-tag"></i>
-                    <span>Roles</span>
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'usuarios:lista_permisos' %}" class="mobile-sidebar-link" onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-key"></i>
+                    <span>Permisos</span>
                 </a>
             </li>
             {% endif %}
+            
+            <div style="height: 1px; background: var(--gray-200); margin: 15px 0;"></div>
+            
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'usuarios:cambiar_password' %}" class="mobile-sidebar-link" onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-key"></i>
+                    <span>Cambiar Contraseña</span>
+                </a>
+            </li>
+            
+            <li class="mobile-sidebar-item">
+                <form method="post" action="{% url 'usuarios:logout' %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="mobile-sidebar-link" style="width: 100%; color: var(--danger);">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </form>
+            </li>
         </ul>
     </aside>
 
@@ -575,7 +830,7 @@
         {% if messages %}
         <div class="mb-3">
             {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-modern alert-dismissible fade show" role="alert">
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                 <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -584,7 +839,7 @@
         </div>
         {% endif %}
         
-        <!-- Soporte para TODOS los bloques de contenido -->
+        <!-- Content Blocks -->
         {% block content %}{% endblock %}
         {% block inventory_content %}{% endblock %}
     </main>
@@ -596,31 +851,31 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('mobileSidebar');
+            const overlay = document.getElementById('mobileSidebarOverlay');
             sidebar.classList.toggle('show');
             overlay.classList.toggle('show');
         }
         
-        function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('mobileSidebar');
+            const overlay = document.getElementById('mobileSidebarOverlay');
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
         }
         
-        function toggleDropdown(element, event) {
+        function toggleMobileDropdown(element, event) {
             event.preventDefault();
-            element.classList.toggle('active');
+            element.classList.toggle('active-dropdown');
             const dropdown = element.nextElementSibling;
             dropdown.classList.toggle('show');
         }
         
-        function handleSidebarClick(event) {
+        function handleMobileSidebarClick(event) {
             if (!event.target.closest('.has-dropdown')) {
                 setTimeout(() => {
-                    closeSidebar();
+                    closeMobileSidebar();
                 }, 150);
             }
         }

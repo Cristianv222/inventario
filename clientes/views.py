@@ -706,3 +706,329 @@ def reporte_clientes(request):
     }
     
     return render(request, 'clientes/reporte_clientes.html', context)
+
+# ========== HISTORIAL DEL CLIENTE ==========
+
+@login_required
+def api_historial_cliente(request, cliente_id):
+    """API para obtener historial de ventas y órdenes de trabajo del cliente"""
+    try:
+        cliente = get_object_or_404(Cliente, pk=cliente_id)
+        
+        historial = []
+        
+        # ========== OBTENER VENTAS ==========
+        try:
+            from ventas.models import Venta
+            
+            ventas = Venta.objects.filter(
+                cliente=cliente, 
+                estado='COMPLETADA'
+            ).order_by('-fecha_hora')
+            
+            for venta in ventas:
+                historial.append({
+                    'tipo': 'venta',
+                    'tipo_texto': 'Venta',
+                    'id': venta.id,
+                    'numero': venta.numero_factura,
+                    'fecha': venta.fecha_hora.strftime('%d/%m/%Y %H:%M'),
+                    'fecha_ordenar': venta.fecha_hora.isoformat(),
+                    'monto': float(venta.total),
+                    'estado': venta.get_estado_display(),
+                    'estado_codigo': venta.estado,
+                    'url_detalle': f'/ventas/detalle/{venta.id}/',
+                    'detalles': {
+                        'Subtotal': f'${float(venta.subtotal):.2f}',
+                        'IVA': f'${float(venta.iva):.2f}',
+                        'Descuento': f'${float(venta.descuento):.2f}',
+                        'Total': f'${float(venta.total):.2f}',
+                        'Tipo de Pago': venta.get_tipo_pago_display(),
+                    }
+                })
+                
+        except ImportError:
+            print("Módulo de ventas no disponible")
+        except Exception as e:
+            print(f"Error al obtener ventas: {e}")
+        
+        # ========== OBTENER ÓRDENES DE TRABAJO ==========
+        try:
+            from taller.models import OrdenTrabajo
+            
+            ordenes = OrdenTrabajo.objects.filter(
+                cliente=cliente
+            ).order_by('-fecha_ingreso')
+            
+            for orden in ordenes:
+                # Determinar color del estado
+                if orden.estado in ['COMPLETADO', 'ENTREGADO']:
+                    estado_color = 'success'
+                elif orden.estado == 'CANCELADO':
+                    estado_color = 'danger'
+                elif orden.estado in ['PENDIENTE', 'ESPERANDO_REPUESTOS', 'ESPERANDO_APROBACION']:
+                    estado_color = 'warning'
+                elif orden.estado == 'EN_PROCESO':
+                    estado_color = 'info'
+                else:
+                    estado_color = 'secondary'
+                
+                # Información de la moto
+                moto_info = f"{orden.moto_marca} {orden.moto_modelo}"
+                if orden.moto_placa:
+                    moto_info += f" - {orden.moto_placa}"
+                
+                # Técnico
+                tecnico_nombre = orden.tecnico_principal.get_nombre_completo() if orden.tecnico_principal else 'Sin asignar'
+                
+                historial.append({
+                    'tipo': 'orden',
+                    'tipo_texto': 'Orden de Trabajo',
+                    'id': orden.id,
+                    'numero': orden.numero_orden,
+                    'fecha': orden.fecha_ingreso.strftime('%d/%m/%Y %H:%M'),
+                    'fecha_ordenar': orden.fecha_ingreso.isoformat(),
+                    'monto': float(orden.precio_total),
+                    'estado': orden.get_estado_display(),
+                    'estado_codigo': orden.estado,
+                    'estado_color': estado_color,
+                    'url_detalle': f'/taller/ordenes/{orden.id}/',
+                    'detalles': {
+                        'Moto': moto_info,
+                        'Técnico': tecnico_nombre,
+                        'Mano de Obra': f'${float(orden.precio_mano_obra):.2f}',
+                        'Repuestos': f'${float(orden.precio_repuestos):.2f}',
+                        'Total': f'${float(orden.precio_total):.2f}',
+                        'Anticipo': f'${float(orden.anticipo):.2f}',
+                        'Saldo': f'${float(orden.saldo_pendiente):.2f}',
+                    }
+                })
+                
+        except ImportError:
+            print("Módulo de taller no disponible")
+        except Exception as e:
+            print(f"Error al obtener órdenes: {e}")
+        
+        # Ordenar por fecha descendente
+        historial.sort(key=lambda x: x['fecha_ordenar'], reverse=True)
+        
+        # Calcular estadísticas
+        total_ventas = sum(1 for item in historial if item['tipo'] == 'venta')
+        total_ordenes = sum(1 for item in historial if item['tipo'] == 'orden')
+        monto_total_ventas = sum(item['monto'] for item in historial if item['tipo'] == 'venta')
+        monto_total_ordenes = sum(item['monto'] for item in historial if item['tipo'] == 'orden')
+        
+        return JsonResponse({
+            'success': True,
+            'historial': historial,
+            'estadisticas': {
+                'total_ventas': total_ventas,
+                'total_ordenes': total_ordenes,
+                'monto_total_ventas': round(monto_total_ventas, 2),
+                'monto_total_ordenes': round(monto_total_ordenes, 2),
+                'total_registros': len(historial),
+                'monto_total': round(monto_total_ventas + monto_total_ordenes, 2)
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+@login_required
+@require_POST
+@transaction.atomic
+def api_crear_cliente_rapido(request):
+    """API para crear cliente rápidamente desde el POS"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validar campos requeridos
+        nombres = data.get('nombres', '').strip()
+        apellidos = data.get('apellidos', '').strip()
+        identificacion = data.get('identificacion', '').strip()
+        tipo_identificacion = data.get('tipo_identificacion', 'CEDULA')
+        
+        if not nombres:
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'Los nombres son requeridos'
+            })
+        
+        if not apellidos:
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'Los apellidos son requeridos'
+            })
+        
+        if not identificacion:
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'La identificación es requerida'
+            })
+        
+        # Validar que no exista el cliente
+        if Cliente.objects.filter(identificacion=identificacion).exists():
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'Ya existe un cliente con esta identificación'
+            })
+        
+        # Validar cédula ecuatoriana si es tipo CEDULA
+        if tipo_identificacion == 'CEDULA':
+            if not _validar_cedula_ecuatoriana(identificacion):
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': 'Número de cédula inválido'
+                })
+        
+        # Validar RUC si es tipo RUC
+        if tipo_identificacion == 'RUC':
+            if not _validar_ruc_ecuatoriano(identificacion):
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': 'Número de RUC inválido'
+                })
+        
+        # Crear el cliente
+        cliente = Cliente.objects.create(
+            nombres=nombres,
+            apellidos=apellidos,
+            identificacion=identificacion,
+            tipo_identificacion=tipo_identificacion,
+            telefono=data.get('telefono', '').strip() or None,
+            celular=data.get('celular', '').strip() or None,
+            email=data.get('email', '').strip() or None,
+            direccion=data.get('direccion', '').strip() or None,
+            activo=True
+        )
+        
+        # Registrar en historial
+        HistorialCliente.objects.create(
+            cliente=cliente,
+            tipo='OTRO',
+            descripcion='Cliente creado desde el POS',
+            usuario=request.user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Cliente creado exitosamente',
+            'cliente': {
+                'id': cliente.id,
+                'nombre_completo': cliente.get_nombre_completo(),
+                'identificacion': cliente.identificacion,
+                'telefono': cliente.telefono or '',
+                'email': cliente.email or ''
+            }
+        })
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error creando cliente rápido: {str(e)}", exc_info=True)
+        
+        return JsonResponse({
+            'success': False,
+            'mensaje': f'Error al crear cliente: {str(e)}'
+        })
+
+def _validar_cedula_ecuatoriana(cedula):
+    """Valida cédula ecuatoriana (10 dígitos)"""
+    if not cedula or len(cedula) != 10 or not cedula.isdigit():
+        return False
+    
+    # Validar provincia (primeros 2 dígitos)
+    provincia = int(cedula[:2])
+    if provincia < 1 or provincia > 24:
+        return False
+    
+    # Algoritmo de validación de cédula ecuatoriana
+    coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2]
+    suma = 0
+    
+    for i in range(9):
+        valor = int(cedula[i]) * coeficientes[i]
+        if valor >= 10:
+            valor = valor - 9
+        suma += valor
+    
+    digito_verificador = 10 - (suma % 10)
+    if digito_verificador == 10:
+        digito_verificador = 0
+    
+    return digito_verificador == int(cedula[9])
+
+def _validar_ruc_ecuatoriano(ruc):
+    """Valida RUC ecuatoriano (13 dígitos)"""
+    if not ruc or len(ruc) != 13 or not ruc.isdigit():
+        return False
+    
+    # RUC de persona natural (cédula + 001)
+    if ruc.endswith('001'):
+        return _validar_cedula_ecuatoriana(ruc[:10])
+    
+    # RUC de empresa (validación básica)
+    tercero = int(ruc[2])
+    if tercero >= 6 and tercero <= 9:
+        return True
+    
+    return False
+
+@login_required
+def api_validar_identificacion(request):
+    """API para validar identificación en tiempo real"""
+    try:
+        identificacion = request.GET.get('identificacion', '').strip()
+        tipo = request.GET.get('tipo', 'CEDULA')
+        
+        if not identificacion:
+            return JsonResponse({
+                'success': False,
+                'valido': False,
+                'mensaje': 'Identificación requerida'
+            })
+        
+        # Verificar si ya existe
+        existe = Cliente.objects.filter(identificacion=identificacion).exists()
+        
+        if existe:
+            return JsonResponse({
+                'success': True,
+                'valido': False,
+                'existe': True,
+                'mensaje': 'Ya existe un cliente con esta identificación'
+            })
+        
+        # Validar formato según tipo
+        valido = False
+        mensaje = ''
+        
+        if tipo == 'CEDULA':
+            valido = _validar_cedula_ecuatoriana(identificacion)
+            mensaje = 'Cédula válida' if valido else 'Cédula inválida'
+        elif tipo == 'RUC':
+            valido = _validar_ruc_ecuatoriano(identificacion)
+            mensaje = 'RUC válido' if valido else 'RUC inválido'
+        elif tipo == 'PASAPORTE':
+            valido = len(identificacion) >= 6
+            mensaje = 'Pasaporte válido' if valido else 'Pasaporte debe tener al menos 6 caracteres'
+        else:
+            valido = True
+            mensaje = 'Identificación aceptada'
+        
+        return JsonResponse({
+            'success': True,
+            'valido': valido,
+            'existe': False,
+            'mensaje': mensaje
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'valido': False,
+            'mensaje': f'Error: {str(e)}'
+        })
