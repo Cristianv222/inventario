@@ -7,9 +7,8 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 
-# Cargar variables de entorno desde .env (solo en desarrollo)
-if 'RAILWAY_ENVIRONMENT' not in os.environ:
-    load_dotenv()
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,18 +19,14 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-24ps2o^$&m@47b$evbyo5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-# En Railway, forzar DEBUG=False
-if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
-    DEBUG = True
-
 # ✅ HOSTS PERMITIDOS - Leer de variable de entorno
 ALLOWED_HOSTS = []
 
-# Primero agregar hosts por defecto
+# Hosts por defecto
 default_hosts = ['localhost', '127.0.0.1', 'web', '.ngrok-free.app', '.ngrok.io', '.ngrok-free.dev']
 ALLOWED_HOSTS.extend(default_hosts)
 
-# Luego leer de variable de entorno
+# Leer de variable de entorno
 if os.environ.get('ALLOWED_HOSTS'):
     env_hosts = os.environ.get('ALLOWED_HOSTS')
     if env_hosts == '*':
@@ -40,11 +35,11 @@ if os.environ.get('ALLOWED_HOSTS'):
         additional_hosts = [host.strip() for host in env_hosts.split(',') if host.strip()]
         ALLOWED_HOSTS.extend(additional_hosts)
 
-# Agregar Railway hosts automáticamente
+# Agregar Railway hosts si existe
 if 'RAILWAY_ENVIRONMENT' in os.environ:
     ALLOWED_HOSTS.extend(['*.railway.app', '*.up.railway.app'])
 
-# ✅ CSRF TRUSTED ORIGINS (para ngrok)
+# ✅ CSRF TRUSTED ORIGINS - Incluir dominio de producción
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://localhost:8001',
@@ -55,7 +50,15 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.ngrok-free.dev',
 ]
 
-# ✅ Para que ngrok funcione correctamente
+# Agregar dominio de producción a CSRF_TRUSTED_ORIGINS
+if not DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend([
+        'https://high-voltage.fronteratech.ec',
+        'https://www.high-voltage.fronteratech.ec',
+        'https://fronteratech.ec',
+    ])
+
+# ✅ Para que ngrok y NPM funcionen correctamente
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
@@ -94,7 +97,7 @@ MIDDLEWARE = [
 ]
 
 # Agregar WhiteNoise para archivos estáticos en producción
-if not DEBUG or 'RAILWAY_ENVIRONMENT' in os.environ:
+if not DEBUG:
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'vpmotos.urls'
@@ -129,7 +132,7 @@ if 'DATABASE_URL' in os.environ:
 else:
     DATABASES = {
         'default': {
-            'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
+            'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.environ.get('DB_NAME'),
             'USER': os.environ.get('DB_USER'),
             'PASSWORD': os.environ.get('DB_PASSWORD'),
@@ -172,12 +175,12 @@ AUTH_USER_MODEL = 'usuarios.Usuario'
 
 # Configuración de la empresa
 VPMOTOS_SETTINGS = {
-    'COMPANY_NAME': os.environ.get('COMPANY_NAME', 'VPMOTOS'),
+    'COMPANY_NAME': os.environ.get('COMPANY_NAME', 'VPMOTOS - High Voltage'),
     'COMPANY_ADDRESS': os.environ.get('COMPANY_ADDRESS', 'Ecuador Pichincha Cayambe Panamericana E35'),
     'COMPANY_PHONE': os.environ.get('COMPANY_PHONE', '0961278095'),
-    'COMPANY_EMAIL': os.environ.get('COMPANY_EMAIL', 'info@vpmotos.com'),
+    'COMPANY_EMAIL': os.environ.get('COMPANY_EMAIL', 'info@fronteratech.ec'),
     'COMPANY_TAX_ID': os.environ.get('COMPANY_TAX_ID', '0401234567001'),
-    'IVA_PERCENTAGE': float(os.environ.get('IVA_PERCENTAGE', '12.0')),
+    'IVA_PERCENTAGE': float(os.environ.get('IVA_PERCENTAGE', '15.0')),
     'DEFAULT_CURRENCY': os.environ.get('DEFAULT_CURRENCY', 'USD'),
 }
 
@@ -186,8 +189,8 @@ LOGIN_URL = 'usuarios:login'
 LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'usuarios:login'
 
-# Configuraciones de seguridad para producción (solo Railway)
-if not DEBUG and 'RAILWAY_ENVIRONMENT' in os.environ:
+# Configuraciones de seguridad para producción
+if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
@@ -197,3 +200,6 @@ if not DEBUG and 'RAILWAY_ENVIRONMENT' in os.environ:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_HTTPONLY = True
+    SECURE_REFERRER_POLICY = 'same-origin'

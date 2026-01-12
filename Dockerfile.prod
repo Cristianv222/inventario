@@ -1,0 +1,47 @@
+# Usar Python 3.11 como imagen base
+FROM python:3.11-slim
+
+# Establecer variables de entorno
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    postgresql-client \
+    gettext \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar requirements y instalar dependencias de Python
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
+
+# Copiar el código del proyecto
+COPY . /app/
+
+# Crear directorio para archivos estáticos y media
+RUN mkdir -p /app/staticfiles /app/media
+
+# Colectar archivos estáticos (importante para producción)
+RUN python manage.py collectstatic --noinput || true
+
+# Hacer el script de entrada ejecutable
+COPY entrypoint.prod.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Crear usuario no-root para seguridad
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Exponer el puerto
+EXPOSE 8000
+
+# Comando de entrada
+ENTRYPOINT ["/app/entrypoint.sh"]
