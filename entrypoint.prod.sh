@@ -19,7 +19,7 @@ python manage.py migrate --noinput
 echo "📁 Recopilando archivos estáticos..."
 python manage.py collectstatic --noinput --clear
 
-# Crear superusuario desde variables del .env
+# Crear superusuario
 echo "👤 Configurando superusuario..."
 python manage.py shell << EOF
 from django.contrib.auth import get_user_model
@@ -53,8 +53,7 @@ echo "🔒 Iniciando Gunicorn..."
 exec gunicorn config.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers 3 \
-    --worker-class gevent \
-    --worker-connections 1000 \
+    --threads 2 \
     --max-requests 1000 \
     --max-requests-jitter 100 \
     --timeout 120 \
