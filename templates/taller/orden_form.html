@@ -1273,8 +1273,8 @@ const CONFIG = {
     totalSteps: 5,
     urls: {
         buscarCliente: '{% url "taller:buscar_cliente_ajax" %}',
-        servicios: '/taller/ajax/servicios-disponibles/',
-        tecnicos: '/taller/api/tecnicos/',
+        servicios: '{% url "taller:ajax_servicios_disponibles" %}',
+        tecnicos: '{% url "taller:api_tecnicos" %}',
         productos: '/inventario/api/productos/'
     }
 };
@@ -1412,63 +1412,40 @@ function loadProducts() {
 function loadExistingFormsetData() {
     console.log('📦 Cargando datos existentes del formset...');
     
-    // ✅ CARGAR SERVICIOS EXISTENTES
-    const servicioForms = document.querySelectorAll('.servicio-formset-item');
-    servicioForms.forEach((formItem, index) => {
-        const tipoServicioInput = formItem.querySelector('[name$="-tipo_servicio"]');
-        const tecnicoInput = formItem.querySelector('[name$="-tecnico_asignado"]');
-        const precioInput = formItem.querySelector('[name$="-precio_servicio"]');
-        const deleteInput = formItem.querySelector('[name$="-DELETE"]');
-        
-        if (tipoServicioInput && tipoServicioInput.value && (!deleteInput || !deleteInput.checked)) {
-            const serviceId = parseInt(tipoServicioInput.value);
-            const technicianId = tecnicoInput && tecnicoInput.value ? parseInt(tecnicoInput.value) : null;
-            const price = precioInput && precioInput.value ? parseFloat(precioInput.value) : 0;
-            
-            serviciosFormset.push({
-                formIndex: index,
-                id: serviceId,
-                technician_id: technicianId,
-                price: price,
-                quantity: 1,
-                isExisting: true
-            });
+    {% if es_edicion %}
+        // ✅ CARGAR SERVICIOS DESDE DJANGO (JSON)
+        const serviciosExistentes = {{ servicios_existentes_json|safe }};
+        if (serviciosExistentes && serviciosExistentes.length > 0) {
+            serviciosFormset = serviciosExistentes.map((item, index) => ({
+                ...item,
+                formIndex: index
+            }));
+            console.log(`✅ Cargados ${serviciosFormset.length} servicios desde Django con datos completos`);
+        } else {
+            console.log('ℹ️ No hay servicios existentes en esta orden');
         }
-    });
-    
-    // ✅ CARGAR REPUESTOS EXISTENTES
-    const repuestoForms = document.querySelectorAll('.repuesto-formset-item');
-    repuestoForms.forEach((formItem, index) => {
-        const productoInput = formItem.querySelector('[name$="-producto"]');
-        const cantidadInput = formItem.querySelector('[name$="-cantidad"]');
-        const precioInput = formItem.querySelector('[name$="-precio_unitario"]');
-        const deleteInput = formItem.querySelector('[name$="-DELETE"]');
         
-        if (productoInput && productoInput.value && (!deleteInput || !deleteInput.checked)) {
-            const productId = parseInt(productoInput.value);
-            const quantity = cantidadInput && cantidadInput.value ? parseFloat(cantidadInput.value) : 1;
-            const price = precioInput && precioInput.value ? parseFloat(precioInput.value) : 0;
-            
-            repuestosFormset.push({
-                formIndex: index,
-                id: productId,
-                quantity: quantity,
-                price: price,
-                isExisting: true
-            });
+        // ✅ CARGAR REPUESTOS DESDE DJANGO (JSON)
+        const repuestosExistentes = {{ repuestos_existentes_json|safe }};
+        if (repuestosExistentes && repuestosExistentes.length > 0) {
+            repuestosFormset = repuestosExistentes.map((item, index) => ({
+                ...item,
+                formIndex: index
+            }));
+            console.log(`✅ Cargados ${repuestosFormset.length} repuestos desde Django con datos completos`);
+        } else {
+            console.log('ℹ️ No hay repuestos existentes en esta orden');
         }
-    });
+    {% else %}
+        console.log('ℹ️ Modo creación - sin datos existentes');
+    {% endif %}
     
-    console.log(`✅ Cargados ${serviciosFormset.length} servicios y ${repuestosFormset.length} repuestos existentes`);
-    
-    // Esperar a que se carguen los datos de API y luego mostrar
-    setTimeout(() => {
-        updateServiciosDisplay();
-        updateRepuestosDisplay();
-        updateServiciosCount();
-        updateRepuestosCount();
-        calculateTotals();
-    }, 1000);
+    // ✅ Mostrar datos inmediatamente
+    updateServiciosDisplay();
+    updateRepuestosDisplay();
+    updateServiciosCount();
+    updateRepuestosCount();
+    calculateTotals();
 }
 
 // ========================================
@@ -2109,22 +2086,20 @@ function syncServiciosFormset() {
     
     totalForms.value = serviciosFormset.length;
     
-    // Limpiar formset container
     const container = document.getElementById('servicios-formset-container');
     if (!container) return;
     
     container.innerHTML = '';
     
-    // Recrear formset items
     serviciosFormset.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'servicio-formset-item';
         
         let html = '';
         
-        // Si es existente, incluir ID
-        if (item.isExisting && item.formIndex !== undefined) {
-            html += `<input type="hidden" name="servicios-${index}-id" value="${item.formIndex}">`;
+        // ✅ Si tiene servicioOrdenId, incluirlo
+        if (item.servicioOrdenId) {
+            html += `<input type="hidden" name="servicios-${index}-id" value="${item.servicioOrdenId}">`;
         }
         
         html += `
@@ -2148,22 +2123,20 @@ function syncRepuestosFormset() {
     
     totalForms.value = repuestosFormset.length;
     
-    // Limpiar formset container
     const container = document.getElementById('repuestos-formset-container');
     if (!container) return;
     
     container.innerHTML = '';
     
-    // Recrear formset items
     repuestosFormset.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'repuesto-formset-item';
         
         let html = '';
         
-        // Si es existente, incluir ID
-        if (item.isExisting && item.formIndex !== undefined) {
-            html += `<input type="hidden" name="repuestos-${index}-id" value="${item.formIndex}">`;
+        // ✅ Si tiene repuestoOrdenId, incluirlo
+        if (item.repuestoOrdenId) {
+            html += `<input type="hidden" name="repuestos-${index}-id" value="${item.repuestoOrdenId}">`;
         }
         
         html += `

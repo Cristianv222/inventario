@@ -568,17 +568,42 @@ class OrdenTrabajoCreateView(LoginRequiredMixin, CreateView):
             print("=" * 50)
             # Si hay errores en los formsets, mostrarlos
             return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        print("=" * 50)
+        print("FORMULARIO INVÁLIDO - ORDEN DE TRABAJO")
+        print("Errores del formulario:")
+        for field, errors in form.errors.items():
+            print(f"  {field}: {errors}")
+        print("=" * 50)
+        print("Datos POST recibidos:")
+        for field, value in self.request.POST.items():
+            print(f"  {field}: {value}")
+        print("=" * 50)
         
-        def form_invalid(self, form):
-            messages.error(
-                self.request,
-                'Por favor corrija los errores en el formulario.'
-            )
-            return super().form_invalid(form)
+        # También revisar formsets
+        context = self.get_context_data()
+        servicios_formset = context['servicios_formset']
+        repuestos_formset = context['repuestos_formset']
+        
+        if not servicios_formset.is_valid():
+            print("ERRORES EN FORMSET DE SERVICIOS:")
+            print(servicios_formset.errors)
+            print("=" * 50)
+        
+        if not repuestos_formset.is_valid():
+            print("ERRORES EN FORMSET DE REPUESTOS:")
+            print(repuestos_formset.errors)
+            print("=" * 50)
+        
+        messages.error(
+            self.request,
+            'Por favor corrija los errores en el formulario.'
+        )
+        return super().form_invalid(form)
     
     def get_success_url(self):
         return reverse_lazy('taller:orden_detail', kwargs={'pk': self.object.pk})
-
 class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
     model = OrdenTrabajo
     form_class = OrdenTrabajoForm
@@ -632,10 +657,64 @@ class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
             activo=True
         )
         
-        # AGREGAR ESTA LÍNEA - Indicar que es edición
+        # ✅ Indicar que es edición
         context['es_edicion'] = True
         
+        # ✅ Datos existentes para JavaScript
+        context['servicios_existentes_json'] = self._get_servicios_existentes_json()
+        context['repuestos_existentes_json'] = self._get_repuestos_existentes_json()
+        
         return context
+    
+    # ✅ NUEVO MÉTODO - Obtener servicios existentes en JSON
+    def _get_servicios_existentes_json(self):
+        """Obtiene datos completos de servicios existentes para JavaScript"""
+        import json
+        servicios_data = []
+        
+        for servicio_orden in self.object.servicios.all():
+            servicios_data.append({
+                'servicioOrdenId': servicio_orden.id,  # ✅ ID del ServicioOrden
+                'id': servicio_orden.tipo_servicio.id,
+                'name': servicio_orden.tipo_servicio.nombre,
+                'code': servicio_orden.tipo_servicio.codigo,
+                'price': float(servicio_orden.precio_servicio),
+                'technician_id': servicio_orden.tecnico_asignado.id if servicio_orden.tecnico_asignado else None,
+                'technician_name': servicio_orden.tecnico_asignado.get_nombre_completo() if servicio_orden.tecnico_asignado else None,
+                'quantity': 1,
+                'isExisting': True
+            })
+        
+        return json.dumps(servicios_data)
+    
+    def _get_repuestos_existentes_json(self):
+        """Obtiene datos completos de repuestos existentes para JavaScript"""
+        import json
+        repuestos_data = []
+        
+        for repuesto_orden in self.object.repuestos_utilizados.all():
+            # Intentar obtener código del producto de forma segura
+            producto_codigo = ''
+            try:
+                producto_codigo = repuesto_orden.producto.codigo
+            except AttributeError:
+                try:
+                    producto_codigo = repuesto_orden.producto.codigo_unico
+                except AttributeError:
+                    producto_codigo = f'PROD-{repuesto_orden.producto.id}'
+            
+            repuestos_data.append({
+                'repuestoOrdenId': repuesto_orden.id,  # ✅ CORREGIDO: era 'repuestosOrdenId'
+                'id': repuesto_orden.producto.id,
+                'name': repuesto_orden.producto.nombre,
+                'code': producto_codigo,
+                'price': float(repuesto_orden.precio_unitario),
+                'quantity': float(repuesto_orden.cantidad),
+                'stock': float(repuesto_orden.producto.stock_actual),
+                'isExisting': True
+            })
+        
+        return json.dumps(repuestos_data)
     
     @transaction.atomic
     def form_valid(self, form):
@@ -650,6 +729,29 @@ class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
         context = self.get_context_data()
         servicios_formset = context['servicios_formset']
         repuestos_formset = context['repuestos_formset']
+        
+        # ✅ AGREGAR DEBUG
+        print("=" * 80)
+        print("FORM_VALID - OrdenTrabajoUpdateView")
+        print(f"Formulario principal válido: {form.is_valid()}")
+        print(f"Servicios formset válido: {servicios_formset.is_valid()}")
+        print(f"Repuestos formset válido: {repuestos_formset.is_valid()}")
+        
+        if not servicios_formset.is_valid():
+            print("ERRORES EN SERVICIOS FORMSET:")
+            for i, form_errors in enumerate(servicios_formset.errors):
+                if form_errors:
+                    print(f"  Formulario {i}: {form_errors}")
+            print("Non-form errors:", servicios_formset.non_form_errors())
+        
+        if not repuestos_formset.is_valid():
+            print("ERRORES EN REPUESTOS FORMSET:")
+            for i, errors in enumerate(repuestos_formset.errors):
+                if errors:
+                    print(f"  Formulario {i}: {errors}")
+            print("Non-form errors:", repuestos_formset.non_form_errors())
+        
+        print("=" * 80)
         
         if servicios_formset.is_valid() and repuestos_formset.is_valid():
             estado_anterior = OrdenTrabajo.objects.get(pk=self.object.pk).estado
@@ -675,6 +777,21 @@ class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
             return redirect(self.get_success_url())
         else:
             return self.form_invalid(form)
+    
+    # ✅ AGREGAR ESTE MÉTODO
+    def form_invalid(self, form):
+        print("=" * 80)
+        print("FORM_INVALID - OrdenTrabajoUpdateView")
+        print("Errores del formulario principal:")
+        for field, errors in form.errors.items():
+            print(f"  {field}: {errors}")
+        print("=" * 80)
+        
+        messages.error(
+            self.request,
+            'Error al actualizar la orden. Revisa los campos marcados.'
+        )
+        return super().form_invalid(form)
     
     def get_success_url(self):
         return reverse_lazy('taller:orden_detail', kwargs={'pk': self.object.pk})
@@ -1232,32 +1349,43 @@ def ajax_servicios_disponibles(request):
     categoria_id = request.GET.get('categoria_id')
     busqueda = request.GET.get('busqueda', '')
     
-    servicios = TipoServicio.objects.filter(activo=True)
-    
-    if categoria_id:
-        servicios = servicios.filter(categoria_id=categoria_id)
-    
-    if busqueda:
-        servicios = servicios.filter(
-            Q(nombre__icontains=busqueda) |
-            Q(codigo__icontains=busqueda)
-        )
-    
-    datos = []
-    for servicio in servicios[:20]:  # Limitar resultados
-        datos.append({
-            'id': servicio.id,
-            'codigo': servicio.codigo,
-            'nombre': servicio.nombre,
-            'categoria': servicio.categoria.nombre if servicio.categoria else '',
-            'precio_base': float(servicio.precio_base),
-            'precio_mano_obra': float(servicio.precio_mano_obra),
-            'precio_total': float(servicio.get_precio_total()),
-            'tiempo_estimado': float(servicio.tiempo_estimado_horas),
-            'requiere_especialidad': servicio.requiere_especialidad.nombre if servicio.requiere_especialidad else None
+    try:
+        servicios = TipoServicio.objects.filter(activo=True)
+        
+        if categoria_id:
+            servicios = servicios.filter(categoria_id=categoria_id)
+        
+        if busqueda:
+            servicios = servicios.filter(
+                Q(nombre__icontains=busqueda) |
+                Q(codigo__icontains=busqueda)
+            )
+        
+        servicios = servicios.select_related('categoria')[:50]  # Limitar a 50
+        
+        datos = []
+        for servicio in servicios:
+            datos.append({
+                'id': servicio.id,
+                'codigo': servicio.codigo,
+                'nombre': servicio.nombre,
+                'categoria': servicio.categoria.nombre if servicio.categoria else '',
+                'precio': float(servicio.precio),  # ✅ Usar 'precio' en lugar de 'precio_total'
+                'tiempo_estimado': float(servicio.tiempo_estimado_horas),
+                'requiere_especialidad': servicio.requiere_especialidad.nombre if servicio.requiere_especialidad else None
+            })
+        
+        # ✅ FORMATO CORRECTO
+        return JsonResponse({
+            'success': True,
+            'servicios': datos
         })
-    
-    return JsonResponse(datos, safe=False)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }, status=500)
 
 @login_required
 def ajax_datos_servicio_pos(request):
@@ -1435,16 +1563,12 @@ def api_servicios(request):
         
         servicios_data = []
         for servicio in servicios:
-            precio_total = servicio.precio_base + (servicio.precio_mano_obra or 0)
-            
             servicios_data.append({
                 'id': servicio.id,
                 'codigo': servicio.codigo,
                 'nombre': servicio.nombre,
                 'descripcion': servicio.descripcion or '',
-                'precio_base': float(servicio.precio_base),
-                'precio_mano_obra': float(servicio.precio_mano_obra or 0),
-                'precio_total': float(precio_total),
+                'precio': float(servicio.precio),  # ✅ Usar 'precio' en lugar de campos separados
                 'categoria': servicio.categoria.nombre if servicio.categoria else None,
                 'tiempo_estimado': float(servicio.tiempo_estimado_horas or 0)
             })
