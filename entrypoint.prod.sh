@@ -50,7 +50,7 @@ if [ -f "/app/ventas/fixtures/initial_data.json" ]; then
 fi
 
 echo "🔒 Iniciando Gunicorn..."
-exec gunicorn config.wsgi:application \
+exec gunicorn vpmotos.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers 3 \
     --threads 2 \
