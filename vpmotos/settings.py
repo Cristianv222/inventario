@@ -1,5 +1,6 @@
 """
 Django settings for vpmotos project.
+CONFIGURACIÓN MULTI-SUCURSAL CON DJANGO-TENANTS
 """
 
 from pathlib import Path
@@ -63,15 +64,22 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
-# Application definition
+# ==================== DJANGO-TENANTS CONFIGURATION ====================
+
+# ✅ INSTALLED APPS - django_tenants DEBE SER EL PRIMERO
 INSTALLED_APPS = [
+    'django_tenants',  # ← DEBE IR PRIMERO SIEMPRE
+    
+    # Django apps - contenttypes DEBE ir antes de admin
+    'django.contrib.contenttypes',
     'django.contrib.humanize',
     'django.contrib.admin',
     'django.contrib.auth',
-    'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    # Third party
     'widget_tweaks',
 
     # Aplicaciones propias
@@ -82,10 +90,55 @@ INSTALLED_APPS = [
     'ventas.apps.VentasConfig',
     'taller.apps.TallerConfig',
     'compras.apps.ComprasConfig',
-    'reportes.apps.ReportesConfig'
+    'reportes.apps.ReportesConfig',
 ]
 
+# ✅ SHARED APPS - Apps en schema PUBLIC (compartidas entre todas las sucursales)
+SHARED_APPS = [
+    'django_tenants',  # Requerido
+    
+    # Django apps necesarias en PUBLIC
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.admin',
+    'django.contrib.humanize',
+    
+    # Third party compartidas
+    'widget_tweaks',
+    
+    # Apps compartidas entre sucursales
+    'core.apps.CoreConfig',      # Sucursales, configuración global
+    'usuarios.apps.UsuariosConfig',  # Usuarios globales (login centralizado)
+]
+
+# ✅ TENANT APPS - Apps en cada schema de sucursal (datos aislados por sucursal)
+TENANT_APPS = [
+    'django.contrib.contenttypes',  # Necesario para relaciones en cada schema
+    
+    # Apps con datos independientes por sucursal
+    'inventario.apps.InventarioConfig',  # Stock independiente por sucursal
+    'clientes.apps.ClientesConfig',      # Clientes independientes por sucursal
+    'ventas.apps.VentasConfig',          # Ventas independientes por sucursal
+    'taller.apps.TallerConfig',          # Órdenes de trabajo por sucursal
+    'compras.apps.ComprasConfig',        # Compras por sucursal
+    'reportes.apps.ReportesConfig',      # Reportes por sucursal
+]
+
+# ✅ TENANT MODEL CONFIGURATION
+TENANT_MODEL = "core.Sucursal"  # Modelo que representa cada sucursal
+TENANT_DOMAIN_MODEL = "core.DominioSucursal"  # Modelo de dominios/subdominios
+
+# ✅ PUBLIC SCHEMA (Schema donde viven las apps compartidas)
+PUBLIC_SCHEMA_NAME = 'public'
+PUBLIC_SCHEMA_URLCONF = 'vpmotos.urls'  # URLs públicas (admin, login, etc.)
+
+# ==================== MIDDLEWARE ====================
+
 MIDDLEWARE = [
+    'django_tenants.middleware.main.TenantMainMiddleware',  # ← DEBE IR PRIMERO
+    
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -93,7 +146,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
+    # Middleware personalizado de roles
     'core.middleware.role_middleware.RoleMiddleware',
+    
+    # ✅ FASE 2 ACTIVADO - Middlewares de sucursales
+    'core.middleware.tenant_middleware.TenantFromUserMiddleware',
+    'core.middleware.schema_middleware.AutoSchemaMiddleware',
 ]
 
 # Agregar WhiteNoise para archivos estáticos en producción
@@ -101,6 +160,8 @@ if not DEBUG:
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'vpmotos.urls'
+
+# ==================== TEMPLATES ====================
 
 TEMPLATES = [
     {
@@ -113,6 +174,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                
+                # ✅ FASE 2 ACTIVADO - Context processor de sucursales
+                'core.context_processors.sucursal_actual',
             ],
         },
     },
@@ -120,7 +184,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'vpmotos.wsgi.application'
 
-# Database
+# ==================== DATABASE ====================
+
+# ✅ CONFIGURACIÓN CON DJANGO-TENANTS
 if 'DATABASE_URL' in os.environ:
     DATABASES = {
         'default': dj_database_url.parse(
@@ -129,10 +195,12 @@ if 'DATABASE_URL' in os.environ:
             conn_health_checks=True,
         )
     }
+    # ✅ CAMBIAR ENGINE para django-tenants
+    DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
+            'ENGINE': 'django_tenants.postgresql_backend',  # ✅ CAMBIO CRÍTICO AQUÍ
             'NAME': os.environ.get('DB_NAME'),
             'USER': os.environ.get('DB_USER'),
             'PASSWORD': os.environ.get('DB_PASSWORD'),
@@ -141,7 +209,13 @@ else:
         }
     }
 
-# Password validation
+# ✅ DATABASE ROUTER para django-tenants
+DATABASE_ROUTERS = (
+    'django_tenants.routers.TenantSyncRouter',
+)
+
+# ==================== PASSWORD VALIDATION ====================
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -149,13 +223,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# ==================== INTERNATIONALIZATION ====================
+
 LANGUAGE_CODE = 'es-ec'
 TIME_ZONE = 'America/Guayaquil'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# ==================== STATIC FILES ====================
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
@@ -163,17 +239,21 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files
+# ==================== MEDIA FILES ====================
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
+# ==================== DEFAULT PRIMARY KEY ====================
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuración del modelo de usuario personalizado
+# ==================== CUSTOM USER MODEL ====================
+
 AUTH_USER_MODEL = 'usuarios.Usuario'
 
-# Configuración de la empresa
+# ==================== VPMOTOS CONFIGURATION ====================
+
 VPMOTOS_SETTINGS = {
     'COMPANY_NAME': os.environ.get('COMPANY_NAME', 'VPMOTOS - High Voltage'),
     'COMPANY_ADDRESS': os.environ.get('COMPANY_ADDRESS', 'Ecuador Pichincha Cayambe Panamericana E35'),
@@ -184,12 +264,14 @@ VPMOTOS_SETTINGS = {
     'DEFAULT_CURRENCY': os.environ.get('DEFAULT_CURRENCY', 'USD'),
 }
 
-# Configuración de autenticación
+# ==================== AUTHENTICATION ====================
+
 LOGIN_URL = 'usuarios:login'
 LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'usuarios:login'
 
-# Configuraciones de seguridad para producción
+# ==================== SECURITY (PRODUCTION) ====================
+
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True

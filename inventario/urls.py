@@ -38,6 +38,16 @@ urlpatterns = [
     path('ajuste/nuevo/', views.crear_ajuste, name='crear_ajuste'),
     
     # ========================================
+    # TRANSFERENCIAS ENTRE SUCURSALES ✅ NUEVO
+    # ========================================
+    path('transferencias/', views.transferencias_lista, name='transferencias_lista'),
+    path('transferencias/crear/', views.transferencia_crear, name='transferencia_crear'),
+    path('transferencias/<int:transferencia_id>/', views.transferencia_detalle, name='transferencia_detalle'),
+    path('transferencias/<int:transferencia_id>/recibir/', views.transferencia_recibir, name='transferencia_recibir'),
+    path('transferencias/<int:transferencia_id>/cancelar/', views.transferencia_cancelar, name='transferencia_cancelar'),
+    path('transferencias/<int:transferencia_id>/detalles/', views.api_transferencia_detalles, name='api_transferencia_detalles'),
+    
+    # ========================================
     # ETIQUETAS
     # ========================================
     path('imprimir-etiquetas/', views.imprimir_etiquetas, name='imprimir_etiquetas'),
@@ -62,6 +72,12 @@ urlpatterns = [
     path('api/buscar-productos-etiquetas/', views.api_buscar_productos_etiquetas, name='api_buscar_productos_etiquetas'),
     path('api/buscar-productos-etiquetas-legacy/', views.buscar_productos_etiquetas, name='buscar_productos_etiquetas'),  # Mantener para compatibilidad
     path('api/categorias-marcas/', views.api_categorias_marcas, name='api_categorias_marcas'),
+    
+    # ========================================
+    # APIs PARA TRANSFERENCIAS ✅ NUEVO
+    # ========================================
+    path('api/transferencias/buscar-productos/', views.api_buscar_productos_transferencia, name='api_buscar_productos_transferencia'),
+    path('api/transferencias/validar-stock/', views.api_validar_stock, name='api_validar_stock'),
     
     # ========================================
     # EXPORTACIÓN E IMPORTACIÓN CSV

@@ -1,20 +1,47 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Permission
+from django.utils.html import format_html
 from .models import Usuario
+
 
 @admin.register(Usuario)
 class UsuarioAdmin(UserAdmin):
     """Administración personalizada del modelo Usuario"""
     
     # Campos a mostrar en la lista
-    list_display = ('usuario', 'nombre', 'apellido', 'email', 'activo', 'is_staff', 'is_superuser', 'fecha_creacion')
+    list_display = (
+        'usuario', 
+        'nombre', 
+        'apellido', 
+        'email', 
+        'sucursal_display',  # ✅ NUEVO
+        'activo', 
+        'is_staff', 
+        'is_superuser', 
+        'fecha_creacion'
+    )
     
     # Filtros laterales
-    list_filter = ('activo', 'is_staff', 'is_superuser', 'fecha_creacion')
+    list_filter = (
+        'activo', 
+        'is_staff', 
+        'is_superuser', 
+        'puede_ver_todas_sucursales',  # ✅ NUEVO
+        'sucursal',  # ✅ NUEVO
+        'fecha_creacion'
+    )
     
     # Campos de búsqueda
-    search_fields = ('usuario', 'nombre', 'apellido', 'email', 'telefono')
+    search_fields = (
+        'usuario', 
+        'nombre', 
+        'apellido', 
+        'email', 
+        'telefono',
+        'sucursal__nombre',  # ✅ NUEVO
+        'sucursal__codigo'  # ✅ NUEVO
+    )
     
     # Orden por defecto
     ordering = ('-fecha_creacion',)
@@ -29,6 +56,11 @@ class UsuarioAdmin(UserAdmin):
         }),
         ('Información Personal', {
             'fields': ('nombre', 'apellido', 'email', 'telefono')
+        }),
+        # ✅ NUEVO FIELDSET
+        ('Asignación de Sucursal', {
+            'fields': ('sucursal', 'puede_ver_todas_sucursales'),
+            'description': 'Asignar el usuario a una sucursal específica o permitir acceso a todas las sucursales.'
         }),
         ('Permisos y Privilegios', {
             'fields': ('activo', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
@@ -49,6 +81,11 @@ class UsuarioAdmin(UserAdmin):
             'classes': ('wide',),
             'fields': ('nombre', 'apellido', 'telefono'),
         }),
+        # ✅ NUEVO FIELDSET
+        ('Asignación de Sucursal', {
+            'classes': ('wide',),
+            'fields': ('sucursal', 'puede_ver_todas_sucursales'),
+        }),
         ('Permisos Iniciales', {
             'classes': ('wide',),
             'fields': ('activo', 'is_staff', 'is_superuser'),
@@ -60,6 +97,27 @@ class UsuarioAdmin(UserAdmin):
     
     # Acciones personalizadas
     actions = ['activar_usuarios', 'desactivar_usuarios', 'hacer_staff', 'quitar_staff']
+    
+    # ✅ NUEVO MÉTODO - Display personalizado para sucursal
+    def sucursal_display(self, obj):
+        """Mostrar sucursal con badge"""
+        if obj.puede_ver_todas_sucursales:
+            return format_html(
+                '<span style="background-color: #28a745; color: white; padding: 3px 10px; '
+                'border-radius: 3px; font-size: 11px;">🌐 TODAS</span>'
+            )
+        elif obj.sucursal:
+            return format_html(
+                '<span style="background-color: #007bff; color: white; padding: 3px 10px; '
+                'border-radius: 3px; font-size: 11px;">📍 {}</span>',
+                obj.sucursal.nombre_corto
+            )
+        else:
+            return format_html(
+                '<span style="background-color: #dc3545; color: white; padding: 3px 10px; '
+                'border-radius: 3px; font-size: 11px;">⚠️ SIN ASIGNAR</span>'
+            )
+    sucursal_display.short_description = 'Sucursal'
     
     def activar_usuarios(self, request, queryset):
         """Activar usuarios seleccionados"""

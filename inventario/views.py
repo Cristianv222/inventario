@@ -1,6 +1,3 @@
-# Agregar estas importaciones al principio de tu archivo views.py
-# (después de las importaciones existentes)
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse, FileResponse
 from django.contrib.auth.decorators import login_required
@@ -9,12 +6,13 @@ from django.contrib import messages
 from django.db.models import Q, Sum, Count, Case, When, IntegerField, F, Avg, DecimalField
 from django.core.paginator import Paginator
 from django.template.loader import get_template
-from django.db import transaction
+from django.db import transaction, connection
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.conf import settings
-
+from django.core.exceptions import ValidationError
+# Python standard library
 from decimal import Decimal
 import json
 import csv
@@ -26,6 +24,7 @@ import os
 import tempfile
 import pandas as pd
 
+# ReportLab para PDFs
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm, mm
@@ -33,9 +32,30 @@ from reportlab.graphics import renderPDF
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode import code128
 
-from .models import Producto, CategoriaProducto, Marca, InventarioAjuste, MovimientoInventario
-from .forms import ProductoForm, CategoriaProductoForm, MarcaForm, InventarioAjusteForm, ProductoSearchForm
+# Modelos locales
+from .models import (
+    Producto, 
+    CategoriaProducto, 
+    Marca, 
+    InventarioAjuste, 
+    MovimientoInventario,
+    TransferenciaInventario,
+    DetalleTransferencia,          
+)
 
+# Forms locales
+from .forms import (
+    ProductoForm, 
+    CategoriaProductoForm, 
+    MarcaForm, 
+    InventarioAjusteForm, 
+    ProductoSearchForm
+)
+
+from .services.transferencias import TransferenciaService
+
+from core.models import Sucursal
+from usuarios.models import Usuario
 # ========================================
 # VISTAS DE PRODUCTOS
 # ========================================
@@ -1355,3 +1375,461 @@ def procesar_lote_productos(filas_csv, tamaño_lote=100):
             errores_globales.append(f"Error en lote {i//tamaño_lote + 1}: {str(e)}")
     
     return productos_procesados, errores_globales
+
+@login_required
+def transferencias_lista(request):
+    """Vista para listar transferencias"""
+    # Obtener sucursal del usuario
+    sucursal_usuario = request.user.sucursal
+    es_admin = request.user.puede_ver_todas_sucursales or request.user.is_superuser
+    
+    # Cambiar a schema PUBLIC para acceder a transferencias
+    from django_tenants.utils import schema_context
+    
+    with schema_context('public'):
+        # Filtrar transferencias según permisos
+        if es_admin:
+            # Admin ve todas
+            transferencias = TransferenciaInventario.objects.all()
+        elif sucursal_usuario:
+            # Usuario ve solo las de su sucursal (enviadas o recibidas)
+            transferencias = TransferenciaInventario.objects.filter(
+                Q(sucursal_origen=sucursal_usuario) | 
+                Q(sucursal_destino=sucursal_usuario)
+            )
+        else:
+            # Usuario sin sucursal no ve nada
+            transferencias = TransferenciaInventario.objects.none()
+        
+        # Aplicar filtros
+        estado_filtro = request.GET.get('estado')
+        if estado_filtro:
+            transferencias = transferencias.filter(estado=estado_filtro)
+        
+        tipo_filtro = request.GET.get('tipo')
+        if tipo_filtro == 'enviadas' and sucursal_usuario:
+            transferencias = transferencias.filter(sucursal_origen=sucursal_usuario)
+        elif tipo_filtro == 'recibidas' and sucursal_usuario:
+            transferencias = transferencias.filter(sucursal_destino=sucursal_usuario)
+        
+        # Búsqueda por número de guía
+        busqueda = request.GET.get('busqueda')
+        if busqueda:
+            transferencias = transferencias.filter(
+                Q(numero_guia__icontains=busqueda) |
+                Q(observaciones_envio__icontains=busqueda)
+            )
+        
+        # Ordenar y paginar
+        transferencias = transferencias.select_related(
+            'sucursal_origen',
+            'sucursal_destino',
+            'usuario_envia',
+            'usuario_recibe'
+        ).order_by('-fecha_envio')
+        
+        # Estadísticas
+        estadisticas = {
+            'total': transferencias.count(),
+            'pendientes': transferencias.filter(estado='PENDIENTE').count(),
+            'en_transito': transferencias.filter(estado='EN_TRANSITO').count(),
+            'recibidas': transferencias.filter(estado='RECIBIDA').count(),
+            'canceladas': transferencias.filter(estado='CANCELADA').count(),
+        }
+        
+        # Paginación
+        paginator = Paginator(transferencias, 20)
+        page_number = request.GET.get('page')
+        transferencias_page = paginator.get_page(page_number)
+        
+        # ✅ AGREGAR: Obtener sucursales disponibles para el modal
+        if es_admin:
+            sucursales_origen = list(Sucursal.objects.filter(activa=True))
+            sucursales_destino = list(Sucursal.objects.filter(activa=True))
+        else:
+            sucursales_origen = [sucursal_usuario] if sucursal_usuario else []
+            sucursales_destino = list(Sucursal.objects.filter(activa=True).exclude(
+                id=sucursal_usuario.id if sucursal_usuario else None
+            ))
+    
+    return render(request, 'inventario/transferencias/lista.html', {
+        'active_page': 'inventario',
+        'transferencias': transferencias_page,
+        'estadisticas': estadisticas,
+        'es_admin': es_admin,
+        # ✅ AGREGAR: Pasar sucursales al contexto
+        'sucursales_origen': sucursales_origen,
+        'sucursales_destino': sucursales_destino,
+    })
+
+
+@login_required
+def transferencia_crear(request):
+    """Vista para crear una nueva transferencia"""
+    sucursal_usuario = request.user.sucursal
+    
+    # Validar que el usuario tenga sucursal asignada
+    if not sucursal_usuario and not request.user.puede_ver_todas_sucursales:
+        messages.error(request, "No tienes una sucursal asignada. Contacta al administrador.")
+        return redirect('inventario:transferencias_lista')
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            data = json.loads(request.body)
+            
+            sucursal_destino_id = data.get('sucursal_destino')
+            productos = data.get('productos', [])
+            observaciones = data.get('observaciones', '')
+            
+            # Validaciones
+            if not sucursal_destino_id:
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': 'Debe seleccionar una sucursal destino'
+                })
+            
+            if not productos:
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': 'Debe agregar al menos un producto'
+                })
+            
+            # Obtener sucursales en schema public
+            from django_tenants.utils import schema_context
+            
+            with schema_context('public'):
+                # Sucursal origen
+                if request.user.puede_ver_todas_sucursales:
+                    # Admin puede seleccionar origen
+                    sucursal_origen_id = data.get('sucursal_origen')
+                    if not sucursal_origen_id:
+                        return JsonResponse({
+                            'success': False,
+                            'mensaje': 'Debe seleccionar una sucursal origen'
+                        })
+                    sucursal_origen = Sucursal.objects.get(id=sucursal_origen_id)
+                else:
+                    sucursal_origen = sucursal_usuario
+                
+                sucursal_destino = Sucursal.objects.get(id=sucursal_destino_id)
+                
+                # Crear transferencia usando el service
+                transferencia = TransferenciaService.crear_transferencia(
+                    sucursal_origen=sucursal_origen,
+                    sucursal_destino=sucursal_destino,
+                    usuario=request.user,
+                    productos=productos,
+                    observaciones=observaciones
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'mensaje': f'Transferencia #{transferencia.numero_guia} creada correctamente',
+                'transferencia_id': transferencia.id,
+                'numero_guia': transferencia.numero_guia
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'mensaje': f'Error al crear transferencia: {str(e)}'
+            })
+    
+    # GET - Mostrar formulario
+    # IMPORTANTE: Forzar schema public para obtener sucursales
+    from django_tenants.utils import schema_context
+    
+    with schema_context('public'):
+        # Obtener sucursales disponibles
+        if request.user.puede_ver_todas_sucursales:
+            sucursales_origen = list(Sucursal.objects.filter(activa=True))
+            sucursales_destino = list(Sucursal.objects.filter(activa=True))
+        else:
+            sucursales_origen = [sucursal_usuario] if sucursal_usuario else []
+            sucursales_destino = list(Sucursal.objects.filter(activa=True).exclude(
+                id=sucursal_usuario.id if sucursal_usuario else None
+            ))
+    
+    return render(request, 'inventario/transferencias/crear.html', {
+        'active_page': 'inventario',
+        'sucursales_origen': sucursales_origen,
+        'sucursales_destino': sucursales_destino,
+        'es_admin': request.user.puede_ver_todas_sucursales,
+    })
+
+
+@login_required
+def transferencia_detalle(request, transferencia_id):
+    """Vista para ver detalle de una transferencia"""
+    from django_tenants.utils import schema_context
+    
+    with schema_context('public'):
+        transferencia = get_object_or_404(
+            TransferenciaInventario.objects.select_related(
+                'sucursal_origen',
+                'sucursal_destino',
+                'usuario_envia',
+                'usuario_recibe'
+            ).prefetch_related('detalles'),
+            id=transferencia_id
+        )
+        
+        # Verificar permisos
+        sucursal_usuario = request.user.sucursal
+        es_admin = request.user.puede_ver_todas_sucursales or request.user.is_superuser
+        
+        if not es_admin and sucursal_usuario:
+            # Verificar que el usuario tenga acceso a esta transferencia
+            if transferencia.sucursal_origen.id != sucursal_usuario.id and \
+               transferencia.sucursal_destino.id != sucursal_usuario.id:
+                messages.error(request, "No tienes permiso para ver esta transferencia")
+                return redirect('inventario:transferencias_lista')
+        
+        # Determinar permisos de acciones
+        puede_recibir = (
+            transferencia.puede_ser_recibida() and
+            sucursal_usuario and
+            transferencia.sucursal_destino.id == sucursal_usuario.id
+        ) or es_admin
+        
+        puede_cancelar = (
+            transferencia.puede_ser_cancelada() and
+            sucursal_usuario and
+            transferencia.sucursal_origen.id == sucursal_usuario.id
+        ) or es_admin
+    
+    return render(request, 'inventario/transferencias/detalle.html', {
+        'active_page': 'inventario',
+        'transferencia': transferencia,
+        'puede_recibir': puede_recibir,
+        'puede_cancelar': puede_cancelar,
+    })
+
+
+@login_required
+def transferencia_recibir(request, transferencia_id):
+    """Vista para recibir una transferencia"""
+    from django_tenants.utils import schema_context
+    
+    with schema_context('public'):
+        transferencia = get_object_or_404(
+            TransferenciaInventario.objects.select_related(
+                'sucursal_origen',
+                'sucursal_destino'
+            ).prefetch_related('detalles'),
+            id=transferencia_id
+        )
+        
+        # Verificar permisos
+        sucursal_usuario = request.user.sucursal
+        es_admin = request.user.puede_ver_todas_sucursales or request.user.is_superuser
+        
+        if not es_admin:
+            if not sucursal_usuario or transferencia.sucursal_destino.id != sucursal_usuario.id:
+                messages.error(request, "No tienes permiso para recibir esta transferencia")
+                return redirect('inventario:transferencias_lista')
+        
+        if not transferencia.puede_ser_recibida():
+            messages.error(request, f"La transferencia está en estado {transferencia.estado} y no puede ser recibida")
+            return redirect('inventario:transferencia_detalle', transferencia_id=transferencia_id)
+        
+        if request.method == 'POST':
+            try:
+                data = json.loads(request.body)
+                productos_recibidos = data.get('productos', [])
+                observaciones = data.get('observaciones', '')
+                
+                if not productos_recibidos:
+                    return JsonResponse({
+                        'success': False,
+                        'mensaje': 'Debe especificar las cantidades recibidas'
+                    })
+                
+                # Recibir transferencia usando el service
+                transferencia = TransferenciaService.recibir_transferencia(
+                    transferencia_id=transferencia_id,
+                    usuario=request.user,
+                    productos_recibidos=productos_recibidos,
+                    observaciones=observaciones
+                )
+                
+                return JsonResponse({
+                    'success': True,
+                    'mensaje': f'Transferencia #{transferencia.numero_guia} recibida correctamente'
+                })
+                
+            except Exception as e:
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': f'Error al recibir transferencia: {str(e)}'
+                })
+        
+        # GET - Mostrar formulario
+        detalles = transferencia.detalles.all()
+    
+    return render(request, 'inventario/transferencias/recibir.html', {
+        'active_page': 'inventario',
+        'transferencia': transferencia,
+        'detalles': detalles,
+    })
+
+
+@login_required
+def transferencia_cancelar(request, transferencia_id):
+    """Vista para cancelar una transferencia"""
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'mensaje': 'Método no permitido'
+        })
+    
+    try:
+        data = json.loads(request.body)
+        motivo = data.get('motivo', '')
+        
+        if not motivo:
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'Debe especificar un motivo de cancelación'
+            })
+        
+        from django_tenants.utils import schema_context
+        
+        with schema_context('public'):
+            # Cancelar usando el service
+            transferencia = TransferenciaService.cancelar_transferencia(
+                transferencia_id=transferencia_id,
+                usuario=request.user,
+                motivo=motivo
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': f'Transferencia #{transferencia.numero_guia} cancelada correctamente'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'mensaje': f'Error al cancelar transferencia: {str(e)}'
+        })
+
+
+# ========================================
+# APIS AUXILIARES
+# ========================================
+
+@login_required
+def api_buscar_productos_transferencia(request):
+    """API para buscar productos en la sucursal origen"""
+    try:
+        sucursal_id = request.GET.get('sucursal_id')
+        termino = request.GET.get('q', '').strip()
+        
+        if not sucursal_id:
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'Sucursal requerida'
+            })
+        
+        from django_tenants.utils import schema_context
+        
+        with schema_context('public'):
+            # Obtener sucursal
+            sucursal = Sucursal.objects.get(id=sucursal_id)
+        
+        # Cambiar al schema de la sucursal
+        with schema_context(sucursal.schema_name):
+            # Buscar productos
+            productos = Producto.objects.filter(activo=True, stock_actual__gt=0)
+            
+            if termino:
+                productos = productos.filter(
+                    Q(nombre__icontains=termino) |
+                    Q(codigo_unico__icontains=termino)
+                )
+            
+            productos = productos.select_related('categoria', 'marca')[:20]
+            
+            # Formatear resultados
+            productos_data = []
+            for producto in productos:
+                productos_data.append({
+                    'id': producto.id,
+                    'codigo': producto.codigo_unico,
+                    'nombre': producto.nombre,
+                    'stock': float(producto.stock_actual),
+                    'precio_venta': float(producto.precio_venta),
+                    'categoria': producto.categoria.nombre if producto.categoria else '',
+                    'marca': producto.marca.nombre if producto.marca else '',
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'productos': productos_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'mensaje': f'Error: {str(e)}'
+        })
+
+
+@login_required
+def api_validar_stock(request):
+    """API para validar stock disponible"""
+    try:
+        data = json.loads(request.body)
+        sucursal_id = data.get('sucursal_id')
+        productos = data.get('productos', [])
+        
+        from django_tenants.utils import schema_context
+        
+        with schema_context('public'):
+            sucursal = Sucursal.objects.get(id=sucursal_id)
+            
+            # Validar usando el service
+            es_valido, errores = TransferenciaService.validar_stock_disponible(
+                sucursal, 
+                productos
+            )
+        
+        return JsonResponse({
+            'success': es_valido,
+            'errores': errores if not es_valido else []
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'mensaje': f'Error: {str(e)}'
+        })
+
+
+@login_required
+def api_transferencia_detalles(request, transferencia_id):
+    """API para obtener detalles de una transferencia"""
+    from django_tenants.utils import schema_context
+    
+    with schema_context('public'):
+        transferencia = get_object_or_404(
+            TransferenciaInventario.objects.prefetch_related('detalles'),
+            id=transferencia_id
+        )
+        
+        detalles_data = []
+        for detalle in transferencia.detalles.all():
+            detalles_data.append({
+                'producto_id': detalle.producto_id if hasattr(detalle, 'producto_id') else None,
+                'producto_codigo': detalle.producto_codigo,
+                'producto_nombre': detalle.producto_nombre,
+                'cantidad_enviada': float(detalle.cantidad_enviada),
+                'cantidad_recibida': float(detalle.cantidad_recibida) if detalle.cantidad_recibida else 0,
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'detalles': detalles_data
+    })

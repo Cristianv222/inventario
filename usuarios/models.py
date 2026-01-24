@@ -22,6 +22,7 @@ class UsuarioManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
         extra_fields.setdefault('activo', True)
+        extra_fields.setdefault('puede_ver_todas_sucursales', True)  # ✅ Admin ve todas
         
         if extra_fields.get('is_staff') is not True:
             raise ValueError('El superusuario debe tener is_staff=True.')
@@ -51,6 +52,23 @@ class Usuario(AbstractUser):
     fecha_creacion = models.DateTimeField(_('fecha de creación'), auto_now_add=True)
     fecha_modificacion = models.DateTimeField(_('fecha de modificación'), auto_now=True)
     
+    # ✅ NUEVOS CAMPOS PARA MULTI-SUCURSAL
+    sucursal = models.ForeignKey(
+        'core.Sucursal',
+        on_delete=models.PROTECT,
+        related_name='usuarios',
+        null=True,
+        blank=True,
+        verbose_name=_('Sucursal'),
+        help_text=_('Sucursal a la que pertenece el usuario')
+    )
+    
+    puede_ver_todas_sucursales = models.BooleanField(
+        _('Puede ver todas las sucursales'),
+        default=False,
+        help_text=_('Permite al usuario acceder a todas las sucursales (solo para administradores generales)')
+    )
+    
     # Configuración del campo de autenticación
     USERNAME_FIELD = 'usuario'
     REQUIRED_FIELDS = ['email', 'nombre', 'apellido']
@@ -64,7 +82,8 @@ class Usuario(AbstractUser):
         ordering = ['-fecha_creacion']
     
     def __str__(self):
-        return f"{self.nombre} {self.apellido} ({self.usuario})"
+        sucursal_info = f" - {self.sucursal.nombre}" if self.sucursal else ""
+        return f"{self.nombre} {self.apellido} ({self.usuario}){sucursal_info}"
     
     def get_nombre_completo(self):
         """Retorna el nombre completo del usuario"""
@@ -78,3 +97,15 @@ class Usuario(AbstractUser):
         """Sobreescribir save para sincronizar activo con is_active"""
         self.is_active = self.activo
         super().save(*args, **kwargs)
+    
+    @property
+    def es_admin_general(self):
+        """Verifica si el usuario es administrador general"""
+        return self.puede_ver_todas_sucursales or self.is_superuser
+    
+    @property
+    def nombre_sucursal(self):
+        """Retorna el nombre de la sucursal o 'Todas' si es admin general"""
+        if self.es_admin_general:
+            return "Todas las sucursales"
+        return self.sucursal.nombre if self.sucursal else "Sin asignar"

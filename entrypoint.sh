@@ -13,7 +13,7 @@ echo "Base de datos lista!"
 
 # Ejecutar migraciones
 echo "Aplicando migraciones..."
-python manage.py migrate --noinput
+python manage.py migrate_schemas --noinput
 
 # Recopilar archivos estáticos
 echo "Recopilando archivos estáticos..."
@@ -44,16 +44,16 @@ if [ -f "/app/ventas/fixtures/initial_data.json" ]; then
 fi
 
 echo "Iniciando servidor Django..."
-# Usar gunicorn en producción
-if [ "$DEBUG" = "False" ]; then
+
+# ✅ CORRECCIÓN: Detectar DEBUG correctamente
+# Convertir a minúsculas para comparar
+DEBUG_LOWER=$(echo "$DEBUG" | tr '[:upper:]' '[:lower:]')
+
+if [ "$DEBUG_LOWER" = "false" ]; then
     echo "Modo producción - usando Gunicorn..."
-    exec gunicorn config.wsgi:application \
+    exec gunicorn vpmotos.wsgi:application \
         --bind 0.0.0.0:8000 \
         --workers 3 \
-        --worker-class gevent \
-        --worker-connections 1000 \
-        --max-requests 1000 \
-        --max-requests-jitter 100 \
         --timeout 30 \
         --keep-alive 2 \
         --log-level info \

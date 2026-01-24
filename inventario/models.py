@@ -195,3 +195,185 @@ def generar_barcode_post_save(sender, instance, created, **kwargs):
     """Genera el código de barras después de guardar el producto si no existe"""
     if not instance.codigo_barras:
         instance.generar_codigo_barras()
+
+class TransferenciaInventario(models.Model):
+    """
+    Transferencias de productos entre sucursales
+    Este modelo vive en el schema PUBLIC para ser accesible desde todas las sucursales
+    """
+    ESTADO_CHOICES = [
+        ('PENDIENTE', 'Pendiente de envío'),
+        ('EN_TRANSITO', 'En tránsito'),
+        ('RECIBIDA', 'Recibida'),
+        ('CANCELADA', 'Cancelada'),
+    ]
+    
+    # Relación con sucursales (schema PUBLIC)
+    sucursal_origen = models.ForeignKey(
+        'core.Sucursal',
+        on_delete=models.PROTECT,
+        related_name='transferencias_enviadas',
+        verbose_name=_('Sucursal Origen')
+    )
+    sucursal_destino = models.ForeignKey(
+        'core.Sucursal',
+        on_delete=models.PROTECT,
+        related_name='transferencias_recibidas',
+        verbose_name=_('Sucursal Destino')
+    )
+    
+    # Usuarios involucrados
+    usuario_envia = models.ForeignKey(
+        Usuario,
+        on_delete=models.PROTECT,
+        related_name='transferencias_enviadas',
+        verbose_name=_('Usuario que envía')
+    )
+    usuario_recibe = models.ForeignKey(
+        Usuario,
+        on_delete=models.PROTECT,
+        related_name='transferencias_recibidas',
+        null=True,
+        blank=True,
+        verbose_name=_('Usuario que recibe')
+    )
+    
+    # Estado y fechas
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='PENDIENTE',
+        verbose_name=_('Estado')
+    )
+    fecha_envio = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Fecha de envío')
+    )
+    fecha_recepcion = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Fecha de recepción')
+    )
+    
+    # Información adicional
+    numero_guia = models.CharField(
+        max_length=50,
+        unique=True,
+        editable=False,
+        verbose_name=_('Número de guía')
+    )
+    observaciones_envio = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('Observaciones del envío')
+    )
+    observaciones_recepcion = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('Observaciones de la recepción')
+    )
+    
+    class Meta:
+        verbose_name = _('Transferencia de Inventario')
+        verbose_name_plural = _('Transferencias de Inventario')
+        ordering = ['-fecha_envio']
+        indexes = [
+            models.Index(fields=['sucursal_origen', 'estado']),
+            models.Index(fields=['sucursal_destino', 'estado']),
+            models.Index(fields=['numero_guia']),
+        ]
+    
+    def __str__(self):
+        return f"Transferencia #{self.numero_guia} - {self.sucursal_origen.codigo} → {self.sucursal_destino.codigo}"
+    
+    def save(self, *args, **kwargs):
+        # Generar número de guía único
+        if not self.numero_guia:
+            import uuid
+            from datetime import datetime
+            fecha = datetime.now().strftime('%Y%m%d')
+            self.numero_guia = f"TRF-{fecha}-{uuid.uuid4().hex[:8].upper()}"
+        
+        super().save(*args, **kwargs)
+    
+    def get_total_productos(self):
+        """Obtiene el total de productos en la transferencia"""
+        return self.detalles.count()
+    
+    def get_total_cantidad(self):
+        """Obtiene la cantidad total de items"""
+        from django.db.models import Sum
+        total = self.detalles.aggregate(total=Sum('cantidad_enviada'))['total']
+        return total or 0
+    
+    def puede_ser_recibida(self):
+        """Verifica si la transferencia puede ser recibida"""
+        return self.estado in ['PENDIENTE', 'EN_TRANSITO']
+    
+    def puede_ser_cancelada(self):
+        """Verifica si la transferencia puede ser cancelada"""
+        return self.estado == 'PENDIENTE'
+
+
+class DetalleTransferencia(models.Model):
+    """
+    Detalle de productos en una transferencia
+    Almacena código y nombre para mantener referencia aunque el producto cambie
+    """
+    transferencia = models.ForeignKey(
+        TransferenciaInventario,
+        on_delete=models.CASCADE,
+        related_name='detalles',
+        verbose_name=_('Transferencia')
+    )
+    
+    # Información del producto (guardada como texto para persistencia)
+    producto_codigo = models.CharField(
+        max_length=50,
+        verbose_name=_('Código del producto')
+    )
+    producto_nombre = models.CharField(
+        max_length=200,
+        verbose_name=_('Nombre del producto')
+    )
+    
+    # Cantidades
+    cantidad_enviada = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name=_('Cantidad enviada')
+    )
+    cantidad_recibida = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_('Cantidad recibida')
+    )
+    
+    # Observaciones sobre diferencias
+    observaciones = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('Observaciones')
+    )
+    
+    class Meta:
+        verbose_name = _('Detalle de Transferencia')
+        verbose_name_plural = _('Detalles de Transferencia')
+        ordering = ['producto_nombre']
+    
+    def __str__(self):
+        return f"{self.producto_nombre} ({self.cantidad_enviada})"
+    
+    def tiene_diferencia(self):
+        """Verifica si hay diferencia entre enviado y recibido"""
+        if self.cantidad_recibida is None:
+            return False
+        return self.cantidad_enviada != self.cantidad_recibida
+    
+    def get_diferencia(self):
+        """Obtiene la diferencia entre enviado y recibido"""
+        if self.cantidad_recibida is None:
+            return 0
+        return self.cantidad_recibida - self.cantidad_enviada

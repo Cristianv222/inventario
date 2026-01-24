@@ -1,0 +1,578 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block breadcrumb_page %}
+<li class="breadcrumb-item"><a href="{% url 'inventario:transferencias_lista' %}">Transferencias</a></li>
+<li class="breadcrumb-item active">Detalle de Transferencia</li>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>
+            <i class="fas fa-exchange-alt"></i> 
+            Transferencia {{ transferencia.numero_guia }}
+        </h1>
+        <p class="text-muted mb-0">
+            <small>
+                <i class="fas fa-calendar me-1"></i> Creada el {{ transferencia.fecha_envio|date:"d/m/Y H:i" }}
+            </small>
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <div class="btn-group">
+            <a href="{% url 'inventario:transferencias_lista' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Volver al Listado
+            </a>
+            
+            {% if puede_recibir %}
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalRecibirTransferencia">
+                <i class="fas fa-check me-1"></i> Recibir
+            </button>
+            {% endif %}
+            
+            {% if puede_cancelar %}
+            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalCancelarTransferencia">
+                <i class="fas fa-times me-1"></i> Cancelar
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Información General -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-2"></i> Información General
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <p class="mb-2"><strong>Número de Guía:</strong></p>
+                        <h4 class="text-primary"><code>{{ transferencia.numero_guia }}</code></h4>
+                    </div>
+                    <div class="col-6">
+                        <p class="mb-2"><strong>Estado:</strong></p>
+                        {% if transferencia.estado == 'PENDIENTE' %}
+                            <h5><span class="badge bg-warning">Pendiente</span></h5>
+                        {% elif transferencia.estado == 'EN_TRANSITO' %}
+                            <h5><span class="badge bg-info">En Tránsito</span></h5>
+                        {% elif transferencia.estado == 'RECIBIDA' %}
+                            <h5><span class="badge bg-success">Recibida</span></h5>
+                        {% else %}
+                            <h5><span class="badge bg-danger">Cancelada</span></h5>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Sucursal Origen:</strong></p>
+                        <p class="text-muted">
+                            <i class="fas fa-store me-1"></i> {{ transferencia.sucursal_origen.nombre }}
+                        </p>
+                        
+                        <p class="mt-3"><strong>Enviado por:</strong></p>
+                        <p class="text-muted">
+                            <i class="fas fa-user me-1"></i> {{ transferencia.usuario_envia.get_full_name }}
+                        </p>
+                        
+                        <p class="mt-3"><strong>Fecha de Envío:</strong></p>
+                        <p class="text-muted">
+                            <i class="fas fa-calendar me-1"></i> {{ transferencia.fecha_envio|date:"d/m/Y H:i" }}
+                        </p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <p><strong>Sucursal Destino:</strong></p>
+                        <p class="text-muted">
+                            <i class="fas fa-store me-1"></i> {{ transferencia.sucursal_destino.nombre }}
+                        </p>
+                        
+                        {% if transferencia.usuario_recibe %}
+                        <p class="mt-3"><strong>Recibido por:</strong></p>
+                        <p class="text-muted">
+                            <i class="fas fa-user me-1"></i> {{ transferencia.usuario_recibe.get_full_name }}
+                        </p>
+                        {% endif %}
+                        
+                        {% if transferencia.fecha_recepcion %}
+                        <p class="mt-3"><strong>Fecha de Recepción:</strong></p>
+                        <p class="text-muted">
+                            <i class="fas fa-calendar-check me-1"></i> {{ transferencia.fecha_recepcion|date:"d/m/Y H:i" }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if transferencia.observaciones_envio %}
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <h6><i class="fas fa-comment me-2"></i>Observaciones de Envío:</h6>
+                        <p class="text-muted mb-0">{{ transferencia.observaciones_envio }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if transferencia.observaciones_recepcion %}
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <h6><i class="fas fa-comment-dots me-2"></i>Observaciones de Recepción:</h6>
+                        <p class="text-muted mb-0">{{ transferencia.observaciones_recepcion }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if transferencia.estado == 'CANCELADA' and transferencia.motivo_cancelacion %}
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-danger mb-0">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Motivo de Cancelación:
+                            </h6>
+                            <p class="mb-0">{{ transferencia.motivo_cancelacion }}</p>
+                            {% if transferencia.fecha_cancelacion %}
+                            <hr class="my-2">
+                            <small class="text-muted">
+                                Cancelada el {{ transferencia.fecha_cancelacion|date:"d/m/Y H:i" }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen de Productos -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2"></i> Resumen
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h3 class="text-primary mb-0">{{ transferencia.detalles.count }}</h3>
+                            <small class="text-muted">Productos Diferentes</small>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h3 class="text-info mb-0">
+                                {% widthratio transferencia.detalles.all|length 1 1 as total %}
+                                {{ transferencia.total_unidades|default:"0" }}
+                            </h3>
+                            <small class="text-muted">Unidades Totales</small>
+                        </div>
+                    </div>
+                </div>
+
+                {% if transferencia.estado == 'RECIBIDA' %}
+                <hr>
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Transferencia completada exitosamente</strong>
+                    <br>
+                    <small>Los productos han sido agregados al inventario de {{ transferencia.sucursal_destino.nombre }}</small>
+                </div>
+                {% elif transferencia.estado == 'EN_TRANSITO' %}
+                <hr>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-shipping-fast me-2"></i>
+                    <strong>Transferencia en tránsito</strong>
+                    <br>
+                    <small>Los productos están en camino a {{ transferencia.sucursal_destino.nombre }}</small>
+                </div>
+                {% elif transferencia.estado == 'PENDIENTE' %}
+                <hr>
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    <strong>Transferencia pendiente</strong>
+                    <br>
+                    <small>Esperando confirmación para ser enviada</small>
+                </div>
+                {% endif %}
+
+                {% if transferencia.estado != 'CANCELADA' %}
+                <hr>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i> Imprimir Guía de Transferencia
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detalle de Productos -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-boxes me-2"></i> Detalle de Productos
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="15%">Código</th>
+                                <th width="35%">Producto</th>
+                                <th width="15%" class="text-center">Cantidad Enviada</th>
+                                {% if transferencia.estado == 'RECIBIDA' %}
+                                <th width="15%" class="text-center">Cantidad Recibida</th>
+                                <th width="10%" class="text-center">Diferencia</th>
+                                {% endif %}
+                                <th width="15%" class="text-end">Precio Unitario</th>
+                                <th width="15%" class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for detalle in transferencia.detalles.all %}
+                            <tr>
+                                <td><code>{{ detalle.producto_codigo }}</code></td>
+                                <td>{{ detalle.producto_nombre }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">{{ detalle.cantidad_enviada }}</span>
+                                </td>
+                                {% if transferencia.estado == 'RECIBIDA' %}
+                                <td class="text-center">
+                                    <span class="badge bg-success">{{ detalle.cantidad_recibida|default:"0" }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% widthratio detalle.cantidad_enviada 1 1 as enviada %}
+                                    {% widthratio detalle.cantidad_recibida|default:"0" 1 1 as recibida %}
+                                    {% if detalle.cantidad_recibida != detalle.cantidad_enviada %}
+                                        <span class="badge bg-warning">
+                                            {{ detalle.cantidad_recibida|default:"0"|add:"-"|add:detalle.cantidad_enviada|floatformat:0 }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">0</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                <td class="text-end">${{ detalle.precio_unitario|floatformat:2 }}</td>
+                                <td class="text-end">
+                                    <strong>${{ detalle.cantidad_enviada|multiply:detalle.precio_unitario|floatformat:2 }}</strong>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="{% if transferencia.estado == 'RECIBIDA' %}7{% else %}5{% endif %}" 
+                                    class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <p class="mb-0">No hay productos en esta transferencia</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if transferencia.detalles.count > 0 %}
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="{% if transferencia.estado == 'RECIBIDA' %}6{% else %}4{% endif %}" class="text-end">
+                                    Total:
+                                </th>
+                                <th class="text-end">
+                                    ${% widthratio 1 1 0 as total %}
+                                    {% for detalle in transferencia.detalles.all %}
+                                        {% widthratio detalle.cantidad_enviada 1 detalle.precio_unitario as subtotal %}
+                                        {% widthratio total 1 1 as temp %}
+                                        {% widthratio temp|add:subtotal 1 1 as total %}
+                                    {% endfor %}
+                                    {{ total|floatformat:2 }}
+                                </th>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================
+     MODAL: RECIBIR TRANSFERENCIA
+     ======================================== -->
+{% if puede_recibir %}
+<div class="modal fade" id="modalRecibirTransferencia" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check me-2"></i> Recibir Transferencia {{ transferencia.numero_guia }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Verifique las cantidades recibidas. Puede ajustarlas si hay diferencias con lo enviado.
+                </div>
+
+                <form id="formRecibirTransferencia">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="50%">Producto</th>
+                                    <th width="20%" class="text-center">Cantidad Enviada</th>
+                                    <th width="30%">Cantidad Recibida</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detalle in transferencia.detalles.all %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ detalle.producto_codigo }}</strong><br>
+                                        <small class="text-muted">{{ detalle.producto_nombre }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info fs-6">{{ detalle.cantidad_enviada }}</span>
+                                    </td>
+                                    <td>
+                                        <input type="number" 
+                                               class="form-control form-control-sm cantidad-recibida" 
+                                               data-producto-id="{{ detalle.producto_id }}"
+                                               data-enviada="{{ detalle.cantidad_enviada }}"
+                                               value="{{ detalle.cantidad_enviada }}" 
+                                               min="0" 
+                                               max="{{ detalle.cantidad_enviada }}" 
+                                               step="1"
+                                               onchange="validarCantidadRecibida(this)">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones de Recepción</label>
+                        <textarea id="observacionesRecepcion" 
+                                  class="form-control" 
+                                  rows="3" 
+                                  placeholder="Notas sobre la recepción (opcional)..."></textarea>
+                        <small class="text-muted">
+                            Indique si hubo alguna diferencia en las cantidades o daños en los productos.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="confirmarRecepcion()">
+                    <i class="fas fa-check me-1"></i> Confirmar Recepción
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ========================================
+     MODAL: CANCELAR TRANSFERENCIA
+     ======================================== -->
+{% if puede_cancelar %}
+<div class="modal fade" id="modalCancelarTransferencia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Cancelar Transferencia
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    ¿Está seguro de cancelar la transferencia <strong>{{ transferencia.numero_guia }}</strong>?
+                    <br><br>
+                    Esta acción <strong>no se puede deshacer</strong> y los productos volverán a estar disponibles 
+                    en el inventario de {{ transferencia.sucursal_origen.nombre }}.
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Motivo de cancelación <span class="text-danger">*</span></label>
+                    <textarea id="motivoCancelacion" 
+                              class="form-control" 
+                              rows="3" 
+                              placeholder="Especifique el motivo de la cancelación..." 
+                              required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-arrow-left me-1"></i> No, volver
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmarCancelacion()">
+                    <i class="fas fa-times me-1"></i> Sí, cancelar transferencia
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// ==================== VALIDACIÓN ====================
+function validarCantidadRecibida(input) {
+    const enviada = parseFloat(input.dataset.enviada);
+    const recibida = parseFloat(input.value);
+    
+    if (recibida > enviada) {
+        mostrarAlerta('warning', `La cantidad recibida no puede ser mayor a la enviada (${enviada})`);
+        input.value = enviada;
+    }
+    
+    if (recibida < 0) {
+        mostrarAlerta('warning', 'La cantidad recibida no puede ser negativa');
+        input.value = 0;
+    }
+}
+
+// ==================== RECIBIR TRANSFERENCIA ====================
+async function confirmarRecepcion() {
+    const cantidades = document.querySelectorAll('.cantidad-recibida');
+    
+    const productos = Array.from(cantidades).map(input => ({
+        producto_id: input.dataset.productoId,
+        cantidad_recibida: parseFloat(input.value)
+    }));
+    
+    // Validar que al menos haya alguna cantidad recibida
+    const totalRecibido = productos.reduce((sum, p) => sum + p.cantidad_recibida, 0);
+    if (totalRecibido === 0) {
+        mostrarAlerta('warning', 'Debe recibir al menos un producto');
+        return;
+    }
+    
+    const data = {
+        productos: productos,
+        observaciones: document.getElementById('observacionesRecepcion').value
+    };
+    
+    try {
+        const response = await fetch('{% url "inventario:transferencia_recibir" transferencia.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            mostrarAlerta('success', result.mensaje);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            mostrarAlerta('danger', result.mensaje);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarAlerta('danger', 'Error al recibir la transferencia');
+    }
+}
+
+// ==================== CANCELAR TRANSFERENCIA ====================
+async function confirmarCancelacion() {
+    const motivo = document.getElementById('motivoCancelacion').value.trim();
+    
+    if (!motivo) {
+        mostrarAlerta('warning', 'Debe especificar un motivo de cancelación');
+        return;
+    }
+    
+    try {
+        const response = await fetch('{% url "inventario:transferencia_cancelar" transferencia.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ motivo })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            mostrarAlerta('success', result.mensaje);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            mostrarAlerta('danger', result.mensaje);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarAlerta('danger', 'Error al cancelar la transferencia');
+    }
+}
+
+// ==================== UTILIDADES ====================
+function mostrarAlerta(tipo, mensaje) {
+    const alertHtml = `
+        <div class="alert alert-${tipo} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" 
+             style="z-index: 9999; min-width: 300px; max-width: 500px;" role="alert">
+            <i class="fas fa-${tipo === 'success' ? 'check-circle' : tipo === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+            ${mensaje}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => alert.remove());
+    }, 5000);
+}
+
+// ==================== ESTILOS DE IMPRESIÓN ====================
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    @media print {
+        .btn, .breadcrumb, .card-header, button {
+            display: none !important;
+        }
+        .card {
+            border: 1px solid #dee2e6 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+        .card-body {
+            padding: 1rem !important;
+        }
+    }
+`;
+document.head.appendChild(styleSheet);
+</script>
+
+<!-- Template filter personalizado para multiplicar -->
+{% load static %}
+<script>
+// Filtro personalizado para calcular subtotales
+document.addEventListener('DOMContentLoaded', function() {
+    // Calcular total
+    let total = 0;
+    document.querySelectorAll('tbody tr').forEach(row => {
+        const cantidad = parseFloat(row.querySelector('td:nth-child(3) .badge')?.textContent || 0);
+        const precio = parseFloat(row.querySelector('td:nth-last-child(2)')?.textContent?.replace('$', '') || 0);
+        total += cantidad * precio;
+    });
+});
+</script>
+{% endblock %}
