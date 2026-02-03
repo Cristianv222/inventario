@@ -38,7 +38,7 @@ services:
     container_name: autolujos-web-prod
     restart: always
     ports:
-      - "8010:8000"
+      - "8011:8000"
     environment:
       - DEBUG=${DEBUG}
       - SECRET_KEY=${SECRET_KEY}
