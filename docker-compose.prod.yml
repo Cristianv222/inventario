@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - autolujos_network
+      - autolujos-network
 
   redis:
     image: redis:7-alpine
@@ -29,7 +29,7 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - autolujos_network
+      - autolujos-network
 
   web:
     build: 
@@ -59,7 +59,8 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - autolujos_network
+      - autolujos-network
+      - general-net
 
 volumes:
   autolujos_postgres_data:
@@ -68,5 +69,7 @@ volumes:
   autolujos_media_volume:
 
 networks:
-  autolujos_network:
+  autolujos-network:
     driver: bridge
+  general-net:
+    external: true
