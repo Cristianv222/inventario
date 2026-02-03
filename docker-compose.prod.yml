@@ -1,41 +1,41 @@
 services:
   db:
     image: postgres:15
-    container_name: inventario-db-prod
+    container_name: autolujos-db-prod
     restart: always
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
+      - autolujos_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - inventario_network
+      - autolujos_network
 
   redis:
     image: redis:7-alpine
-    container_name: inventario-redis-prod
+    container_name: autolujos-redis-prod
     restart: always
     volumes:
-      - redis_data_prod:/data
+      - autolujos_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
     networks:
-      - inventario_network
+      - autolujos_network
 
   web:
     build: 
       context: .
       dockerfile: Dockerfile.prod
-    container_name: inventario-web-prod
+    container_name: autolujos-web-prod
     restart: always
     ports:
       - "8010:8000"
@@ -51,22 +51,22 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - autolujos_static_volume:/app/staticfiles
+      - autolujos_media_volume:/app/media
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
-      - inventario_network
+      - autolujos_network
 
 volumes:
-  postgres_data_prod:
-  redis_data_prod:
-  static_volume:
-  media_volume:
+  autolujos_postgres_data:
+  autolujos_redis_data:
+  autolujos_static_volume:
+  autolujos_media_volume:
 
 networks:
-  inventario_network:
+  autolujos_network:
     driver: bridge
