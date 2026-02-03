@@ -36,7 +36,7 @@ FROM python:3.11-slim-bullseye AS runtime
 LABEL maintainer="AutoLujos Team <info@autolujos.com>" \
       description="Sistema de Inventario AutoLujos - Producción" \
       version="1.0.0" \
-      org.opencontainers.image.vendor="AutoLujos"
+      org.opencontainers.image.vendor="FronteraTech"
 
 # Variables de entorno optimizadas
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -97,10 +97,6 @@ USER appuser
 
 # Exponer puerto
 EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
 
 # Punto de entrada
 ENTRYPOINT ["/app/entrypoint.sh"]
