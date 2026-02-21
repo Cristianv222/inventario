@@ -1,75 +1,106 @@
 services:
   db:
     image: postgres:15
-    container_name: autolujos-db-prod
-    restart: always
+    container_name: inventario-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - autolujos_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - autolujos-network
+      - inventario_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 256M
 
   redis:
     image: redis:7-alpine
-    container_name: autolujos-redis-prod
-    restart: always
+    container_name: inventario-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --maxmemory 64mb
+      --maxmemory-policy allkeys-lru
     volumes:
-      - autolujos_redis_data:/data
+      - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
     networks:
-      - autolujos-network
+      - inventario_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 96M
 
   web:
-    build: 
+    build:
       context: .
-      dockerfile: Dockerfile.prod
-    container_name: autolujos-web-prod
-    restart: always
-    ports:
-      - "8011:8000"
-    environment:
-      - DEBUG=${DEBUG}
-      - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - REDIS_URL=${REDIS_URL}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=db
-      - DB_PORT=5432
+      dockerfile: Dockerfile  # usa el Dockerfile principal
+    container_name: inventario-web
+    restart: unless-stopped
+    env_file:
+      - .env.prod
     volumes:
-      - autolujos_static_volume:/app/staticfiles
-      - autolujos_media_volume:/app/media
+      - static_volume:/app/static        # archivos estáticos fuente
+      - staticfiles_volume:/app/staticfiles  # collectstatic output
+      - media_volume:/app/media          # imágenes subidas por usuarios
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
-      - autolujos-network
-      - general-net
-
-volumes:
-  autolujos_postgres_data:
-  autolujos_redis_data:
-  autolujos_static_volume:
-  autolujos_media_volume:
+      - inventario_network
+      - proxy-network
+      - vpmotos_shared_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.40'
+          memory: 384M
 
 networks:
-  autolujos-network:
+  inventario_network:
     driver: bridge
-  general-net:
+    name: inventario_inventario_network
+  proxy-network:
     external: true
+  vpmotos_shared_network:
+    external: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /apps/inventario/static
+  staticfiles_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /apps/inventario/staticfiles
+  media_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /apps/inventario/media
