@@ -82,7 +82,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-2 col-lg-4 col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
@@ -98,7 +98,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-2 col-lg-4 col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
@@ -114,7 +114,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-2 col-lg-4 col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
@@ -130,7 +130,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-2 col-lg-4 col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
@@ -146,40 +146,30 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-2 col-lg-4 col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100 border-primary border-2">
             <div class="card-body">
                 <p class="text-muted mb-2 small">Acciones Rápidas</p>
                 <div class="d-flex gap-1 flex-wrap">
-                    <a href="{% url 'inventario:transferencias_lista' %}" 
-                       class="btn btn-sm btn-secondary" 
-                       data-bs-toggle="tooltip" 
-                       title="Transferencias entre sucursales">
+                    <a href="{% url 'inventario:transferencias_lista' %}" class="btn btn-sm btn-secondary"
+                        data-bs-toggle="tooltip" title="Transferencias entre sucursales">
                         <i class="fas fa-exchange-alt"></i>
                     </a>
-                    <a href="{% url 'inventario:importar_productos' %}" 
-                       class="btn btn-sm btn-success" 
-                       data-bs-toggle="tooltip" 
-                       title="Importar productos">
+                    <a href="{% url 'inventario:importar_productos' %}" class="btn btn-sm btn-success"
+                        data-bs-toggle="tooltip" title="Importar productos">
                         <i class="fas fa-upload"></i>
                     </a>
-                    <a href="{% url 'inventario:exportar_productos' %}" 
-                       class="btn btn-sm btn-info text-white" 
-                       data-bs-toggle="tooltip" 
-                       title="Exportar productos">
+                    <a href="{% url 'inventario:exportar_productos' %}" class="btn btn-sm btn-info text-white"
+                        data-bs-toggle="tooltip" title="Exportar productos">
                         <i class="fas fa-download"></i>
                     </a>
-                    <a href="{% url 'inventario:imprimir_etiquetas' %}" 
-                       class="btn btn-sm btn-warning text-white" 
-                       data-bs-toggle="tooltip" 
-                       title="Imprimir etiquetas">
+                    <a href="{% url 'inventario:imprimir_etiquetas' %}" class="btn btn-sm btn-warning text-white"
+                        data-bs-toggle="tooltip" title="Imprimir etiquetas">
                         <i class="fas fa-print"></i>
                     </a>
-                    <a href="{% url 'inventario:lista_ajustes' %}" 
-                       class="btn btn-sm btn-dark" 
-                       data-bs-toggle="tooltip" 
-                       title="Ver ajustes">
+                    <a href="{% url 'inventario:lista_ajustes' %}" class="btn btn-sm btn-dark"
+                        data-bs-toggle="tooltip" title="Ver ajustes">
                         <i class="fas fa-sliders-h"></i>
                     </a>
                 </div>
@@ -195,8 +185,8 @@
             <h5 class="mb-0">
                 <i class="fas fa-filter text-primary me-2"></i> Filtros de Búsqueda
             </h5>
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
-                    data-bs-target="#filtrosCollapse" aria-expanded="true">
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                data-bs-target="#filtrosCollapse" aria-expanded="true">
                 <i class="fas fa-chevron-down"></i>
             </button>
         </div>
@@ -270,21 +260,35 @@
                 <thead class="table-light">
                     <tr>
                         <th width="10%">Código</th>
-                        <th width="25%">Nombre</th>
+                        <th width="8%">Imagen</th>
+                        <th width="20%">Nombre</th>
                         <th width="12%">Categoría</th>
                         <th width="12%">Marca</th>
-                        <th width="10%" class="text-end">P. Compra</th>
                         <th width="10%" class="text-end">P. Venta</th>
                         <th width="8%" class="text-center">Stock</th>
                         <th width="8%" class="text-center">Estado</th>
-                        <th width="15%" class="text-center">Acciones</th>
+                        <th width="12%" class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for producto in productos %}
-                    <tr {% if producto.stock_actual == 0 %}class="table-danger"{% elif producto.es_stock_bajo %}class="table-warning"{% endif %}>
+                    {% if producto.stock_actual == 0 %}
+                    <tr class="table-danger">
+                    {% elif producto.es_stock_bajo %}
+                    <tr class="table-warning">
+                    {% else %}
+                    <tr>
+                    {% endif %}
                         <td>
                             <code class="bg-light px-2 py-1 rounded">{{ producto.codigo_unico }}</code>
+                        </td>
+                        <td>
+                            {% if producto.imagen %}
+                            <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="img-thumbnail"
+                                style="width: 50px; height: 50px; object-fit: cover;">
+                            {% else %}
+                            <span class="text-muted small"><i class="fas fa-image fa-2x opacity-25"></i></span>
+                            {% endif %}
                         </td>
                         <td>
                             <div>
@@ -305,24 +309,21 @@
                             </span>
                         </td>
                         <td class="text-end">
-                            <span class="text-muted">${{ producto.precio_compra|floatformat:2 }}</span>
-                        </td>
-                        <td class="text-end">
-                            <strong class="text-success fw-bold">${{ producto.precio_venta|floatformat:2 }}</strong>
+                            <strong class="text-success fw-bold">${{ producto.precio_final|floatformat:2 }}</strong>
                         </td>
                         <td class="text-center">
                             {% if producto.stock_actual == 0 %}
-                                <span class="badge bg-danger text-white">
-                                    <i class="fas fa-times me-1"></i>{{ producto.stock_actual }}
-                                </span>
+                            <span class="badge bg-danger text-white">
+                                <i class="fas fa-times me-1"></i>{{ producto.stock_actual }}
+                            </span>
                             {% elif producto.es_stock_bajo %}
-                                <span class="badge bg-warning text-white">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>{{ producto.stock_actual }}
-                                </span>
+                            <span class="badge bg-warning text-white">
+                                <i class="fas fa-exclamation-triangle me-1"></i>{{ producto.stock_actual }}
+                            </span>
                             {% else %}
-                                <span class="badge bg-success text-white">
-                                    {{ producto.stock_actual }}
-                                </span>
+                            <span class="badge bg-success text-white">
+                                {{ producto.stock_actual }}
+                            </span>
                             {% endif %}
                         </td>
                         <td class="text-center">
@@ -338,31 +339,25 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="{% url 'inventario:detalle_producto' producto.id %}" 
-                                   class="btn btn-info text-white" 
-                                   title="Ver detalles" 
-                                   data-bs-toggle="tooltip">
+                                <a href="{% url 'inventario:detalle_producto' producto.id %}"
+                                    class="btn btn-info text-white" title="Ver detalles" data-bs-toggle="tooltip">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{% url 'inventario:editar_producto' producto.id %}" 
-                                   class="btn btn-primary" 
-                                   title="Editar" 
-                                   data-bs-toggle="tooltip">
+                                <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary"
+                                    title="Editar" data-bs-toggle="tooltip">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{% url 'inventario:crear_ajuste' %}?producto_id={{ producto.id %}" 
-                                   class="btn btn-warning text-white" 
-                                   title="Ajustar stock" 
-                                   data-bs-toggle="tooltip">
+                                <a href="{% url 'inventario:crear_ajuste' %}?producto_id={{ producto.id }}"
+                                    class="btn btn-warning text-white" title="Ajustar stock" data-bs-toggle="tooltip">
                                     <i class="fas fa-sliders-h"></i>
                                 </a>
-                                <button type="button" 
-                                        class="btn btn-{% if producto.activo %}danger{% else %}success{% endif %} btn-toggle-estado"
-                                        data-producto-id="{{ producto.id }}"
-                                        data-producto-nombre="{{ producto.nombre }}"
-                                        data-estado-actual="{{ producto.activo|yesno:'true,false' }}"
-                                        title="{% if producto.activo %}Desactivar{% else %}Activar{% endif %}" 
-                                        data-bs-toggle="tooltip">
+                                <button type="button"
+                                    class="btn btn-{% if producto.activo %}danger{% else %}success{% endif %} btn-toggle-estado"
+                                    data-producto-id="{{ producto.id }}"
+                                    data-producto-nombre="{{ producto.nombre }}"
+                                    data-estado-actual="{{ producto.activo|yesno:'true,false' }}"
+                                    title="{% if producto.activo %}Desactivar{% else %}Activar{% endif %}"
+                                    data-bs-toggle="tooltip">
                                     <i class="fas {% if producto.activo %}fa-times{% else %}fa-check{% endif %}"></i>
                                 </button>
                             </div>
@@ -386,15 +381,15 @@
             </table>
         </div>
     </div>
-    
+
     <!-- Paginación -->
     {% if productos.has_other_pages %}
     <div class="card-footer bg-light">
         <div class="row align-items-center">
             <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
                 <small class="text-muted">
-                    Mostrando <strong>{{ productos.start_index }}</strong> a 
-                    <strong>{{ productos.end_index }}</strong> de 
+                    Mostrando <strong>{{ productos.start_index }}</strong> a
+                    <strong>{{ productos.end_index }}</strong> de
                     <strong>{{ productos.paginator.count }}</strong> productos
                 </small>
             </div>
@@ -403,12 +398,14 @@
                     <ul class="pagination justify-content-center justify-content-md-end mb-0">
                         {% if productos.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <a class="page-link"
+                                href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                                 <i class="fas fa-angle-double-left"></i>
                             </a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ productos.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <a class="page-link"
+                                href="?page={{ productos.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                                 <i class="fas fa-angle-left"></i>
                             </a>
                         </li>
@@ -422,25 +419,30 @@
                         {% endif %}
 
                         {% for i in productos.paginator.page_range %}
-                            {% if productos.number == i %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ i }}</span>
-                            </li>
-                            {% elif i > productos.number|add:'-3' and i < productos.number|add:'3' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a>
-                            </li>
-                            {% endif %}
+                        {% if productos.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                        {% elif i > productos.number|add:"-3" and i < productos.number|add:"3" %}
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ i }}
+                            </a>
+                        </li>
+                        {% endif %}
                         {% endfor %}
 
                         {% if productos.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ productos.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <a class="page-link"
+                                href="?page={{ productos.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                                 <i class="fas fa-angle-right"></i>
                             </a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ productos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <a class="page-link"
+                                href="?page={{ productos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                                 <i class="fas fa-angle-double-right"></i>
                             </a>
                         </li>
@@ -492,99 +494,92 @@
 
 {% block inventory_js %}
 <script>
-$(document).ready(function() {
-    // ==================== TOOLTIPS ====================
-    $('[data-bs-toggle="tooltip"]').tooltip();
-    
-    // ==================== FILTROS AUTOMÁTICOS ====================
-    $('#id_categoria, #id_marca, #id_activo').on('change', function() {
-        $('#searchForm').submit();
+    $(document).ready(function () {
+        // ==================== TOOLTIPS ====================
+        $('[data-bs-toggle="tooltip"]').tooltip();
+
+        // ==================== FILTROS AUTOMÁTICOS ====================
+        $('#id_categoria, #id_marca, #id_activo').on('change', function () {
+            $('#searchForm').submit();
+        });
+
+        // ==================== CONFIRMACIÓN DE ACTIVAR/DESACTIVAR ====================
+        $('.btn-toggle-estado').on('click', function (e) {
+            e.preventDefault();
+
+            const productoId = $(this).data('producto-id');
+            const productoNombre = $(this).data('producto-nombre');
+            const estadoActual = $(this).data('estado-actual') === 'true';
+
+            const accion = estadoActual ? 'desactivar' : 'activar';
+            const textoModal = `¿Estás seguro que deseas <strong>${accion}</strong> el producto "<strong>${productoNombre}</strong>"?`;
+
+            $('#modalToggleEstadoTexto').html(textoModal);
+            $('#formToggleEstado').attr('action', `/inventario/producto/${productoId}/activar/`);
+
+            const $btnConfirmar = $('#btnConfirmarToggle');
+            $btnConfirmar.removeClass('btn-danger btn-success')
+                .addClass(estadoActual ? 'btn-danger' : 'btn-success')
+                .html(`<i class="fas fa-${estadoActual ? 'times' : 'check'} me-1"></i>${accion.charAt(0).toUpperCase() + accion.slice(1)}`);
+
+            new bootstrap.Modal(document.getElementById('modalToggleEstado')).show();
+        });
+
+        // ==================== ANIMACIÓN EN CARDS ====================
+        $('.card').hover(
+            function () { $(this).addClass('shadow-lg').css('transform', 'translateY(-2px)'); },
+            function () { $(this).removeClass('shadow-lg').css('transform', 'translateY(0)'); }
+        );
     });
-    
-    // ==================== CONFIRMACIÓN DE ACTIVAR/DESACTIVAR ====================
-    $('.btn-toggle-estado').on('click', function(e) {
-        e.preventDefault();
-        
-        const productoId = $(this).data('producto-id');
-        const productoNombre = $(this).data('producto-nombre');
-        const estadoActual = $(this).data('estado-actual') === 'true';
-        
-        const accion = estadoActual ? 'desactivar' : 'activar';
-        const textoModal = `¿Estás seguro que deseas <strong>${accion}</strong> el producto "<strong>${productoNombre}</strong>"?`;
-        
-        $('#modalToggleEstadoTexto').html(textoModal);
-        $('#formToggleEstado').attr('action', `/inventario/producto/${productoId}/activar/`);
-        
-        const $btnConfirmar = $('#btnConfirmarToggle');
-        $btnConfirmar.removeClass('btn-danger btn-success')
-                     .addClass(estadoActual ? 'btn-danger' : 'btn-success')
-                     .html(`<i class="fas fa-${estadoActual ? 'times' : 'check'} me-1"></i>${accion.charAt(0).toUpperCase() + accion.slice(1)}`);
-        
-        new bootstrap.Modal(document.getElementById('modalToggleEstado')).show();
-    });
-    
-    // ==================== ANIMACIÓN EN CARDS ====================
-    $('.card').hover(
-        function() { $(this).addClass('shadow-lg').css('transform', 'translateY(-2px)'); },
-        function() { $(this).removeClass('shadow-lg').css('transform', 'translateY(0)'); }
-    );
-});
 </script>
 
 <style>
-/* Transiciones suaves */
-.card {
-    transition: all 0.3s ease;
-}
-
-.btn {
-    transition: all 0.2s ease;
-}
-
-/* Tabla responsive mejorada */
-.table-responsive {
-    border-radius: 0;
-}
-
-/* Hover en filas */
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-
-/* Badges mejorados */
-.badge {
-    font-weight: 500;
-    padding: 0.4em 0.8em;
-}
-
-/* Código de producto */
-code {
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-/* Botones de paginación */
-.pagination .page-link {
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.25rem;
-    margin: 0 2px;
-}
-
-.pagination .page-item.active .page-link {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .card-body h3 {
-        font-size: 1.5rem;
+    .card {
+        transition: all 0.3s ease;
     }
-    
-    .btn-group-sm > .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
+
+    .btn {
+        transition: all 0.2s ease;
     }
-}
+
+    .table-responsive {
+        border-radius: 0;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .badge {
+        font-weight: 500;
+        padding: 0.4em 0.8em;
+    }
+
+    code {
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .pagination .page-link {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.25rem;
+        margin: 0 2px;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    @media (max-width: 768px) {
+        .card-body h3 {
+            font-size: 1.5rem;
+        }
+
+        .btn-group-sm>.btn {
+            padding: 0.25rem 0.4rem;
+            font-size: 0.75rem;
+        }
+    }
 </style>
 {% endblock %}

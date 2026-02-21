@@ -61,6 +61,9 @@ class Producto(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_ultima_compra = models.DateTimeField(null=True, blank=True)
     ubicacion_almacen = models.CharField(max_length=100, blank=True, null=True)
+    imagen = models.ImageField(upload_to='productos/', blank=True, null=True, verbose_name=_('Imagen Principal'))
+    imagen_2 = models.ImageField(upload_to='productos/', blank=True, null=True, verbose_name=_('Imagen 2'))
+    imagen_3 = models.ImageField(upload_to='productos/', blank=True, null=True, verbose_name=_('Imagen 3'))
     codigo_barras = models.ImageField(upload_to='codigos_barras/', blank=True, null=True)
     
     class Meta:
@@ -97,6 +100,18 @@ class Producto(models.Model):
             return round(precio_calculado, 2)
         return self.precio_compra
     
+    
+    @property
+    def precio_final(self):
+        """Retorna el precio de venta con IVA incluido si aplica"""
+        from decimal import Decimal
+        from django.conf import settings
+        if self.incluye_iva:
+            iva_rate = Decimal(str(settings.VPMOTOS_SETTINGS.get('IVA_PERCENTAGE', 15.0))) / 100
+            if self.precio_venta:
+                return round(self.precio_venta * (1 + iva_rate), 2)
+        return self.precio_venta
+
     def generar_codigo_barras(self):
         """Genera la imagen del código de barras"""
         try:

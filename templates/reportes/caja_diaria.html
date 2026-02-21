@@ -1,784 +1,929 @@
 {% extends 'base.html' %}
-{% load reportes_extras %}
 
 {% block title %}Caja Diaria - {{ fecha|date:"d/m/Y" }} - VPMOTOS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* ========== VARIABLES CSS ========== */
-    :root {
-        --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
-        --success-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        --warning-gradient: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
-        --danger-gradient: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
-        --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        --card-shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.15);
-        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        --border-radius-lg: 12px;
-    }
+:root {
+    --vp-blue:#2563eb;--vp-blue-light:#eff6ff;--vp-green:#16a34a;--vp-green-light:#f0fdf4;
+    --vp-red:#dc2626;--vp-red-light:#fef2f2;--vp-yellow:#d97706;--vp-yellow-light:#fffbeb;
+    --vp-purple:#7c3aed;--vp-gray-50:#f8fafc;--vp-gray-100:#f1f5f9;--vp-gray-200:#e2e8f0;
+    --vp-gray-500:#64748b;--vp-gray-700:#334155;--vp-gray-900:#0f172a;
+    --radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+    --shadow-md:0 4px 6px rgba(0,0,0,.07);--transition:all .2s ease;
+}
+.rp-page{padding:1.5rem;background:var(--vp-gray-50);min-height:100vh;}
+.rp-page-header{display:flex;justify-content:space-between;align-items:flex-start;
+    flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem;padding-bottom:1.25rem;
+    border-bottom:2px solid var(--vp-gray-200);}
+.rp-page-title{font-size:1.5rem;font-weight:700;color:var(--vp-gray-900);margin:0;}
+.rp-page-title i{color:var(--vp-blue);}
 
-    /* ========== LAYOUT GENERAL ========== */
-    .content-wrapper {
-        padding: 1.5rem;
-        background-color: var(--light);
-        min-height: 100vh;
-    }
+/* Stat cards */
+.rp-stat{background:#fff;border:1px solid var(--vp-gray-200);border-radius:var(--radius);
+    padding:1.25rem;box-shadow:var(--shadow);transition:var(--transition);height:100%;}
+.rp-stat:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+.rp-stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;
+    justify-content:center;font-size:1.1rem;margin-bottom:.875rem;}
+.rp-stat-icon.blue{background:var(--vp-blue-light);color:var(--vp-blue);}
+.rp-stat-icon.green{background:var(--vp-green-light);color:var(--vp-green);}
+.rp-stat-icon.red{background:var(--vp-red-light);color:var(--vp-red);}
+.rp-stat-icon.yellow{background:var(--vp-yellow-light);color:var(--vp-yellow);}
+.rp-stat-icon.purple{background:#f5f3ff;color:var(--vp-purple);}
+.rp-stat-val{font-size:1.5rem;font-weight:700;color:var(--vp-gray-900);line-height:1;}
+.rp-stat-label{font-size:.78rem;font-weight:600;color:var(--vp-gray-500);
+    text-transform:uppercase;letter-spacing:.4px;margin:.3rem 0 .25rem;}
+.rp-stat-meta{font-size:.78rem;color:var(--vp-gray-500);}
 
-    /* ========== HEADER DE CAJA ========== */
-    .caja-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: var(--border-radius-lg);
-        padding: 2rem;
-        margin-bottom: 2rem;
-        position: relative;
-        overflow: hidden;
-    }
+/* Caja banner */
+.rp-caja-banner{
+    background:linear-gradient(135deg,#1e40af 0%,#2563eb 50%,#0ea5e9 100%);
+    border-radius:var(--radius);padding:1.25rem 1.75rem;color:#fff;margin-bottom:1.75rem;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;
+    box-shadow:var(--shadow-md);}
+.rp-caja-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    color:#fff;padding:.5rem 1.25rem;border-radius:25px;font-weight:600;font-size:.875rem;
+    text-decoration:none;transition:var(--transition);backdrop-filter:blur(8px);}
+.rp-caja-badge:hover{background:rgba(255,255,255,.28);color:#fff;}
 
-    .caja-header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
-        animation: move 20s linear infinite;
-        opacity: 0.1;
-    }
+/* Card genérica */
+.rp-card{background:#fff;border:1px solid var(--vp-gray-200);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;}
+.rp-card-header{padding:.875rem 1.25rem;background:var(--vp-gray-50);
+    border-bottom:1px solid var(--vp-gray-200);display:flex;
+    justify-content:space-between;align-items:center;}
+.rp-card-title{font-size:.95rem;font-weight:700;color:var(--vp-gray-700);
+    display:flex;align-items:center;gap:.5rem;margin:0;}
+.rp-card-title i{color:var(--vp-blue);}
 
-    @keyframes move {
-        0% { transform: translate(-50%, -50%); }
-        100% { transform: translate(-50%, -50%) rotate(360deg); }
-    }
+/* Navegación fecha */
+.rp-date-nav{background:#fff;border:1px solid var(--vp-gray-200);border-radius:var(--radius);
+    padding:1rem 1.25rem;box-shadow:var(--shadow);margin-bottom:1.5rem;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;}
 
-    .caja-content {
-        position: relative;
-        z-index: 2;
-    }
+/* Tabs */
+.rp-tabs{display:flex;gap:0;background:var(--vp-gray-100);
+    border-radius:var(--radius) var(--radius) 0 0;padding:.5rem;flex-wrap:wrap;}
+.rp-tab{padding:.6rem 1.1rem;border-radius:8px;border:none;background:transparent;
+    font-size:.85rem;font-weight:600;color:var(--vp-gray-500);cursor:pointer;
+    transition:var(--transition);}
+.rp-tab.active,.rp-tab:hover{background:#fff;color:var(--vp-blue);
+    box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.rp-tab-content{background:#fff;border:1px solid var(--vp-gray-200);
+    border-top:none;border-radius:0 0 var(--radius) var(--radius);overflow:hidden;}
 
-    /* ========== NAVEGACIÓN DE FECHA ========== */
-    .nav-date {
-        background: white;
-        border-radius: var(--border-radius-lg);
-        padding: 1.5rem;
-        box-shadow: var(--card-shadow);
-        margin-bottom: 2rem;
-        border: 1px solid var(--gray-200);
-    }
+/* Transaction row */
+.rp-tx{display:flex;align-items:center;gap:.875rem;padding:.875rem 1.25rem;
+    border-bottom:1px solid var(--vp-gray-100);transition:var(--transition);}
+.rp-tx:last-child{border-bottom:none;}
+.rp-tx:hover{background:var(--vp-gray-50);padding-left:1.5rem;}
+.rp-tx-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:.85rem;flex-shrink:0;}
+.rp-tx-dot.venta{background:var(--vp-green-light);color:var(--vp-green);}
+.rp-tx-dot.gasto{background:var(--vp-red-light);color:var(--vp-red);}
+.rp-tx-dot.orden{background:var(--vp-yellow-light);color:var(--vp-yellow);}
+.rp-tx-dot.online{background:#f5f3ff;color:var(--vp-purple);}
+.rp-tx-body{flex:1;min-width:0;}
+.rp-tx-body strong{font-size:.875rem;color:var(--vp-gray-700);display:block;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rp-tx-body small{font-size:.78rem;color:var(--vp-gray-500);}
+.rp-tx-amount{font-size:.95rem;font-weight:700;white-space:nowrap;}
+.rp-tx-amount.pos{color:var(--vp-green);}
+.rp-tx-amount.neg{color:var(--vp-red);}
 
-    .nav-date .btn {
-        border-radius: 25px;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        transition: var(--transition-smooth);
-    }
+/* Desglose billetes */
+.rp-billete-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.75rem;padding:1.25rem;}
+.rp-billete{background:#fff;border:1.5px solid var(--vp-gray-200);border-radius:10px;
+    padding:.875rem;text-align:center;transition:var(--transition);}
+.rp-billete:hover{border-color:var(--vp-blue);box-shadow:var(--shadow-md);}
+.rp-billete.has-value{border-color:var(--vp-green);background:var(--vp-green-light);}
+.rp-billete-denom{font-size:1.1rem;font-weight:700;color:var(--vp-gray-900);}
+.rp-billete-tipo{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--vp-gray-500);margin:.2rem 0 .5rem;}
+.rp-billete input{width:100%;text-align:center;border:1px solid var(--vp-gray-200);
+    border-radius:6px;padding:.35rem;font-size:1rem;font-weight:600;
+    color:var(--vp-gray-900);background:#fff;}
+.rp-billete input:focus{outline:none;border-color:var(--vp-blue);box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+.rp-billete-sub{font-size:.8rem;color:var(--vp-green);font-weight:600;margin-top:.35rem;min-height:1.2em;}
 
-    .nav-date .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
+/* Cuadre */
+.rp-cuadre{border-radius:var(--radius);padding:1.25rem;margin-top:.75rem;text-align:center;}
+.rp-cuadre.ok{background:var(--vp-green-light);border:1.5px solid #86efac;}
+.rp-cuadre.bad{background:var(--vp-red-light);border:1.5px solid #fca5a5;}
+.rp-cuadre-num{font-size:1.75rem;font-weight:700;line-height:1;}
+.rp-cuadre.ok .rp-cuadre-num{color:var(--vp-green);}
+.rp-cuadre.bad .rp-cuadre-num{color:var(--vp-red);}
 
-    /* ========== BALANCE CARDS ========== */
-    .balance-card {
-        background: white;
-        border-radius: var(--border-radius-lg);
-        padding: 1.5rem;
-        box-shadow: var(--card-shadow);
-        border-left: 4px solid var(--primary);
-        transition: var(--transition-smooth);
-        height: 100%;
-    }
+/* Empty */
+.rp-empty{text-align:center;padding:2.5rem 1rem;color:var(--vp-gray-500);}
+.rp-empty i{font-size:2.5rem;opacity:.3;margin-bottom:.75rem;display:block;}
 
-    .balance-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--card-shadow-hover);
-    }
+/* Status */
+.rp-status{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .875rem;
+    border-radius:20px;font-size:.8rem;font-weight:600;}
+.rp-status.abierto{background:var(--vp-green-light);color:var(--vp-green);border:1px solid #86efac;}
+.rp-status.cerrado{background:var(--vp-red-light);color:var(--vp-red);border:1px solid #fca5a5;}
 
-    .balance-card.income {
-        border-left-color: #28a745;
-        background: linear-gradient(135deg, white 0%, rgba(40, 167, 69, 0.02) 100%);
-    }
-
-    .balance-card.expense {
-        border-left-color: #dc3545;
-        background: linear-gradient(135deg, white 0%, rgba(220, 53, 69, 0.02) 100%);
-    }
-
-    .balance-card.payment {
-        border-left-color: #17a2b8;
-        background: linear-gradient(135deg, white 0%, rgba(23, 162, 184, 0.02) 100%);
-    }
-
-    .balance-card h6 {
-        color: var(--gray-600);
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.75rem;
-    }
-
-    .balance-card h3 {
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-    }
-
-    .balance-card small {
-        color: var(--gray-500);
-        font-size: 0.8rem;
-    }
-
-    /* ========== COMPARATIVO CARD ========== */
-    .comparison-card {
-        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-        border-radius: var(--border-radius-lg);
-        padding: 1.5rem;
-        color: #8B4513;
-        margin-bottom: 2rem;
-        border: 1px solid rgba(252, 182, 159, 0.3);
-    }
-
-    .comparison-card h5 {
-        margin-bottom: 1rem;
-        font-weight: 600;
-    }
-
-    .amount-positive {
-        color: #28a745;
-        font-weight: 600;
-    }
-
-    .amount-negative {
-        color: #dc3545;
-        font-weight: 600;
-    }
-
-    /* ========== TABS ========== */
-    .nav-tabs {
-        border: none;
-        background: #f8f9fa;
-        border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-        padding: 0.5rem;
-        margin-bottom: 0;
-    }
-
-    .nav-tabs .nav-link {
-        border: none;
-        border-radius: 8px;
-        margin: 0 0.25rem;
-        font-weight: 500;
-        color: var(--gray-600);
-        transition: var(--transition-smooth);
-        padding: 0.75rem 1.25rem;
-    }
-
-    .nav-tabs .nav-link.active {
-        background: white;
-        color: var(--primary);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transform: translateY(-1px);
-    }
-
-    .nav-tabs .nav-link:hover:not(.active) {
-        background: rgba(255,255,255,0.7);
-        color: var(--primary);
-    }
-
-    .tab-content {
-        background: white;
-        border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
-        box-shadow: var(--card-shadow);
-        border: 1px solid var(--gray-200);
-        border-top: none;
-    }
-
-    /* ========== TRANSACTION ITEMS ========== */
-    .transaction-item {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 1.25rem;
-        margin-bottom: 0.75rem;
-        border-left: 4px solid var(--gray-300);
-        transition: var(--transition-smooth);
-        cursor: pointer;
-    }
-
-    .transaction-item:hover {
-        background: #e9ecef;
-        transform: translateX(8px);
-        box-shadow: var(--card-shadow);
-    }
-
-    .transaction-item.venta {
-        border-left-color: #28a745;
-        background: linear-gradient(135deg, #f8f9fa 0%, rgba(40, 167, 69, 0.05) 100%);
-    }
-
-    .transaction-item.gasto {
-        border-left-color: #dc3545;
-        background: linear-gradient(135deg, #f8f9fa 0%, rgba(220, 53, 69, 0.05) 100%);
-    }
-
-    .transaction-item.servicio {
-        border-left-color: #17a2b8;
-        background: linear-gradient(135deg, #f8f9fa 0%, rgba(23, 162, 184, 0.05) 100%);
-    }
-
-    /* ========== BOTONES ========== */
-    .btn-close-cash {
-        background: var(--success-gradient);
-        border: none;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 25px;
-        font-weight: 600;
-        font-size: 1.1rem;
-        transition: var(--transition-smooth);
-        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-    }
-
-    .btn-close-cash:hover {
-        transform: scale(1.05);
-        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
-        color: white;
-    }
-
-    /* ========== STATUS BADGES ========== */
-    .status-badge {
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .status-abierto {
-        background-color: rgba(40, 167, 69, 0.15);
-        color: #155724;
-        border: 1px solid rgba(40, 167, 69, 0.3);
-    }
-
-    .status-cerrado {
-        background-color: rgba(220, 53, 69, 0.15);
-        color: #721c24;
-        border: 1px solid rgba(220, 53, 69, 0.3);
-    }
-
-    /* ========== RESPONSIVE ========== */
-    @media (max-width: 768px) {
-        .content-wrapper {
-            padding: 1rem;
-        }
-
-        .caja-header {
-            padding: 1.5rem;
-        }
-
-        .balance-card {
-            margin-bottom: 1.5rem;
-            padding: 1.25rem;
-        }
-
-        .nav-date {
-            padding: 1rem;
-        }
-
-        .nav-date .row {
-            gap: 1rem;
-        }
-
-        .nav-tabs .nav-link {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.9rem;
-        }
-    }
-
-    /* ========== ANIMACIONES ========== */
-    .animate-fade-in {
-        animation: fadeInUp 0.8s ease-out;
-    }
-
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* ========== UTILIDADES ========== */
-    .no-content {
-        text-align: center;
-        padding: 3rem 2rem;
-        color: var(--gray-500);
-    }
-
-    .no-content i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
+@media(max-width:768px){.rp-page{padding:1rem;}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid content-wrapper">
-    <!-- ========== HEADER DE CAJA ========== -->
-    <div class="caja-header animate-fade-in">
-        <div class="caja-content">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="h2 mb-2">
-                        <i class="fas fa-cash-register me-2"></i>
-                        Caja Diaria
-                    </h1>
-                    <p class="mb-0 fs-5">{{ fecha|date:"l, d F Y" }}</p>
+<div class="rp-page">
+
+    <!-- ── HEADER ───────────────────────────────────────────────── -->
+    <div class="rp-page-header">
+        <div>
+            <h1 class="rp-page-title"><i class="fas fa-cash-register me-2"></i>Caja Diaria</h1>
+            <p style="color:var(--vp-gray-500);font-size:.875rem;margin:.25rem 0 0;">{{ fecha|date:"l, d \d\e F \d\e Y" }}</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="rp-status {% if cierre.estado == 'ABIERTO' %}abierto{% else %}cerrado{% endif %}">
+                <i class="fas fa-{% if cierre.estado == 'ABIERTO' %}unlock{% else %}lock{% endif %}"></i>
+                {{ cierre.estado }}
+            </span>
+            {% if puede_cerrar %}
+            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalCerrar">
+                <i class="fas fa-lock me-1"></i>Cerrar Caja
+            </button>
+            {% endif %}
+            {% if cierre.estado == 'CERRADO' and request.user.is_superuser %}
+            {% with fecha_str=fecha|date:"Y-m-d" fecha_display=fecha|date:"d/m/Y" %}
+            <a href="{% url 'reportes:reabrir_caja' fecha_str %}" class="btn btn-outline-warning btn-sm"
+               onclick="return confirm('¿Reabrir caja del {{ fecha_display }}?')">
+                <i class="fas fa-unlock me-1"></i>Reabrir
+            </a>
+            {% endwith %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── NAVEGACIÓN FECHA ──────────────────────────────────────── -->
+    {% with fecha_str=fecha|date:"Y-m-d" %}
+    <div class="rp-date-nav">
+        <a href="javascript:void(0)" onclick="irFechaAnterior('{{ fecha_str }}')" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-chevron-left me-1"></i>Anterior
+        </a>
+        <input type="date" value="{{ fecha_str }}" class="form-control form-control-sm w-auto"
+               onchange="window.location='?fecha='+this.value">
+        {% if fecha < hoy %}
+        <a href="?fecha={{ fecha_str }}" class="btn btn-sm btn-outline-secondary">
+            Siguiente<i class="fas fa-chevron-right ms-1"></i>
+        </a>
+        {% else %}
+        <span class="btn btn-sm btn-outline-secondary disabled">Siguiente<i class="fas fa-chevron-right ms-1"></i></span>
+        {% endif %}
+    </div>
+    {% endwith %}
+
+    <!-- ── TOTALES ───────────────────────────────────────────────── -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon blue"><i class="fas fa-play-circle"></i></div>
+                <div class="rp-stat-val">${{ cierre.saldo_inicial|floatformat:2 }}</div>
+                <div class="rp-stat-label">Saldo inicial</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon green"><i class="fas fa-arrow-up"></i></div>
+                <div class="rp-stat-val" style="color:var(--vp-green)">${{ cierre.total_ingresos|floatformat:2 }}</div>
+                <div class="rp-stat-label">Total ingresos</div>
+                <div class="rp-stat-meta">{{ cierre.cantidad_ventas }} ventas</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon yellow"><i class="fas fa-shopping-cart"></i></div>
+                <div class="rp-stat-val">${{ cierre.total_ventas_productos|floatformat:2 }}</div>
+                <div class="rp-stat-label">Productos</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon blue"><i class="fas fa-tools"></i></div>
+                <div class="rp-stat-val">${{ cierre.total_ventas_servicios|floatformat:2 }}</div>
+                <div class="rp-stat-label">Servicios POS</div>
+            </div>
+        </div>
+        {% if online_disponible %}
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon purple"><i class="fas fa-globe"></i></div>
+                <div class="rp-stat-val">${{ cierre.total_ventas_online|floatformat:2 }}</div>
+                <div class="rp-stat-label">Online</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if taller_disponible %}
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon yellow"><i class="fas fa-wrench"></i></div>
+                <div class="rp-stat-val">${{ cierre.total_ordenes_taller|floatformat:2 }}</div>
+                <div class="rp-stat-label">Taller</div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon red"><i class="fas fa-arrow-down"></i></div>
+                <div class="rp-stat-val" style="color:var(--vp-red)">${{ cierre.total_gastos_dia|floatformat:2 }}</div>
+                <div class="rp-stat-label">Gastos</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon green"><i class="fas fa-flag-checkered"></i></div>
+                <div class="rp-stat-val" style="color:{% if cierre.saldo_final >= 0 %}var(--vp-green){% else %}var(--vp-red){% endif %}">
+                    ${{ cierre.saldo_final|floatformat:2 }}
                 </div>
-                <div class="col-md-4 text-md-end">
-                    <div class="d-flex align-items-center justify-content-md-end gap-3">
-                        <span class="status-badge {% if cierre.estado == 'ABIERTO' %}status-abierto{% else %}status-cerrado{% endif %}">
-                            <i class="fas fa-{% if cierre.estado == 'ABIERTO' %}unlock{% else %}lock{% endif %}"></i>
-                            {% if cierre.estado == 'ABIERTO' %}Caja Abierta{% else %}Caja Cerrada{% endif %}
-                        </span>
-                        {% if puede_cerrar %}
-                            <button type="button" class="btn btn-close-cash" data-bs-toggle="modal" data-bs-target="#cerrarCajaModal">
-                                <i class="fas fa-lock me-2"></i>
-                                Cerrar Caja
-                            </button>
-                        {% endif %}
+                <div class="rp-stat-label">Saldo final</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MÉTODOS DE PAGO ───────────────────────────────────────── -->
+    <div class="rp-card mb-4">
+        <div class="rp-card-header">
+            <h6 class="rp-card-title"><i class="fas fa-credit-card"></i>Distribución por método de pago</h6>
+        </div>
+        <div class="p-3">
+            <div class="row g-3">
+                {% for metodo in metodos_pago %}
+                <div class="col-6 col-md-3">
+                    <div style="background:var(--vp-gray-50);border:1px solid var(--vp-gray-200);border-radius:8px;padding:.875rem;text-align:center;">
+                        <div style="font-size:1.25rem;font-weight:700;color:var(--vp-gray-900)">${{ metodo.total|floatformat:2 }}</div>
+                        <div style="font-size:.8rem;font-weight:600;color:var(--vp-gray-700);margin:.2rem 0;">{{ metodo.tipo_pago }}</div>
+                        <div style="font-size:.75rem;color:var(--vp-gray-500);">{{ metodo.cantidad }} transacciones</div>
                     </div>
                 </div>
+                {% empty %}
+                <div class="col-12"><div class="rp-empty" style="padding:1.25rem;"><p>Sin ventas registradas hoy</p></div></div>
+                {% endfor %}
             </div>
         </div>
     </div>
 
-    <!-- ========== NAVEGACIÓN DE FECHA ========== -->
-    <div class="nav-date animate-fade-in">
-        <div class="row align-items-center">
-            <div class="col-md-4">
-                {% with fecha_anterior=fecha|add_days:-1 %}
-                <a href="?fecha={{ fecha_anterior|date:'Y-m-d' }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-chevron-left me-2"></i>
-                    Día Anterior
-                </a>
-                {% endwith %}
-            </div>
-            <div class="col-md-4 text-center">
-                <input type="date" id="fechaSelector" value="{{ fecha|date:'Y-m-d' }}" 
-                       class="form-control d-inline-block w-auto" onchange="cambiarFecha(this.value)">
-            </div>
-            <div class="col-md-4 text-end">
-                {% if fecha < hoy %}
-                    {% with fecha_siguiente=fecha|add_days:1 %}
-                    <a href="?fecha={{ fecha_siguiente|date:'Y-m-d' }}" class="btn btn-outline-secondary">
-                        Día Siguiente
-                        <i class="fas fa-chevron-right ms-2"></i>
-                    </a>
-                    {% endwith %}
+    <!-- ── TABS ──────────────────────────────────────────────────── -->
+    <div class="mb-4">
+        <div class="rp-tabs" id="cajaTabs">
+            <button class="rp-tab active" onclick="showTab('ventas',this)">
+                <i class="fas fa-shopping-cart me-1"></i>Ventas POS ({{ ventas_dia.count }})
+            </button>
+            {% if online_disponible %}
+            <button class="rp-tab" onclick="showTab('online',this)">
+                <i class="fas fa-globe me-1"></i>Online ({{ pedidos_dia|length }})
+            </button>
+            {% endif %}
+            {% if taller_disponible %}
+            <button class="rp-tab" onclick="showTab('taller',this)">
+                <i class="fas fa-tools me-1"></i>Taller ({{ ordenes_dia|length }})
+            </button>
+            {% endif %}
+            <button class="rp-tab" onclick="showTab('gastos',this)">
+                <i class="fas fa-receipt me-1"></i>Gastos ({{ gastos_dia.count }})
+            </button>
+            <button class="rp-tab" onclick="showTab('desglose',this)">
+                <i class="fas fa-money-bill-wave me-1"></i>Conteo de Caja
+                {% if cierre.diferencia_efectivo and cierre.diferencia_efectivo != 0 %}
+                <span class="badge bg-{% if cierre.diferencia_efectivo > 0 %}success{% else %}danger{% endif %} ms-1" style="font-size:.65rem;">
+                    {% if cierre.diferencia_efectivo > 0 %}+{% endif %}${{ cierre.diferencia_efectivo|floatformat:2 }}
+                </span>
                 {% endif %}
-            </div>
+            </button>
         </div>
-    </div>
 
-    <!-- ========== RESUMEN DE TOTALES ========== -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="balance-card income animate-fade-in">
-                <h6>Saldo Inicial</h6>
-                <h3>{{ cierre.saldo_inicial|currency }}</h3>
-            </div>
-        </div>
-        
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="balance-card income animate-fade-in">
-                <h6>Total Ingresos</h6>
-                <h3 class="text-success">{{ cierre.total_ingresos|currency }}</h3>
-                <small>{{ cierre.cantidad_ventas|default:"0" }} ventas</small>
-            </div>
-        </div>
-        
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="balance-card expense animate-fade-in">
-                <h6>Total Gastos</h6>
-                <h3 class="text-danger">{{ cierre.total_gastos|currency }}</h3>
-                <small>{{ cierre.cantidad_gastos|default:"0" }} gastos</small>
-            </div>
-        </div>
-        
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="balance-card animate-fade-in">
-                <h6>Saldo Final</h6>
-                <h3 class="{% if cierre.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {{ cierre.saldo_final|currency }}
-                </h3>
-            </div>
-        </div>
-        
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="balance-card payment animate-fade-in">
-                <h6>Efectivo</h6>
-                <h3>{{ cierre.efectivo_ventas|currency }}</h3>
-                {% if cierre.diferencia_efectivo != 0 %}
-                    <small class="{% if cierre.diferencia_efectivo > 0 %}text-success{% else %}text-danger{% endif %}">
-                        Dif: {% format_currency_difference cierre.diferencia_efectivo %}
-                    </small>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="balance-card payment animate-fade-in">
-                <h6>Otros Métodos</h6>
-                <h3>{{ cierre.tarjeta_ventas|add:cierre.transferencia_ventas|currency }}</h3>
-                <small>Tarjeta + Transferencia</small>
-            </div>
-        </div>
-    </div>
+        <div class="rp-tab-content">
 
-    <!-- ========== COMPARATIVO ========== -->
-    {% if comparativo %}
-    <div class="comparison-card animate-fade-in">
-        <h5>
-            <i class="fas fa-chart-line me-2"></i>
-            Comparativo con Día Anterior
-        </h5>
-        <div class="row">
-            <div class="col-md-4">
-                <strong>Ventas:</strong>
-                <span class="{% if comparativo.diferencia_ventas >= 0 %}amount-positive{% else %}amount-negative{% endif %} ms-2">
-                    {% format_currency_difference comparativo.diferencia_ventas %}
-                </span>
-            </div>
-            <div class="col-md-4">
-                <strong>Gastos:</strong>
-                <span class="{% if comparativo.diferencia_gastos <= 0 %}amount-positive{% else %}amount-negative{% endif %} ms-2">
-                    {% format_currency_difference comparativo.diferencia_gastos %}
-                </span>
-            </div>
-            <div class="col-md-4">
-                <strong>Utilidad:</strong>
-                {% with diferencia_utilidad=comparativo.diferencia_ventas|subtract_days:comparativo.diferencia_gastos %}
-                <span class="{% if diferencia_utilidad >= 0 %}amount-positive{% else %}amount-negative{% endif %} ms-2">
-                    {% format_currency_difference diferencia_utilidad %}
-                </span>
-                {% endwith %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- ========== MÉTODOS DE PAGO ========== -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm animate-fade-in">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">
-                        <i class="fas fa-credit-card text-primary me-2"></i>
-                        Distribución por Método de Pago
-                    </h5>
+            <!-- VENTAS POS -->
+            <div id="tab-ventas">
+                {% for venta in ventas_dia %}
+                <div class="rp-tx">
+                    <div class="rp-tx-dot venta"><i class="fas fa-shopping-cart"></i></div>
+                    <div class="rp-tx-body">
+                        <strong>
+                            <a href="{% url 'ventas:detalle_venta' venta.id %}" class="text-decoration-none" style="color:var(--vp-gray-700);">
+                                Factura #{{ venta.numero_factura }}
+                            </a>
+                        </strong>
+                        <small>{{ venta.cliente }} · {{ venta.fecha_hora|time:"H:i" }} · {{ venta.tipo_pago }}</small>
+                    </div>
+                    <span class="rp-tx-amount pos">${{ venta.total|floatformat:2 }}</span>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for metodo in metodos_pago %}
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="text-center p-3 bg-light rounded">
-                                <h4 class="text-primary mb-1">{{ metodo.total|currency }}</h4>
-                                <p class="mb-1 fw-bold">{{ metodo.tipo_pago }}</p>
-                                <small class="text-muted">
-                                    {{ metodo.cantidad }} transacciones
-                                    <br>
-                                    <span class="badge bg-primary bg-opacity-10 text-primary">
-                                        {{ metodo.total|percentage:cierre.total_ingresos }}
-                                    </span>
-                                </small>
-                            </div>
+                {% empty %}
+                <div class="rp-empty"><i class="fas fa-shopping-cart"></i><p>Sin ventas hoy</p></div>
+                {% endfor %}
+            </div>
+
+            <!-- ONLINE -->
+            {% if online_disponible %}
+            <div id="tab-online" style="display:none;">
+                {% for pedido in pedidos_dia %}
+                <div class="rp-tx">
+                    <div class="rp-tx-dot online"><i class="fas fa-globe"></i></div>
+                    <div class="rp-tx-body">
+                        <strong>Pedido #{{ pedido.id }}</strong>
+                        <small>{{ pedido.nombres_comprador }} · {{ pedido.metodo_pago }}</small>
+                    </div>
+                    <span class="rp-tx-amount pos">${{ pedido.total|floatformat:2 }}</span>
+                </div>
+                {% empty %}
+                <div class="rp-empty"><i class="fas fa-globe"></i><p>Sin pedidos online entregados hoy</p></div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- TALLER -->
+            {% if taller_disponible %}
+            <div id="tab-taller" style="display:none;">
+                {% for orden in ordenes_dia %}
+                <div class="rp-tx">
+                    <div class="rp-tx-dot orden"><i class="fas fa-tools"></i></div>
+                    <div class="rp-tx-body">
+                        <strong>{{ orden.numero_orden }} — {{ orden.moto_marca }} {{ orden.moto_modelo }}</strong>
+                        <small>{{ orden.cliente }} · Técnico: {{ orden.tecnico_principal.get_nombre_completo }}</small>
+                    </div>
+                    <span class="rp-tx-amount pos">${{ orden.precio_total|floatformat:2 }}</span>
+                </div>
+                {% empty %}
+                <div class="rp-empty"><i class="fas fa-tools"></i><p>Sin órdenes completadas hoy</p></div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- GASTOS -->
+            <div id="tab-gastos" style="display:none;">
+                <div class="p-3 border-bottom d-flex justify-content-end">
+                    <a href="{% url 'reportes:crear_gasto' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>Registrar gasto
+                    </a>
+                </div>
+                {% for gasto in gastos_dia %}
+                <div class="rp-tx">
+                    <div class="rp-tx-dot gasto"><i class="fas fa-receipt"></i></div>
+                    <div class="rp-tx-body">
+                        <strong>{{ gasto.concepto }}</strong>
+                        <small>{{ gasto.get_categoria_display }} · {{ gasto.usuario.get_nombre_completo }}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="rp-tx-amount neg">${{ gasto.monto|floatformat:2 }}</div>
+                        <span class="badge bg-{% if gasto.aprobado %}success{% else %}warning text-dark{% endif %}" style="font-size:.65rem;">
+                            {% if gasto.aprobado %}Aprobado{% else %}Pendiente{% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="rp-empty">
+                    <i class="fas fa-receipt"></i>
+                    <p>Sin gastos registrados</p>
+                    <a href="{% url 'reportes:crear_gasto' %}" class="btn btn-sm btn-primary">Registrar gasto</a>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- CONTEO DE BILLETES -->
+            <div id="tab-desglose" style="display:none;">
+                <div style="padding:1.25rem 1.25rem .5rem;border-bottom:1px solid var(--vp-gray-100);">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <h6 style="font-weight:700;margin:0;">Conteo físico de efectivo</h6>
+                            <small style="color:var(--vp-gray-500);">Ingresa cuántos billetes/monedas hay en caja</small>
+                        </div>
+                        <button id="btnGuardarDesglose" class="btn btn-success btn-sm">
+                            <i class="fas fa-save me-1"></i>Guardar conteo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Billetes -->
+                <div style="padding:1rem 1.25rem .25rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--vp-gray-500);
+                        text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;">
+                        <i class="fas fa-money-bill-wave me-1"></i>Billetes
+                    </div>
+                    <div class="rp-billete-grid" style="padding:0;">
+                        {% for denom, label in denominaciones_billetes %}
+                        <div class="rp-billete" data-denom="{{ denom }}" data-tipo="BILLETE">
+                            <div class="rp-billete-denom">{{ label }}</div>
+                            <div class="rp-billete-tipo">Billete</div>
+                            <input type="number" min="0" value="0" class="billete-input" placeholder="0">
+                            <div class="rp-billete-sub" id="sub-B-{{ denom }}"></div>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- ========== TABS DE DETALLES ========== -->
-    <div class="animate-fade-in">
-        <ul class="nav nav-tabs" id="cajaTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="ventas-tab" data-bs-toggle="tab" data-bs-target="#ventas" 
-                        type="button" role="tab">
-                    <i class="fas fa-shopping-cart me-2"></i>
-                    Ventas ({{ ventas_dia.count }})
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="productos-tab" data-bs-toggle="tab" data-bs-target="#productos" 
-                        type="button" role="tab">
-                    <i class="fas fa-box me-2"></i>
-                    Productos ({{ ventas_productos|length }})
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="servicios-tab" data-bs-toggle="tab" data-bs-target="#servicios" 
-                        type="button" role="tab">
-                    <i class="fas fa-wrench me-2"></i>
-                    Servicios ({{ ventas_servicios|length }})
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="gastos-tab" data-bs-toggle="tab" data-bs-target="#gastos" 
-                        type="button" role="tab">
-                    <i class="fas fa-receipt me-2"></i>
-                    Gastos ({{ gastos_dia.count }})
-                </button>
-            </li>
-        </ul>
+                <!-- Monedas -->
+                <div style="padding:.25rem 1.25rem 1rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--vp-gray-500);
+                        text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;">
+                        <i class="fas fa-coins me-1"></i>Monedas
+                    </div>
+                    <div class="rp-billete-grid" style="padding:0;">
+                        {% for denom, label in denominaciones_monedas %}
+                        <div class="rp-billete" data-denom="{{ denom }}" data-tipo="MONEDA">
+                            <div class="rp-billete-denom">{{ label }}</div>
+                            <div class="rp-billete-tipo">Moneda</div>
+                            <input type="number" min="0" value="0" class="billete-input" placeholder="0">
+                            <div class="rp-billete-sub" id="sub-M-{{ denom }}"></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
 
-        <div class="tab-content" id="cajaTabContent">
-            <!-- Tab Ventas -->
-            <div class="tab-pane fade show active" id="ventas" role="tabpanel">
-                <div class="p-4">
-                    {% for venta in ventas_dia %}
-                    <div class="transaction-item venta">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1 fw-bold">
-                                    <a href="{% url 'ventas:detalle_venta' venta.id %}" class="text-decoration-none">
-                                        Factura #{{ venta.numero_factura }}
-                                    </a>
-                                </h6>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <i class="fas fa-user me-1"></i>
-                                            {{ venta.cliente }}
-                                        </small>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>
-                                            {{ venta.fecha_hora|time:"H:i" }} - {{ venta.tipo_pago }}
-                                        </small>
-                                    </div>
+                <!-- Resultado cuadre -->
+                <div style="padding:0 1.25rem 1.25rem;" id="resultadoCuadre" style="display:none;">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div style="background:var(--vp-gray-50);border:1px solid var(--vp-gray-200);border-radius:8px;padding:1rem;text-align:center;">
+                                <div style="font-size:.75rem;color:var(--vp-gray-500);text-transform:uppercase;letter-spacing:.4px;">Contado</div>
+                                <div style="font-size:1.5rem;font-weight:700;color:var(--vp-gray-900);" id="totalContado">$0.00</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div style="background:var(--vp-gray-50);border:1px solid var(--vp-gray-200);border-radius:8px;padding:1rem;text-align:center;">
+                                <div style="font-size:.75rem;color:var(--vp-gray-500);text-transform:uppercase;letter-spacing:.4px;">Esperado</div>
+                                <div style="font-size:1.5rem;font-weight:700;color:var(--vp-gray-900);">
+                                    ${{ cierre.efectivo_ventas|floatformat:2 }}
                                 </div>
                             </div>
-                            <div class="text-end">
-                                <h6 class="mb-0 text-success">{{ venta.total|currency }}</h6>
-                            </div>
                         </div>
+                        <div class="col-md-4" id="cuadreFinal"></div>
                     </div>
-                    {% empty %}
-                    <div class="no-content">
-                        <i class="fas fa-shopping-cart"></i>
-                        <h5>No hay ventas registradas</h5>
-                        <p class="text-muted mb-0">Las ventas del día aparecerán aquí</p>
-                    </div>
-                    {% endfor %}
                 </div>
+
+                {% if desglose %}
+                <div style="padding:.75rem 1.25rem;background:var(--vp-gray-50);border-top:1px solid var(--vp-gray-100);">
+                    <small style="color:var(--vp-gray-500);">
+                        <i class="fas fa-history me-1"></i>
+                        Último conteo guardado: efectivo contado = <strong>${{ cierre.efectivo_contado|floatformat:2 }}</strong>
+                        · Diferencia: <strong class="{% if cierre.diferencia_efectivo > 0 %}text-success{% elif cierre.diferencia_efectivo < 0 %}text-danger{% endif %}">
+                            {% if cierre.diferencia_efectivo > 0 %}+{% endif %}${{ cierre.diferencia_efectivo|floatformat:2 }}
+                        </strong>
+                    </small>
+                </div>
+                {% endif %}
             </div>
 
-            <!-- Tab Productos -->
-            <div class="tab-pane fade" id="productos" role="tabpanel">
-                <div class="p-4">
-                    {% for venta in ventas_productos %}
-                    <div class="transaction-item venta">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1 fw-bold">Factura #{{ venta.numero_factura }}</h6>
-                                <small class="text-muted">
-                                    <i class="fas fa-user me-1"></i>{{ venta.cliente }} - 
-                                    <i class="fas fa-clock me-1"></i>{{ venta.fecha_hora|time:"H:i" }}
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <h6 class="mb-0 text-success">{{ venta.total|currency }}</h6>
-                                <small class="text-muted">{{ venta.tipo_pago }}</small>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="no-content">
-                        <i class="fas fa-box"></i>
-                        <h5>No hay ventas de productos</h5>
-                        <p class="text-muted mb-0">Las ventas de productos aparecerán aquí</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+        </div><!-- tab-content -->
+    </div>
 
-            <!-- Tab Servicios -->
-            <div class="tab-pane fade" id="servicios" role="tabpanel">
-                <div class="p-4">
-                    {% for venta in ventas_servicios %}
-                    <div class="transaction-item servicio">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1 fw-bold">Factura #{{ venta.numero_factura }}</h6>
-                                <small class="text-muted">
-                                    <i class="fas fa-user me-1"></i>{{ venta.cliente }} - 
-                                    <i class="fas fa-clock me-1"></i>{{ venta.fecha_hora|time:"H:i" }}
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <h6 class="mb-0 text-info">{{ venta.total|currency }}</h6>
-                                <small class="text-muted">{{ venta.tipo_pago }}</small>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="no-content">
-                        <i class="fas fa-wrench"></i>
-                        <h5>No hay ventas de servicios</h5>
-                        <p class="text-muted mb-0">Las ventas de servicios aparecerán aquí</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Tab Gastos -->
-            <div class="tab-pane fade" id="gastos" role="tabpanel">
-                <div class="p-4">
-                    {% for gasto in gastos_dia %}
-                    <div class="transaction-item gasto">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1 fw-bold">{{ gasto.concepto }}</h6>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <i class="fas fa-tag me-1"></i>{{ gasto.get_categoria_display }}
-                                        </small>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <i class="fas fa-user me-1"></i>{{ gasto.usuario.get_full_name|default:gasto.usuario.username }}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-end">
-                                <h6 class="mb-0 text-danger">{{ gasto.monto|currency }}</h6>
-                                {% if gasto.aprobado %}
-                                    <small class="badge bg-success">Aprobado</small>
-                                {% else %}
-                                    <small class="badge bg-warning text-dark">Pendiente</small>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="no-content">
-                        <i class="fas fa-receipt"></i>
-                        <h5>No hay gastos registrados</h5>
-                        <p class="text-muted mb-3">Los gastos del día aparecerán aquí</p>
-                        <a href="{% url 'reportes:crear_gasto' %}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Registrar Gasto
-                        </a>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+    <!-- ── COMPARATIVO ───────────────────────────────────────────── -->
+    {% if comparativo %}
+    <div style="background:var(--vp-blue-light);border:1px solid #bfdbfe;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <i class="fas fa-chart-line" style="color:var(--vp-blue);"></i>
+            <span style="font-size:.875rem;font-weight:600;color:var(--vp-gray-700);">Comparativo con día anterior:</span>
+            <span style="font-size:.875rem;color:var(--vp-gray-500);">
+                Ventas ayer: <strong>${{ comparativo.ventas_anterior|floatformat:2 }}</strong>
+            </span>
+            <span style="font-size:.875rem;font-weight:700;color:{% if comparativo.diferencia >= 0 %}var(--vp-green){% else %}var(--vp-red){% endif %};">
+                {% if comparativo.diferencia >= 0 %}+{% endif %}${{ comparativo.diferencia|floatformat:2 }}
+            </span>
         </div>
     </div>
+    {% endif %}
+
 </div>
 
-<!-- ========== MODAL CERRAR CAJA ========== -->
-<div class="modal fade" id="cerrarCajaModal" tabindex="-1">
-    <div class="modal-dialog">
+<!-- ── MODAL CERRAR CAJA (2 pasos) ───────────────────────────────────── -->
+{% if puede_cerrar %}
+{% with fecha_cierre=fecha|date:"Y-m-d" %}
+<div class="modal fade" id="modalCerrar" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-lock me-2"></i>
-                    Cerrar Caja del {{ fecha|date:"d/m/Y" }}
-                </h5>
+
+            <!-- HEADER con indicador de pasos -->
+            <div class="modal-header" style="border-bottom:1px solid var(--vp-gray-200);">
+                <div>
+                    <h5 class="modal-title mb-1">
+                        <i class="fas fa-lock me-2" style="color:var(--vp-blue);"></i>
+                        Cerrar Caja — {{ fecha|date:"d/m/Y" }}
+                    </h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="step-ind-1" style="font-size:.78rem;font-weight:700;padding:.2rem .65rem;
+                            border-radius:12px;background:var(--vp-blue);color:#fff;">
+                            1 · Conteo de efectivo
+                        </span>
+                        <i class="fas fa-chevron-right" style="font-size:.7rem;color:var(--vp-gray-500);"></i>
+                        <span id="step-ind-2" style="font-size:.78rem;font-weight:700;padding:.2rem .65rem;
+                            border-radius:12px;background:var(--vp-gray-200);color:var(--vp-gray-500);">
+                            2 · Confirmar cierre
+                        </span>
+                    </div>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post" action="{% url 'reportes:cerrar_caja' %}">
-                {% csrf_token %}
-                <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
-                
-                <div class="modal-body">
-                    <div class="row mb-4">
-                        <div class="col-6">
-                            <div class="text-center p-3 bg-success bg-opacity-10 rounded">
-                                <h6 class="text-success mb-1">Ingresos del Día</h6>
-                                <h4 class="text-success">{{ cierre.total_ingresos|currency }}</h4>
+
+            <!-- ── PASO 1: CONTEO ── -->
+            <div id="modal-step-1">
+                <div class="modal-body" style="padding:1.25rem;">
+
+                    <!-- Resumen rápido -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <div style="background:var(--vp-green-light);border:1px solid #86efac;border-radius:8px;padding:.75rem;text-align:center;">
+                                <div style="font-size:.7rem;text-transform:uppercase;color:var(--vp-green);font-weight:700;">Ingresos</div>
+                                <div style="font-size:1.15rem;font-weight:700;color:var(--vp-green);">${{ cierre.total_ingresos|floatformat:2 }}</div>
                             </div>
                         </div>
-                        <div class="col-6">
-                            <div class="text-center p-3 bg-danger bg-opacity-10 rounded">
-                                <h6 class="text-danger mb-1">Gastos del Día</h6>
-                                <h4 class="text-danger">{{ cierre.total_gastos|currency }}</h4>
+                        <div class="col-4">
+                            <div style="background:var(--vp-red-light);border:1px solid #fca5a5;border-radius:8px;padding:.75rem;text-align:center;">
+                                <div style="font-size:.7rem;text-transform:uppercase;color:var(--vp-red);font-weight:700;">Gastos</div>
+                                <div style="font-size:1.15rem;font-weight:700;color:var(--vp-red);">${{ cierre.total_gastos_dia|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div style="background:var(--vp-blue-light);border:1px solid #bfdbfe;border-radius:8px;padding:.75rem;text-align:center;">
+                                <div style="font-size:.7rem;text-transform:uppercase;color:var(--vp-blue);font-weight:700;">Efectivo esperado</div>
+                                <div style="font-size:1.15rem;font-weight:700;color:var(--vp-blue);" id="efectivo-esperado-modal">${{ cierre.efectivo_ventas|floatformat:2 }}</div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="fas fa-money-bill me-2"></i>
-                            Efectivo Contado Físicamente
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" name="efectivo_contado" class="form-control" 
-                                   step="0.01" min="0" placeholder="0.00">
+
+                    <!-- Billetes -->
+                    <div style="font-size:.75rem;font-weight:700;color:var(--vp-gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;">
+                        <i class="fas fa-money-bill-wave me-1"></i>Billetes
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.5rem;margin-bottom:1rem;">
+                        {% for denom, label in denominaciones_billetes %}
+                        <div class="mc-billete" data-denom="{{ denom }}" data-tipo="BILLETE"
+                             style="background:#fff;border:1.5px solid var(--vp-gray-200);border-radius:8px;padding:.625rem;text-align:center;transition:var(--transition);">
+                            <div style="font-size:1rem;font-weight:700;color:var(--vp-gray-900);">{{ label }}</div>
+                            <div style="font-size:.65rem;text-transform:uppercase;color:var(--vp-gray-500);margin:.15rem 0 .4rem;">billete</div>
+                            <input type="number" min="0" value="0" class="mc-input"
+                                   style="width:100%;text-align:center;border:1px solid var(--vp-gray-200);border-radius:5px;
+                                          padding:.3rem;font-size:.95rem;font-weight:600;">
+                            <div class="mc-sub" style="font-size:.75rem;color:var(--vp-green);font-weight:600;margin-top:.25rem;min-height:1em;"></div>
                         </div>
-                        <small class="form-text text-muted">
-                            Efectivo esperado: {{ cierre.efectivo_ventas|currency }}
-                        </small>
+                        {% endfor %}
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Observaciones</label>
-                        <textarea name="observaciones" class="form-control" rows="3" 
-                                  placeholder="Observaciones del cierre de caja (opcional)"></textarea>
+
+                    <!-- Monedas -->
+                    <div style="font-size:.75rem;font-weight:700;color:var(--vp-gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;">
+                        <i class="fas fa-coins me-1"></i>Monedas
                     </div>
-                    
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Saldo Final Calculado:</strong> {{ cierre.saldo_final|currency }}
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.5rem;margin-bottom:1.25rem;">
+                        {% for denom, label in denominaciones_monedas %}
+                        <div class="mc-billete" data-denom="{{ denom }}" data-tipo="MONEDA"
+                             style="background:#fff;border:1.5px solid var(--vp-gray-200);border-radius:8px;padding:.625rem;text-align:center;transition:var(--transition);">
+                            <div style="font-size:1rem;font-weight:700;color:var(--vp-gray-900);">{{ label }}</div>
+                            <div style="font-size:.65rem;text-transform:uppercase;color:var(--vp-gray-500);margin:.15rem 0 .4rem;">moneda</div>
+                            <input type="number" min="0" value="0" class="mc-input"
+                                   style="width:100%;text-align:center;border:1px solid var(--vp-gray-200);border-radius:5px;
+                                          padding:.3rem;font-size:.95rem;font-weight:600;">
+                            <div class="mc-sub" style="font-size:.75rem;color:var(--vp-green);font-weight:600;margin-top:.25rem;min-height:1em;"></div>
+                        </div>
+                        {% endfor %}
                     </div>
+
+                    <!-- Resultado en tiempo real -->
+                    <div id="mc-resultado" style="display:none;border-radius:10px;padding:1rem;border:2px solid var(--vp-gray-200);">
+                        <div class="row g-2 text-center">
+                            <div class="col-4">
+                                <div style="font-size:.7rem;color:var(--vp-gray-500);text-transform:uppercase;font-weight:700;">Contado</div>
+                                <div style="font-size:1.35rem;font-weight:700;color:var(--vp-gray-900);" id="mc-total-contado">$0.00</div>
+                            </div>
+                            <div class="col-4">
+                                <div style="font-size:.7rem;color:var(--vp-gray-500);text-transform:uppercase;font-weight:700;">Esperado</div>
+                                <div style="font-size:1.35rem;font-weight:700;color:var(--vp-gray-900);">${{ cierre.efectivo_ventas|floatformat:2 }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div style="font-size:.7rem;color:var(--vp-gray-500);text-transform:uppercase;font-weight:700;">Diferencia</div>
+                                <div style="font-size:1.35rem;font-weight:700;" id="mc-diferencia">$0.00</div>
+                            </div>
+                        </div>
+                        <div id="mc-cuadre-badge" style="margin-top:.75rem;text-align:center;"></div>
+                    </div>
+
                 </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i>Cancelar
-                    </button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-lock me-1"></i>Cerrar Caja
+                <div class="modal-footer" style="border-top:1px solid var(--vp-gray-200);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-ir-paso2">
+                        Continuar<i class="fas fa-chevron-right ms-2"></i>
                     </button>
                 </div>
-            </form>
+            </div>
+
+            <!-- ── PASO 2: CONFIRMAR ── -->
+            <div id="modal-step-2" style="display:none;">
+                <form method="post" action="{% url 'reportes:cerrar_caja' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="fecha" value="{{ fecha_cierre }}">
+                    <input type="hidden" name="efectivo_contado" id="campo-efectivo-contado" value="0">
+
+                    <div class="modal-body" style="padding:1.25rem;">
+
+                        <!-- Resumen del conteo -->
+                        <div id="resumen-conteo" style="border-radius:10px;padding:1rem;margin-bottom:1rem;border:2px solid var(--vp-gray-200);">
+                            <!-- Se llena por JS -->
+                        </div>
+
+                        <!-- Saldo final -->
+                        <div style="background:var(--vp-gray-50);border:1px solid var(--vp-gray-200);border-radius:8px;
+                                    padding:.875rem;text-align:center;margin-bottom:1rem;">
+                            <div style="font-size:.75rem;text-transform:uppercase;color:var(--vp-gray-500);font-weight:700;">Saldo final de caja</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:var(--vp-gray-900);">${{ cierre.saldo_final|floatformat:2 }}</div>
+                        </div>
+
+                        <div class="mb-0">
+                            <label class="form-label fw-semibold" style="font-size:.875rem;">
+                                <i class="fas fa-comment me-1"></i>Observaciones <span style="color:var(--vp-gray-500);font-weight:400;">(opcional)</span>
+                            </label>
+                            <textarea name="observaciones" class="form-control" rows="2" placeholder="Ej: faltaban $5 en caja chica..."></textarea>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid var(--vp-gray-200);">
+                        <button type="button" class="btn btn-outline-secondary" id="btn-volver-paso1">
+                            <i class="fas fa-chevron-left me-1"></i>Volver
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-lock me-1"></i>Confirmar cierre
+                        </button>
+                    </div>
+                </form>
+            </div>
+
         </div>
     </div>
 </div>
-
-{% csrf_token %}
+{% endwith %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// ========== FUNCIONES PRINCIPALES ==========
-
-function cambiarFecha(nuevaFecha) {
-    window.location.href = `?fecha=${nuevaFecha}`;
+// Funciones globales (llamadas desde onclick en HTML)
+function irFechaAnterior(fechaStr) {
+    const d = new Date(fechaStr + 'T00:00:00');
+    d.setDate(d.getDate() - 1);
+    const y   = d.getFullYear();
+    const m   = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    window.location = '?fecha=' + y + '-' + m + '-' + day;
 }
 
-// ========== EVENT LISTENERS ==========
-document.addEventListener('DOMContentLoaded', function() {
-    // Animaciones de entrada
-    const elements = document.querySelectorAll('.animate-fade-in');
-    elements.forEach((el, index) => {
-        el.style.animationDelay = `${index * 0.1}s`;
+function showTab(id, btn) {
+    document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+    document.getElementById('tab-' + id).style.display = 'block';
+    document.querySelectorAll('.rp-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+
+const CIERRE_ID = {{ cierre.id }};
+const CSRF = '{{ csrf_token }}';
+const EFECTIVO_ESPERADO = parseFloat('{{ cierre.efectivo_ventas|floatformat:2 }}') || 0;
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS COMPARTIDOS DE CONTEO
+// Usados tanto por el TAB de desglose como por el MODAL de cierre
+// ══════════════════════════════════════════════════════════════
+function calcularTotalDeInputs(selector) {
+    let total = 0;
+    document.querySelectorAll(selector).forEach(inp => {
+        const denom = parseFloat(inp.closest('[data-denom]').dataset.denom);
+        const cant  = parseInt(inp.value) || 0;
+        total += denom * cant;
     });
-    
-    console.log('Caja diaria cargada correctamente');
+    return total;
+}
+
+function renderCuadre(totalContado, esperado) {
+    const diff = totalContado - esperado;
+    const ok   = Math.abs(diff) < 0.01;
+    const color      = ok ? 'var(--vp-green)' : (diff > 0 ? 'var(--vp-blue)' : 'var(--vp-red)');
+    const bgColor    = ok ? 'var(--vp-green-light)' : (diff > 0 ? 'var(--vp-blue-light)' : 'var(--vp-red-light)');
+    const borderColor= ok ? '#86efac' : (diff > 0 ? '#bfdbfe' : '#fca5a5');
+    const label      = ok ? '✓ La caja cuadra' : (diff > 0 ? '↑ Sobrante' : '↓ Faltante');
+    return { ok, diff, color, bgColor, borderColor, label };
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB DESGLOSE (en la página principal)
+// ══════════════════════════════════════════════════════════════
+document.querySelectorAll('.billete-input').forEach(inp => {
+    inp.addEventListener('input', function () {
+        const card  = this.closest('.rp-billete');
+        const denom = parseFloat(card.dataset.denom);
+        const cant  = parseInt(this.value) || 0;
+        const sub   = denom * cant;
+        const key   = card.dataset.tipo[0] + '-' + card.dataset.denom;
+        const subEl = document.getElementById('sub-' + key);
+        if (subEl) subEl.textContent = cant > 0 ? '$' + sub.toFixed(2) : '';
+        card.classList.toggle('has-value', cant > 0);
+
+        // Actualizar resultado tab
+        const total   = calcularTotalDeInputs('.billete-input');
+        const totalEl = document.getElementById('totalContado');
+        if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+        const rc = document.getElementById('resultadoCuadre');
+        if (rc) rc.style.display = '';
+    });
 });
+
+document.getElementById('btnGuardarDesglose')?.addEventListener('click', function () {
+    const items = [];
+    document.querySelectorAll('.rp-billete').forEach(card => {
+        const cant = parseInt(card.querySelector('.billete-input').value) || 0;
+        if (cant > 0) items.push({
+            denominacion: card.dataset.denom,
+            tipo: card.dataset.tipo,
+            cantidad: cant
+        });
+    });
+
+    fetch(`/reportes/caja/${CIERRE_ID}/desglose/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ items })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) return;
+        const cuadreEl = document.getElementById('cuadreFinal');
+        const { ok, diff, color, bgColor, borderColor, label } = renderCuadre(data.total_contado, EFECTIVO_ESPERADO);
+        if (cuadreEl) {
+            cuadreEl.innerHTML = `
+                <div style="background:${bgColor};border:1.5px solid ${borderColor};
+                    border-radius:8px;padding:1rem;text-align:center;">
+                    <div style="font-size:.8rem;color:${color};font-weight:700;">${label}</div>
+                    <div style="font-size:1.5rem;font-weight:700;color:${color};">
+                        ${diff >= 0 ? '+' : ''}$${diff.toFixed(2)}
+                    </div>
+                </div>`;
+        }
+        mostrarToast(ok
+            ? 'Conteo guardado. La caja cuadra.'
+            : `Conteo guardado. Diferencia de $${Math.abs(diff).toFixed(2)}`,
+            ok ? 'success' : 'warning'
+        );
+    })
+    .catch(() => mostrarToast('Error al guardar el conteo', 'danger'));
+});
+
+// Precargar tab desglose si ya hay datos guardados
+{% if desglose %}
+{% for d in desglose %}
+(function(){
+    const card = document.querySelector(`.rp-billete[data-denom="{{ d.denominacion }}"][data-tipo="{{ d.tipo }}"]`);
+    if (card) {
+        const inp = card.querySelector('.billete-input');
+        inp.value = {{ d.cantidad }};
+        inp.dispatchEvent(new Event('input'));
+    }
+})();
+{% endfor %}
+{% endif %}
+
+// ══════════════════════════════════════════════════════════════
+// MODAL CIERRE — 2 PASOS
+// ══════════════════════════════════════════════════════════════
+document.querySelectorAll('.mc-input').forEach(inp => {
+    inp.addEventListener('input', function () {
+        const card  = this.closest('.mc-billete');
+        const denom = parseFloat(card.dataset.denom);
+        const cant  = parseInt(this.value) || 0;
+        const sub   = denom * cant;
+        const subEl = card.querySelector('.mc-sub');
+        if (subEl) subEl.textContent = cant > 0 ? '$' + sub.toFixed(2) : '';
+
+        // Highlight si tiene valor
+        if (cant > 0) {
+            card.style.borderColor = 'var(--vp-blue)';
+            card.style.background  = 'var(--vp-blue-light)';
+        } else {
+            card.style.borderColor = 'var(--vp-gray-200)';
+            card.style.background  = '#fff';
+        }
+
+        // Actualizar resultado en tiempo real
+        const total = calcularTotalDeInputs('.mc-input');
+        const diff  = total - EFECTIVO_ESPERADO;
+        const { ok, color, bgColor, borderColor, label } = renderCuadre(total, EFECTIVO_ESPERADO);
+
+        const resEl = document.getElementById('mc-resultado');
+        if (resEl) resEl.style.display = '';
+
+        const tcEl = document.getElementById('mc-total-contado');
+        if (tcEl) tcEl.textContent = '$' + total.toFixed(2);
+
+        const difEl = document.getElementById('mc-diferencia');
+        if (difEl) {
+            difEl.textContent = (diff >= 0 ? '+' : '') + '$' + diff.toFixed(2);
+            difEl.style.color = color;
+        }
+
+        const resBox = document.getElementById('mc-resultado');
+        if (resBox) resBox.style.borderColor = borderColor;
+
+        const badgeEl = document.getElementById('mc-cuadre-badge');
+        if (badgeEl) {
+            badgeEl.innerHTML = `
+                <span style="display:inline-block;background:${bgColor};border:1px solid ${borderColor};
+                    color:${color};padding:.3rem 1rem;border-radius:20px;font-size:.8rem;font-weight:700;">
+                    ${label}
+                </span>`;
+        }
+    });
+});
+
+// Paso 1 → Paso 2 (sin validación, siempre permite continuar)
+document.getElementById('btn-ir-paso2')?.addEventListener('click', function () {
+    const total = calcularTotalDeInputs('.mc-input');
+    const { ok, diff, color, bgColor, borderColor, label } = renderCuadre(total, EFECTIVO_ESPERADO);
+
+    // Pasar el valor al campo hidden del form
+    document.getElementById('campo-efectivo-contado').value = total.toFixed(2);
+
+    // Renderizar resumen en paso 2
+    const resumen = document.getElementById('resumen-conteo');
+    if (resumen) {
+        resumen.style.borderColor = borderColor;
+        resumen.style.background  = bgColor;
+        resumen.innerHTML = `
+            <div class="row g-2 text-center">
+                <div class="col-4">
+                    <div style="font-size:.7rem;color:var(--vp-gray-500);text-transform:uppercase;font-weight:700;">Contado</div>
+                    <div style="font-size:1.25rem;font-weight:700;color:var(--vp-gray-900);">$${total.toFixed(2)}</div>
+                </div>
+                <div class="col-4">
+                    <div style="font-size:.7rem;color:var(--vp-gray-500);text-transform:uppercase;font-weight:700;">Esperado</div>
+                    <div style="font-size:1.25rem;font-weight:700;color:var(--vp-gray-900);">$${EFECTIVO_ESPERADO.toFixed(2)}</div>
+                </div>
+                <div class="col-4">
+                    <div style="font-size:.7rem;color:var(--vp-gray-500);text-transform:uppercase;font-weight:700;">Diferencia</div>
+                    <div style="font-size:1.25rem;font-weight:700;color:${color};">
+                        ${diff >= 0 ? '+' : ''}$${diff.toFixed(2)}
+                    </div>
+                </div>
+            </div>
+            <div style="text-align:center;margin-top:.75rem;">
+                <span style="display:inline-block;background:#fff;border:1.5px solid ${borderColor};
+                    color:${color};padding:.3rem 1.25rem;border-radius:20px;font-size:.85rem;font-weight:700;">
+                    ${label}
+                </span>
+            </div>`;
+    }
+
+    // Cambiar indicadores de paso
+    document.getElementById('step-ind-1').style.background = 'var(--vp-gray-200)';
+    document.getElementById('step-ind-1').style.color      = 'var(--vp-gray-500)';
+    document.getElementById('step-ind-2').style.background = 'var(--vp-blue)';
+    document.getElementById('step-ind-2').style.color      = '#fff';
+
+    // Mostrar paso 2
+    document.getElementById('modal-step-1').style.display = 'none';
+    document.getElementById('modal-step-2').style.display = 'block';
+});
+
+// Paso 2 → volver a Paso 1
+document.getElementById('btn-volver-paso1')?.addEventListener('click', function () {
+    document.getElementById('modal-step-2').style.display = 'none';
+    document.getElementById('modal-step-1').style.display = 'block';
+    document.getElementById('step-ind-1').style.background = 'var(--vp-blue)';
+    document.getElementById('step-ind-1').style.color      = '#fff';
+    document.getElementById('step-ind-2').style.background = 'var(--vp-gray-200)';
+    document.getElementById('step-ind-2').style.color      = 'var(--vp-gray-500)';
+});
+
+// Reset modal al cerrarlo (sin disparar eventos)
+document.getElementById('modalCerrar')?.addEventListener('hidden.bs.modal', function () {
+    document.getElementById('modal-step-2').style.display = 'none';
+    document.getElementById('modal-step-1').style.display = 'block';
+    document.getElementById('step-ind-1').style.background = 'var(--vp-blue)';
+    document.getElementById('step-ind-1').style.color = '#fff';
+    document.getElementById('step-ind-2').style.background = 'var(--vp-gray-200)';
+    document.getElementById('step-ind-2').style.color = 'var(--vp-gray-500)';
+    // Limpiar inputs SIN disparar eventos para no romper el JS
+    document.querySelectorAll('.mc-input').forEach(i => {
+        i.value = 0;
+        i.style.borderColor = '';
+        const sub = i.closest('.mc-billete')?.querySelector('.mc-sub');
+        if (sub) sub.textContent = '';
+        const card = i.closest('.mc-billete');
+        if (card) { card.style.borderColor = 'var(--vp-gray-200)'; card.style.background = '#fff'; }
+    });
+    const res = document.getElementById('mc-resultado');
+    if (res) res.style.display = 'none';
+});
+
+// ══════════════════════════════════════════════════════════════
+// TOAST HELPER
+// ══════════════════════════════════════════════════════════════
+function mostrarToast(msg, tipo = 'success') {
+    const t = document.createElement('div');
+    t.className = `alert alert-${tipo} position-fixed d-flex align-items-center gap-2`;
+    t.style.cssText = 'top:20px;right:20px;z-index:9999;min-width:280px;box-shadow:var(--shadow-md);';
+    const icon = tipo === 'success' ? 'check-circle' : tipo === 'warning' ? 'exclamation-triangle' : 'times-circle';
+    t.innerHTML = `<i class="fas fa-${icon}"></i><span>${msg}</span>`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+}); // fin DOMContentLoaded
 </script>
 {% endblock %}

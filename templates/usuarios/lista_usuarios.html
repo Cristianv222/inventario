@@ -1,86 +1,486 @@
 {% extends 'base.html' %}
 
-{% block title %}Usuarios - VPMOTOS{% endblock %}
+{% block title %}Usuarios - OPENMOTORS{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="card shadow">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-users me-2"></i>Gestión de Usuarios</h5>
-            <a href="{% url 'usuarios:crear_usuario' %}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus me-1"></i>Nuevo Usuario
+
+<!-- Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h1 class="mb-0"><i class="fas fa-users text-primary"></i> Gestión de Usuarios</h1>
+            <a href="{% url 'usuarios:crear_usuario' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Nuevo Usuario
             </a>
         </div>
-        <div class="card-body">
-            {% if messages %}
-            <div class="messages mb-3">
-                {% for message in messages %}
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Total Usuarios</p>
+                        <h3 class="mb-0 fw-bold">{{ total }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+                        <i class="fas fa-users fa-lg"></i>
+                    </div>
                 </div>
-                {% endfor %}
             </div>
-            {% endif %}
-            
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Usuario</th>
-                            <th>Nombre Completo</th>
-                            <th>Email</th>
-                            <th>Rol</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for usuario in usuarios %}
-                        <tr>
-                            <td>{{ usuario.usuario }}</td>
-                            <td>{{ usuario.nombre }} {{ usuario.apellido }}</td>
-                            <td>{{ usuario.email }}</td>
-                            <td>
-                                {% if usuario.is_superuser %}
-                                    <span class="badge bg-danger">Super Admin</span>
-                                {% elif usuario.is_staff %}
-                                     <span class="badge bg-primary">Administrador</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Usuario</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if usuario.activo %}
-                                <span class="badge bg-success">Activo</span>
-                                {% else %}
-                                <span class="badge bg-danger">Inactivo</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{% url 'usuarios:editar_usuario' usuario.id %}" class="btn btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="{% url 'usuarios:activar_desactivar_usuario' usuario.id %}" class="btn btn-outline-warning">
-                                        {% if usuario.activo %}
-                                        <i class="fas fa-user-slash" title="Desactivar"></i>
-                                        {% else %}
-                                        <i class="fas fa-user-check" title="Activar"></i>
-                                        {% endif %}
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4">No hay usuarios registrados.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Activos</p>
+                        <h3 class="mb-0 fw-bold text-success">
+                            {{ usuarios|length }}
+                        </h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded p-3">
+                        <i class="fas fa-user-check fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Sin Sucursal</p>
+                        <h3 class="mb-0 fw-bold text-warning">{{ sin_asignar }}</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded p-3">
+                        <i class="fas fa-exclamation-circle fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Admin General</p>
+                        <h3 class="mb-0 fw-bold text-info">
+                            {% with n=0 %}
+                            {% for u in usuarios %}{% if u.es_admin_general %}{% with n=n|add:1 %}{% endwith %}{% endif %}{% endfor %}
+                            {{ usuarios|dictsort:"puede_ver_todas_sucursales"|length }}
+                            {% endwith %}
+                        </h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded p-3">
+                        <i class="fas fa-globe fa-lg"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-filter text-primary me-2"></i> Filtros de Búsqueda
+            </h5>
+            <button class="btn btn-sm btn-outline-secondary" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#filtrosCollapse">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+    </div>
+    <div class="collapse show" id="filtrosCollapse">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-search text-primary me-1"></i> Buscar
+                    </label>
+                    <input type="text" class="form-control" id="buscador"
+                           placeholder="Nombre, usuario, email..."
+                           value="{{ busqueda }}" oninput="filtrarTabla()">
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-building text-success me-1"></i> Sucursal
+                    </label>
+                    <select class="form-select" id="filtroSucursal" onchange="filtrarTabla()">
+                        <option value="">Todas las sucursales</option>
+                        <option value="todas" {% if filtro_sucursal == 'todas' %}selected{% endif %}>
+                            Admin General (todas)
+                        </option>
+                        <option value="sin_asignar" {% if filtro_estado == 'sin_sucursal' %}selected{% endif %}>
+                            Sin asignar
+                        </option>
+                        {% for suc in sucursales %}
+                        <option value="{{ suc.id }}" {% if filtro_sucursal == suc.id|stringformat:'s' %}selected{% endif %}>
+                            {{ suc.nombre }}{% if suc.es_principal %} ★{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-toggle-on text-secondary me-1"></i> Rol / Estado
+                    </label>
+                    <select class="form-select" id="filtroEstado" onchange="filtrarTabla()">
+                        <option value="">Todos</option>
+                        <option value="activos"    {% if filtro_estado == 'activos'    %}selected{% endif %}>Activos</option>
+                        <option value="inactivos"  {% if filtro_estado == 'inactivos'  %}selected{% endif %}>Inactivos</option>
+                        <option value="admin"      {% if filtro_estado == 'admin'      %}selected{% endif %}>Administradores</option>
+                        <option value="superuser"  {% if filtro_estado == 'superuser'  %}selected{% endif %}>Super Admin</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-6 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()">
+                        <i class="fas fa-times me-1"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Usuarios -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list text-primary me-2"></i> Listado de Usuarios
+            </h5>
+            <span class="badge bg-primary fs-6" id="badge-total">{{ total }} usuarios</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="14%">Usuario</th>
+                        <th width="18%">Nombre Completo</th>
+                        <th width="18%">Email</th>
+                        <th width="20%">Sucursal</th>
+                        <th width="10%" class="text-center">Rol</th>
+                        <th width="8%"  class="text-center">Estado</th>
+                        <th width="12%" class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-usuarios">
+                    {% for u in usuarios %}
+                    <tr id="row-{{ u.pk }}"
+                        data-nombre="{{ u.nombre|lower }} {{ u.apellido|lower }}"
+                        data-usuario="{{ u.usuario|lower }}"
+                        data-email="{{ u.email|lower }}"
+                        data-sucursal="{% if u.es_admin_general %}todas{% elif u.sucursal %}{{ u.sucursal.id }}{% else %}sin_asignar{% endif %}"
+                        data-estado="{% if u.activo %}activo{% else %}inactivo{% endif %}"
+                        data-rol="{% if u.is_superuser %}superuser{% elif u.is_staff %}admin{% else %}usuario{% endif %}">
+
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-circle bg-primary bg-opacity-10 text-primary">
+                                    {{ u.nombre|slice:":1" }}{{ u.apellido|slice:":1" }}
+                                </div>
+                                <code class="text-muted">{{ u.usuario }}</code>
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="fw-semibold text-dark">{{ u.nombre }} {{ u.apellido }}</div>
+                            {% if u.telefono %}
+                            <small class="text-muted">
+                                <i class="fas fa-phone fa-xs me-1"></i>{{ u.telefono }}
+                            </small>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div>{{ u.email }}</div>
+                        </td>
+
+                        <!-- Columna sucursal -->
+                        <td>
+                            {% if u.es_admin_general %}
+                                <span class="badge rounded-pill text-bg-warning d-inline-flex align-items-center gap-1">
+                                    <i class="fas fa-globe fa-xs"></i> Todas las sucursales
+                                </span>
+                            {% elif u.sucursal %}
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="sucursal-dot {% if u.sucursal.es_principal %}bg-info{% else %}bg-success{% endif %}"></div>
+                                    <div>
+                                        <div class="fw-semibold small">{{ u.sucursal.nombre }}</div>
+                                        <small class="text-muted">{{ u.sucursal.codigo }}</small>
+                                    </div>
+                                    {% if u.sucursal.es_principal %}
+                                    <span class="badge bg-info text-white ms-1" style="font-size:.65rem;">Matriz</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">
+                                    <i class="fas fa-minus-circle me-1"></i>Sin asignar
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            {% if u.is_superuser %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-crown me-1"></i>Super Admin
+                            </span>
+                            {% elif u.is_staff %}
+                            <span class="badge bg-primary">
+                                <i class="fas fa-user-shield me-1"></i>Admin
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-user me-1"></i>Usuario
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            {% if u.activo %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check me-1"></i>Activo
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times me-1"></i>Inactivo
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'usuarios:editar_usuario' u.id %}"
+                                   class="btn btn-primary"
+                                   title="Editar usuario" data-bs-toggle="tooltip">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'usuarios:ver_permisos_usuario' u.id %}"
+                                   class="btn btn-info text-white"
+                                   title="Ver permisos" data-bs-toggle="tooltip">
+                                    <i class="fas fa-key"></i>
+                                </a>
+                                {% if request.user.id != u.id %}
+                                <button class="btn btn-{% if u.activo %}warning{% else %}success{% endif %} text-white btn-toggle"
+                                        data-id="{{ u.id }}"
+                                        data-nombre="{{ u.nombre }} {{ u.apellido }}"
+                                        data-activo="{{ u.activo|yesno:'true,false' }}"
+                                        title="{% if u.activo %}Desactivar{% else %}Activar{% endif %}"
+                                        data-bs-toggle="tooltip">
+                                    <i class="fas fa-{% if u.activo %}user-slash{% else %}user-check{% endif %}"></i>
+                                </button>
+                                {% if not u.is_superuser %}
+                                <button class="btn btn-danger btn-eliminar"
+                                        data-id="{{ u.id }}"
+                                        data-nombre="{{ u.nombre }} {{ u.apellido }}"
+                                        title="Eliminar" data-bs-toggle="tooltip">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="text-muted py-4">
+                                <i class="fas fa-users fa-4x mb-3 opacity-25 d-block"></i>
+                                <h5>No hay usuarios registrados</h5>
+                                <a href="{% url 'usuarios:crear_usuario' %}" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus me-1"></i> Crear Primer Usuario
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL TOGGLE ACTIVO/INACTIVO ══ -->
+<div class="modal fade" id="modalToggle" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-2">
+                <div id="toggleIcon" class="mb-3" style="font-size:2.5rem;"></div>
+                <h5 id="toggleTitulo" class="fw-bold mb-2"></h5>
+                <p id="toggleMensaje" class="text-muted mb-0"></p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <a href="#" id="toggleConfirmar" class="btn btn-warning text-white">
+                    <i class="fas fa-check me-1"></i> Confirmar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL ELIMINAR ══ -->
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-2">
+                <div class="text-danger mb-3" style="font-size:2.5rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h5 class="fw-bold mb-2">¿Eliminar usuario?</h5>
+                <p class="text-muted mb-0">
+                    Estás a punto de eliminar a <strong id="eliminarNombre"></strong>.
+                    Esta acción no se puede deshacer.
+                </p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <a href="#" id="eliminarConfirmar" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i> Eliminar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .avatar-circle {
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: .8rem;
+        flex-shrink: 0;
+        text-transform: uppercase;
+    }
+    .sucursal-dot {
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Tooltips ──────────────────────────────
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el);
+    });
+
+    // ── Filtrado cliente ──────────────────────
+    window.filtrarTabla = function () {
+        const busq     = document.getElementById('buscador').value.toLowerCase();
+        const sucursal = document.getElementById('filtroSucursal').value;
+        const estado   = document.getElementById('filtroEstado').value;
+        const filas    = document.querySelectorAll('#tbody-usuarios tr[id]');
+        let visibles   = 0;
+
+        filas.forEach(tr => {
+            const nombre  = tr.dataset.nombre  || '';
+            const usuario = tr.dataset.usuario  || '';
+            const email   = tr.dataset.email    || '';
+            const suc     = tr.dataset.sucursal || '';
+            const est     = tr.dataset.estado   || '';
+            const rol     = tr.dataset.rol      || '';
+
+            const matchBusq = !busq || nombre.includes(busq) || usuario.includes(busq) || email.includes(busq);
+
+            let matchSuc = true;
+            if (sucursal === 'todas')       matchSuc = suc === 'todas';
+            else if (sucursal === 'sin_asignar') matchSuc = suc === 'sin_asignar';
+            else if (sucursal)              matchSuc = suc === sucursal;
+
+            let matchEst = true;
+            if (estado === 'activos')       matchEst = est === 'activo';
+            else if (estado === 'inactivos') matchEst = est === 'inactivo';
+            else if (estado === 'admin')    matchEst = rol === 'admin';
+            else if (estado === 'superuser') matchEst = rol === 'superuser';
+
+            const visible = matchBusq && matchSuc && matchEst;
+            tr.style.display = visible ? '' : 'none';
+            if (visible) visibles++;
+        });
+
+        document.getElementById('badge-total').textContent = visibles + ' usuario' + (visibles !== 1 ? 's' : '');
+    };
+
+    window.limpiarFiltros = function () {
+        document.getElementById('buscador').value       = '';
+        document.getElementById('filtroSucursal').value = '';
+        document.getElementById('filtroEstado').value   = '';
+        filtrarTabla();
+    };
+
+    // Aplicar filtros al cargar si vienen por GET
+    filtrarTabla();
+
+    // ── Modal Toggle activo/inactivo ──────────
+    const modalToggle = new bootstrap.Modal(document.getElementById('modalToggle'));
+
+    document.querySelectorAll('.btn-toggle').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const id      = this.dataset.id;
+            const nombre  = this.dataset.nombre;
+            const activo  = this.dataset.activo === 'true';
+            const accion  = activo ? 'Desactivar' : 'Activar';
+            const icono   = activo
+                ? '<i class="fas fa-user-slash text-warning"></i>'
+                : '<i class="fas fa-user-check text-success"></i>';
+
+            document.getElementById('toggleIcon').innerHTML    = icono;
+            document.getElementById('toggleTitulo').textContent = accion + ' usuario';
+            document.getElementById('toggleMensaje').innerHTML =
+                `¿Deseas <strong>${accion.toLowerCase()}</strong> a <strong>${nombre}</strong>?`;
+            document.getElementById('toggleConfirmar').href =
+                `{% url 'usuarios:activar_desactivar_usuario' 0 %}`.replace('/0/', `/${id}/`);
+            document.getElementById('toggleConfirmar').className =
+                'btn text-white ' + (activo ? 'btn-warning' : 'btn-success');
+
+            modalToggle.show();
+        });
+    });
+
+    // ── Modal Eliminar ────────────────────────
+    const modalEliminar = new bootstrap.Modal(document.getElementById('modalEliminar'));
+
+    document.querySelectorAll('.btn-eliminar').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const id     = this.dataset.id;
+            const nombre = this.dataset.nombre;
+            document.getElementById('eliminarNombre').textContent = nombre;
+            document.getElementById('eliminarConfirmar').href =
+                `{% url 'usuarios:eliminar_usuario' 0 %}`.replace('/0/', `/${id}/`);
+            modalEliminar.show();
+        });
+    });
+
+});
+</script>
 {% endblock %}

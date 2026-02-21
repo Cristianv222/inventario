@@ -1,0 +1,512 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pedido #{{ pedido.numero_orden }} | OpenMotors{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Pedido #{{ pedido.numero_orden }}</h1>
+            <p class="text-muted mb-0">
+                Creado el {{ pedido.fecha_pedido|date:"d F Y, H:i" }}
+                {% if pedido.venta %}
+                <span class="badge bg-success ms-2">Facturado: {{ pedido.venta.numero_factura }}</span>
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'ventas:lista_pedidos_online' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+            {% if whatsapp_url %}
+            <a href="{{ whatsapp_url }}" target="_blank" class="btn btn-success ms-2">
+                <i class="fab fa-whatsapp"></i> Contactar Cliente
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Columna izquierda -->
+        <div class="col-lg-8">
+
+            <!-- Detalle de productos -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Detalle de Productos</h6>
+                    <span class="badge
+                        {% if pedido.estado == 'PENDIENTE' %}bg-warning text-dark
+                        {% elif pedido.estado == 'CONFIRMADO' %}bg-primary
+                        {% elif pedido.estado == 'PREPARANDO' %}bg-info
+                        {% elif pedido.estado == 'DESPACHADO' %}bg-secondary
+                        {% elif pedido.estado == 'ENTREGADO' %}bg-success
+                        {% elif pedido.estado == 'CANCELADO' %}bg-danger
+                        {% endif %}">
+                        {{ pedido.get_estado_display }}
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-end">Precio U.</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detalle in detalles %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if detalle.imagen_producto %}
+                                            <img src="{{ detalle.imagen_producto }}" alt=""
+                                                class="rounded me-2"
+                                                style="width:40px;height:40px;object-fit:cover;">
+                                            {% else %}
+                                            <div class="rounded bg-light d-flex align-items-center justify-content-center me-2"
+                                                style="width:40px;height:40px;">
+                                                <i class="fas fa-box text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ detalle.nombre_producto }}</div>
+                                                <small class="text-muted">{{ detalle.codigo_producto|default:"Sin código" }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">{{ detalle.cantidad }}</td>
+                                    <td class="text-end">${{ detalle.precio_unitario|floatformat:2 }}</td>
+                                    <td class="text-end fw-bold">${{ detalle.total|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="bg-light">
+                                <tr>
+                                    <td colspan="3" class="text-end">Subtotal:</td>
+                                    <td class="text-end">${{ pedido.subtotal|floatformat:2 }}</td>
+                                </tr>
+                                {% if pedido.costo_envio > 0 %}
+                                <tr>
+                                    <td colspan="3" class="text-end">Envío:</td>
+                                    <td class="text-end">${{ pedido.costo_envio|floatformat:2 }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if pedido.descuento > 0 %}
+                                <tr>
+                                    <td colspan="3" class="text-end text-danger">Descuento:</td>
+                                    <td class="text-end text-danger">-${{ pedido.descuento|floatformat:2 }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr class="fw-bold fs-5">
+                                    <td colspan="3" class="text-end">TOTAL:</td>
+                                    <td class="text-end text-primary">${{ pedido.total|floatformat:2 }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observaciones -->
+            {% if pedido.observaciones %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Observaciones</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ pedido.observaciones|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ══════════════════════════════════════════════════
+                 COMPROBANTE DE TRANSFERENCIA
+            ══════════════════════════════════════════════════ -->
+            {% if pedido.metodo_pago == 'TRANSFERENCIA' %}
+            <div class="card shadow mb-4" style="border-left: 4px solid #0dcaf0;">
+                <div class="card-header py-3 d-flex align-items-center justify-content-between"
+                     style="background-color: rgba(13,202,240,0.08);">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-university me-2"></i>Comprobante de Transferencia
+                    </h6>
+                    {% if pedido.estado_pago == 'PAGADO' %}
+                    <span class="badge bg-success">
+                        <i class="fas fa-check-circle me-1"></i>Pago Verificado
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">
+                        <i class="fas fa-clock me-1"></i>Pendiente de Verificación
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+
+                    <!-- Número de comprobante y banco -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="small text-muted text-uppercase fw-bold d-block mb-1">
+                                <i class="fas fa-hashtag me-1"></i>Número / Referencia
+                            </label>
+                            {% if pedido.numero_comprobante %}
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge bg-info text-dark fs-6 px-3 py-2 font-monospace">
+                                    {{ pedido.numero_comprobante }}
+                                </span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    onclick="copiarTexto('{{ pedido.numero_comprobante }}', this)">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                            </div>
+                            {% else %}
+                            <span class="text-danger">
+                                <i class="fas fa-exclamation-triangle me-1"></i>No proporcionado
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted text-uppercase fw-bold d-block mb-1">
+                                <i class="fas fa-landmark me-1"></i>Banco de Origen
+                            </label>
+                            {% if pedido.banco_origen %}
+                            <span class="fw-semibold">{{ pedido.banco_origen }}</span>
+                            {% else %}
+                            <span class="text-muted fst-italic">No especificado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Imagen del comprobante -->
+                    <div class="mb-4">
+                        <label class="small text-muted text-uppercase fw-bold d-block mb-2">
+                            <i class="fas fa-image me-1"></i>Imagen del Comprobante
+                        </label>
+
+                        {% with src=pedido.get_comprobante_src %}
+                        {% if src %}
+                        <div>
+                            <img src="{{ src }}"
+                                 alt="Comprobante de transferencia"
+                                 class="img-thumbnail shadow-sm d-block mb-2"
+                                 style="max-height:320px; max-width:100%; cursor:zoom-in; object-fit:contain;"
+                                 onclick="abrirModalComprobante('{{ src }}')"
+                                 title="Clic para ampliar">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-info"
+                                    onclick="abrirModalComprobante('{{ src }}')">
+                                    <i class="fas fa-search-plus me-1"></i>Ampliar
+                                </button>
+                                <a href="{{ src }}"
+                                   download="comprobante_{{ pedido.numero_orden }}"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-download me-1"></i>Descargar
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning d-flex align-items-center py-2 mb-0">
+                            <i class="fas fa-exclamation-circle me-2 flex-shrink-0"></i>
+                            <div>El cliente no adjuntó imagen del comprobante.</div>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    <!-- Acción: Marcar pago verificado -->
+                    {% if pedido.estado_pago != 'PAGADO' and pedido.estado != 'CANCELADO' %}
+                    <hr>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <p class="mb-0 text-muted small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Verifica el comprobante y confirma la recepción del pago.
+                        </p>
+                        <form method="post" action="{% url 'ventas:marcar_pago_verificado' pedido.id %}"
+                              onsubmit="return confirm('¿Confirmar que el pago por transferencia fue recibido y verificado?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-check-double me-1"></i>Marcar como Verificado
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+            {% endif %}
+            <!-- ══════ FIN COMPROBANTE ══════ -->
+
+        </div>
+
+        <!-- Columna derecha (sidebar) -->
+        <div class="col-lg-4">
+
+            <!-- Acciones -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Acciones</h6>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    {% if pedido.estado != 'CANCELADO' %}
+
+                    {% if not pedido.venta %}
+                    <form method="post" action="{% url 'ventas:procesar_venta_desde_pedido' pedido.id %}"
+                        onsubmit="return confirm('¿Crear factura oficial para este pedido?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100 mb-2">
+                            <i class="fas fa-file-invoice-dollar"></i> Generar Factura
+                        </button>
+                    </form>
+                    {% else %}
+                    <a href="{% url 'ventas:detalle_venta' pedido.venta.id %}" class="btn btn-info w-100 mb-2">
+                        <i class="fas fa-search"></i> Ver Factura #{{ pedido.venta.numero_factura }}
+                    </a>
+                    {% endif %}
+
+                    {% if pedido.estado == 'PENDIENTE' %}
+                    <form method="post" action="{% url 'ventas:confirmar_pedido_online' pedido.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-check"></i> Confirmar Pedido
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if pedido.estado == 'CONFIRMADO' or pedido.estado == 'PREPARANDO' %}
+                    <button type="button" class="btn btn-secondary w-100"
+                            data-bs-toggle="modal" data-bs-target="#dispatchModal">
+                        <i class="fas fa-truck"></i> Despachar Pedido
+                    </button>
+                    {% endif %}
+
+                    {% if pedido.estado == 'DESPACHADO' %}
+                    <form method="post" action="{% url 'ventas:entregar_pedido_online' pedido.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-box-open"></i> Marcar Entregado
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    <hr>
+
+                    <form method="post" action="{% url 'ventas:cancelar_pedido_online' pedido.id %}"
+                        onsubmit="return confirm('¿Cancelar este pedido? Se revertirá el stock.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-ban"></i> Cancelar Pedido
+                        </button>
+                    </form>
+
+                    {% else %}
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Pedido Cancelado
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Datos del cliente -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Datos del Cliente</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="small text-muted text-uppercase fw-bold">Nombre</label>
+                        <div class="fw-bold">{{ pedido.nombres_comprador }} {{ pedido.apellidos_comprador }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted text-uppercase fw-bold">Identificación</label>
+                        <div>{{ pedido.cedula_comprador }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted text-uppercase fw-bold">Contacto</label>
+                        <div><i class="fas fa-phone small text-muted me-1"></i> {{ pedido.telefono_comprador }}</div>
+                        {% if pedido.email_comprador %}
+                        <div><i class="fas fa-envelope small text-muted me-1"></i> {{ pedido.email_comprador }}</div>
+                        {% endif %}
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label class="small text-muted text-uppercase fw-bold">Método de Entrega</label>
+                        <div class="fw-bold">
+                            {% if pedido.tipo_entrega == 'SERVIENTREGA' %}
+                            <i class="fas fa-truck text-info"></i> Servientrega
+                            {% else %}
+                            <i class="fas fa-store text-secondary"></i> Retiro en Tienda
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if pedido.tipo_entrega == 'SERVIENTREGA' %}
+                    <div class="bg-light p-3 rounded mb-3">
+                        <div class="small fw-bold mb-1">Dirección de Envío:</div>
+                        <div>{{ pedido.direccion_envio }}</div>
+                        <div class="small text-muted">{{ pedido.ciudad_envio }}, {{ pedido.provincia_envio }}</div>
+                        {% if pedido.referencia_envio %}
+                        <div class="small text-muted mt-1">Ref: {{ pedido.referencia_envio }}</div>
+                        {% endif %}
+                    </div>
+                    {% if pedido.numero_guia %}
+                    <div class="alert alert-info py-2 px-3 mb-0">
+                        <div class="small fw-bold">Guía de Rastreo:</div>
+                        <div class="font-monospace">{{ pedido.numero_guia }}</div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información de pago -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Información de Pago</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Método:</span>
+                        <span class="fw-bold">{{ pedido.get_metodo_pago_display }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Estado:</span>
+                        {% if pedido.estado_pago == 'PAGADO' %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-check-circle me-1"></i>Pagado
+                        </span>
+                        {% elif pedido.estado_pago == 'PENDIENTE' %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-clock me-1"></i>Pendiente
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ pedido.get_estado_pago_display }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Resumen comprobante en sidebar -->
+                    {% if pedido.metodo_pago == 'TRANSFERENCIA' %}
+                    <div class="rounded p-2 mb-2"
+                         style="background:rgba(13,202,240,0.08); border:1px solid rgba(13,202,240,0.3);">
+                        <div class="small text-info fw-bold mb-1">
+                            <i class="fas fa-receipt me-1"></i>Comprobante
+                        </div>
+                        {% if pedido.numero_comprobante %}
+                        <div class="font-monospace fw-bold small">{{ pedido.numero_comprobante }}</div>
+                        {% else %}
+                        <div class="text-muted small fst-italic">Sin número</div>
+                        {% endif %}
+                        {% if pedido.banco_origen %}
+                        <div class="small text-muted mt-1">
+                            <i class="fas fa-landmark me-1"></i>{{ pedido.banco_origen }}
+                        </div>
+                        {% endif %}
+                        <div class="mt-1">
+                            {% if pedido.tiene_comprobante %}
+                            <span class="badge bg-success" style="font-size:0.7rem;">
+                                <i class="fas fa-image me-1"></i>Imagen adjunta
+                            </span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark" style="font-size:0.7rem;">
+                                <i class="fas fa-image me-1"></i>Sin imagen
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if pedido.payphone_transaction_id %}
+                    <div class="small bg-light p-2 rounded">
+                        <div><span class="fw-bold">ID Transacción:</span> {{ pedido.payphone_transaction_id }}</div>
+                        {% if pedido.payphone_reference %}
+                        <div><span class="fw-bold">Ref:</span> {{ pedido.payphone_reference }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal despacho -->
+<div class="modal fade" id="dispatchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="post"
+              action="{% url 'ventas:despachar_pedido_online' pedido.id %}">
+            {% csrf_token %}
+            <div class="modal-header">
+                <h5 class="modal-title">Despachar Pedido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Confirmar el despacho del pedido <strong>#{{ pedido.numero_orden }}</strong>?</p>
+                {% if pedido.tipo_entrega == 'SERVIENTREGA' %}
+                <div class="mb-3">
+                    <label for="numero_guia" class="form-label">Número de Guía / Rastreo (Opcional)</label>
+                    <input type="text" class="form-control" id="numero_guia" name="numero_guia"
+                           placeholder="Ej: 1234567890">
+                </div>
+                {% else %}
+                <p class="text-muted small">Este pedido es con retiro en tienda, no requiere guía.</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Confirmar Despacho</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para ampliar comprobante -->
+<div class="modal fade" id="comprobanteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-image me-2"></i>Comprobante de Transferencia
+                    — Pedido #{{ pedido.numero_orden }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-2">
+                <img id="comprobanteModalImg" src="" alt="Comprobante"
+                     style="max-width:100%; max-height:75vh; object-fit:contain;">
+            </div>
+            <div class="modal-footer">
+                <a id="comprobanteDescargarBtn" href="#"
+                   download="comprobante_{{ pedido.numero_orden }}"
+                   class="btn btn-outline-secondary">
+                    <i class="fas fa-download me-1"></i>Descargar
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function abrirModalComprobante(src) {
+        document.getElementById('comprobanteModalImg').src = src;
+        document.getElementById('comprobanteDescargarBtn').href = src;
+        new bootstrap.Modal(document.getElementById('comprobanteModal')).show();
+    }
+
+    function copiarTexto(texto, btn) {
+        navigator.clipboard.writeText(texto).then(() => {
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+            btn.classList.replace('btn-outline-secondary', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = original;
+                btn.classList.replace('btn-success', 'btn-outline-secondary');
+            }, 2000);
+        });
+    }
+</script>
+{% endblock %}

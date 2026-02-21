@@ -1,15 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
-from django.urls import reverse_lazy, reverse
-from django.http import JsonResponse, HttpResponse
-from django.db.models import Q, Count, Sum, Avg, F, Max, Min
+from django.http import JsonResponse
+from django.db.models import Q, Count, Sum, Avg, F
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from datetime import datetime, timedelta, date
 import json
@@ -17,7 +13,8 @@ import calendar
 from decimal import Decimal
 
 from .models import (
-    MovimientoCaja, GastoDiario, CierreDiario, TipoMovimiento, ResumenMensual
+    MovimientoCaja, GastoDiario, CierreDiario, TipoMovimiento,
+    ResumenMensual, DesgloseBilletes
 )
 from .forms import (
     GastoDiarioForm, CierreDiarioForm, ReporteVentasForm, FiltroFechasForm,
@@ -25,167 +22,540 @@ from .forms import (
 )
 from ventas.models import Venta, DetalleVenta
 
-# Intentar importar modelos de taller de forma segura
 try:
-    from taller.models import OrdenTrabajo, ServicioOrden
+    from taller.models import OrdenTrabajo, ServicioOrden, Tecnico, TipoServicio
     TALLER_DISPONIBLE = True
 except ImportError:
     TALLER_DISPONIBLE = False
 
+try:
+    from clientes.models import PedidoOnline
+    ONLINE_DISPONIBLE = True
+except ImportError:
+    ONLINE_DISPONIBLE = False
 
-# ================== DASHBOARD PRINCIPAL ==================
+
+# ══════════════════════════════════════════════════════════════════════
+#  HELPERS
+# ══════════════════════════════════════════════════════════════════════
+
+def _rango_periodo(tipo, fecha_ref=None):
+    """Devuelve (fecha_inicio, fecha_fin) para dia/semana/mes/año"""
+    hoy = fecha_ref or timezone.now().date()
+    if tipo == 'dia':
+        return hoy, hoy
+    elif tipo == 'semana':
+        inicio = hoy - timedelta(days=hoy.weekday())
+        return inicio, inicio + timedelta(days=6)
+    elif tipo == 'mes':
+        inicio = hoy.replace(day=1)
+        ultimo = calendar.monthrange(hoy.year, hoy.month)[1]
+        return inicio, hoy.replace(day=ultimo)
+    elif tipo == 'año':
+        return hoy.replace(month=1, day=1), hoy.replace(month=12, day=31)
+    return hoy, hoy
+
+
+def _ventas_pos(fecha_inicio, fecha_fin):
+    return Venta.objects.filter(
+        fecha_hora__date__range=[fecha_inicio, fecha_fin],
+        estado='COMPLETADA'
+    )
+
+
+def _pedidos_online(fecha_inicio, fecha_fin):
+    if not ONLINE_DISPONIBLE:
+        return PedidoOnline.objects.none() if ONLINE_DISPONIBLE else []
+    return PedidoOnline.objects.filter(
+        fecha_entrega__date__range=[fecha_inicio, fecha_fin],
+        estado='ENTREGADO'
+    )
+
+
+def _ordenes_taller(fecha_inicio, fecha_fin):
+    if not TALLER_DISPONIBLE:
+        return []
+    return OrdenTrabajo.objects.filter(
+        estado__in=['COMPLETADO', 'ENTREGADO'],
+        fecha_completado__date__range=[fecha_inicio, fecha_fin]
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  DASHBOARD PRINCIPAL
+# ══════════════════════════════════════════════════════════════════════
 
 @login_required
 def dashboard_reportes(request):
-    """Dashboard principal del módulo de reportes"""
     hoy = timezone.now().date()
-    
-    # Obtener o crear cierre de hoy
     cierre_hoy = CierreDiario.get_o_crear_hoy(request.user)
-    
-    # Estadísticas del día
-    ventas_hoy = Venta.objects.filter(
-        fecha_hora__date=hoy
-    )
-    
-    # Filtrar por estado si existe el campo
-    if hasattr(Venta, 'estado'):
-        ventas_hoy = ventas_hoy.filter(estado='COMPLETADA')
-    
+
+    # ── Hoy ───────────────────────────────────────────────────────
+    ventas_pos_hoy = _ventas_pos(hoy, hoy)
+    total_pos_hoy = ventas_pos_hoy.aggregate(t=Sum('total'))['t'] or Decimal('0')
+
+    total_online_hoy = Decimal('0')
+    if ONLINE_DISPONIBLE:
+        total_online_hoy = PedidoOnline.objects.filter(
+            fecha_entrega__date=hoy, estado='ENTREGADO'
+        ).aggregate(t=Sum('total'))['t'] or Decimal('0')
+
+    total_taller_hoy = Decimal('0')
+    if TALLER_DISPONIBLE:
+        total_taller_hoy = OrdenTrabajo.objects.filter(
+            estado__in=['COMPLETADO', 'ENTREGADO'],
+            fecha_completado__date=hoy
+        ).aggregate(t=Sum('precio_total'))['t'] or Decimal('0')
+
+    total_gastos_hoy = GastoDiario.objects.filter(
+        fecha=hoy, aprobado=True
+    ).aggregate(t=Sum('monto'))['t'] or Decimal('0')
+
     stats_hoy = {
-        'total_ventas': ventas_hoy.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-        'cantidad_ventas': ventas_hoy.count(),
-        'promedio_venta': Decimal('0.00'),
-        'efectivo_dia': ventas_hoy.filter(tipo_pago='EFECTIVO').aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-        'tarjeta_dia': ventas_hoy.filter(tipo_pago='TARJETA').aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
+        'total_pos': total_pos_hoy,
+        'total_online': total_online_hoy,
+        'total_taller': total_taller_hoy,
+        'total_ingresos': total_pos_hoy + total_online_hoy + total_taller_hoy,
+        'total_gastos': total_gastos_hoy,
+        'cantidad_ventas': ventas_pos_hoy.count(),
+        'efectivo': ventas_pos_hoy.filter(tipo_pago='EFECTIVO').aggregate(t=Sum('total'))['t'] or Decimal('0'),
+        'tarjeta': ventas_pos_hoy.filter(tipo_pago='TARJETA').aggregate(t=Sum('total'))['t'] or Decimal('0'),
+        'transferencia': ventas_pos_hoy.filter(tipo_pago='TRANSFERENCIA').aggregate(t=Sum('total'))['t'] or Decimal('0'),
     }
-    
-    if stats_hoy['cantidad_ventas'] > 0:
-        stats_hoy['promedio_venta'] = stats_hoy['total_ventas'] / stats_hoy['cantidad_ventas']
-    
-    # Gastos del día
-    gastos_hoy = GastoDiario.objects.filter(fecha=hoy)
-    total_gastos_hoy = gastos_hoy.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    # Estadísticas de la semana
-    inicio_semana = hoy - timedelta(days=hoy.weekday())
-    fin_semana = inicio_semana + timedelta(days=6)
-    
-    ventas_semana = Venta.objects.filter(
-        fecha_hora__date__range=[inicio_semana, fin_semana]
-    )
-    
-    if hasattr(Venta, 'estado'):
-        ventas_semana = ventas_semana.filter(estado='COMPLETADA')
-    
+
+    # ── Semana ────────────────────────────────────────────────────
+    inicio_sem, fin_sem = _rango_periodo('semana', hoy)
+    ventas_sem = _ventas_pos(inicio_sem, fin_sem)
     stats_semana = {
-        'total_ventas': ventas_semana.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-        'cantidad_ventas': ventas_semana.count(),
+        'total_ventas': ventas_sem.aggregate(t=Sum('total'))['t'] or Decimal('0'),
+        'cantidad_ventas': ventas_sem.count(),
         'total_gastos': GastoDiario.objects.filter(
-            fecha__range=[inicio_semana, fin_semana]
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00'),
+            fecha__range=[inicio_sem, fin_sem], aprobado=True
+        ).aggregate(t=Sum('monto'))['t'] or Decimal('0'),
     }
-    
-    # Estadísticas del mes
-    inicio_mes = hoy.replace(day=1)
-    ventas_mes = Venta.objects.filter(
-        fecha_hora__date__gte=inicio_mes
-    )
-    
-    if hasattr(Venta, 'estado'):
-        ventas_mes = ventas_mes.filter(estado='COMPLETADA')
-    
+
+    # ── Mes ───────────────────────────────────────────────────────
+    inicio_mes, fin_mes = _rango_periodo('mes', hoy)
+    ventas_mes = _ventas_pos(inicio_mes, fin_mes)
     stats_mes = {
-        'total_ventas': ventas_mes.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
+        'total_ventas': ventas_mes.aggregate(t=Sum('total'))['t'] or Decimal('0'),
         'cantidad_ventas': ventas_mes.count(),
         'total_gastos': GastoDiario.objects.filter(
-            fecha__gte=inicio_mes
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00'),
+            fecha__range=[inicio_mes, fin_mes], aprobado=True
+        ).aggregate(t=Sum('monto'))['t'] or Decimal('0'),
     }
-    
-    # Ventas por producto vs servicios (últimos 7 días)
-    hace_7_dias = hoy - timedelta(days=7)
-    
-    # Filtros base para detalles
-    filtros_detalle = {
-        'venta__fecha_hora__date__gte': hace_7_dias,
-    }
-    
-    if hasattr(Venta, 'estado'):
-        filtros_detalle['venta__estado'] = 'COMPLETADA'
-    
-    detalles_productos = DetalleVenta.objects.filter(
-        **filtros_detalle,
-        es_servicio=False
-    ).aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00')
-    
-    detalles_servicios = DetalleVenta.objects.filter(
-        **filtros_detalle,
-        es_servicio=True
-    ).aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00')
-    
-    # Top 5 días con más ventas (último mes)
-    ventas_mes_filtradas = Venta.objects.filter(
-        fecha_hora__date__gte=inicio_mes
-    )
-    
-    if hasattr(Venta, 'estado'):
-        ventas_mes_filtradas = ventas_mes_filtradas.filter(estado='COMPLETADA')
-    
-    top_dias = ventas_mes_filtradas.extra(
+
+    # ── Top 5 días con más ventas del mes ─────────────────────────
+    top_dias = ventas_mes.extra(
         select={'dia': 'DATE(fecha_hora)'}
     ).values('dia').annotate(
-        total_dia=Sum('total'),
-        cantidad=Count('id')
+        total_dia=Sum('total'), cantidad=Count('id')
     ).order_by('-total_dia')[:5]
-    
-    # Movimientos recientes de caja
-    try:
-        movimientos_recientes = MovimientoCaja.objects.filter(
-            fecha=hoy
-        ).order_by('-hora')[:10]
-    except:
-        movimientos_recientes = []
-    
-    # Gastos pendientes de aprobación
+
+    # ── Gastos pendientes ─────────────────────────────────────────
     gastos_pendientes = GastoDiario.objects.filter(
-        aprobado=False,
-        fecha__gte=hoy - timedelta(days=7)
+        aprobado=False, fecha__gte=hoy - timedelta(days=7)
     ).count()
-    
-    # Diferencias en caja (últimos 5 días)
-    diferencias_caja = CierreDiario.objects.filter(
-        fecha__gte=hoy - timedelta(days=5),
-        estado='CERRADO',
-        diferencia_efectivo__isnull=False
-    ).exclude(diferencia_efectivo=0).order_by('-fecha')[:5]
-    
+
     context = {
         'active_page': 'reportes',
         'cierre_hoy': cierre_hoy,
         'stats_hoy': stats_hoy,
-        'total_gastos_hoy': total_gastos_hoy,
         'stats_semana': stats_semana,
         'stats_mes': stats_mes,
-        'detalles_productos': detalles_productos,
-        'detalles_servicios': detalles_servicios,
         'top_dias': top_dias,
-        'movimientos_recientes': movimientos_recientes,
         'gastos_pendientes': gastos_pendientes,
-        'diferencias_caja': diferencias_caja,
         'hoy': hoy,
+        'taller_disponible': TALLER_DISPONIBLE,
+        'online_disponible': ONLINE_DISPONIBLE,
     }
-    
     return render(request, 'reportes/dashboard.html', context)
 
 
-# ================== CAJA DIARIA ==================
+# ══════════════════════════════════════════════════════════════════════
+#  REPORTES DE VENTAS (POS + ONLINE + TALLER)
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+def reporte_ventas_completo(request):
+    """
+    Reporte unificado: ventas POS + pedidos online + órdenes taller.
+    Filtros: periodo (dia/semana/mes/año) o fechas personalizadas.
+    """
+    hoy = timezone.now().date()
+    periodo = request.GET.get('periodo', 'mes')
+    fecha_desde_str = request.GET.get('fecha_desde')
+    fecha_hasta_str = request.GET.get('fecha_hasta')
+
+    # Resolver rango de fechas
+    if fecha_desde_str and fecha_hasta_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_desde_str, '%Y-%m-%d').date()
+            fecha_fin = datetime.strptime(fecha_hasta_str, '%Y-%m-%d').date()
+        except ValueError:
+            fecha_inicio, fecha_fin = _rango_periodo(periodo, hoy)
+    else:
+        fecha_inicio, fecha_fin = _rango_periodo(periodo, hoy)
+
+    # ── Ventas POS ────────────────────────────────────────────────
+    ventas_pos = _ventas_pos(fecha_inicio, fecha_fin)
+    stats_pos = ventas_pos.aggregate(
+        total=Sum('total'),
+        subtotal=Sum('subtotal'),
+        iva=Sum('iva'),
+        cantidad=Count('id'),
+        efectivo=Sum('total', filter=Q(tipo_pago='EFECTIVO')),
+        tarjeta=Sum('total', filter=Q(tipo_pago='TARJETA')),
+        transferencia=Sum('total', filter=Q(tipo_pago='TRANSFERENCIA')),
+    )
+
+    detalles_productos = DetalleVenta.objects.filter(
+        venta__fecha_hora__date__range=[fecha_inicio, fecha_fin],
+        venta__estado='COMPLETADA',
+        es_servicio=False
+    ).aggregate(total=Sum('subtotal'))['total'] or Decimal('0')
+
+    detalles_servicios = DetalleVenta.objects.filter(
+        venta__fecha_hora__date__range=[fecha_inicio, fecha_fin],
+        venta__estado='COMPLETADA',
+        es_servicio=True
+    ).aggregate(total=Sum('subtotal'))['total'] or Decimal('0')
+
+    # ── Pedidos Online ────────────────────────────────────────────
+    stats_online = {'total': Decimal('0'), 'cantidad': 0}
+    pedidos_por_metodo = []
+    if ONLINE_DISPONIBLE:
+        pedidos = _pedidos_online(fecha_inicio, fecha_fin)
+        stats_online = pedidos.aggregate(
+            total=Sum('total'), cantidad=Count('id')
+        )
+        stats_online['total'] = stats_online['total'] or Decimal('0')
+        stats_online['cantidad'] = stats_online['cantidad'] or 0
+        pedidos_por_metodo = pedidos.values('metodo_pago').annotate(
+            total=Sum('total'), cantidad=Count('id')
+        ).order_by('-total')
+
+    # ── Órdenes Taller ────────────────────────────────────────────
+    stats_taller = {'total': Decimal('0'), 'cantidad': 0}
+    if TALLER_DISPONIBLE:
+        ordenes = _ordenes_taller(fecha_inicio, fecha_fin)
+        agg = ordenes.aggregate(total=Sum('precio_total'), cantidad=Count('id'))
+        stats_taller = {
+            'total': agg['total'] or Decimal('0'),
+            'cantidad': agg['cantidad'] or 0,
+        }
+
+    # ── Totales consolidados ──────────────────────────────────────
+    total_general = (
+        (stats_pos['total'] or Decimal('0'))
+        + stats_online['total']
+        + stats_taller['total']
+    )
+
+    # ── Ventas POS por día (para gráfico) ─────────────────────────
+    ventas_por_dia = ventas_pos.extra(
+        select={'dia': 'DATE(fecha_hora)'}
+    ).values('dia').annotate(
+        total=Sum('total'), cantidad=Count('id')
+    ).order_by('dia')
+
+    # ── Top productos vendidos ────────────────────────────────────
+    top_productos = DetalleVenta.objects.filter(
+        venta__fecha_hora__date__range=[fecha_inicio, fecha_fin],
+        venta__estado='COMPLETADA',
+        es_servicio=False,
+        producto__isnull=False
+    ).values('producto__nombre').annotate(
+        cantidad=Sum('cantidad'), total=Sum('subtotal')
+    ).order_by('-total')[:10]
+
+    # ── Top servicios vendidos ────────────────────────────────────
+    top_servicios = DetalleVenta.objects.filter(
+        venta__fecha_hora__date__range=[fecha_inicio, fecha_fin],
+        venta__estado='COMPLETADA',
+        es_servicio=True,
+        tipo_servicio__isnull=False
+    ).values('tipo_servicio__nombre').annotate(
+        cantidad=Sum('cantidad'), total=Sum('subtotal')
+    ).order_by('-total')[:10]
+
+    # ── Vendedores (usuarios que hicieron ventas) ─────────────────
+    ventas_por_usuario = ventas_pos.values(
+        'usuario__nombre', 'usuario__apellido'
+    ).annotate(
+        total=Sum('total'), cantidad=Count('id')
+    ).order_by('-total')
+
+    context = {
+        'active_page': 'reportes',
+        'periodo': periodo,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'stats_pos': stats_pos,
+        'detalles_productos': detalles_productos,
+        'detalles_servicios': detalles_servicios,
+        'stats_online': stats_online,
+        'pedidos_por_metodo': pedidos_por_metodo,
+        'stats_taller': stats_taller,
+        'total_general': total_general,
+        'ventas_por_dia': list(ventas_por_dia),
+        'top_productos': top_productos,
+        'top_servicios': top_servicios,
+        'ventas_por_usuario': ventas_por_usuario,
+        'taller_disponible': TALLER_DISPONIBLE,
+        'online_disponible': ONLINE_DISPONIBLE,
+    }
+    return render(request, 'reportes/ventas_completo.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  REPORTES POR TÉCNICO
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+def reporte_tecnicos(request):
+    """
+    Reporte de rendimiento por técnico.
+    Muestra: cantidad de servicios, total facturado, promedio evaluación.
+    Filtros: dia/semana/mes/año + técnico específico.
+    """
+    if not TALLER_DISPONIBLE:
+        messages.warning(request, 'El módulo de taller no está disponible.')
+        return redirect('reportes:dashboard')
+
+    hoy = timezone.now().date()
+    periodo = request.GET.get('periodo', 'mes')
+    tecnico_id = request.GET.get('tecnico_id')
+    fecha_desde_str = request.GET.get('fecha_desde')
+    fecha_hasta_str = request.GET.get('fecha_hasta')
+
+    if fecha_desde_str and fecha_hasta_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_desde_str, '%Y-%m-%d').date()
+            fecha_fin = datetime.strptime(fecha_hasta_str, '%Y-%m-%d').date()
+        except ValueError:
+            fecha_inicio, fecha_fin = _rango_periodo(periodo, hoy)
+    else:
+        fecha_inicio, fecha_fin = _rango_periodo(periodo, hoy)
+
+    tecnicos = Tecnico.objects.filter(activo=True).order_by('nombres', 'apellidos')
+
+    # ── Resumen general de todos los técnicos ─────────────────────
+    ordenes_periodo = OrdenTrabajo.objects.filter(
+        estado__in=['COMPLETADO', 'ENTREGADO'],
+        fecha_completado__date__range=[fecha_inicio, fecha_fin]
+    )
+
+    resumen_tecnicos = []
+    for tec in tecnicos:
+        ordenes_tec = ordenes_periodo.filter(tecnico_principal=tec)
+
+        # Servicios realizados por este técnico en el período
+        servicios_tec = ServicioOrden.objects.filter(
+            orden__in=ordenes_tec,
+            tecnico_asignado=tec
+        )
+
+        # Servicios más realizados por este técnico
+        top_servicios_tec = servicios_tec.values(
+            'tipo_servicio__nombre'
+        ).annotate(
+            cantidad=Count('id'),
+            total=Sum('precio_servicio')
+        ).order_by('-cantidad')[:5]
+
+        # Promedio de evaluación
+        from taller.models import EvaluacionServicio
+        evaluaciones = EvaluacionServicio.objects.filter(
+            orden__in=ordenes_tec,
+            calificacion_tecnico__isnull=False
+        )
+        promedio_eval = evaluaciones.aggregate(
+            p=Avg('calificacion_tecnico')
+        )['p'] or 0
+
+        total_facturado = ordenes_tec.aggregate(
+            t=Sum('precio_total')
+        )['t'] or Decimal('0')
+
+        resumen_tecnicos.append({
+            'tecnico': tec,
+            'ordenes_completadas': ordenes_tec.count(),
+            'total_servicios': servicios_tec.count(),
+            'total_facturado': total_facturado,
+            'promedio_evaluacion': round(promedio_eval, 1),
+            'comision_estimada': total_facturado * (tec.porcentaje_comision / 100) if tec.porcentaje_comision else Decimal('0'),
+            'top_servicios': list(top_servicios_tec),
+        })
+
+    # Ordenar por total facturado desc
+    resumen_tecnicos.sort(key=lambda x: x['total_facturado'], reverse=True)
+
+    # ── Detalle de un técnico específico ──────────────────────────
+    detalle_tecnico = None
+    if tecnico_id:
+        try:
+            tec_sel = Tecnico.objects.get(id=tecnico_id)
+            ordenes_sel = ordenes_periodo.filter(tecnico_principal=tec_sel)
+
+            # Servicios agrupados por tipo
+            servicios_agrupados = ServicioOrden.objects.filter(
+                orden__in=ordenes_sel,
+                tecnico_asignado=tec_sel
+            ).values(
+                'tipo_servicio__nombre',
+                'tipo_servicio__categoria__nombre'
+            ).annotate(
+                cantidad=Count('id'),
+                total=Sum('precio_servicio'),
+                tiempo_promedio=Avg('tiempo_real')
+            ).order_by('-cantidad')
+
+            # Órdenes del período con detalle
+            ordenes_detalle = ordenes_sel.select_related(
+                'cliente'
+            ).prefetch_related('servicios').order_by('-fecha_completado')
+
+            # Estadísticas por semana dentro del período
+            from django.db.models.functions import TruncWeek
+            por_semana = ordenes_sel.annotate(
+                semana=TruncWeek('fecha_completado')
+            ).values('semana').annotate(
+                total=Sum('precio_total'),
+                cantidad=Count('id')
+            ).order_by('semana')
+
+            detalle_tecnico = {
+                'tecnico': tec_sel,
+                'ordenes': ordenes_detalle,
+                'servicios_agrupados': servicios_agrupados,
+                'por_semana': list(por_semana),
+                'stats': resumen_tecnicos[
+                    next((i for i, r in enumerate(resumen_tecnicos)
+                          if r['tecnico'].id == tec_sel.id), 0)
+                ] if resumen_tecnicos else {},
+            }
+        except Tecnico.DoesNotExist:
+            pass
+
+    # ── Servicios más realizados en general ───────────────────────
+    top_servicios_global = ServicioOrden.objects.filter(
+        orden__in=ordenes_periodo
+    ).values(
+        'tipo_servicio__nombre',
+        'tipo_servicio__categoria__nombre'
+    ).annotate(
+        cantidad=Count('id'),
+        total=Sum('precio_servicio')
+    ).order_by('-cantidad')[:15]
+
+    context = {
+        'active_page': 'reportes',
+        'periodo': periodo,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'tecnicos': tecnicos,
+        'resumen_tecnicos': resumen_tecnicos,
+        'detalle_tecnico': detalle_tecnico,
+        'tecnico_id_sel': int(tecnico_id) if tecnico_id else None,
+        'top_servicios_global': top_servicios_global,
+    }
+    return render(request, 'reportes/tecnicos.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  REPORTES POR VENDEDOR (USUARIO)
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+def reporte_vendedores(request):
+    """
+    Rendimiento de cada usuario que realiza ventas.
+    Filtros: dia/semana/mes/año.
+    """
+    hoy = timezone.now().date()
+    periodo = request.GET.get('periodo', 'mes')
+    fecha_desde_str = request.GET.get('fecha_desde')
+    fecha_hasta_str = request.GET.get('fecha_hasta')
+
+    if fecha_desde_str and fecha_hasta_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_desde_str, '%Y-%m-%d').date()
+            fecha_fin = datetime.strptime(fecha_hasta_str, '%Y-%m-%d').date()
+        except ValueError:
+            fecha_inicio, fecha_fin = _rango_periodo(periodo, hoy)
+    else:
+        fecha_inicio, fecha_fin = _rango_periodo(periodo, hoy)
+
+    ventas = _ventas_pos(fecha_inicio, fecha_fin)
+
+    # Agrupar por usuario
+    por_usuario = ventas.values(
+        'usuario__id',
+        'usuario__nombre',
+        'usuario__apellido',
+    ).annotate(
+        total_ventas=Sum('total'),
+        cantidad_ventas=Count('id'),
+        promedio_venta=Avg('total'),
+        efectivo=Sum('total', filter=Q(tipo_pago='EFECTIVO')),
+        tarjeta=Sum('total', filter=Q(tipo_pago='TARJETA')),
+        transferencia=Sum('total', filter=Q(tipo_pago='TRANSFERENCIA')),
+    ).order_by('-total_ventas')
+
+    # Detalle de un vendedor específico
+    usuario_id = request.GET.get('usuario_id')
+    detalle_vendedor = None
+    if usuario_id:
+        ventas_usr = ventas.filter(usuario__id=usuario_id)
+        top_productos_usr = DetalleVenta.objects.filter(
+            venta__in=ventas_usr,
+            es_servicio=False,
+            producto__isnull=False
+        ).values('producto__nombre').annotate(
+            cantidad=Sum('cantidad'), total=Sum('subtotal')
+        ).order_by('-total')[:10]
+
+        top_servicios_usr = DetalleVenta.objects.filter(
+            venta__in=ventas_usr,
+            es_servicio=True,
+            tipo_servicio__isnull=False
+        ).values('tipo_servicio__nombre').annotate(
+            cantidad=Sum('cantidad'), total=Sum('subtotal')
+        ).order_by('-total')[:10]
+
+        ventas_por_dia_usr = ventas_usr.extra(
+            select={'dia': 'DATE(fecha_hora)'}
+        ).values('dia').annotate(
+            total=Sum('total'), cantidad=Count('id')
+        ).order_by('dia')
+
+        detalle_vendedor = {
+            'ventas': ventas_usr.select_related('cliente').order_by('-fecha_hora')[:50],
+            'top_productos': top_productos_usr,
+            'top_servicios': top_servicios_usr,
+            'ventas_por_dia': list(ventas_por_dia_usr),
+        }
+
+    context = {
+        'active_page': 'reportes',
+        'periodo': periodo,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'por_usuario': por_usuario,
+        'detalle_vendedor': detalle_vendedor,
+        'usuario_id_sel': int(usuario_id) if usuario_id else None,
+    }
+    return render(request, 'reportes/vendedores.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  CAJA DIARIA CON DESGLOSE DE BILLETES
+# ══════════════════════════════════════════════════════════════════════
 
 @login_required
 def caja_diaria(request):
-    """Vista principal de caja diaria"""
     fecha_str = request.GET.get('fecha')
-    
     if fecha_str:
         try:
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
@@ -193,152 +563,184 @@ def caja_diaria(request):
             fecha = timezone.now().date()
     else:
         fecha = timezone.now().date()
-    
-    # Obtener o crear cierre del día
+
     cierre, created = CierreDiario.objects.get_or_create(
         fecha=fecha,
         defaults={'usuario_cierre': request.user}
     )
-    
     if created or cierre.estado == 'ABIERTO':
         cierre.calcular_totales()
         cierre.save()
-    
-    # Ventas del día detalladas
-    ventas_dia = Venta.objects.filter(
-        fecha_hora__date=fecha
-    ).select_related('cliente', 'usuario').order_by('-fecha_hora')
-    
-    if hasattr(Venta, 'estado'):
-        ventas_dia = ventas_dia.filter(estado='COMPLETADA')
-    
-    # Separar ventas por tipo
-    ventas_productos = []
-    ventas_servicios = []
-    
-    for venta in ventas_dia:
-        detalles = venta.detalleventa_set.all()
-        tiene_productos = detalles.filter(es_servicio=False).exists()
-        tiene_servicios = detalles.filter(es_servicio=True).exists()
-        
-        if tiene_productos:
-            ventas_productos.append(venta)
-        if tiene_servicios:
-            ventas_servicios.append(venta)
-    
+
+    # Ventas del día
+    ventas_dia = _ventas_pos(fecha, fecha).select_related('cliente', 'usuario')
+
+    # Pedidos online del día
+    pedidos_dia = []
+    if ONLINE_DISPONIBLE:
+        pedidos_dia = PedidoOnline.objects.filter(
+            fecha_entrega__date=fecha, estado='ENTREGADO'
+        ).select_related()
+
+    # Órdenes taller del día
+    ordenes_dia = []
+    if TALLER_DISPONIBLE:
+        ordenes_dia = OrdenTrabajo.objects.filter(
+            estado__in=['COMPLETADO', 'ENTREGADO'],
+            fecha_completado__date=fecha
+        ).select_related('cliente', 'tecnico_principal')
+
     # Gastos del día
     gastos_dia = GastoDiario.objects.filter(fecha=fecha).order_by('-fecha_creacion')
-    
-    # Movimientos del día
-    try:
-        movimientos_dia = MovimientoCaja.objects.filter(fecha=fecha).order_by('-hora')
-    except:
-        movimientos_dia = []
-    
-    # Distribución por método de pago
+
+    # Desglose de billetes existente
+    desglose = cierre.desglose_billetes.all().order_by('-denominacion')
+
+    # Denominaciones para el formulario de conteo
+    denominaciones_billetes = [
+        ('100.00', '$100'), ('50.00', '$50'), ('20.00', '$20'),
+        ('10.00', '$10'), ('5.00', '$5'), ('1.00', '$1'),
+    ]
+    denominaciones_monedas = [
+        ('0.50', '50¢'), ('0.25', '25¢'), ('0.10', '10¢'),
+        ('0.05', '5¢'), ('0.01', '1¢'),
+    ]
+
+    # Métodos de pago
     metodos_pago = ventas_dia.values('tipo_pago').annotate(
-        total=Sum('total'),
-        cantidad=Count('id')
+        total=Sum('total'), cantidad=Count('id')
     ).order_by('-total')
-    
-    # Estadísticas comparativas
+
+    # Comparativo día anterior
     fecha_anterior = fecha - timedelta(days=1)
+    comparativo = None
     try:
-        cierre_anterior = CierreDiario.objects.get(fecha=fecha_anterior, estado='CERRADO')
+        cierre_ant = CierreDiario.objects.get(fecha=fecha_anterior, estado='CERRADO')
         comparativo = {
-            'ventas_anterior': cierre_anterior.total_ingresos,
-            'gastos_anterior': cierre_anterior.total_gastos,
-            'diferencia_ventas': cierre.total_ingresos - cierre_anterior.total_ingresos,
-            'diferencia_gastos': cierre.total_gastos - cierre_anterior.total_gastos,
+            'ventas_anterior': cierre_ant.total_ingresos,
+            'diferencia': cierre.total_ingresos - cierre_ant.total_ingresos,
         }
     except CierreDiario.DoesNotExist:
-        comparativo = None
-    
+        pass
+
     context = {
         'active_page': 'reportes',
         'cierre': cierre,
         'fecha': fecha,
         'ventas_dia': ventas_dia,
-        'ventas_productos': ventas_productos,
-        'ventas_servicios': ventas_servicios,
+        'pedidos_dia': pedidos_dia,
+        'ordenes_dia': ordenes_dia,
         'gastos_dia': gastos_dia,
-        'movimientos_dia': movimientos_dia,
+        'desglose': desglose,
         'metodos_pago': metodos_pago,
         'comparativo': comparativo,
+        'denominaciones_billetes': denominaciones_billetes,
+        'denominaciones_monedas': denominaciones_monedas,
         'puede_cerrar': fecha <= timezone.now().date() and cierre.estado == 'ABIERTO',
         'hoy': timezone.now().date(),
+        'taller_disponible': TALLER_DISPONIBLE,
+        'online_disponible': ONLINE_DISPONIBLE,
     }
-    
     return render(request, 'reportes/caja_diaria.html', context)
 
 
 @login_required
 @require_POST
+def guardar_desglose_billetes(request, cierre_id):
+    """
+    Guarda el conteo físico de billetes y monedas.
+    Recibe JSON con lista de {denominacion, cantidad, tipo}.
+    """
+    cierre = get_object_or_404(CierreDiario, pk=cierre_id)
+
+    if cierre.estado == 'CERRADO' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Caja ya cerrada'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        items = data.get('items', [])
+
+        with transaction.atomic():
+            # Eliminar desglose anterior
+            cierre.desglose_billetes.all().delete()
+
+            total_contado = Decimal('0')
+            for item in items:
+                cantidad = int(item.get('cantidad', 0))
+                if cantidad <= 0:
+                    continue
+                denominacion = Decimal(str(item['denominacion']))
+                tipo = item.get('tipo', 'BILLETE')
+                subtotal = denominacion * cantidad
+                total_contado += subtotal
+
+                DesgloseBilletes.objects.create(
+                    cierre=cierre,
+                    tipo=tipo,
+                    denominacion=denominacion,
+                    cantidad=cantidad,
+                    subtotal=subtotal,
+                )
+
+            # Actualizar efectivo contado y diferencia
+            cierre.efectivo_contado = total_contado
+            efectivo_esperado = cierre.saldo_inicial + cierre.efectivo_ventas - cierre.total_gastos_dia
+            cierre.diferencia_efectivo = total_contado - efectivo_esperado
+            cierre.save(update_fields=['efectivo_contado', 'diferencia_efectivo'])
+
+        return JsonResponse({
+            'success': True,
+            'total_contado': float(total_contado),
+            'diferencia': float(cierre.diferencia_efectivo),
+            'cuadra': cierre.diferencia_efectivo == 0,
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
 def cerrar_caja(request):
-    """Cerrar caja del día"""
     fecha_str = request.POST.get('fecha')
-    efectivo_contado = request.POST.get('efectivo_contado')
     observaciones = request.POST.get('observaciones', '')
-    
+
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-        
         if fecha > timezone.now().date():
-            messages.error(request, 'No se puede cerrar caja de fechas futuras')
+            messages.error(request, 'No se puede cerrar caja de fechas futuras.')
             return redirect('reportes:caja_diaria')
-        
+
         cierre = get_object_or_404(CierreDiario, fecha=fecha)
-        
+
         if cierre.estado != 'ABIERTO':
-            messages.error(request, 'Esta caja ya está cerrada')
+            messages.error(request, 'Esta caja ya está cerrada.')
             return redirect('reportes:caja_diaria')
-        
-        # Convertir efectivo contado
-        efectivo_decimal = None
-        if efectivo_contado:
-            try:
-                efectivo_decimal = Decimal(str(efectivo_contado))
-            except (ValueError, TypeError):
-                messages.error(request, 'Monto de efectivo inválido')
-                return redirect('reportes:caja_diaria')
-        
-        # Cerrar caja
-        cierre.efectivo_contado = efectivo_decimal
+
         cierre.observaciones = observaciones
         cierre.calcular_totales()
-        
         cierre.estado = 'CERRADO'
         cierre.usuario_cierre = request.user
         cierre.fecha_cierre = timezone.now()
         cierre.save()
-        
-        # Crear saldo inicial para el día siguiente
-        fecha_siguiente = fecha + timedelta(days=1)
+
+        # Saldo inicial para el día siguiente
+        fecha_sig = fecha + timedelta(days=1)
         CierreDiario.objects.get_or_create(
-            fecha=fecha_siguiente,
-            defaults={
-                'saldo_inicial': cierre.saldo_final,
-                'usuario_cierre': request.user,
-            }
+            fecha=fecha_sig,
+            defaults={'saldo_inicial': cierre.saldo_final, 'usuario_cierre': request.user}
         )
-        
-        # Mensaje según si hay diferencias
-        if cierre.diferencia_efectivo != 0:
+
+        if cierre.diferencia_efectivo and cierre.diferencia_efectivo != 0:
             if cierre.diferencia_efectivo > 0:
-                messages.warning(
-                    request, 
-                    f'Caja cerrada. Sobrante de ${cierre.diferencia_efectivo}'
-                )
+                messages.warning(request, f'Caja cerrada con sobrante de ${cierre.diferencia_efectivo:.2f}')
             else:
-                messages.warning(
-                    request, 
-                    f'Caja cerrada. Faltante de ${abs(cierre.diferencia_efectivo)}'
-                )
+                messages.warning(request, f'Caja cerrada con faltante de ${abs(cierre.diferencia_efectivo):.2f}')
         else:
             messages.success(request, 'Caja cerrada correctamente. Sin diferencias.')
-        
+
         return redirect('reportes:caja_diaria')
-        
+
     except Exception as e:
         messages.error(request, f'Error al cerrar caja: {str(e)}')
         return redirect('reportes:caja_diaria')
@@ -346,621 +748,257 @@ def cerrar_caja(request):
 
 @login_required
 def reabrir_caja(request, fecha_str):
-    """Reabrir caja cerrada (solo administradores)"""
+    if not request.user.is_superuser:
+        messages.error(request, 'Solo administradores pueden reabrir cajas.')
+        return redirect('reportes:caja_diaria')
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         cierre = get_object_or_404(CierreDiario, fecha=fecha)
-        
-        if not request.user.is_superuser:
-            messages.error(request, 'Solo administradores pueden reabrir cajas')
-            return redirect('reportes:caja_diaria')
-        
         if cierre.estado == 'ABIERTO':
-            messages.error(request, 'Esta caja ya está abierta')
+            messages.error(request, 'Esta caja ya está abierta.')
             return redirect('reportes:caja_diaria')
-        
         cierre.estado = 'ABIERTO'
         cierre.fecha_cierre = None
         cierre.efectivo_contado = None
         cierre.diferencia_efectivo = Decimal('0.00')
         cierre.save()
-        
-        messages.success(request, f'Caja del {fecha} reabierta correctamente')
+        messages.success(request, f'Caja del {fecha} reabierta.')
         return redirect('reportes:caja_diaria')
-        
     except Exception as e:
-        messages.error(request, f'Error al reabrir caja: {str(e)}')
+        messages.error(request, f'Error: {str(e)}')
         return redirect('reportes:caja_diaria')
 
 
-# ================== GASTOS ==================
+# ══════════════════════════════════════════════════════════════════════
+#  GASTOS (MÓDULO INDEPENDIENTE)
+# ══════════════════════════════════════════════════════════════════════
 
 @login_required
 def lista_gastos(request):
-    """Lista de gastos con filtros"""
-    form = FiltroGastosForm(request.GET or None)
     gastos = GastoDiario.objects.all().select_related('usuario', 'aprobado_por')
-    
-    if form and form.is_valid():
-        fecha_desde = form.cleaned_data.get('fecha_desde')
-        fecha_hasta = form.cleaned_data.get('fecha_hasta')
-        categoria = form.cleaned_data.get('categoria')
-        aprobado = form.cleaned_data.get('aprobado')
-        proveedor = form.cleaned_data.get('proveedor')
-        
-        if fecha_desde:
-            gastos = gastos.filter(fecha__gte=fecha_desde)
-        if fecha_hasta:
-            gastos = gastos.filter(fecha__lte=fecha_hasta)
-        if categoria:
-            gastos = gastos.filter(categoria=categoria)
-        if aprobado:
-            gastos = gastos.filter(aprobado=aprobado == 'True')
-        if proveedor:
-            gastos = gastos.filter(proveedor__icontains=proveedor)
-    
+
+    # Filtros
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+    categoria = request.GET.get('categoria')
+    aprobado = request.GET.get('aprobado')
+    busqueda = request.GET.get('q', '').strip()
+
+    if fecha_desde:
+        try:
+            gastos = gastos.filter(fecha__gte=datetime.strptime(fecha_desde, '%Y-%m-%d').date())
+        except ValueError:
+            pass
+    if fecha_hasta:
+        try:
+            gastos = gastos.filter(fecha__lte=datetime.strptime(fecha_hasta, '%Y-%m-%d').date())
+        except ValueError:
+            pass
+    if categoria:
+        gastos = gastos.filter(categoria=categoria)
+    if aprobado == 'True':
+        gastos = gastos.filter(aprobado=True)
+    elif aprobado == 'False':
+        gastos = gastos.filter(aprobado=False)
+    if busqueda:
+        gastos = gastos.filter(
+            Q(concepto__icontains=busqueda) | Q(proveedor__icontains=busqueda)
+        )
+
     gastos = gastos.order_by('-fecha', '-fecha_creacion')
-    
-    # Paginación
-    paginator = Paginator(gastos, 25)
-    page_number = request.GET.get('page')
-    gastos_paginados = paginator.get_page(page_number)
-    
-    # Estadísticas del período
-    total_gastos = gastos.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    gastos_aprobados = gastos.filter(aprobado=True).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    gastos_pendientes = gastos.filter(aprobado=False).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    # Gastos por categoría
+
+    # Stats
+    total_gastos = gastos.aggregate(t=Sum('monto'))['t'] or Decimal('0')
+    aprobados = gastos.filter(aprobado=True).aggregate(t=Sum('monto'))['t'] or Decimal('0')
+    pendientes = gastos.filter(aprobado=False).aggregate(t=Sum('monto'))['t'] or Decimal('0')
+
     gastos_por_categoria = gastos.values('categoria').annotate(
-        total=Sum('monto'),
-        cantidad=Count('id')
+        total=Sum('monto'), cantidad=Count('id')
     ).order_by('-total')
-    
+
+    paginator = Paginator(gastos, 25)
+    gastos_paginados = paginator.get_page(request.GET.get('page'))
+
     context = {
         'active_page': 'reportes',
-        'form': form,
         'gastos': gastos_paginados,
         'total_gastos': total_gastos,
-        'gastos_aprobados': gastos_aprobados,
-        'gastos_pendientes': gastos_pendientes,
+        'gastos_aprobados': aprobados,
+        'gastos_pendientes': pendientes,
         'gastos_por_categoria': gastos_por_categoria,
+        'categorias': GastoDiario.CATEGORIA_CHOICES,
+        'filtros': {
+            'fecha_desde': fecha_desde or '',
+            'fecha_hasta': fecha_hasta or '',
+            'categoria': categoria or '',
+            'aprobado': aprobado or '',
+            'q': busqueda,
+        }
     }
-    
     return render(request, 'reportes/lista_gastos.html', context)
 
 
 @login_required
 def crear_gasto(request):
-    """Crear nuevo gasto"""
     if request.method == 'POST':
         form = GastoDiarioForm(request.POST, request.FILES)
         if form.is_valid():
             gasto = form.save(commit=False)
             gasto.usuario = request.user
-            
-            # Auto-aprobar gastos pequeños si está configurado
             if gasto.monto <= Decimal('100.00'):
                 gasto.aprobado = True
                 gasto.aprobado_por = request.user
                 gasto.fecha_aprobacion = timezone.now()
-            
             gasto.save()
-            
-            messages.success(request, 'Gasto registrado correctamente')
-            
-            # Redirigir según el botón presionado
+            messages.success(request, 'Gasto registrado.')
             if 'save_and_new' in request.POST:
                 return redirect('reportes:crear_gasto')
-            else:
-                return redirect('reportes:lista_gastos')
+            return redirect('reportes:lista_gastos')
     else:
         form = GastoDiarioForm()
-    
-    context = {
+
+    return render(request, 'reportes/gasto_form.html', {
         'active_page': 'reportes',
         'form': form,
-        'titulo': 'Registrar Nuevo Gasto'
-    }
-    
-    return render(request, 'reportes/gasto_form.html', context)
+        'titulo': 'Registrar Gasto'
+    })
 
 
 @login_required
 def editar_gasto(request, pk):
-    """Editar gasto existente"""
     gasto = get_object_or_404(GastoDiario, pk=pk)
-    
-    # Solo el creador o admin puede editar
     if gasto.usuario != request.user and not request.user.is_superuser:
-        messages.error(request, 'No tiene permisos para editar este gasto')
+        messages.error(request, 'Sin permisos para editar este gasto.')
         return redirect('reportes:lista_gastos')
-    
-    # No se pueden editar gastos aprobados
     if gasto.aprobado and not request.user.is_superuser:
-        messages.error(request, 'No se pueden editar gastos ya aprobados')
+        messages.error(request, 'No se pueden editar gastos aprobados.')
         return redirect('reportes:lista_gastos')
-    
+
     if request.method == 'POST':
         form = GastoDiarioForm(request.POST, request.FILES, instance=gasto)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Gasto actualizado correctamente')
+            messages.success(request, 'Gasto actualizado.')
             return redirect('reportes:lista_gastos')
     else:
         form = GastoDiarioForm(instance=gasto)
-    
-    context = {
+
+    return render(request, 'reportes/gasto_form.html', {
         'active_page': 'reportes',
         'form': form,
         'gasto': gasto,
         'titulo': 'Editar Gasto'
-    }
-    
-    return render(request, 'reportes/gasto_form.html', context)
+    })
 
 
 @login_required
 @require_POST
 def aprobar_gasto(request, pk):
-    """Aprobar un gasto"""
-    gasto = get_object_or_404(GastoDiario, pk=pk)
-    
     if not request.user.is_superuser:
-        messages.error(request, 'Solo administradores pueden aprobar gastos')
+        messages.error(request, 'Solo administradores pueden aprobar gastos.')
         return redirect('reportes:lista_gastos')
-    
+    gasto = get_object_or_404(GastoDiario, pk=pk)
     if gasto.aprobado:
-        messages.error(request, 'Este gasto ya está aprobado')
+        messages.info(request, 'Este gasto ya estaba aprobado.')
         return redirect('reportes:lista_gastos')
-    
     gasto.aprobado = True
     gasto.aprobado_por = request.user
     gasto.fecha_aprobacion = timezone.now()
     gasto.save()
-    
-    messages.success(request, f'Gasto "{gasto.concepto}" aprobado correctamente')
+    messages.success(request, f'Gasto "{gasto.concepto}" aprobado.')
     return redirect('reportes:lista_gastos')
 
 
 @login_required
 @require_POST
 def rechazar_gasto(request, pk):
-    """Rechazar un gasto"""
-    gasto = get_object_or_404(GastoDiario, pk=pk)
-    
     if not request.user.is_superuser:
-        messages.error(request, 'Solo administradores pueden rechazar gastos')
+        messages.error(request, 'Solo administradores pueden rechazar gastos.')
         return redirect('reportes:lista_gastos')
-    
+    gasto = get_object_or_404(GastoDiario, pk=pk)
     concepto = gasto.concepto
     gasto.delete()
-    
-    messages.warning(request, f'Gasto "{concepto}" eliminado')
+    messages.warning(request, f'Gasto "{concepto}" eliminado.')
     return redirect('reportes:lista_gastos')
 
 
-# ================== ESTADÍSTICAS ==================
+# ══════════════════════════════════════════════════════════════════════
+#  ESTADÍSTICAS Y REPORTES MENSUALES (mantenidos del original)
+# ══════════════════════════════════════════════════════════════════════
 
 @login_required
 def estadisticas_ventas(request):
-    """Vista de estadísticas de ventas por períodos"""
-    form = ReporteVentasForm(request.GET or None)
-    
-    # Valores por defecto
     hoy = timezone.now().date()
-    fecha_desde = hoy.replace(day=1)  # Primer día del mes
-    fecha_hasta = hoy
-    agrupacion = 'dia'
-    tipo_reporte = 'general'
-    
-    if form and form.is_valid():
-        fecha_desde = form.cleaned_data.get('fecha_desde') or fecha_desde
-        fecha_hasta = form.cleaned_data.get('fecha_hasta') or fecha_hasta
-        agrupacion = form.cleaned_data.get('agrupacion') or agrupacion
-        tipo_reporte = form.cleaned_data.get('tipo_reporte') or tipo_reporte
-    
-    # Obtener ventas del período
-    ventas = Venta.objects.filter(
-        fecha_hora__date__range=[fecha_desde, fecha_hasta]
-    )
-    
-    if hasattr(Venta, 'estado'):
-        ventas = ventas.filter(estado='COMPLETADA')
-    
-    # Estadísticas generales
-    stats_generales = {
-        'total_ventas': ventas.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-        'total_subtotal': ventas.aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00'),
-        'total_iva': ventas.aggregate(total=Sum('iva'))['total'] or Decimal('0.00'),
+    fecha_inicio, fecha_fin = _rango_periodo('mes', hoy)
+
+    fecha_desde_str = request.GET.get('fecha_desde')
+    fecha_hasta_str = request.GET.get('fecha_hasta')
+    if fecha_desde_str and fecha_hasta_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_desde_str, '%Y-%m-%d').date()
+            fecha_fin = datetime.strptime(fecha_hasta_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+    ventas = _ventas_pos(fecha_inicio, fecha_fin)
+
+    stats = {
+        'total_ventas': ventas.aggregate(t=Sum('total'))['t'] or Decimal('0'),
         'cantidad_ventas': ventas.count(),
-        'promedio_venta': Decimal('0.00'),
-        'venta_mayor': ventas.aggregate(mayor=Max('total'))['mayor'] or Decimal('0.00'),
-        'venta_menor': ventas.aggregate(menor=Min('total'))['menor'] or Decimal('0.00'),
+        'promedio_venta': Decimal('0'),
+        'venta_mayor': ventas.aggregate(m=Sum('total'))['m'] or Decimal('0'),
     }
-    
-    if stats_generales['cantidad_ventas'] > 0:
-        stats_generales['promedio_venta'] = stats_generales['total_ventas'] / stats_generales['cantidad_ventas']
-    
-    # Ventas por método de pago
+    if stats['cantidad_ventas'] > 0:
+        stats['promedio_venta'] = stats['total_ventas'] / stats['cantidad_ventas']
+
     ventas_por_metodo = ventas.values('tipo_pago').annotate(
-        total=Sum('total'),
-        cantidad=Count('id')
+        total=Sum('total'), cantidad=Count('id')
     ).order_by('-total')
-    
-    # Ventas por producto vs servicios
-    filtros_detalle = {
-        'venta__fecha_hora__date__range': [fecha_desde, fecha_hasta]
-    }
-    
-    if hasattr(Venta, 'estado'):
-        filtros_detalle['venta__estado'] = 'COMPLETADA'
-    
-    detalles = DetalleVenta.objects.filter(**filtros_detalle)
-    
-    productos_vs_servicios = {
-        'productos': detalles.filter(es_servicio=False).aggregate(
-            total=Sum('subtotal'),
-            cantidad=Count('id')
-        ),
-        'servicios': detalles.filter(es_servicio=True).aggregate(
-            total=Sum('subtotal'),
-            cantidad=Count('id')
-        )
-    }
-    
-    # Datos para gráficos según agrupación
-    if agrupacion == 'dia':
-        ventas_agrupadas = ventas.extra(
-            select={'periodo': 'DATE(fecha_hora)'}
-        ).values('periodo').annotate(
-            total=Sum('total'),
-            cantidad=Count('id')
-        ).order_by('periodo')
-    elif agrupacion == 'semana':
-        ventas_agrupadas = ventas.extra(
-            select={'periodo': 'WEEK(fecha_hora)'}
-        ).values('periodo').annotate(
-            total=Sum('total'),
-            cantidad=Count('id')
-        ).order_by('periodo')
-    elif agrupacion == 'mes':
-        ventas_agrupadas = ventas.extra(
-            select={'periodo': 'MONTH(fecha_hora)'}
-        ).values('periodo').annotate(
-            total=Sum('total'),
-            cantidad=Count('id')
-        ).order_by('periodo')
-    else:
-        ventas_agrupadas = []
-    
-    # Top productos más vendidos
-    top_productos = detalles.filter(
-        producto__isnull=False
-    ).values(
-        'producto__nombre'
-    ).annotate(
-        cantidad_vendida=Sum('cantidad'),
-        total_vendido=Sum('subtotal')
-    ).order_by('-cantidad_vendida')[:10]
-    
-    # Top servicios más solicitados
-    top_servicios = detalles.filter(
-        tipo_servicio__isnull=False
-    ).values(
-        'tipo_servicio__nombre'
-    ).annotate(
-        cantidad_vendida=Sum('cantidad'),
-        total_vendido=Sum('subtotal')
-    ).order_by('-cantidad_vendida')[:10]
-    
-    # Comparativo con período anterior
-    dias_periodo = (fecha_hasta - fecha_desde).days + 1
-    fecha_desde_anterior = fecha_desde - timedelta(days=dias_periodo)
-    fecha_hasta_anterior = fecha_desde - timedelta(days=1)
-    
-    ventas_anterior = Venta.objects.filter(
-        fecha_hora__date__range=[fecha_desde_anterior, fecha_hasta_anterior]
-    )
-    
-    if hasattr(Venta, 'estado'):
-        ventas_anterior = ventas_anterior.filter(estado='COMPLETADA')
-    
-    comparativo = {
-        'total_anterior': ventas_anterior.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-        'cantidad_anterior': ventas_anterior.count(),
-        'diferencia_total': Decimal('0.00'),
-        'diferencia_cantidad': 0,
-        'porcentaje_crecimiento': Decimal('0.00'),
-    }
-    
-    comparativo['diferencia_total'] = stats_generales['total_ventas'] - comparativo['total_anterior']
-    comparativo['diferencia_cantidad'] = stats_generales['cantidad_ventas'] - comparativo['cantidad_anterior']
-    
-    if comparativo['total_anterior'] > 0:
-        comparativo['porcentaje_crecimiento'] = (
-            comparativo['diferencia_total'] / comparativo['total_anterior']
-        ) * 100
-    
+
+    ventas_por_dia = ventas.extra(
+        select={'dia': 'DATE(fecha_hora)'}
+    ).values('dia').annotate(
+        total=Sum('total'), cantidad=Count('id')
+    ).order_by('dia')
+
     context = {
         'active_page': 'reportes',
-        'form': form,
-        'stats_generales': stats_generales,
+        'stats': stats,
         'ventas_por_metodo': ventas_por_metodo,
-        'productos_vs_servicios': productos_vs_servicios,
-        'ventas_agrupadas': ventas_agrupadas,
-        'top_productos': top_productos,
-        'top_servicios': top_servicios,
-        'comparativo': comparativo,
-        'fecha_desde': fecha_desde,
-        'fecha_hasta': fecha_hasta,
-        'agrupacion': agrupacion,
-        'tipo_reporte': tipo_reporte,
+        'ventas_por_dia': list(ventas_por_dia),
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
     }
-    
     return render(request, 'reportes/estadisticas_ventas.html', context)
 
 
 @login_required
-def comparativo_ventas(request):
-    """Vista para comparar ventas entre períodos"""
-    form = ComparativoVentasForm(request.GET or None)
-    datos_comparativo = None
-    
-    if form and form.is_valid():
-        periodo_actual = form.cleaned_data['periodo_actual']
-        fecha_actual = form.cleaned_data['fecha_actual']
-        comparar_con = form.cleaned_data['comparar_con']
-        fecha_comparacion = form.cleaned_data.get('fecha_comparacion')
-        
-        # Calcular fechas del período actual
-        if periodo_actual == 'dia':
-            inicio_actual = fecha_actual
-            fin_actual = fecha_actual
-        elif periodo_actual == 'semana':
-            inicio_actual = fecha_actual - timedelta(days=fecha_actual.weekday())
-            fin_actual = inicio_actual + timedelta(days=6)
-        elif periodo_actual == 'mes':
-            inicio_actual = fecha_actual.replace(day=1)
-            fin_actual = date(fecha_actual.year, fecha_actual.month, 
-                             calendar.monthrange(fecha_actual.year, fecha_actual.month)[1])
-        elif periodo_actual == 'trimestre':
-            mes_inicio = ((fecha_actual.month - 1) // 3) * 3 + 1
-            inicio_actual = fecha_actual.replace(month=mes_inicio, day=1)
-            mes_fin = mes_inicio + 2
-            fin_actual = date(fecha_actual.year, mes_fin, 
-                             calendar.monthrange(fecha_actual.year, mes_fin)[1])
-        elif periodo_actual == 'año':
-            inicio_actual = fecha_actual.replace(month=1, day=1)
-            fin_actual = fecha_actual.replace(month=12, day=31)
-        else:
-            inicio_actual = fecha_actual
-            fin_actual = fecha_actual
-        
-        # Calcular fechas del período de comparación
-        if comparar_con == 'anterior':
-            dias_periodo = (fin_actual - inicio_actual).days + 1
-            fin_comparacion = inicio_actual - timedelta(days=1)
-            inicio_comparacion = fin_comparacion - timedelta(days=dias_periodo - 1)
-        elif comparar_con == 'mismo_año_anterior':
-            inicio_comparacion = inicio_actual.replace(year=inicio_actual.year - 1)
-            fin_comparacion = fin_actual.replace(year=fin_actual.year - 1)
-        elif comparar_con == 'personalizado' and fecha_comparacion:
-            if periodo_actual == 'dia':
-                inicio_comparacion = fecha_comparacion
-                fin_comparacion = fecha_comparacion
-            else:
-                # Para otros períodos, usar la misma lógica que el período actual
-                inicio_comparacion = fecha_comparacion
-                fin_comparacion = fecha_comparacion
-        else:
-            inicio_comparacion = inicio_actual
-            fin_comparacion = fin_actual
-        
-        # Obtener datos del período actual
-        ventas_actual = Venta.objects.filter(
-            fecha_hora__date__range=[inicio_actual, fin_actual]
-        )
-        
-        if hasattr(Venta, 'estado'):
-            ventas_actual = ventas_actual.filter(estado='COMPLETADA')
-        
-        # Obtener datos del período de comparación
-        ventas_comparacion = Venta.objects.filter(
-            fecha_hora__date__range=[inicio_comparacion, fin_comparacion]
-        )
-        
-        if hasattr(Venta, 'estado'):
-            ventas_comparacion = ventas_comparacion.filter(estado='COMPLETADA')
-        
-        # Calcular estadísticas
-        datos_comparativo = {
-            'periodo_actual': {
-                'inicio': inicio_actual,
-                'fin': fin_actual,
-                'total': ventas_actual.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-                'cantidad': ventas_actual.count(),
-                'promedio': Decimal('0.00'),
-            },
-            'periodo_comparacion': {
-                'inicio': inicio_comparacion,
-                'fin': fin_comparacion,
-                'total': ventas_comparacion.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-                'cantidad': ventas_comparacion.count(),
-                'promedio': Decimal('0.00'),
-            },
-            'diferencias': {},
-        }
-        
-        # Calcular promedios
-        if datos_comparativo['periodo_actual']['cantidad'] > 0:
-            datos_comparativo['periodo_actual']['promedio'] = (
-                datos_comparativo['periodo_actual']['total'] / 
-                datos_comparativo['periodo_actual']['cantidad']
-            )
-        
-        if datos_comparativo['periodo_comparacion']['cantidad'] > 0:
-            datos_comparativo['periodo_comparacion']['promedio'] = (
-                datos_comparativo['periodo_comparacion']['total'] / 
-                datos_comparativo['periodo_comparacion']['cantidad']
-            )
-        
-        # Calcular diferencias
-        datos_comparativo['diferencias'] = {
-            'total': datos_comparativo['periodo_actual']['total'] - datos_comparativo['periodo_comparacion']['total'],
-            'cantidad': datos_comparativo['periodo_actual']['cantidad'] - datos_comparativo['periodo_comparacion']['cantidad'],
-            'promedio': datos_comparativo['periodo_actual']['promedio'] - datos_comparativo['periodo_comparacion']['promedio'],
-        }
-        
-        # Calcular porcentajes de crecimiento
-        if datos_comparativo['periodo_comparacion']['total'] > 0:
-            datos_comparativo['diferencias']['porcentaje_total'] = (
-                datos_comparativo['diferencias']['total'] / 
-                datos_comparativo['periodo_comparacion']['total']
-            ) * 100
-        else:
-            datos_comparativo['diferencias']['porcentaje_total'] = Decimal('0.00')
-    
-    context = {
-        'active_page': 'reportes',
-        'form': form,
-        'datos_comparativo': datos_comparativo,
-    }
-    
-    return render(request, 'reportes/comparativo_ventas.html', context)
-
-
-# ================== MOVIMIENTOS DE CAJA ==================
-
-@login_required
-def lista_movimientos(request):
-    """Lista de movimientos de caja"""
-    try:
-        form = FiltroMovimientosForm(request.GET or None)
-        movimientos = MovimientoCaja.objects.all().select_related('tipo_movimiento', 'usuario')
-        
-        if form and form.is_valid():
-            fecha_desde = form.cleaned_data.get('fecha_desde')
-            fecha_hasta = form.cleaned_data.get('fecha_hasta')
-            es_ingreso = form.cleaned_data.get('es_ingreso')
-            busqueda = form.cleaned_data.get('busqueda')
-            
-            if fecha_desde:
-                movimientos = movimientos.filter(fecha__gte=fecha_desde)
-            if fecha_hasta:
-                movimientos = movimientos.filter(fecha__lte=fecha_hasta)
-            if es_ingreso:
-                movimientos = movimientos.filter(es_ingreso=es_ingreso == 'True')
-            if busqueda:
-                movimientos = movimientos.filter(
-                    Q(concepto__icontains=busqueda) |
-                    Q(descripcion__icontains=busqueda)
-                )
-        
-        movimientos = movimientos.order_by('-fecha', '-hora')
-        
-        # Paginación
-        paginator = Paginator(movimientos, 50)
-        page_number = request.GET.get('page')
-        movimientos_paginados = paginator.get_page(page_number)
-        
-        # Estadísticas del período
-        total_ingresos = movimientos.filter(es_ingreso=True).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-        total_egresos = movimientos.filter(es_ingreso=False).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-        balance = total_ingresos - total_egresos
-        
-    except Exception as e:
-        # Si el modelo MovimientoCaja no existe, mostrar vista vacía
-        form = None
-        movimientos_paginados = []
-        total_ingresos = Decimal('0.00')
-        total_egresos = Decimal('0.00')
-        balance = Decimal('0.00')
-        messages.warning(request, 'El módulo de movimientos no está disponible aún.')
-    
-    context = {
-        'active_page': 'reportes',
-        'form': form,
-        'movimientos': movimientos_paginados,
-        'total_ingresos': total_ingresos,
-        'total_egresos': total_egresos,
-        'balance': balance,
-    }
-    
-    return render(request, 'reportes/lista_movimientos.html', context)
-
-
-# ================== REPORTES MENSUALES ==================
-
-@login_required
 def reportes_mensuales(request):
-    """Vista de reportes mensuales"""
     año = int(request.GET.get('año', timezone.now().year))
     mes = int(request.GET.get('mes', timezone.now().month))
-    
-    # Obtener o crear resumen mensual
-    resumen, created = ResumenMensual.objects.get_or_create(
-        año=año,
-        mes=mes
-    )
-    
-    if created or request.GET.get('recalcular'):
+
+    resumen, _ = ResumenMensual.objects.get_or_create(año=año, mes=mes)
+    if request.GET.get('recalcular'):
         resumen.calcular_resumen()
-    
-    # Obtener cierres del mes
+
     primer_dia = date(año, mes, 1)
     ultimo_dia = date(año, mes, calendar.monthrange(año, mes)[1])
-    
     cierres_mes = CierreDiario.objects.filter(
-        fecha__range=[primer_dia, ultimo_dia],
-        estado='CERRADO'
+        fecha__range=[primer_dia, ultimo_dia], estado='CERRADO'
     ).order_by('fecha')
-    
-    # Estadísticas por día
-    datos_diarios = []
-    for cierre in cierres_mes:
-        datos_diarios.append({
-            'fecha': cierre.fecha,
-            'ventas': cierre.total_ingresos,
-            'gastos': cierre.total_gastos,
-            'utilidad': cierre.total_ingresos - cierre.total_gastos,
-            'cantidad_ventas': cierre.cantidad_ventas,
-        })
-    
-    # Comparativo con mes anterior
-    if mes == 1:
-        mes_anterior = 12
-        año_anterior = año - 1
-    else:
-        mes_anterior = mes - 1
-        año_anterior = año
-    
-    try:
-        resumen_anterior = ResumenMensual.objects.get(año=año_anterior, mes=mes_anterior)
-        comparativo_anterior = {
-            'existe': True,
-            'ventas': resumen_anterior.total_ventas,
-            'gastos': resumen_anterior.total_gastos,
-            'utilidad': resumen_anterior.utilidad_bruta,
-            'diferencia_ventas': resumen.total_ventas - resumen_anterior.total_ventas,
-            'diferencia_gastos': resumen.total_gastos - resumen_anterior.total_gastos,
-            'diferencia_utilidad': resumen.utilidad_bruta - resumen_anterior.utilidad_bruta,
-        }
-        
-        # Porcentajes de crecimiento
-        if resumen_anterior.total_ventas > 0:
-            comparativo_anterior['crecimiento_ventas'] = (
-                comparativo_anterior['diferencia_ventas'] / resumen_anterior.total_ventas
-            ) * 100
-        else:
-            comparativo_anterior['crecimiento_ventas'] = Decimal('0.00')
-            
-    except ResumenMensual.DoesNotExist:
-        comparativo_anterior = {'existe': False}
-    
-    # Lista de meses para navegación
-    meses_disponibles = ResumenMensual.objects.values_list('año', 'mes').distinct().order_by('-año', '-mes')
-    
+
+    datos_diarios = [{
+        'fecha': c.fecha,
+        'ventas': c.total_ingresos,
+        'gastos': c.total_gastos_dia,
+        'utilidad': c.total_ingresos - c.total_gastos_dia,
+        'cantidad_ventas': c.cantidad_ventas,
+    } for c in cierres_mes]
+
+    meses_disponibles = ResumenMensual.objects.values_list(
+        'año', 'mes'
+    ).distinct().order_by('-año', '-mes')
+
     context = {
         'active_page': 'reportes',
         'resumen': resumen,
@@ -968,125 +1006,104 @@ def reportes_mensuales(request):
         'mes': mes,
         'nombre_mes': calendar.month_name[mes],
         'datos_diarios': datos_diarios,
-        'comparativo_anterior': comparativo_anterior,
         'meses_disponibles': meses_disponibles,
     }
-    
     return render(request, 'reportes/reportes_mensuales.html', context)
 
 
-# ================== API ENDPOINTS ==================
+@login_required
+def lista_movimientos(request):
+    try:
+        movimientos = MovimientoCaja.objects.all().select_related(
+            'tipo_movimiento', 'usuario'
+        ).order_by('-fecha', '-hora')
+
+        fecha_desde = request.GET.get('fecha_desde')
+        fecha_hasta = request.GET.get('fecha_hasta')
+        if fecha_desde:
+            movimientos = movimientos.filter(fecha__gte=fecha_desde)
+        if fecha_hasta:
+            movimientos = movimientos.filter(fecha__lte=fecha_hasta)
+
+        total_ingresos = movimientos.filter(es_ingreso=True).aggregate(
+            t=Sum('monto'))['t'] or Decimal('0')
+        total_egresos = movimientos.filter(es_ingreso=False).aggregate(
+            t=Sum('monto'))['t'] or Decimal('0')
+
+        paginator = Paginator(movimientos, 50)
+        movimientos_paginados = paginator.get_page(request.GET.get('page'))
+    except Exception:
+        movimientos_paginados = []
+        total_ingresos = total_egresos = Decimal('0')
+
+    return render(request, 'reportes/lista_movimientos.html', {
+        'active_page': 'reportes',
+        'movimientos': movimientos_paginados,
+        'total_ingresos': total_ingresos,
+        'total_egresos': total_egresos,
+        'balance': total_ingresos - total_egresos,
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  APIs JSON
+# ══════════════════════════════════════════════════════════════════════
 
 @login_required
 def api_dashboard_data(request):
-    """API para datos del dashboard"""
     hoy = timezone.now().date()
-    
-    # Ventas de los últimos 7 días
     ventas_7_dias = []
-    for i in range(7):
+    for i in range(6, -1, -1):
         fecha = hoy - timedelta(days=i)
-        ventas_fecha = Venta.objects.filter(
-            fecha_hora__date=fecha
-        )
-        
-        if hasattr(Venta, 'estado'):
-            ventas_fecha = ventas_fecha.filter(estado='COMPLETADA')
-            
-        total = ventas_fecha.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
-        
-        ventas_7_dias.append({
-            'fecha': fecha.strftime('%d/%m'),
-            'total': float(total)
-        })
-    
-    ventas_7_dias.reverse()
-    
-    # Distribución productos vs servicios (último mes)
-    inicio_mes = hoy.replace(day=1)
-    
-    filtros_detalle = {
-        'venta__fecha_hora__date__gte': inicio_mes,
-    }
-    
-    if hasattr(Venta, 'estado'):
-        filtros_detalle['venta__estado'] = 'COMPLETADA'
-    
+        total = Venta.objects.filter(
+            fecha_hora__date=fecha, estado='COMPLETADA'
+        ).aggregate(t=Sum('total'))['t'] or Decimal('0')
+        ventas_7_dias.append({'fecha': fecha.strftime('%d/%m'), 'total': float(total)})
+
+    inicio_mes, fin_mes = _rango_periodo('mes', hoy)
     productos_mes = DetalleVenta.objects.filter(
-        **filtros_detalle,
-        es_servicio=False
-    ).aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00')
-    
+        venta__fecha_hora__date__range=[inicio_mes, fin_mes],
+        venta__estado='COMPLETADA', es_servicio=False
+    ).aggregate(t=Sum('subtotal'))['t'] or Decimal('0')
+
     servicios_mes = DetalleVenta.objects.filter(
-        **filtros_detalle,
-        es_servicio=True
-    ).aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00')
-    
-    data = {
+        venta__fecha_hora__date__range=[inicio_mes, fin_mes],
+        venta__estado='COMPLETADA', es_servicio=True
+    ).aggregate(t=Sum('subtotal'))['t'] or Decimal('0')
+
+    return JsonResponse({
         'ventas_7_dias': ventas_7_dias,
         'productos_vs_servicios': {
             'productos': float(productos_mes),
-            'servicios': float(servicios_mes)
+            'servicios': float(servicios_mes),
         }
-    }
-    
-    return JsonResponse(data)
+    })
 
 
 @login_required
 def api_caja_status(request):
-    """API para verificar estado de caja"""
     hoy = timezone.now().date()
-    
     try:
         cierre = CierreDiario.objects.get(fecha=hoy)
-        data = {
+        return JsonResponse({
             'existe': True,
             'estado': cierre.estado,
-            'total_ventas': float(cierre.total_ingresos),
-            'total_gastos': float(cierre.total_gastos),
+            'total_ingresos': float(cierre.total_ingresos),
+            'total_gastos': float(cierre.total_gastos_dia),
             'saldo_final': float(cierre.saldo_final),
             'puede_cerrar': cierre.estado == 'ABIERTO',
-        }
+        })
     except CierreDiario.DoesNotExist:
-        data = {
-            'existe': False,
-            'puede_cerrar': False,
-        }
-    
-    return JsonResponse(data)
+        return JsonResponse({'existe': False, 'puede_cerrar': False})
 
 
-# ================== EXPORTACIONES ==================
+@login_required
+def comparativo_ventas(request):
+    """Mantiene compatibilidad con URL existente"""
+    return redirect('reportes:reporte_ventas_completo')
+
 
 @login_required
 def exportar_reporte(request):
-    """Exportar reportes en diferentes formatos"""
-    if request.method == 'POST':
-        form = ExportarReporteForm(request.POST)
-        
-        if form.is_valid():
-            formato = form.cleaned_data['formato']
-            
-            if formato == 'pdf':
-                response = HttpResponse(content_type='application/pdf')
-                response['Content-Disposition'] = 'attachment; filename="reporte.pdf"'
-                # Aquí iría la lógica para generar PDF
-                return response
-            
-            elif formato == 'excel':
-                response = HttpResponse(
-                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
-                response['Content-Disposition'] = 'attachment; filename="reporte.xlsx"'
-                # Aquí iría la lógica para generar Excel
-                return response
-            
-            elif formato == 'csv':
-                response = HttpResponse(content_type='text/csv')
-                response['Content-Disposition'] = 'attachment; filename="reporte.csv"'
-                # Aquí iría la lógica para generar CSV
-                return response
-    
-    messages.error(request, 'Error al generar el reporte')
+    messages.info(request, 'Exportación en desarrollo.')
     return redirect('reportes:dashboard')

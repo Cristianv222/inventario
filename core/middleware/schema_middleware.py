@@ -12,7 +12,7 @@ class AutoSchemaMiddleware(MiddlewareMixin):
     Middleware que aplica automáticamente el schema de PostgreSQL
     basado en la sucursal del usuario
     """
-    
+
     def process_request(self, request):
         """
         Aplicar schema antes de procesar la request
@@ -20,37 +20,43 @@ class AutoSchemaMiddleware(MiddlewareMixin):
         # Solo procesar si el usuario está autenticado
         if not request.user.is_authenticated:
             return None
-        
+
         # Determinar qué schema usar
         schema_name = self._get_schema_for_user(request.user)
-        
+
         # Aplicar el schema
         if schema_name:
             try:
                 connection.set_schema(schema_name)
                 request.schema_name = schema_name
             except Exception as e:
-                # Si hay error al aplicar schema, usar el público
-                connection.set_schema(get_public_schema_name())
-                request.schema_name = get_public_schema_name()
-        
+                # Si hay error al aplicar schema, usar principal
+                connection.set_schema('principal')
+                request.schema_name = 'principal'
+
         return None
-    
+
     def _get_schema_for_user(self, user):
         """
-        Determinar qué schema usar para el usuario
+        Determinar qué schema usar para el usuario.
+        Prioridad:
+          1. Sucursal asignada al usuario → schema de esa sucursal
+          2. Superuser / puede_ver_todas → 'principal' (NO public, porque
+             el schema public no tiene las tablas de negocio)
+          3. Fallback → 'principal'
         """
-        # Admin general o puede ver todas: usar schema público
-        if user.is_superuser or getattr(user, 'puede_ver_todas_sucursales', False):
-            return get_public_schema_name()
-        
-        # Si tiene sucursal asignada: usar schema de esa sucursal
+        # Si tiene sucursal asignada: usar schema de esa sucursal (PRIMERO)
         if hasattr(user, 'sucursal') and user.sucursal:
             return user.sucursal.schema_name
-        
-        # Por defecto: schema público
-        return get_public_schema_name()
-    
+
+        # Superuser o con acceso global: usar 'principal' en lugar de public
+        # ⚠️ IMPORTANTE: public no tiene tablas de negocio (inventario, ventas, etc.)
+        if user.is_superuser or getattr(user, 'puede_ver_todas_sucursales', False):
+            return 'principal'
+
+        # Por defecto: principal
+        return 'principal'
+
     def process_response(self, request, response):
         """
         Limpiar schema después de procesar la request
@@ -60,8 +66,8 @@ class AutoSchemaMiddleware(MiddlewareMixin):
             connection.set_schema(get_public_schema_name())
         except Exception:
             pass
-        
+
         if hasattr(request, 'schema_name'):
             delattr(request, 'schema_name')
-        
+
         return response

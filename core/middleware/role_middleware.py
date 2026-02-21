@@ -55,6 +55,7 @@ class RoleMiddleware:
         }
     
     def __call__(self, request):
+        print(f"DEBUG ROLE MIDDLEWARE: Path={request.path}", flush=True)
         # Rutas que NO requieren verificación
         exempt_paths = [
             '/admin/', 
@@ -64,6 +65,8 @@ class RoleMiddleware:
             '/static/',
             '/media/',
             '/favicon.ico',
+            '/inventario/api/publica/',
+            '/ventas/api/publica/',       # ✅ API Pública ventas  # ✅ API Pública
         ]
         
         # Verificar si está en una ruta exenta

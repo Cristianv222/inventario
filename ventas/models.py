@@ -209,17 +209,29 @@ class DetalleVenta(models.Model):
         # Calcular subtotal
         self.subtotal = self.cantidad * self.precio_unitario
         
-        # ⭐ NUEVO: Cálculo automático para servicios sin IVA
+        # ⭐ NUEVO: Cálculo automático para servicios sin IVA y productos con/sin IVA
         if self.es_servicio:
-            # Los servicios no tienen IVA
+            # Los servicios no tienen IVA (o según configuración de servicio, por ahora asumo 0)
             self.iva_porcentaje = Decimal('0.00')
             self.iva = Decimal('0.00')
             self.total = self.subtotal - self.descuento
         else:
-            # Los productos sí tienen IVA del 15%
-            if not self.iva_porcentaje:
-                self.iva_porcentaje = Decimal('15.00')  # IVA del 15%
-            self.iva = self.subtotal * (self.iva_porcentaje / 100)
+            # Productos: Verificar si el producto lleva IVA
+            if self.producto:
+                if self.producto.incluye_iva:
+                    # Usar configuración global o default 15%
+                    iva_rate = Decimal(str(settings.VPMOTOS_SETTINGS.get('IVA_PERCENTAGE', 15.0)))
+                    self.iva_porcentaje = iva_rate
+                    self.iva = self.subtotal * (self.iva_porcentaje / 100)
+                else:
+                    self.iva_porcentaje = Decimal('0.00')
+                    self.iva = Decimal('0.00')
+            else:
+                # Si no hay producto asociado (raro), usar default
+                iva_rate = Decimal(str(settings.VPMOTOS_SETTINGS.get('IVA_PERCENTAGE', 15.0)))
+                self.iva_porcentaje = iva_rate
+                self.iva = self.subtotal * (self.iva_porcentaje / 100)
+            
             self.total = self.subtotal + self.iva - self.descuento
         
         super().save(*args, **kwargs)

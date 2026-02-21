@@ -46,12 +46,13 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - REDIS_URL=redis://redis:6379/0
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,web,.ngrok-free.app,.ngrok.io
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,web,.ngrok-free.app,.ngrok.io,inventario-web
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=db
       - DB_PORT=5432
+      - VPMOTOS_API_TOKEN=${VPMOTOS_API_TOKEN}
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
@@ -65,12 +66,11 @@ services:
     networks:
       - inventario_network
 
-  # ✅ NGROK - Exponer aplicación públicamente
   ngrok:
     image: ngrok/ngrok:latest
     container_name: inventario-ngrok
     restart: unless-stopped
-    command: 
+    command:
       - "http"
       - "web:8000"
       - "--log=stdout"
@@ -93,3 +93,4 @@ volumes:
 networks:
   inventario_network:
     driver: bridge
+    name: inventario_inventario_network

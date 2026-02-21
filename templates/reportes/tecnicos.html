@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}Reporte Técnicos - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+:root{--vp-blue:#2563eb;--vp-blue-light:#eff6ff;--vp-green:#16a34a;--vp-green-light:#f0fdf4;
+--vp-red:#dc2626;--vp-red-light:#fef2f2;--vp-yellow:#d97706;--vp-yellow-light:#fffbeb;
+--vp-purple:#7c3aed;--vp-gray-50:#f8fafc;--vp-gray-100:#f1f5f9;--vp-gray-200:#e2e8f0;
+--vp-gray-500:#64748b;--vp-gray-700:#334155;--vp-gray-900:#0f172a;
+--radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 6px rgba(0,0,0,.07);--transition:all .2s ease;}
+.rp-page{padding:1.5rem;background:var(--vp-gray-50);min-height:100vh;}
+.rp-page-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem;padding-bottom:1.25rem;border-bottom:2px solid var(--vp-gray-200);}
+.rp-page-title{font-size:1.5rem;font-weight:700;color:var(--vp-gray-900);margin:0;}
+.rp-page-title i{color:var(--vp-blue);}
+.rp-card{background:#fff;border:1px solid var(--vp-gray-200);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:1.25rem;}
+.rp-card-header{padding:.875rem 1.25rem;background:var(--vp-gray-50);border-bottom:1px solid var(--vp-gray-200);display:flex;justify-content:space-between;align-items:center;}
+.rp-card-title{font-size:.95rem;font-weight:700;color:var(--vp-gray-700);display:flex;align-items:center;gap:.5rem;margin:0;}
+.rp-card-title i{color:var(--vp-blue);}
+.rp-filters{background:#fff;border:1px solid var(--vp-gray-200);border-radius:var(--radius);padding:1.25rem;box-shadow:var(--shadow);margin-bottom:1.5rem;}
+.rp-period-tab{padding:.35rem .875rem;border-radius:20px;font-size:.8rem;font-weight:600;border:1px solid var(--vp-gray-200);background:#fff;color:var(--vp-gray-500);text-decoration:none;transition:var(--transition);}
+.rp-period-tab.active{background:var(--vp-blue);color:#fff;border-color:var(--vp-blue);}
+.rp-period-tab:hover:not(.active){background:var(--vp-blue-light);color:var(--vp-blue);}
+/* Tarjeta técnico */
+.rp-tecnico-card{background:#fff;border:1.5px solid var(--vp-gray-200);border-radius:var(--radius);padding:1.25rem;transition:var(--transition);cursor:pointer;}
+.rp-tecnico-card:hover,.rp-tecnico-card.selected{border-color:var(--vp-blue);box-shadow:var(--shadow-md);}
+.rp-tecnico-card.selected{background:var(--vp-blue-light);}
+.rp-tecnico-avatar{width:48px;height:48px;border-radius:50%;background:var(--vp-blue-light);color:var(--vp-blue);display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0;}
+.rp-stars{color:#f59e0b;font-size:.85rem;}
+.rp-stars .empty{color:var(--vp-gray-200);}
+.rp-table{width:100%;border-collapse:collapse;}
+.rp-table thead tr{background:var(--vp-gray-50);}
+.rp-table th{padding:.75rem 1rem;font-size:.78rem;font-weight:700;color:var(--vp-gray-500);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--vp-gray-200);}
+.rp-table td{padding:.75rem 1rem;font-size:.875rem;color:var(--vp-gray-700);border-bottom:1px solid var(--vp-gray-100);}
+.rp-table tbody tr:hover{background:var(--vp-gray-50);}
+.rp-table tbody tr:last-child td{border-bottom:none;}
+.rp-progress{height:5px;border-radius:3px;background:var(--vp-gray-100);overflow:hidden;}
+.rp-progress-bar{height:100%;border-radius:3px;}
+.rp-badge{display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:12px;font-size:.75rem;font-weight:600;}
+.rp-badge.blue{background:var(--vp-blue-light);color:var(--vp-blue);}
+.rp-badge.green{background:var(--vp-green-light);color:var(--vp-green);}
+.rp-badge.yellow{background:var(--vp-yellow-light);color:var(--vp-yellow);}
+.rp-empty{text-align:center;padding:2.5rem 1rem;color:var(--vp-gray-500);}
+.rp-empty i{font-size:2.5rem;opacity:.3;margin-bottom:.75rem;display:block;}
+@media(max-width:768px){.rp-page{padding:1rem;}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rp-page">
+
+    <div class="rp-page-header">
+        <div>
+            <h1 class="rp-page-title"><i class="fas fa-tools me-2"></i>Reporte por Técnico</h1>
+            <p style="color:var(--vp-gray-500);font-size:.875rem;margin:.25rem 0 0;">
+                {{ fecha_inicio|date:"d/m/Y" }} — {{ fecha_fin|date:"d/m/Y" }}
+            </p>
+        </div>
+        <a href="{% url 'reportes:dashboard' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="rp-filters">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Período</label>
+                <div class="d-flex gap-1 flex-wrap">
+                    <a href="?periodo=dia"    class="rp-period-tab {% if periodo == 'dia' %}active{% endif %}">Hoy</a>
+                    <a href="?periodo=semana" class="rp-period-tab {% if periodo == 'semana' %}active{% endif %}">Semana</a>
+                    <a href="?periodo=mes"    class="rp-period-tab {% if periodo == 'mes' %}active{% endif %}">Mes</a>
+                    <a href="?periodo=año"    class="rp-period-tab {% if periodo == 'año' %}active{% endif %}">Año</a>
+                </div>
+            </div>
+            <div class="col-auto">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Desde</label>
+                <input type="date" name="fecha_desde" value="{{ fecha_inicio|date:'Y-m-d' }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Hasta</label>
+                <input type="date" name="fecha_hasta" value="{{ fecha_fin|date:'Y-m-d' }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter me-1"></i>Filtrar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Grid de técnicos -->
+    <div class="row g-3 mb-4">
+        {% for r in resumen_tecnicos %}
+        <div class="col-lg-4 col-md-6">
+            <a href="?periodo={{ periodo }}&fecha_desde={{ fecha_inicio|date:'Y-m-d' }}&fecha_hasta={{ fecha_fin|date:'Y-m-d' }}&tecnico_id={{ r.tecnico.id }}"
+               class="text-decoration-none">
+                <div class="rp-tecnico-card {% if tecnico_id_sel == r.tecnico.id %}selected{% endif %}">
+                    <div class="d-flex gap-3 align-items-start">
+                        <div class="rp-tecnico-avatar">
+                            {% if r.tecnico.foto %}
+                            <img src="{{ r.tecnico.foto.url }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                            {% else %}
+                            {{ r.tecnico.nombres|first }}{{ r.tecnico.apellidos|first }}
+                            {% endif %}
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;color:var(--vp-gray-900);">{{ r.tecnico.get_nombre_completo }}</div>
+                            <div style="font-size:.78rem;color:var(--vp-gray-500);">{{ r.tecnico.codigo }}</div>
+                            <div class="rp-stars mt-1">
+                                {% with rating=r.promedio_evaluacion|floatformat:0 %}
+                                {% for i in "12345" %}
+                                <i class="fas fa-star {% if forloop.counter > rating|add:0 %}empty{% endif %}"></i>
+                                {% endfor %}
+                                {% endwith %}
+                                <span style="font-size:.75rem;color:var(--vp-gray-500);">{{ r.promedio_evaluacion }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-4 text-center">
+                            <div style="font-size:1.1rem;font-weight:700;color:var(--vp-gray-900);">{{ r.ordenes_completadas }}</div>
+                            <div style="font-size:.7rem;color:var(--vp-gray-500);">Órdenes</div>
+                        </div>
+                        <div class="col-4 text-center" style="border-left:1px solid var(--vp-gray-100);">
+                            <div style="font-size:1.1rem;font-weight:700;color:var(--vp-gray-900);">{{ r.total_servicios }}</div>
+                            <div style="font-size:.7rem;color:var(--vp-gray-500);">Servicios</div>
+                        </div>
+                        <div class="col-4 text-center" style="border-left:1px solid var(--vp-gray-100);">
+                            <div style="font-size:1rem;font-weight:700;color:var(--vp-green);">${{ r.total_facturado|floatformat:0 }}</div>
+                            <div style="font-size:.7rem;color:var(--vp-gray-500);">Facturado</div>
+                        </div>
+                    </div>
+                    {% if r.top_servicios %}
+                    <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--vp-gray-100);">
+                        <div style="font-size:.72rem;font-weight:700;color:var(--vp-gray-500);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.4rem;">Top servicios</div>
+                        {% for s in r.top_servicios|slice:"3" %}
+                        <div class="d-flex justify-content-between align-items-center" style="font-size:.8rem;margin-bottom:.2rem;">
+                            <span style="color:var(--vp-gray-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;">{{ s.tipo_servicio__nombre }}</span>
+                            <span class="rp-badge blue">{{ s.cantidad }}x</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if r.comision_estimada > 0 %}
+                    <div style="margin-top:.5rem;padding:.4rem .6rem;background:var(--vp-yellow-light);border-radius:6px;font-size:.78rem;">
+                        <i class="fas fa-percent me-1" style="color:var(--vp-yellow);"></i>
+                        Comisión estimada: <strong style="color:var(--vp-yellow);">${{ r.comision_estimada|floatformat:2 }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="rp-empty"><i class="fas fa-tools"></i><p>Sin técnicos con órdenes completadas en este período</p></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Detalle de técnico seleccionado -->
+    {% if detalle_tecnico %}
+    <div class="rp-card">
+        <div class="rp-card-header">
+            <h6 class="rp-card-title">
+                <i class="fas fa-user-cog"></i>
+                Detalle — {{ detalle_tecnico.tecnico.get_nombre_completo }}
+            </h6>
+            <a href="?periodo={{ periodo }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Cerrar detalle
+            </a>
+        </div>
+        <div class="p-0">
+            <div class="row g-0">
+                <!-- Servicios agrupados -->
+                <div class="col-lg-5 border-end">
+                    <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--vp-gray-100);">
+                        <span style="font-size:.8rem;font-weight:700;color:var(--vp-gray-500);text-transform:uppercase;">Servicios realizados</span>
+                    </div>
+                    <div style="overflow-y:auto;max-height:350px;">
+                    {% for s in detalle_tecnico.servicios_agrupados %}
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1.25rem;border-bottom:1px solid var(--vp-gray-100);">
+                        <div>
+                            <div style="font-size:.875rem;font-weight:600;color:var(--vp-gray-700);">{{ s.tipo_servicio__nombre }}</div>
+                            <div style="font-size:.75rem;color:var(--vp-gray-500);">{{ s.tipo_servicio__categoria__nombre }}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:700;color:var(--vp-green);">${{ s.total|floatformat:2 }}</div>
+                            <span class="rp-badge blue">{{ s.cantidad }}x</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="rp-empty" style="padding:1.5rem;"><p>Sin servicios</p></div>
+                    {% endfor %}
+                    </div>
+                </div>
+                <!-- Órdenes recientes -->
+                <div class="col-lg-7">
+                    <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--vp-gray-100);">
+                        <span style="font-size:.8rem;font-weight:700;color:var(--vp-gray-500);text-transform:uppercase;">Órdenes completadas</span>
+                    </div>
+                    <div style="overflow-y:auto;max-height:350px;">
+                    <table class="rp-table">
+                        <thead><tr><th>Orden</th><th>Moto</th><th>Cliente</th><th class="text-end">Total</th></tr></thead>
+                        <tbody>
+                        {% for o in detalle_tecnico.ordenes %}
+                        <tr>
+                            <td><span style="font-size:.8rem;font-family:monospace;background:var(--vp-gray-100);padding:.15rem .4rem;border-radius:4px;">{{ o.numero_orden }}</span></td>
+                            <td style="font-size:.8rem;">{{ o.moto_marca }} {{ o.moto_modelo }}</td>
+                            <td style="font-size:.8rem;">{{ o.cliente }}</td>
+                            <td class="text-end fw-bold" style="color:var(--vp-green);">${{ o.precio_total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4"><div class="rp-empty" style="padding:1.5rem;"><p>Sin órdenes</p></div></td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top servicios global -->
+    <div class="rp-card">
+        <div class="rp-card-header">
+            <h6 class="rp-card-title"><i class="fas fa-trophy"></i>Servicios más realizados — todos los técnicos</h6>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="rp-table">
+                <thead><tr><th>#</th><th>Servicio</th><th>Categoría</th><th class="text-end">Cantidad</th><th class="text-end">Total</th></tr></thead>
+                <tbody>
+                {% for s in top_servicios_global %}
+                <tr>
+                    <td style="color:var(--vp-gray-500);width:40px;">{{ forloop.counter }}</td>
+                    <td style="font-weight:600;">{{ s.tipo_servicio__nombre }}</td>
+                    <td><span class="rp-badge blue">{{ s.tipo_servicio__categoria__nombre }}</span></td>
+                    <td class="text-end"><span class="rp-badge green">{{ s.cantidad }}</span></td>
+                    <td class="text-end fw-bold" style="color:var(--vp-green);">${{ s.total|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5"><div class="rp-empty" style="padding:1.5rem;"><p>Sin datos</p></div></td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

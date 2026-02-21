@@ -88,4 +88,9 @@ urlpatterns = [
     path('productos/csv-ejemplo/', views.descargar_csv_ejemplo, name='csv_ejemplo'),
     path('productos/validar-csv/', views.validar_csv_ajax, name='validar_csv'),
     path('productos/limpiar-errores/', views.limpiar_errores_sesion, name='limpiar_errores_sesion'),
+    
+    # ========================================
+    # API PÚBLICA (E-COMMERCE) ✅ NUEVO
+    # ========================================
+    path('api/publica/productos/', views.api_publica_productos, name='api_publica_productos'),
 ]

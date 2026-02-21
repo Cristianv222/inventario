@@ -1,444 +1,310 @@
+{% load reportes_extras %}
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cotización {{ orden.numero_orden }} - VPMOTOS</title>
+    <title>Orden de Trabajo {{ orden.numero_orden }} - VPMOTOS</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.4;
-            color: #333;
-            font-size: 12px;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: white;
-        }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 30px;
-            border-bottom: 3px solid #007bff;
-            padding-bottom: 20px;
-        }
-        
-        .company-info {
-            flex: 1;
-        }
-        
-        .company-info h1 {
-            color: #007bff;
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .company-info p {
-            margin-bottom: 2px;
-            color: #666;
-        }
-        
-        .quote-info {
-            text-align: right;
-            flex-shrink: 0;
-        }
-        
-        .quote-info h2 {
-            color: #007bff;
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        
-        .info-section {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            gap: 30px;
-        }
-        
-        .client-info, .vehicle-info, .quote-details {
-            flex: 1;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            border-left: 4px solid #007bff;
-        }
-        
-        .section-title {
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 10px;
-            font-size: 14px;
-            text-transform: uppercase;
-        }
-        
-        .info-row {
-            margin-bottom: 5px;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            color: #555;
-        }
-        
-        .services-table, .parts-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-        }
-        
-        .services-table th, .parts-table th {
-            background: #007bff;
-            color: white;
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: bold;
-            border-bottom: 2px solid #0056b3;
-        }
-        
-        .services-table td, .parts-table td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .services-table tr:nth-child(even), .parts-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .services-table tr:hover, .parts-table tr:hover {
-            background-color: #f5f5f5;
-        }
-        
-        .text-right {
-            text-align: right;
-        }
-        
-        .text-center {
-            text-align: center;
-        }
-        
-        .totals-section {
-            margin-top: 30px;
-            border-top: 2px solid #007bff;
-            padding-top: 20px;
-        }
-        
-        .totals-table {
-            width: 100%;
-            max-width: 400px;
-            margin-left: auto;
-        }
-        
-        .totals-table td {
-            padding: 8px 15px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .totals-table .total-row {
-            font-weight: bold;
-            font-size: 16px;
-            background: #f8f9fa;
-            border-top: 2px solid #007bff;
-        }
-        
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            text-align: center;
-            color: #666;
-            font-size: 11px;
-        }
-        
-        .terms {
-            margin-top: 30px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            border-left: 4px solid #ffc107;
-        }
-        
-        .terms h4 {
-            color: #856404;
-            margin-bottom: 10px;
-        }
-        
-        .terms ul {
-            margin-left: 20px;
-        }
-        
-        .terms li {
-            margin-bottom: 5px;
-        }
-        
-        .print-button {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .print-button:hover {
-            background: #0056b3;
-        }
-        
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #222; background: #fff; }
+        .page { width: 100%; max-width: 780px; margin: 0 auto; padding: 16px; }
+
+        /* HEADER */
+        .header { display:flex; justify-content:space-between; align-items:center;
+            background:#111; color:#fff; padding:14px 20px; border-radius:6px;
+            margin-bottom:12px; }
+        .logo-area img { height:52px; }
+        .empresa-sub { color:#a0a0a0; font-size:9px; margin-top:4px; }
+        .empresa-sub span { display:block; }
+        .doc-title { text-align:right; }
+        .doc-title h1 { color:#9ccd00; font-size:22px; font-weight:900;
+            letter-spacing:2px; text-transform:uppercase; }
+        .doc-title .num { color:#fff; font-size:14px; font-weight:700; margin-top:4px; }
+        .doc-title .fecha { color:#a0a0a0; font-size:10px; margin-top:2px; }
+
+        /* ESTADO BADGE */
+        .estado-bar { display:flex; justify-content:flex-end; margin-bottom:10px; }
+        .estado-badge { padding:4px 14px; border-radius:20px; font-size:10px;
+            font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+        .estado-recibido    { background:#fef9c3; color:#854d0e; border:1px solid #fde047; }
+        .estado-diagnostico { background:#dbeafe; color:#1e3a8a; border:1px solid #93c5fd; }
+        .estado-reparacion  { background:#ffedd5; color:#9a3412; border:1px solid #fdba74; }
+        .estado-completado  { background:#dcfce7; color:#14532d; border:1px solid #86efac; }
+        .estado-entregado   { background:#f3f4f6; color:#374151; border:1px solid #d1d5db; }
+
+        /* SECCIÓN DE 3 COLUMNAS INFO */
+        .info-grid { display:flex; gap:10px; margin-bottom:10px; }
+        .info-box { flex:1; border:1px solid #e5e7eb; border-radius:6px;
+            overflow:hidden; }
+        .info-box-header { background:#9ccd00; color:#111; font-size:10px;
+            font-weight:800; text-transform:uppercase; letter-spacing:.5px;
+            padding:5px 10px; }
+        .info-box-body { padding:8px 10px; }
+        .info-row { display:flex; margin-bottom:3px; font-size:10px; }
+        .info-label { font-weight:700; color:#555; min-width:80px; flex-shrink:0; }
+        .info-val { color:#111; }
+
+        /* TABLAS */
+        .section-title { font-size:11px; font-weight:800; text-transform:uppercase;
+            letter-spacing:.5px; color:#111; margin:10px 0 5px;
+            padding-left:8px; border-left:3px solid #9ccd00; }
+        table { width:100%; border-collapse:collapse; margin-bottom:10px; font-size:10px; }
+        thead tr { background:#111; color:#fff; }
+        thead th { padding:7px 8px; text-align:left; font-weight:700; font-size:9.5px;
+            text-transform:uppercase; letter-spacing:.3px; }
+        thead th.r { text-align:right; }
+        tbody tr:nth-child(even) { background:#f9fafb; }
+        tbody tr:hover { background:#f3f4f6; }
+        tbody td { padding:6px 8px; border-bottom:1px solid #f0f0f0; color:#222; }
+        tbody td.r { text-align:right; font-weight:600; }
+        tbody td.c { text-align:center; }
+        .td-name strong { font-size:10.5px; color:#111; }
+        .td-name small { color:#888; font-size:9px; display:block; }
+
+        /* TOTALES */
+        .totales-wrap { display:flex; justify-content:flex-end; margin-bottom:10px; }
+        .totales-table { width:280px; border:1px solid #e5e7eb; border-radius:6px;
+            overflow:hidden; }
+        .totales-table tr td { padding:5px 12px; font-size:10px;
+            border-bottom:1px solid #f0f0f0; }
+        .totales-table tr td:last-child { text-align:right; font-weight:600; }
+        .totales-table .subtotal-row td { color:#555; }
+        .totales-table .iva-row td { color:#555; }
+        .totales-table .total-row { background:#111; }
+        .totales-table .total-row td { color:#9ccd00 !important; font-size:13px;
+            font-weight:900; border:none; padding:8px 12px; }
+
+        /* TÉRMINOS + FIRMA */
+        .bottom-grid { display:flex; gap:10px; margin-bottom:10px; }
+        .terms-box { flex:1.5; background:#f9fafb; border:1px solid #e5e7eb;
+            border-radius:6px; padding:10px 12px; }
+        .terms-box h4 { color:#9ccd00; font-size:10px; font-weight:800;
+            text-transform:uppercase; margin-bottom:6px; }
+        .terms-box ul { margin-left:14px; }
+        .terms-box li { margin-bottom:3px; font-size:9.5px; color:#444; }
+        .firma-box { flex:1; border:1px solid #e5e7eb; border-radius:6px;
+            padding:10px 12px; display:flex; flex-direction:column; justify-content:space-between; }
+        .firma-line { border-top:1px solid #111; margin-top:40px; padding-top:4px;
+            text-align:center; font-size:9px; color:#555; }
+
+        /* FOOTER */
+        .footer { background:#111; color:#a0a0a0; text-align:center;
+            padding:8px; border-radius:6px; font-size:9px; }
+        .footer strong { color:#9ccd00; }
+
+        /* OBSERVACIONES */
+        .obs-box { background:#fffbeb; border:1px solid #fde047; border-radius:6px;
+            padding:8px 12px; margin-bottom:10px; font-size:10px; }
+        .obs-box strong { color:#854d0e; }
+
         @media print {
-            .print-button {
-                display: none;
-            }
-            
-            body {
-                font-size: 11px;
-            }
-            
-            .container {
-                padding: 0;
-                margin: 0;
-                max-width: none;
-            }
-        }
-        
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        
-        .status-pendiente {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        
-        .status-completado {
-            background-color: #d1edff;
-            color: #084298;
+            body { font-size:10px; }
+            .page { padding:8px; max-width:none; }
+            @page { size: A4; margin: 8mm; }
         }
     </style>
 </head>
 <body>
-    <button class="print-button" onclick="window.print()">
-        🖨️ Imprimir / Guardar PDF
-    </button>
-    
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="company-info">
-                <h1>{{ empresa.nombre }}</h1>
-                <p>{{ empresa.direccion }}</p>
-                <p>Tel: {{ empresa.telefono }}</p>
-                <p>Email: {{ empresa.email }}</p>
-            </div>
-            <div class="quote-info">
-                <h2>COTIZACIÓN</h2>
-                <div class="info-row">
-                    <span class="info-label">No.:</span> {{ orden.numero_orden }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Fecha:</span> {{ orden.fecha_ingreso|date:"d/m/Y" }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Estado:</span> 
-                    <span class="status-badge status-{{ orden.estado|lower }}">{{ orden.get_estado_display }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Válida hasta:</span> {{ orden.fecha_ingreso|date:"d/m/Y"|add_days:30 }}
-                </div>
+<div class="page">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div>
+            <img src="data:image/png;base64,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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf//Z" alt="VPMOTOS" style="height:52px;">
+            <div class="empresa-sub">
+                <span>{{ empresa.direccion }}</span>
+                <span>Tel: {{ empresa.telefono }} &nbsp;·&nbsp; {{ empresa.email }}</span>
             </div>
         </div>
-        
-        <!-- Información -->
-        <div class="info-section">
-            <div class="client-info">
-                <div class="section-title">Información del Cliente</div>
-                <div class="info-row">
-                    <span class="info-label">Nombre:</span> {{ orden.cliente.get_nombre_completo }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Identificación:</span> {{ orden.cliente.identificacion }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Teléfono:</span> {{ orden.cliente.telefono }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Email:</span> {{ orden.cliente.email|default:"-" }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Dirección:</span> {{ orden.cliente.direccion|default:"-" }}
-                </div>
+        <div class="doc-title">
+            <h1>Orden de Trabajo</h1>
+            <div class="num">{{ orden.numero_orden }}</div>
+            <div class="fecha">{{ orden.fecha_ingreso|date:"d/m/Y" }}</div>
+        </div>
+    </div>
+
+    <!-- ESTADO -->
+    <div class="estado-bar">
+        <span class="estado-badge estado-{{ orden.estado|lower }}">
+            {{ orden.get_estado_display }}
+        </span>
+    </div>
+
+    <!-- INFO GRID -->
+    <div class="info-grid">
+        <div class="info-box">
+            <div class="info-box-header">Cliente</div>
+            <div class="info-box-body">
+                <div class="info-row"><span class="info-label">Nombre:</span><span class="info-val">{{ orden.cliente.get_nombre_completo }}</span></div>
+                <div class="info-row"><span class="info-label">Cédula:</span><span class="info-val">{{ orden.cliente.identificacion }}</span></div>
+                <div class="info-row"><span class="info-label">Teléfono:</span><span class="info-val">{{ orden.cliente.telefono }}</span></div>
+                <div class="info-row"><span class="info-label">Email:</span><span class="info-val">{{ orden.cliente.email|default:"-" }}</span></div>
+                <div class="info-row"><span class="info-label">Dirección:</span><span class="info-val">{{ orden.cliente.direccion|default:"-" }}</span></div>
             </div>
-            
-            <div class="vehicle-info">
-                <div class="section-title">Información del Vehículo</div>
-                <div class="info-row">
-                    <span class="info-label">Placa:</span> {{ orden.moto.placa }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Marca:</span> {{ orden.moto.marca }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Modelo:</span> {{ orden.moto.modelo }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Año:</span> {{ orden.moto.año|default:"-" }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Color:</span> {{ orden.moto.color|default:"-" }}
-                </div>
+        </div>
+        <div class="info-box">
+            <div class="info-box-header">Vehículo</div>
+            <div class="info-box-body">
+                <div class="info-row"><span class="info-label">Placa:</span><span class="info-val">{{ orden.moto.placa|default:"-" }}</span></div>
+                <div class="info-row"><span class="info-label">Marca:</span><span class="info-val">{{ orden.moto.marca|default:"-" }}</span></div>
+                <div class="info-row"><span class="info-label">Modelo:</span><span class="info-val">{{ orden.moto.modelo|default:"-" }}</span></div>
+                <div class="info-row"><span class="info-label">Año:</span><span class="info-val">{{ orden.moto.año|default:"-" }}</span></div>
+                <div class="info-row"><span class="info-label">Color:</span><span class="info-val">{{ orden.moto.color|default:"-" }}</span></div>
             </div>
-            
-            <div class="quote-details">
-                <div class="section-title">Detalles de la Cotización</div>
-                <div class="info-row">
-                    <span class="info-label">Técnico:</span> {{ orden.tecnico_principal.get_nombre_completo }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Prioridad:</span> {{ orden.get_prioridad_display }}
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Motivo:</span> {{ orden.motivo_ingreso }}
-                </div>
-                {% if orden.observaciones_cliente %}
-                <div class="info-row">
-                    <span class="info-label">Observaciones:</span> {{ orden.observaciones_cliente }}
-                </div>
+        </div>
+        <div class="info-box">
+            <div class="info-box-header">Detalles</div>
+            <div class="info-box-body">
+                <div class="info-row"><span class="info-label">Técnico:</span><span class="info-val">{{ orden.tecnico_principal.get_nombre_completo }}</span></div>
+                <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-val">{{ orden.get_prioridad_display }}</span></div>
+                <div class="info-row"><span class="info-label">Motivo:</span><span class="info-val">{{ orden.motivo_ingreso }}</span></div>
+                <div class="info-row"><span class="info-label">F. Ingreso:</span><span class="info-val">{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</span></div>
+                {% if orden.fecha_estimada_entrega %}
+                <div class="info-row"><span class="info-label">F. Entrega:</span><span class="info-val">{{ orden.fecha_estimada_entrega|date:"d/m/Y" }}</span></div>
                 {% endif %}
             </div>
         </div>
-        
-        <!-- Servicios -->
-        {% if servicios %}
-        <h3 style="color: #007bff; margin-bottom: 15px;">SERVICIOS</h3>
-        <table class="services-table">
-            <thead>
-                <tr>
-                    <th style="width: 10%;">Código</th>
-                    <th style="width: 40%;">Descripción</th>
-                    <th style="width: 15%;" class="text-center">Tiempo Est.</th>
-                    <th style="width: 15%;" class="text-right">Mano de Obra</th>
-                    <th style="width: 15%;" class="text-right">Materiales</th>
-                    <th style="width: 15%;" class="text-right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for servicio in servicios %}
-                <tr>
-                    <td>{{ servicio.tipo_servicio.codigo }}</td>
-                    <td>
-                        <strong>{{ servicio.tipo_servicio.nombre }}</strong>
-                        {% if servicio.tipo_servicio.descripcion %}
-                            <br><small style="color: #666;">{{ servicio.tipo_servicio.descripcion }}</small>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">{{ servicio.tipo_servicio.tiempo_estimado_horas }}h</td>
-                    <td class="text-right">${{ servicio.tipo_servicio.precio_mano_obra|floatformat:2 }}</td>
-                    <td class="text-right">${{ servicio.tipo_servicio.precio_base|floatformat:2 }}</td>
-                    <td class="text-right"><strong>${{ servicio.precio_total|floatformat:2 }}</strong></td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    </div>
+
+    {% if orden.observaciones_cliente %}
+    <div class="obs-box">
+        <strong>Observaciones del cliente:</strong> {{ orden.observaciones_cliente }}
+    </div>
+    {% endif %}
+
+    <!-- SERVICIOS -->
+    {% if servicios %}
+    <div class="section-title">Servicios de mano de obra</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:10%">Código</th>
+                <th style="width:38%">Descripción</th>
+                <th style="width:12%" class="c">Tiempo</th>
+                <th style="width:13%" class="r">Mano obra</th>
+                <th style="width:13%" class="r">Materiales</th>
+                <th style="width:14%" class="r">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for servicio in servicios %}
+        <tr>
+            <td>{{ servicio.tipo_servicio.codigo }}</td>
+            <td class="td-name">
+                <strong>{{ servicio.tipo_servicio.nombre }}</strong>
+                {% if servicio.tipo_servicio.descripcion %}
+                <small>{{ servicio.tipo_servicio.descripcion }}</small>
+                {% endif %}
+            </td>
+            <td class="c">{{ servicio.tipo_servicio.tiempo_estimado_horas }}h</td>
+            <td class="r">${{ servicio.tipo_servicio.precio_mano_obra|floatformat:2 }}</td>
+            <td class="r">${{ servicio.tipo_servicio.precio_base|floatformat:2 }}</td>
+            <td class="r">${{ servicio.precio_total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- REPUESTOS -->
+    {% if repuestos %}
+    <div class="section-title">Repuestos y materiales</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:15%">Código</th>
+                <th style="width:45%">Descripción</th>
+                <th style="width:10%" class="c">Cant.</th>
+                <th style="width:15%" class="r">Precio unit.</th>
+                <th style="width:15%" class="r">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for repuesto in repuestos %}
+        <tr>
+            <td>{{ repuesto.producto.codigo_unico }}</td>
+            <td class="td-name">
+                <strong>{{ repuesto.producto.nombre }}</strong>
+                {% if repuesto.producto.descripcion %}
+                <small>{{ repuesto.producto.descripcion }}</small>
+                {% endif %}
+            </td>
+            <td class="c">{{ repuesto.cantidad }}</td>
+            <td class="r">${{ repuesto.precio_unitario|floatformat:2 }}</td>
+            <td class="r">${{ repuesto.precio_total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- TOTALES -->
+    <div class="totales-wrap">
+        <table class="totales-table">
+            <tr class="subtotal-row">
+                <td>Subtotal servicios</td>
+                <td>${{ orden.get_subtotal_servicios|floatformat:2 }}</td>
+            </tr>
+            <tr class="subtotal-row">
+                <td>Subtotal repuestos</td>
+                <td>${{ orden.get_subtotal_repuestos|floatformat:2 }}</td>
+            </tr>
+            <tr class="subtotal-row">
+                <td>Subtotal</td>
+                <td>${{ orden.get_subtotal|floatformat:2 }}</td>
+            </tr>
+            <tr class="iva-row">
+                <td>IVA ({{ orden.get_porcentaje_iva }}%)</td>
+                <td>${{ orden.get_valor_iva|floatformat:2 }}</td>
+            </tr>
+            <tr class="total-row">
+                <td>TOTAL</td>
+                <td>${{ orden.precio_total|floatformat:2 }}</td>
+            </tr>
         </table>
-        {% endif %}
-        
-        <!-- Repuestos -->
-        {% if repuestos %}
-        <h3 style="color: #007bff; margin-bottom: 15px; margin-top: 30px;">REPUESTOS Y MATERIALES</h3>
-        <table class="parts-table">
-            <thead>
-                <tr>
-                    <th style="width: 15%;">Código</th>
-                    <th style="width: 45%;">Descripción</th>
-                    <th style="width: 10%;" class="text-center">Cant.</th>
-                    <th style="width: 15%;" class="text-right">Precio Unit.</th>
-                    <th style="width: 15%;" class="text-right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for repuesto in repuestos %}
-                <tr>
-                    <td>{{ repuesto.producto.codigo }}</td>
-                    <td>
-                        <strong>{{ repuesto.producto.nombre }}</strong>
-                        {% if repuesto.producto.descripcion %}
-                            <br><small style="color: #666;">{{ repuesto.producto.descripcion }}</small>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">{{ repuesto.cantidad }}</td>
-                    <td class="text-right">${{ repuesto.precio_unitario|floatformat:2 }}</td>
-                    <td class="text-right"><strong>${{ repuesto.precio_total|floatformat:2 }}</strong></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% endif %}
-        
-        <!-- Totales -->
-        <div class="totals-section">
-            <table class="totals-table">
-                <tr>
-                    <td>Subtotal Servicios:</td>
-                    <td class="text-right">${{ orden.get_subtotal_servicios|floatformat:2 }}</td>
-                </tr>
-                <tr>
-                    <td>Subtotal Repuestos:</td>
-                    <td class="text-right">${{ orden.get_subtotal_repuestos|floatformat:2 }}</td>
-                </tr>
-                <tr>
-                    <td>Subtotal:</td>
-                    <td class="text-right">${{ orden.get_subtotal|floatformat:2 }}</td>
-                </tr>
-                <tr>
-                    <td>IVA ({{ orden.get_porcentaje_iva }}%):</td>
-                    <td class="text-right">${{ orden.get_valor_iva|floatformat:2 }}</td>
-                </tr>
-                <tr class="total-row">
-                    <td><strong>TOTAL:</strong></td>
-                    <td class="text-right"><strong>${{ orden.precio_total|floatformat:2 }}</strong></td>
-                </tr>
-            </table>
-        </div>
-        
-        <!-- Términos y Condiciones -->
-        <div class="terms">
-            <h4>Términos y Condiciones</h4>
+    </div>
+
+    <!-- TÉRMINOS + FIRMA -->
+    <div class="bottom-grid">
+        <div class="terms-box">
+            <h4>Términos y condiciones</h4>
             <ul>
-                <li>Esta cotización tiene una validez de 30 días calendario.</li>
-                <li>Los precios incluyen IVA donde aplique.</li>
+                <li>Los precios de mano de obra no incluyen IVA. Los repuestos sí incluyen IVA.</li>
                 <li>Los tiempos de entrega pueden variar según disponibilidad de repuestos.</li>
                 <li>Se requiere autorización previa para trabajos adicionales no contemplados.</li>
-                <li>El vehículo debe ser retirado máximo 15 días después de la finalización del trabajo.</li>
-                <li>No nos hacemos responsables por objetos de valor dejados en el vehículo.</li>
+                <li>El vehículo debe ser retirado máximo 15 días después de finalizado el trabajo.</li>
+                <li>No nos responsabilizamos por objetos de valor dejados en el vehículo.</li>
                 <li>Garantía de 90 días en mano de obra y según fabricante en repuestos.</li>
             </ul>
         </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <p>Este documento es una cotización y no constituye una factura fiscal.</p>
-            <p>Para proceder con los trabajos, es necesaria la autorización escrita del cliente.</p>
-            <p><strong>{{ empresa.nombre }}</strong> - {{ empresa.direccion }} - Tel: {{ empresa.telefono }}</p>
+        <div class="firma-box">
+            <div>
+                <div class="info-row" style="font-size:10px;margin-bottom:6px;">
+                    <span class="info-label">Técnico:</span>
+                    <span>{{ orden.tecnico_principal.get_nombre_completo }}</span>
+                </div>
+            </div>
+            <div>
+                <div class="firma-line">Firma del cliente / Autorización</div>
+                <div style="text-align:center;margin-top:6px;font-size:9px;color:#555;">
+                    {{ orden.cliente.get_nombre_completo }}<br>
+                    C.I. {{ orden.cliente.identificacion }}
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <strong>VPMOTOS</strong> &nbsp;·&nbsp; {{ empresa.direccion }}
+        &nbsp;·&nbsp; Tel: {{ empresa.telefono }}
+        &nbsp;·&nbsp; Este documento es una orden de trabajo interna.
+    </div>
+
+</div>
+<script>
+    // Auto-print si se abre directamente
+    // window.print();
+</script>
 </body>
 </html>

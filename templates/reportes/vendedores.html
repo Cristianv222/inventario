@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}Reporte Vendedores - VPMOTOS{% endblock %}
+
+{% block extra_css %}
+<style>
+:root{--vp-blue:#2563eb;--vp-blue-light:#eff6ff;--vp-green:#16a34a;--vp-green-light:#f0fdf4;
+--vp-red:#dc2626;--vp-red-light:#fef2f2;--vp-yellow:#d97706;--vp-yellow-light:#fffbeb;
+--vp-purple:#7c3aed;--vp-gray-50:#f8fafc;--vp-gray-100:#f1f5f9;--vp-gray-200:#e2e8f0;
+--vp-gray-500:#64748b;--vp-gray-700:#334155;--vp-gray-900:#0f172a;
+--radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 6px rgba(0,0,0,.07);--transition:all .2s ease;}
+.rp-page{padding:1.5rem;background:var(--vp-gray-50);min-height:100vh;}
+.rp-page-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem;padding-bottom:1.25rem;border-bottom:2px solid var(--vp-gray-200);}
+.rp-page-title{font-size:1.5rem;font-weight:700;color:var(--vp-gray-900);margin:0;}
+.rp-page-title i{color:var(--vp-blue);}
+.rp-card{background:#fff;border:1px solid var(--vp-gray-200);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:1.25rem;}
+.rp-card-header{padding:.875rem 1.25rem;background:var(--vp-gray-50);border-bottom:1px solid var(--vp-gray-200);display:flex;justify-content:space-between;align-items:center;}
+.rp-card-title{font-size:.95rem;font-weight:700;color:var(--vp-gray-700);display:flex;align-items:center;gap:.5rem;margin:0;}
+.rp-card-title i{color:var(--vp-blue);}
+.rp-filters{background:#fff;border:1px solid var(--vp-gray-200);border-radius:var(--radius);padding:1.25rem;box-shadow:var(--shadow);margin-bottom:1.5rem;}
+.rp-period-tab{padding:.35rem .875rem;border-radius:20px;font-size:.8rem;font-weight:600;border:1px solid var(--vp-gray-200);background:#fff;color:var(--vp-gray-500);text-decoration:none;transition:var(--transition);}
+.rp-period-tab.active{background:var(--vp-blue);color:#fff;border-color:var(--vp-blue);}
+.rp-period-tab:hover:not(.active){background:var(--vp-blue-light);color:var(--vp-blue);}
+.rp-vendedor-row{display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-bottom:1px solid var(--vp-gray-100);transition:var(--transition);}
+.rp-vendedor-row:hover{background:var(--vp-gray-50);}
+.rp-vendedor-row:last-child{border-bottom:none;}
+.rp-vendedor-avatar{width:42px;height:42px;border-radius:50%;background:var(--vp-blue-light);color:var(--vp-blue);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;}
+.rp-rank{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0;}
+.rp-rank.gold{background:#fef9c3;color:#b45309;}
+.rp-rank.silver{background:var(--vp-gray-100);color:var(--vp-gray-700);}
+.rp-rank.bronze{background:#fdf0e0;color:#b45309;}
+.rp-rank.other{background:var(--vp-gray-100);color:var(--vp-gray-500);}
+.rp-progress{height:5px;border-radius:3px;background:var(--vp-gray-100);overflow:hidden;margin-top:.3rem;}
+.rp-progress-bar{height:100%;border-radius:3px;}
+.rp-table{width:100%;border-collapse:collapse;}
+.rp-table thead tr{background:var(--vp-gray-50);}
+.rp-table th{padding:.75rem 1rem;font-size:.78rem;font-weight:700;color:var(--vp-gray-500);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--vp-gray-200);}
+.rp-table td{padding:.75rem 1rem;font-size:.875rem;color:var(--vp-gray-700);border-bottom:1px solid var(--vp-gray-100);}
+.rp-table tbody tr:hover{background:var(--vp-gray-50);}
+.rp-table tbody tr:last-child td{border-bottom:none;}
+.rp-badge{display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:12px;font-size:.75rem;font-weight:600;}
+.rp-badge.blue{background:var(--vp-blue-light);color:var(--vp-blue);}
+.rp-badge.green{background:var(--vp-green-light);color:var(--vp-green);}
+.rp-empty{text-align:center;padding:2.5rem 1rem;color:var(--vp-gray-500);}
+.rp-empty i{font-size:2.5rem;opacity:.3;margin-bottom:.75rem;display:block;}
+@media(max-width:768px){.rp-page{padding:1rem;}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rp-page">
+
+    <div class="rp-page-header">
+        <div>
+            <h1 class="rp-page-title"><i class="fas fa-users me-2"></i>Rendimiento por Vendedor</h1>
+            <p style="color:var(--vp-gray-500);font-size:.875rem;margin:.25rem 0 0;">
+                {{ fecha_inicio|date:"d/m/Y" }} — {{ fecha_fin|date:"d/m/Y" }}
+            </p>
+        </div>
+        <a href="{% url 'reportes:dashboard' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="rp-filters">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Período</label>
+                <div class="d-flex gap-1 flex-wrap">
+                    <a href="?periodo=dia"    class="rp-period-tab {% if periodo == 'dia' %}active{% endif %}">Hoy</a>
+                    <a href="?periodo=semana" class="rp-period-tab {% if periodo == 'semana' %}active{% endif %}">Semana</a>
+                    <a href="?periodo=mes"    class="rp-period-tab {% if periodo == 'mes' %}active{% endif %}">Mes</a>
+                    <a href="?periodo=año"    class="rp-period-tab {% if periodo == 'año' %}active{% endif %}">Año</a>
+                </div>
+            </div>
+            <div class="col-auto">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Desde</label>
+                <input type="date" name="fecha_desde" value="{{ fecha_inicio|date:'Y-m-d' }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Hasta</label>
+                <input type="date" name="fecha_hasta" value="{{ fecha_fin|date:'Y-m-d' }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter me-1"></i>Filtrar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="row g-3">
+
+        <!-- Ranking vendedores -->
+        <div class="col-lg-5">
+            <div class="rp-card">
+                <div class="rp-card-header">
+                    <h6 class="rp-card-title"><i class="fas fa-trophy"></i>Ranking de vendedores</h6>
+                </div>
+                <div>
+                    {% with max_venta=por_usuario.0.total_ventas|default:1 %}
+                    {% for v in por_usuario %}
+                    <a href="?periodo={{ periodo }}&fecha_desde={{ fecha_inicio|date:'Y-m-d' }}&fecha_hasta={{ fecha_fin|date:'Y-m-d' }}&usuario_id={{ v.usuario__id }}"
+                       class="text-decoration-none">
+                        <div class="rp-vendedor-row {% if usuario_id_sel == v.usuario__id %}" style="background:var(--vp-blue-light);"{% else %}"{% endif %}">
+                            <div class="rp-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}other{% endif %}">
+                                {{ forloop.counter }}
+                            </div>
+                            <div class="rp-vendedor-avatar">
+                                {{ v.usuario__nombre|first }}{{ v.usuario__apellido|first }}
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;color:var(--vp-gray-900);font-size:.875rem;">
+                                    {{ v.usuario__nombre }} {{ v.usuario__apellido }}
+                                </div>
+                                <div class="rp-progress" style="max-width:120px;">
+                                    <div class="rp-progress-bar" style="background:var(--vp-blue);width:{% widthratio v.total_ventas max_venta 100 %}%"></div>
+                                </div>
+                            </div>
+                            <div style="text-align:right;flex-shrink:0;">
+                                <div style="font-weight:700;color:var(--vp-green);font-size:.95rem;">${{ v.total_ventas|floatformat:2 }}</div>
+                                <div style="font-size:.75rem;color:var(--vp-gray-500);">{{ v.cantidad_ventas }} ventas</div>
+                            </div>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="rp-empty"><i class="fas fa-users"></i><p>Sin ventas en el período</p></div>
+                    {% endfor %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalle del vendedor -->
+        <div class="col-lg-7">
+            {% if detalle_vendedor %}
+            <!-- Top productos del vendedor -->
+            <div class="rp-card">
+                <div class="rp-card-header">
+                    <h6 class="rp-card-title"><i class="fas fa-box"></i>Top productos vendidos</h6>
+                </div>
+                <div style="overflow-x:auto;max-height:220px;overflow-y:auto;">
+                    <table class="rp-table">
+                        <thead><tr><th>#</th><th>Producto</th><th class="text-end">Cantidad</th><th class="text-end">Total</th></tr></thead>
+                        <tbody>
+                        {% for p in detalle_vendedor.top_productos %}
+                        <tr>
+                            <td style="color:var(--vp-gray-500);width:36px;">{{ forloop.counter }}</td>
+                            <td>{{ p.producto__nombre }}</td>
+                            <td class="text-end">{{ p.cantidad|floatformat:0 }}</td>
+                            <td class="text-end fw-bold" style="color:var(--vp-green);">${{ p.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center" style="padding:1rem;color:var(--vp-gray-500);">Sin productos</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Top servicios del vendedor -->
+            <div class="rp-card">
+                <div class="rp-card-header">
+                    <h6 class="rp-card-title"><i class="fas fa-tools"></i>Top servicios vendidos</h6>
+                </div>
+                <div style="overflow-x:auto;max-height:220px;overflow-y:auto;">
+                    <table class="rp-table">
+                        <thead><tr><th>#</th><th>Servicio</th><th class="text-end">Cantidad</th><th class="text-end">Total</th></tr></thead>
+                        <tbody>
+                        {% for s in detalle_vendedor.top_servicios %}
+                        <tr>
+                            <td style="color:var(--vp-gray-500);width:36px;">{{ forloop.counter }}</td>
+                            <td>{{ s.tipo_servicio__nombre }}</td>
+                            <td class="text-end">{{ s.cantidad|floatformat:0 }}</td>
+                            <td class="text-end fw-bold" style="color:var(--vp-blue);">${{ s.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center" style="padding:1rem;color:var(--vp-gray-500);">Sin servicios</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Últimas ventas -->
+            <div class="rp-card">
+                <div class="rp-card-header">
+                    <h6 class="rp-card-title"><i class="fas fa-list"></i>Últimas ventas</h6>
+                </div>
+                <div style="overflow-y:auto;max-height:280px;">
+                    {% for venta in detalle_vendedor.ventas %}
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1.25rem;border-bottom:1px solid var(--vp-gray-100);">
+                        <div>
+                            <div style="font-size:.875rem;font-weight:600;color:var(--vp-gray-700);">
+                                Factura #{{ venta.numero_factura }}
+                            </div>
+                            <div style="font-size:.75rem;color:var(--vp-gray-500);">
+                                {{ venta.fecha_hora|date:"d/m/Y H:i" }}
+                                {% if venta.cliente %} · {{ venta.cliente }}{% endif %}
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:700;color:var(--vp-green);">${{ venta.total|floatformat:2 }}</div>
+                            <span class="rp-badge blue" style="font-size:.7rem;">{{ venta.tipo_pago }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="rp-empty" style="padding:1.5rem;"><p>Sin ventas</p></div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% else %}
+            <!-- Placeholder cuando no hay vendedor seleccionado -->
+            <div class="rp-card" style="height:100%;display:flex;align-items:center;justify-content:center;">
+                <div class="rp-empty" style="padding:3rem;">
+                    <i class="fas fa-hand-pointer"></i>
+                    <h6 style="font-weight:600;color:var(--vp-gray-700);">Selecciona un vendedor</h6>
+                    <p style="font-size:.875rem;">Haz clic en un vendedor del ranking para ver su detalle</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

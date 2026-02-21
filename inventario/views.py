@@ -1386,7 +1386,7 @@ def transferencias_lista(request):
     # Cambiar a schema PUBLIC para acceder a transferencias
     from django_tenants.utils import schema_context
     
-    with schema_context('public'):
+    with schema_context('principal'):
         # Filtrar transferencias según permisos
         if es_admin:
             # Admin ve todas
@@ -1498,7 +1498,7 @@ def transferencia_crear(request):
             # Obtener sucursales en schema public
             from django_tenants.utils import schema_context
             
-            with schema_context('public'):
+            with schema_context('principal'):
                 # Sucursal origen
                 if request.user.puede_ver_todas_sucursales:
                     # Admin puede seleccionar origen
@@ -1540,7 +1540,7 @@ def transferencia_crear(request):
     # IMPORTANTE: Forzar schema public para obtener sucursales
     from django_tenants.utils import schema_context
     
-    with schema_context('public'):
+    with schema_context('principal'):
         # Obtener sucursales disponibles
         if request.user.puede_ver_todas_sucursales:
             sucursales_origen = list(Sucursal.objects.filter(activa=True))
@@ -1564,7 +1564,7 @@ def transferencia_detalle(request, transferencia_id):
     """Vista para ver detalle de una transferencia"""
     from django_tenants.utils import schema_context
     
-    with schema_context('public'):
+    with schema_context('principal'):
         transferencia = get_object_or_404(
             TransferenciaInventario.objects.select_related(
                 'sucursal_origen',
@@ -1612,7 +1612,7 @@ def transferencia_recibir(request, transferencia_id):
     """Vista para recibir una transferencia"""
     from django_tenants.utils import schema_context
     
-    with schema_context('public'):
+    with schema_context('principal'):
         transferencia = get_object_or_404(
             TransferenciaInventario.objects.select_related(
                 'sucursal_origen',
@@ -1696,7 +1696,7 @@ def transferencia_cancelar(request, transferencia_id):
         
         from django_tenants.utils import schema_context
         
-        with schema_context('public'):
+        with schema_context('principal'):
             # Cancelar usando el service
             transferencia = TransferenciaService.cancelar_transferencia(
                 transferencia_id=transferencia_id,
@@ -1735,7 +1735,7 @@ def api_buscar_productos_transferencia(request):
         
         from django_tenants.utils import schema_context
         
-        with schema_context('public'):
+        with schema_context('principal'):
             # Obtener sucursal
             sucursal = Sucursal.objects.get(id=sucursal_id)
         
@@ -1787,7 +1787,7 @@ def api_validar_stock(request):
         
         from django_tenants.utils import schema_context
         
-        with schema_context('public'):
+        with schema_context('principal'):
             sucursal = Sucursal.objects.get(id=sucursal_id)
             
             # Validar usando el service
@@ -1807,13 +1807,40 @@ def api_validar_stock(request):
             'mensaje': f'Error: {str(e)}'
         })
 
+from functools import wraps
+from django.http import JsonResponse
 
+def requiere_token_api(view_func):
+    """Decorador para proteger endpoints de API con token"""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        auth_header = request.headers.get('Authorization', '')
+        token = auth_header.replace('Bearer ', '').strip()
+        
+        if not token:
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'Token de autenticación requerido'
+            }, status=401)
+        
+        # Validar contra el token configurado en settings
+        from django.conf import settings
+        token_valido = getattr(settings, 'API_TOKEN', None)
+        
+        if token_valido and token != token_valido:
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'Token inválido'
+            }, status=403)
+        
+        return view_func(request, *args, **kwargs)
+    return wrapper
 @login_required
 def api_transferencia_detalles(request, transferencia_id):
     """API para obtener detalles de una transferencia"""
     from django_tenants.utils import schema_context
     
-    with schema_context('public'):
+    with schema_context('principal'):
         transferencia = get_object_or_404(
             TransferenciaInventario.objects.prefetch_related('detalles'),
             id=transferencia_id
@@ -1833,3 +1860,35 @@ def api_transferencia_detalles(request, transferencia_id):
         'success': True,
         'detalles': detalles_data
     })
+
+def api_publica_productos(request):
+    from django.conf import settings
+    site_url = getattr(settings, 'SITE_URL', 'http://localhost:8001').rstrip('/')
+    
+    productos = Producto.objects.filter(activo=True).select_related('categoria', 'marca')
+    
+    def get_imagen_url(campo):
+        try:
+            if campo and campo.name:
+                return f"{site_url}{campo.url}"
+        except Exception:
+            pass
+        return None
+
+    data = []
+    for p in productos:
+        data.append({
+            'id': p.id,
+            'codigo': p.codigo_unico,
+            'nombre': p.nombre,
+            'descripcion': p.descripcion,
+            'precio': float(p.precio_final),
+            'stock': p.stock_actual,
+            'categoria': p.categoria.nombre if p.categoria else '',
+            'marca': p.marca.nombre if p.marca else '',
+            'imagen_url': get_imagen_url(getattr(p, 'imagen', None)),
+            'imagen_2_url': get_imagen_url(getattr(p, 'imagen_2', None)),
+            'imagen_3_url': get_imagen_url(getattr(p, 'imagen_3', None)),
+        })
+    
+    return JsonResponse({'success': True, 'productos': data})

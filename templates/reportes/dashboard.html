@@ -1,389 +1,483 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard de Reportes - VPMOTOS{% endblock %}
+{% block title %}Dashboard Reportes - VPMOTOS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* ========== VARIABLES CSS ========== */
-    :root {
-        --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
-        --success-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        --warning-gradient: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
-        --danger-gradient: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
-        --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        --card-shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.15);
-        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        --border-radius-lg: 12px;
-    }
+:root {
+    --vp-blue: #2563eb;
+    --vp-blue-light: #eff6ff;
+    --vp-blue-dark: #1d4ed8;
+    --vp-green: #16a34a;
+    --vp-green-light: #f0fdf4;
+    --vp-red: #dc2626;
+    --vp-red-light: #fef2f2;
+    --vp-yellow: #d97706;
+    --vp-yellow-light: #fffbeb;
+    --vp-purple: #7c3aed;
+    --vp-purple-light: #f5f3ff;
+    --vp-gray-50: #f8fafc;
+    --vp-gray-100: #f1f5f9;
+    --vp-gray-200: #e2e8f0;
+    --vp-gray-500: #64748b;
+    --vp-gray-700: #334155;
+    --vp-gray-900: #0f172a;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,.08), 0 4px 6px rgba(0,0,0,.05);
+    --transition: all .2s ease;
+}
 
-    /* ========== LAYOUT GENERAL ========== */
-    .content-wrapper {
-        padding: 1.5rem;
-        background-color: var(--light);
-        min-height: 100vh;
-    }
+/* ── PAGE ─────────────────────────────────────────── */
+.rp-page { padding: 1.5rem; background: var(--vp-gray-50); min-height: 100vh; }
 
-    .section-header {
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid var(--gray-200);
-    }
+/* ── PAGE HEADER ──────────────────────────────────── */
+.rp-page-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem; border-bottom: 2px solid var(--vp-gray-200);
+}
+.rp-page-title { font-size: 1.5rem; font-weight: 700; color: var(--vp-gray-900); margin: 0; }
+.rp-page-title i { color: var(--vp-blue); }
+.rp-page-sub { color: var(--vp-gray-500); font-size: .875rem; margin-top: .25rem; }
 
-    .section-title {
-        font-weight: 600;
-        color: var(--gray-800);
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin: 0;
-    }
+/* ── STAT CARDS ───────────────────────────────────── */
+.rp-stat {
+    background: #fff; border: 1px solid var(--vp-gray-200);
+    border-radius: var(--radius); padding: 1.25rem;
+    box-shadow: var(--shadow); transition: var(--transition);
+    height: 100%;
+}
+.rp-stat:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.rp-stat-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; margin-bottom: .875rem; flex-shrink: 0;
+}
+.rp-stat-icon.blue  { background: var(--vp-blue-light);   color: var(--vp-blue); }
+.rp-stat-icon.green { background: var(--vp-green-light);  color: var(--vp-green); }
+.rp-stat-icon.red   { background: var(--vp-red-light);    color: var(--vp-red); }
+.rp-stat-icon.yellow{ background: var(--vp-yellow-light); color: var(--vp-yellow); }
+.rp-stat-icon.purple{ background: var(--vp-purple-light); color: var(--vp-purple); }
+.rp-stat-val { font-size: 1.6rem; font-weight: 700; color: var(--vp-gray-900); line-height: 1; }
+.rp-stat-label { font-size: .8rem; font-weight: 600; color: var(--vp-gray-500);
+    text-transform: uppercase; letter-spacing: .4px; margin: .35rem 0 .25rem; }
+.rp-stat-meta { font-size: .8rem; color: var(--vp-gray-500); }
 
-    /* ========== TARJETAS DE ESTADÍSTICAS ========== */
-    .stats-card {
-        background: linear-gradient(135deg, white 0%, #f8f9fa 100%);
-        border-radius: var(--border-radius-lg);
-        border: 1px solid var(--gray-200);
-        padding: 2rem;
-        transition: var(--transition-smooth);
-        position: relative;
-        overflow: hidden;
-        height: 100%;
-    }
+/* ── CAJA BANNER ──────────────────────────────────── */
+.rp-caja-banner {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0ea5e9 100%);
+    border-radius: var(--radius); padding: 1.5rem 2rem;
+    color: #fff; margin-bottom: 1.75rem;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-md);
+    position: relative; overflow: hidden;
+}
+.rp-caja-banner::after {
+    content: ''; position: absolute; top: -40%; right: -5%;
+    width: 300px; height: 300px; border-radius: 50%;
+    background: rgba(255,255,255,.06); pointer-events: none;
+}
+.rp-caja-nums { display: flex; gap: 2.5rem; flex-wrap: wrap; }
+.rp-caja-num-label { font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .5px; opacity: .75; margin-bottom: .2rem; }
+.rp-caja-num-val { font-size: 1.35rem; font-weight: 700; }
+.rp-caja-badge {
+    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3);
+    color: #fff; padding: .5rem 1.25rem; border-radius: 25px;
+    font-weight: 600; font-size: .9rem; text-decoration: none;
+    transition: var(--transition); backdrop-filter: blur(8px);
+    white-space: nowrap;
+}
+.rp-caja-badge:hover { background: rgba(255,255,255,.28); color: #fff; transform: translateY(-1px); }
+.rp-caja-estado-abierto { color: #86efac; }
+.rp-caja-estado-cerrado { color: #fca5a5; }
 
-    .stats-card.revenue {
-        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    }
+/* ── CARDS GENÉRICAS ──────────────────────────────── */
+.rp-card {
+    background: #fff; border: 1px solid var(--vp-gray-200);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden; height: 100%;
+}
+.rp-card-header {
+    padding: .875rem 1.25rem; background: var(--vp-gray-50);
+    border-bottom: 1px solid var(--vp-gray-200);
+    display: flex; justify-content: space-between; align-items: center;
+}
+.rp-card-title { font-size: .95rem; font-weight: 700; color: var(--vp-gray-700);
+    display: flex; align-items: center; gap: .5rem; margin: 0; }
+.rp-card-title i { color: var(--vp-blue); }
+.rp-card-body { padding: 0; }
 
-    .stats-card.expenses {
-        background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 20%);
-    }
+/* ── MOVEMENT ROWS ────────────────────────────────── */
+.rp-mov-row {
+    display: flex; align-items: center; gap: .875rem;
+    padding: .875rem 1.25rem; border-bottom: 1px solid var(--vp-gray-100);
+    transition: var(--transition);
+}
+.rp-mov-row:last-child { border-bottom: none; }
+.rp-mov-row:hover { background: var(--vp-gray-50); padding-left: 1.5rem; }
+.rp-mov-dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; flex-shrink: 0;
+}
+.rp-mov-dot.in  { background: var(--vp-green-light); color: var(--vp-green); }
+.rp-mov-dot.out { background: var(--vp-red-light);   color: var(--vp-red); }
+.rp-mov-desc { flex: 1; min-width: 0; }
+.rp-mov-desc strong { font-size: .875rem; color: var(--vp-gray-700);
+    display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-mov-desc small { font-size: .78rem; color: var(--vp-gray-500); }
+.rp-mov-amount { font-size: .95rem; font-weight: 700; white-space: nowrap; }
+.rp-mov-amount.in  { color: var(--vp-green); }
+.rp-mov-amount.out { color: var(--vp-red); }
 
-    .stats-card.profit {
-        background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
-    }
+/* ── TOP DÍAS ─────────────────────────────────────── */
+.rp-topday {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .75rem 1.25rem; border-bottom: 1px solid var(--vp-gray-100);
+}
+.rp-topday:last-child { border-bottom: none; }
+.rp-topday-rank {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--vp-blue-light);
+    color: var(--vp-blue); font-weight: 700; font-size: .78rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.rp-topday-rank.gold   { background: #fef9c3; color: #b45309; }
+.rp-topday-rank.silver { background: var(--vp-gray-100); color: var(--vp-gray-700); }
+.rp-topday-rank.bronze { background: #fdf0e0; color: #b45309; }
 
-    .stats-card.cash {
-        background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-    }
+/* ── QUICK ACTIONS ────────────────────────────────── */
+.rp-quick-btn {
+    display: flex; align-items: center; gap: .625rem;
+    padding: .75rem 1rem; border-radius: 8px;
+    border: 1px solid var(--vp-gray-200); background: #fff;
+    color: var(--vp-gray-700); font-size: .875rem; font-weight: 500;
+    text-decoration: none; transition: var(--transition);
+}
+.rp-quick-btn:hover { border-color: var(--vp-blue); color: var(--vp-blue);
+    background: var(--vp-blue-light); transform: translateX(2px); }
+.rp-quick-btn i { width: 16px; text-align: center; }
+.rp-quick-btn .badge { margin-left: auto; }
 
-    .stats-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: var(--primary-gradient);
-    }
+/* ── PERIOD TABS ──────────────────────────────────── */
+.rp-period-tabs { display: flex; gap: .375rem; flex-wrap: wrap; }
+.rp-period-tab {
+    padding: .35rem .875rem; border-radius: 20px; font-size: .8rem;
+    font-weight: 600; border: 1px solid var(--vp-gray-200);
+    background: #fff; color: var(--vp-gray-500); text-decoration: none;
+    transition: var(--transition);
+}
+.rp-period-tab.active, .rp-period-tab:hover {
+    background: var(--vp-blue); color: #fff; border-color: var(--vp-blue);
+}
 
-    .stats-card.revenue::before {
-        background: var(--primary-gradient);
-    }
+/* ── PROGRESS BAR ─────────────────────────────────── */
+.rp-progress { height: 5px; border-radius: 3px; background: var(--vp-gray-100); overflow: hidden; }
+.rp-progress-bar { height: 100%; border-radius: 3px; transition: width .4s ease; }
 
-    .stats-card.expenses::before {
-        background: var(--warning-gradient);
-    }
+/* ── EMPTY STATE ──────────────────────────────────── */
+.rp-empty { text-align: center; padding: 2.5rem 1rem; color: var(--vp-gray-500); }
+.rp-empty i { font-size: 2.5rem; opacity: .3; margin-bottom: .75rem; display: block; }
 
-    .stats-card.profit::before {
-        background: var(--success-gradient);
-    }
+/* ── UTILITIES ────────────────────────────────────── */
+.text-vp-green  { color: var(--vp-green) !important; }
+.text-vp-red    { color: var(--vp-red) !important; }
+.text-vp-blue   { color: var(--vp-blue) !important; }
+.text-vp-yellow { color: var(--vp-yellow) !important; }
 
-    .stats-card.cash::before {
-        background: var(--danger-gradient);
-    }
-
-    .stats-card:hover {
-        transform: translateY(-8px);
-        box-shadow: var(--card-shadow-hover);
-        border-color: var(--primary);
-    }
-
-    .stats-icon {
-        width: 70px;
-        height: 70px;
-        background: var(--primary-gradient);
-        color: white;
-        border-radius: var(--border-radius-lg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.75rem;
-        margin-bottom: 1.5rem;
-        animation: float 3s ease-in-out infinite;
-    }
-
-    .stats-icon.revenue {
-        background: var(--primary-gradient);
-    }
-
-    .stats-icon.expenses {
-        background: var(--warning-gradient);
-    }
-
-    .stats-icon.profit {
-        background: var(--success-gradient);
-    }
-
-    .stats-icon.cash {
-        background: var(--danger-gradient);
-    }
-
-    @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-5px); }
-    }
-
-    .stats-number {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--primary);
-        margin-bottom: 0.5rem;
-    }
-
-    .stats-label {
-        color: var(--gray-600);
-        font-size: 0.95rem;
-        font-weight: 500;
-        margin-bottom: 0.75rem;
-    }
-
-    .stats-meta {
-        font-size: 0.85rem;
-        color: var(--gray-500);
-    }
-
-    /* ========== TARJETA DE ESTADO DE CAJA ========== */
-    .cash-status-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: var(--border-radius-lg);
-        padding: 2rem;
-        margin-bottom: 2rem;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .cash-status-card::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
-        animation: move 20s linear infinite;
-        opacity: 0.1;
-    }
-
-    @keyframes move {
-        0% { transform: translate(-50%, -50%); }
-        100% { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-
-    .cash-status-content {
-        position: relative;
-        z-index: 2;
-    }
-
-    .btn-close-cash {
-        background: rgba(255, 255, 255, 0.2);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 25px;
-        font-weight: 600;
-        transition: var(--transition-smooth);
-        backdrop-filter: blur(10px);
-    }
-
-    .btn-close-cash:hover {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.5);
-        color: white;
-        transform: scale(1.05);
-    }
-
-    /* ========== ACCIONES RÁPIDAS ========== */
-    .quick-actions {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .quick-action-btn {
-        flex: 1;
-        min-width: 160px;
-        padding: 1rem 1.5rem;
-        border-radius: var(--border-radius-lg);
-        border: 2px solid var(--gray-200);
-        background: linear-gradient(135deg, white 0%, #f8f9fa 100%);
-        color: var(--gray-700);
-        text-decoration: none;
-        transition: var(--transition-smooth);
-        text-align: center;
-        font-weight: 500;
-    }
-
-    .quick-action-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--card-shadow);
-        color: var(--primary);
-        border-color: var(--primary);
-        background: white;
-    }
-
-    /* ========== MAIN CARDS ========== */
-    .main-card {
-        background: white;
-        border-radius: var(--border-radius-lg);
-        border: 1px solid var(--gray-200);
-        box-shadow: var(--card-shadow);
-        overflow: hidden;
-    }
-
-    .main-card .card-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, white 100%);
-        border-bottom: 1px solid var(--gray-200);
-        padding: 1.5rem;
-    }
-
-    .main-card .card-body {
-        padding: 0;
-    }
-
-    /* ========== MOVIMIENTOS RECIENTES ========== */
-    .movement-item {
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid var(--gray-200);
-        transition: var(--transition-smooth);
-        cursor: pointer;
-    }
-
-    .movement-item:hover {
-        background-color: rgba(67, 97, 238, 0.05);
-        padding-left: 2rem;
-    }
-
-    .movement-item:last-child {
-        border-bottom: none;
-    }
-
-    .movement-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        margin-right: 1rem;
-    }
-
-    .movement-icon.income {
-        background: rgba(40, 167, 69, 0.15);
-        color: #28a745;
-    }
-
-    .movement-icon.expense {
-        background: rgba(220, 53, 69, 0.15);
-        color: #dc3545;
-    }
-
-    /* ========== ANIMACIONES ========== */
-    .animate-fade-in {
-        animation: fadeInUp 0.8s ease-out;
-    }
-
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* ========== RESPONSIVE ========== */
-    @media (max-width: 768px) {
-        .quick-actions {
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .quick-action-btn {
-            min-width: auto;
-            width: 100%;
-        }
-
-        .stats-card {
-            margin-bottom: 1.5rem;
-            padding: 1.5rem;
-        }
-
-        .stats-number {
-            font-size: 2rem;
-        }
-
-        .content-wrapper {
-            padding: 1rem;
-        }
-
-        .cash-status-card {
-            padding: 1.5rem;
-        }
-    }
-
-    /* ========== UTILIDADES ========== */
-    .no-content {
-        text-align: center;
-        padding: 3rem 2rem;
-        color: var(--gray-500);
-    }
-
-    .no-content i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-
-    .text-success-custom {
-        color: #28a745 !important;
-    }
-
-    .text-danger-custom {
-        color: #dc3545 !important;
-    }
+@media (max-width: 768px) {
+    .rp-page { padding: 1rem; }
+    .rp-caja-banner { padding: 1.25rem; }
+    .rp-caja-nums { gap: 1.5rem; }
+    .rp-stat-val { font-size: 1.35rem; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid content-wrapper">
-    <!-- ========== HEADER DEL DASHBOARD ========== -->
-    <div class="row mb-4">
+<div class="rp-page">
+
+    <!-- ── HEADER ─────────────────────────────────────────────── -->
+    <div class="rp-page-header">
+        <div>
+            <h1 class="rp-page-title"><i class="fas fa-chart-line me-2"></i>Dashboard de Reportes</h1>
+            <p class="rp-page-sub"><i class="fas fa-calendar-day me-1"></i>{{ hoy|date:"l, d \d\e F \d\e Y" }}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'reportes:reporte_ventas_completo' %}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-chart-bar me-1"></i>Ventas
+            </a>
+            {% if taller_disponible %}
+            <a href="{% url 'reportes:reporte_tecnicos' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-tools me-1"></i>Técnicos
+            </a>
+            {% endif %}
+            <a href="{% url 'reportes:reporte_vendedores' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-users me-1"></i>Vendedores
+            </a>
+            <a href="{% url 'reportes:crear_gasto' %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i>Registrar Gasto
+            </a>
+        </div>
+    </div>
+
+    <!-- ── BANNER CAJA ─────────────────────────────────────────── -->
+    <div class="rp-caja-banner">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fas fa-cash-register fa-lg"></i>
+                <span style="font-size:.95rem; font-weight:700;">Caja del {{ hoy|date:"d/m/Y" }}</span>
+                <span class="rp-caja-estado-{% if cierre_hoy.estado == 'ABIERTO' %}abierto{% else %}cerrado{% endif %}" style="font-size:.8rem;">
+                    <i class="fas fa-circle" style="font-size:.5rem; vertical-align:middle;"></i>
+                    {{ cierre_hoy.estado }}
+                </span>
+            </div>
+            <div class="rp-caja-nums">
+                <div>
+                    <div class="rp-caja-num-label">Ingresos hoy</div>
+                    <div class="rp-caja-num-val">${{ stats_hoy.total_ingresos|floatformat:2 }}</div>
+                </div>
+                <div>
+                    <div class="rp-caja-num-label">Gastos</div>
+                    <div class="rp-caja-num-val">${{ stats_hoy.total_gastos|floatformat:2 }}</div>
+                </div>
+                <div>
+                    <div class="rp-caja-num-label">Efectivo</div>
+                    <div class="rp-caja-num-val">${{ stats_hoy.efectivo|floatformat:2 }}</div>
+                </div>
+                <div>
+                    <div class="rp-caja-num-label">Saldo final</div>
+                    <div class="rp-caja-num-val">${{ cierre_hoy.saldo_final|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+        <a href="{% url 'reportes:caja_diaria' %}" class="rp-caja-badge">
+            <i class="fas fa-{% if cierre_hoy.estado == 'ABIERTO' %}lock me-2{% else %}eye me-2{% endif %}"></i>
+            {% if cierre_hoy.estado == 'ABIERTO' %}Cerrar Caja{% else %}Ver Caja{% endif %}
+        </a>
+    </div>
+
+    <!-- ── STATS HOY ───────────────────────────────────────────── -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon blue"><i class="fas fa-shopping-cart"></i></div>
+                <div class="rp-stat-val">${{ stats_hoy.total_pos|floatformat:0 }}</div>
+                <div class="rp-stat-label">Ventas POS</div>
+                <div class="rp-stat-meta">{{ stats_hoy.cantidad_ventas }} transacciones</div>
+            </div>
+        </div>
+        {% if online_disponible %}
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon purple"><i class="fas fa-globe"></i></div>
+                <div class="rp-stat-val">${{ stats_hoy.total_online|floatformat:0 }}</div>
+                <div class="rp-stat-label">Online</div>
+                <div class="rp-stat-meta">Pedidos entregados</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if taller_disponible %}
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon yellow"><i class="fas fa-tools"></i></div>
+                <div class="rp-stat-val">${{ stats_hoy.total_taller|floatformat:0 }}</div>
+                <div class="rp-stat-label">Taller</div>
+                <div class="rp-stat-meta">Órdenes completadas</div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon green"><i class="fas fa-calendar-week"></i></div>
+                <div class="rp-stat-val">${{ stats_semana.total_ventas|floatformat:0 }}</div>
+                <div class="rp-stat-label">Esta semana</div>
+                <div class="rp-stat-meta">{{ stats_semana.cantidad_ventas }} ventas</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon blue"><i class="fas fa-calendar-alt"></i></div>
+                <div class="rp-stat-val">${{ stats_mes.total_ventas|floatformat:0 }}</div>
+                <div class="rp-stat-label">Este mes</div>
+                <div class="rp-stat-meta">{{ stats_mes.cantidad_ventas }} ventas</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="rp-stat">
+                <div class="rp-stat-icon red"><i class="fas fa-receipt"></i></div>
+                <div class="rp-stat-val">${{ stats_hoy.total_gastos|floatformat:0 }}</div>
+                <div class="rp-stat-label">Gastos hoy</div>
+                <div class="rp-stat-meta">
+                    {% if gastos_pendientes > 0 %}
+                    <span class="badge bg-warning text-dark">{{ gastos_pendientes }} pendientes</span>
+                    {% else %}todos aprobados{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MÉTODOS DE PAGO HOY ──────────────────────────────────── -->
+    <div class="row g-3 mb-4">
         <div class="col-12">
-            <div class="section-header animate-fade-in">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div>
-                        <h1 class="section-title">
-                            <i class="fas fa-chart-line text-primary"></i>
-                            Dashboard de Reportes
-                        </h1>
-                        <p class="text-muted mb-0 mt-2">
-                            <i class="fas fa-calendar-day me-2"></i>
-                            Control de ventas y gastos - {{ hoy|date:"d/m/Y" }}
-                        </p>
+            <div class="rp-card">
+                <div class="rp-card-header">
+                    <h6 class="rp-card-title"><i class="fas fa-credit-card"></i>Métodos de Pago — Hoy</h6>
+                </div>
+                <div class="rp-card-body">
+                    <div class="row g-0">
+                        {% with total=stats_hoy.total_ingresos %}
+                        <!-- Efectivo -->
+                        <div class="col-6 col-md-3 p-3 border-end border-bottom">
+                            <div class="text-center">
+                                <div class="rp-stat-icon green mx-auto mb-2"><i class="fas fa-money-bill-wave"></i></div>
+                                <div style="font-size:1.2rem;font-weight:700;color:var(--vp-gray-900)">${{ stats_hoy.efectivo|floatformat:2 }}</div>
+                                <div style="font-size:.78rem;color:var(--vp-gray-500);margin:.2rem 0;">Efectivo</div>
+                                <div class="rp-progress mt-1">
+                                    <div class="rp-progress-bar" style="background:var(--vp-green);width:{% if total > 0 %}{% widthratio stats_hoy.efectivo total 100 %}%{% else %}0%{% endif %}"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Tarjeta -->
+                        <div class="col-6 col-md-3 p-3 border-end border-bottom">
+                            <div class="text-center">
+                                <div class="rp-stat-icon blue mx-auto mb-2"><i class="fas fa-credit-card"></i></div>
+                                <div style="font-size:1.2rem;font-weight:700;color:var(--vp-gray-900)">${{ stats_hoy.tarjeta|floatformat:2 }}</div>
+                                <div style="font-size:.78rem;color:var(--vp-gray-500);margin:.2rem 0;">Tarjeta</div>
+                                <div class="rp-progress mt-1">
+                                    <div class="rp-progress-bar" style="background:var(--vp-blue);width:{% if total > 0 %}{% widthratio stats_hoy.tarjeta total 100 %}%{% else %}0%{% endif %}"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Transferencia -->
+                        <div class="col-6 col-md-3 p-3 border-end">
+                            <div class="text-center">
+                                <div class="rp-stat-icon purple mx-auto mb-2"><i class="fas fa-university"></i></div>
+                                <div style="font-size:1.2rem;font-weight:700;color:var(--vp-gray-900)">${{ stats_hoy.transferencia|floatformat:2 }}</div>
+                                <div style="font-size:.78rem;color:var(--vp-gray-500);margin:.2rem 0;">Transferencia</div>
+                                <div class="rp-progress mt-1">
+                                    <div class="rp-progress-bar" style="background:var(--vp-purple);width:{% if total > 0 %}{% widthratio stats_hoy.transferencia total 100 %}%{% else %}0%{% endif %}"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Total -->
+                        <div class="col-6 col-md-3 p-3">
+                            <div class="text-center">
+                                <div class="rp-stat-icon yellow mx-auto mb-2"><i class="fas fa-sigma"></i></div>
+                                <div style="font-size:1.2rem;font-weight:700;color:var(--vp-gray-900)">${{ stats_hoy.total_ingresos|floatformat:2 }}</div>
+                                <div style="font-size:.78rem;color:var(--vp-gray-500);margin:.2rem 0;">Total del día</div>
+                                <div class="rp-progress mt-1">
+                                    <div class="rp-progress-bar" style="background:var(--vp-yellow);width:100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endwith %}
                     </div>
-                    <div class="quick-actions">
-                        <a href="{% url 'reportes:crear_gasto' %}" class="quick-action-btn">
-                            <i class="fas fa-plus-circle me-2"></i>Registrar Gasto
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── COLUMNAS PRINCIPALES ─────────────────────────────────── -->
+    <div class="row g-3">
+
+        <!-- Movimientos recientes -->
+        <div class="col-xl-8">
+            <div class="rp-card">
+                <div class="rp-card-header">
+                    <h6 class="rp-card-title"><i class="fas fa-exchange-alt"></i>Movimientos Recientes</h6>
+                    <a href="{% url 'reportes:lista_movimientos' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i>Ver todos
+                    </a>
+                </div>
+                <div class="rp-card-body" style="max-height:400px;overflow-y:auto;">
+                    {% if movimientos_recientes %}
+                    {% for mov in movimientos_recientes %}
+                    <div class="rp-mov-row">
+                        <div class="rp-mov-dot {% if mov.es_ingreso %}in{% else %}out{% endif %}">
+                            <i class="fas fa-{% if mov.es_ingreso %}arrow-up{% else %}arrow-down{% endif %}"></i>
+                        </div>
+                        <div class="rp-mov-desc">
+                            <strong>{{ mov.concepto }}</strong>
+                            <small>{{ mov.hora|time:"H:i" }} · {{ mov.metodo_pago }}</small>
+                        </div>
+                        <span class="rp-mov-amount {% if mov.es_ingreso %}in{% else %}out{% endif %}">
+                            {% if mov.es_ingreso %}+{% else %}-{% endif %}${{ mov.monto|floatformat:2 }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="rp-empty">
+                        <i class="fas fa-exchange-alt"></i>
+                        <p>Sin movimientos hoy</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel derecho -->
+        <div class="col-xl-4">
+            <!-- Top días del mes -->
+            <div class="rp-card mb-3">
+                <div class="rp-card-header">
+                    <h6 class="rp-card-title"><i class="fas fa-trophy"></i>Mejores días del mes</h6>
+                </div>
+                <div class="rp-card-body">
+                    {% for dia in top_dias %}
+                    <div class="rp-topday">
+                        <div class="rp-topday-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                            {{ forloop.counter }}
+                        </div>
+                        <div class="flex-1 mx-2" style="flex:1;">
+                            <div style="font-size:.875rem;font-weight:600;color:var(--vp-gray-700);">{{ dia.dia|date:"d/m/Y" }}</div>
+                            <div style="font-size:.78rem;color:var(--vp-gray-500);">{{ dia.cantidad }} ventas</div>
+                        </div>
+                        <span style="font-size:.9rem;font-weight:700;color:var(--vp-green);">${{ dia.total_dia|floatformat:0 }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="rp-empty" style="padding:1.5rem;">
+                        <i class="fas fa-chart-bar" style="font-size:1.5rem;"></i>
+                        <p style="font-size:.85rem;">Sin datos del mes</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Acciones rápidas -->
+            <div class="rp-card">
+                <div class="rp-card-header">
+                    <h6 class="rp-card-title"><i class="fas fa-bolt"></i>Acciones rápidas</h6>
+                </div>
+                <div style="padding:.75rem;">
+                    <div class="d-flex flex-column gap-2">
+                        <a href="{% url 'reportes:caja_diaria' %}" class="rp-quick-btn">
+                            <i class="fas fa-cash-register text-vp-blue"></i>Caja Diaria
                         </a>
-                        <a href="{% url 'reportes:estadisticas_ventas' %}" class="quick-action-btn">
-                            <i class="fas fa-chart-bar me-2"></i>Estadísticas
+                        <a href="{% url 'reportes:reporte_ventas_completo' %}" class="rp-quick-btn">
+                            <i class="fas fa-chart-bar text-vp-blue"></i>Reporte de Ventas
                         </a>
-                        <a href="{% url 'reportes:reportes_mensuales' %}" class="quick-action-btn">
-                            <i class="fas fa-calendar-alt me-2"></i>Reportes
+                        {% if taller_disponible %}
+                        <a href="{% url 'reportes:reporte_tecnicos' %}" class="rp-quick-btn">
+                            <i class="fas fa-tools text-vp-yellow"></i>Reporte Técnicos
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'reportes:reporte_vendedores' %}" class="rp-quick-btn">
+                            <i class="fas fa-users text-vp-purple"></i>Reporte Vendedores
+                        </a>
+                        <a href="{% url 'reportes:crear_gasto' %}" class="rp-quick-btn">
+                            <i class="fas fa-plus text-vp-green"></i>Registrar Gasto
+                        </a>
+                        <a href="{% url 'reportes:lista_gastos' %}" class="rp-quick-btn">
+                            <i class="fas fa-receipt text-vp-red"></i>Ver Gastos
+                            {% if gastos_pendientes > 0 %}
+                            <span class="badge bg-warning text-dark" style="font-size:.7rem;">{{ gastos_pendientes }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{% url 'reportes:reportes_mensuales' %}" class="rp-quick-btn">
+                            <i class="fas fa-calendar-alt text-vp-blue"></i>Reportes Mensuales
                         </a>
                     </div>
                 </div>
@@ -391,367 +485,19 @@
         </div>
     </div>
 
-    <!-- ========== ESTADO DE CAJA ========== -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="cash-status-card animate-fade-in">
-                <div class="cash-status-content">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                        <div>
-                            <h3 class="mb-2">
-                                <i class="fas fa-cash-register me-2"></i>
-                                Estado de Caja - {{ hoy|date:"d/m/Y" }}
-                            </h3>
-                            <div class="row g-3">
-                                <div class="col-auto">
-                                    <h5 class="mb-1">Saldo Final</h5>
-                                    <h4 class="mb-0">${{ cierre_hoy.saldo_final|floatformat:0|default:"0" }}</h4>
-                                </div>
-                                <div class="col-auto">
-                                    <h6 class="mb-1">Ingresos</h6>
-                                    <p class="mb-0">${{ cierre_hoy.total_ingresos|floatformat:0|default:"0" }}</p>
-                                </div>
-                                <div class="col-auto">
-                                    <h6 class="mb-1">Gastos</h6>
-                                    <p class="mb-0">${{ total_gastos_hoy|floatformat:0|default:"0" }}</p>
-                                </div>
-                                {% if cierre_hoy.diferencia_efectivo != 0 %}
-                                <div class="col-auto">
-                                    <h6 class="mb-1">Diferencia</h6>
-                                    <p class="mb-0">
-                                        <i class="fas fa-{% if cierre_hoy.diferencia_efectivo > 0 %}arrow-up{% else %}arrow-down{% endif %} me-1"></i>
-                                        ${{ cierre_hoy.diferencia_efectivo|floatformat:2 }}
-                                    </p>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            {% if cierre_hoy.estado == 'ABIERTO' %}
-                                <a href="{% url 'reportes:caja_diaria' %}" class="btn btn-close-cash">
-                                    <i class="fas fa-lock me-2"></i>
-                                    Cerrar Caja
-                                </a>
-                            {% else %}
-                                <span class="badge bg-light text-dark fs-6 px-3 py-2">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    Caja Cerrada
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- ========== ESTADÍSTICAS PRINCIPALES ========== -->
-    <div class="row g-4 mb-5">
-        <div class="col-lg-3 col-md-6">
-            <div class="stats-card revenue animate-fade-in">
-                <div class="stats-icon revenue">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-                <div class="d-flex justify-content-between align-items-end">
-                    <div class="flex-grow-1">
-                        <h3 class="stats-number" data-stat="ventas-hoy">${{ stats_hoy.total_ventas|floatformat:0 }}</h3>
-                        <p class="stats-label">Ventas de Hoy</p>
-                        <div class="stats-meta">
-                            <i class="fas fa-shopping-cart me-1"></i>
-                            {{ stats_hoy.cantidad_ventas }} transacciones
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6">
-            <div class="stats-card expenses animate-fade-in">
-                <div class="stats-icon expenses">
-                    <i class="fas fa-receipt"></i>
-                </div>
-                <div class="d-flex justify-content-between align-items-end">
-                    <div class="flex-grow-1">
-                        <h3 class="stats-number">${{ total_gastos_hoy|floatformat:0 }}</h3>
-                        <p class="stats-label">Gastos de Hoy</p>
-                        <div class="stats-meta">
-                            {% if gastos_pendientes > 0 %}
-                                <span class="badge bg-warning text-dark">{{ gastos_pendientes }} pendientes</span>
-                            {% else %}
-                                <i class="fas fa-check me-1"></i>Todos aprobados
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6">
-            <div class="stats-card profit animate-fade-in">
-                <div class="stats-icon profit">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-                <div class="d-flex justify-content-between align-items-end">
-                    <div class="flex-grow-1">
-                        <h3 class="stats-number">${{ stats_semana.total_ventas|floatformat:0 }}</h3>
-                        <p class="stats-label">Ventas Semana</p>
-                        <div class="stats-meta">
-                            <i class="fas fa-calendar-week me-1"></i>
-                            {{ stats_semana.cantidad_ventas }} ventas
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6">
-            <div class="stats-card cash animate-fade-in">
-                <div class="stats-icon cash">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-                <div class="d-flex justify-content-between align-items-end">
-                    <div class="flex-grow-1">
-                        <h3 class="stats-number">${{ stats_mes.total_ventas|floatformat:0 }}</h3>
-                        <p class="stats-label">Ventas del Mes</p>
-                        <div class="stats-meta">
-                            <i class="fas fa-trending-up me-1"></i>
-                            {{ stats_mes.cantidad_ventas }} ventas
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- ========== CONTENIDO PRINCIPAL ========== -->
-    <div class="row g-4">
-        <!-- MOVIMIENTOS RECIENTES -->
-        <div class="col-xl-8 col-lg-7">
-            <div class="main-card animate-fade-in">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="section-title mb-0">
-                            <i class="fas fa-exchange-alt text-primary"></i>
-                            Movimientos Recientes
-                        </h5>
-                        <a href="{% url 'reportes:lista_movimientos' %}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-eye me-1"></i>Ver Todos
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="card-body">
-                    <div style="max-height: 400px; overflow-y: auto;">
-                        {% for movimiento in movimientos_recientes %}
-                        <div class="movement-item">
-                            <div class="d-flex align-items-center">
-                                <div class="movement-icon {% if movimiento.es_ingreso %}income{% else %}expense{% endif %}">
-                                    <i class="fas fa-{% if movimiento.es_ingreso %}arrow-up{% else %}arrow-down{% endif %}"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1 fw-bold">{{ movimiento.concepto }}</h6>
-                                    <small class="text-muted">
-                                        <i class="fas fa-clock me-1"></i>
-                                        {{ movimiento.hora|time:"H:i" }} - {{ movimiento.metodo_pago }}
-                                    </small>
-                                </div>
-                                <div class="text-end">
-                                    <h6 class="mb-0 {% if movimiento.es_ingreso %}text-success-custom{% else %}text-danger-custom{% endif %}">
-                                        {% if movimiento.es_ingreso %}+{% else %}-{% endif %}${{ movimiento.monto|floatformat:0 }}
-                                    </h6>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="no-content">
-                            <i class="fas fa-exchange-alt"></i>
-                            <h5>No hay movimientos registrados hoy</h5>
-                            <p class="text-muted mb-0">Los movimientos aparecerán aquí conforme se realicen</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- PANEL LATERAL -->
-        <div class="col-xl-4 col-lg-5">
-            <!-- Top Días del Mes -->
-            <div class="main-card mb-4 animate-fade-in">
-                <div class="card-header">
-                    <h5 class="section-title mb-0">
-                        <i class="fas fa-trophy text-primary"></i>
-                        Top Días del Mes
-                    </h5>
-                    <small class="text-muted">Mejores días de ventas</small>
-                </div>
-                <div class="card-body">
-                    <div style="padding: 1rem;">
-                        {% for dia in top_dias %}
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h6 class="mb-1 fw-bold">{{ dia.dia|date:"d/m/Y" }}</h6>
-                                <small class="text-muted">
-                                    <i class="fas fa-shopping-bag me-1"></i>
-                                    {{ dia.cantidad }} ventas
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <h6 class="mb-0 text-success-custom">${{ dia.total_dia|floatformat:0 }}</h6>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="no-content py-3">
-                            <i class="fas fa-chart-bar"></i>
-                            <p class="text-muted mb-0">No hay datos del mes</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Acciones Rápidas -->
-            <div class="main-card animate-fade-in">
-                <div class="card-header">
-                    <h5 class="section-title mb-0">
-                        <i class="fas fa-bolt text-primary"></i>
-                        Acciones Rápidas
-                    </h5>
-                    <small class="text-muted">Gestión financiera</small>
-                </div>
-                <div class="card-body" style="padding: 1.5rem;">
-                    <div class="d-grid gap-3">
-                        <a href="{% url 'reportes:caja_diaria' %}" class="btn btn-outline-primary btn-lg">
-                            <i class="fas fa-cash-register me-2"></i>
-                            Caja Diaria
-                        </a>
-                        
-                        <a href="{% url 'reportes:crear_gasto' %}" class="btn btn-outline-warning btn-lg">
-                            <i class="fas fa-plus me-2"></i>
-                            Registrar Gasto
-                        </a>
-                        
-                        <a href="{% url 'reportes:lista_gastos' %}" class="btn btn-outline-danger btn-lg">
-                            <i class="fas fa-receipt me-2"></i>
-                            Ver Gastos
-                            {% if gastos_pendientes > 0 %}
-                                <span class="badge bg-warning text-dark ms-2">{{ gastos_pendientes }}</span>
-                            {% endif %}
-                        </a>
-                        
-                        <a href="{% url 'reportes:estadisticas_ventas' %}" class="btn btn-outline-info btn-lg">
-                            <i class="fas fa-chart-line me-2"></i>
-                            Estadísticas
-                        </a>
-                        
-                        <hr class="my-2">
-                        
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <a href="{% url 'reportes:reportes_mensuales' %}" class="btn btn-outline-secondary w-100">
-                                    <i class="fas fa-calendar-alt me-1"></i>
-                                    Mensuales
-                                </a>
-                            </div>
-                            <div class="col-6">
-                                <a href="{% url 'reportes:exportar_reporte' %}" class="btn btn-outline-secondary w-100">
-                                    <i class="fas fa-download me-1"></i>
-                                    Exportar
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
-{% csrf_token %}
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// ========== VARIABLES GLOBALES ==========
-const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-// ========== FUNCIONES PRINCIPALES ==========
-
-// Actualizar estadísticas en tiempo real
-function actualizarEstadisticas() {
-    fetch("{% url 'reportes:api_dashboard_data' %}", {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.ventas_7_dias) {
-            // Actualizar gráficos si existen
-            actualizarGraficos(data);
-        }
-    })
-    .catch(error => console.error('Error al actualizar estadísticas:', error));
-}
-
-// Actualizar gráficos
-function actualizarGraficos(data) {
-    // Implementar actualización de gráficos Chart.js aquí
-    console.log('Datos actualizados:', data);
-}
-
-// Verificar estado de caja
-function verificarEstadoCaja() {
-    fetch("{% url 'reportes:api_caja_status' %}", {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Estado de caja:', data);
-        // Actualizar UI según estado de caja
-    })
-    .catch(error => console.error('Error al verificar caja:', error));
-}
-
-// Mostrar notificaciones
-function mostrarNotificacion(mensaje, tipo = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} position-fixed`;
-    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    notification.innerHTML = `
-        <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-        ${mensaje}
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 5000);
-}
-
-// ========== EVENT LISTENERS ==========
-document.addEventListener('DOMContentLoaded', function() {
-    // Actualizar estadísticas cada 5 minutos
-    setInterval(actualizarEstadisticas, 300000);
-    
-    // Verificar estado de caja cada minuto
-    setInterval(verificarEstadoCaja, 60000);
-    
-    // Animaciones de entrada
-    const elements = document.querySelectorAll('.animate-fade-in');
-    elements.forEach((el, index) => {
-        el.style.animationDelay = `${index * 0.1}s`;
-    });
-    
-    console.log('Dashboard de reportes cargado correctamente');
+document.addEventListener('DOMContentLoaded', function () {
+    // Auto-refresh stats cada 5 minutos
+    setInterval(function () {
+        fetch("{% url 'reportes:api_caja_status' %}")
+            .then(r => r.json())
+            .then(d => console.log('Caja status:', d.estado))
+            .catch(() => {});
+    }, 300000);
 });
 </script>
 {% endblock %}

@@ -3,1147 +3,677 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - OPENMOTORS</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
+    <title>Iniciar Sesión — OPENMOTORS</title>
+
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
     <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --primary: #4361ee;
-            --primary-light: #4895ef;
-            --secondary: #3f37c9;
-            --accent: #f72585;
-            --success: #4cc9f0;
-            --warning: #f8961e;
-            --danger: #f94144;
+            --bg:        #080809;
+            --surface:   #0f0f11;
+            --card:      #141417;
+            --border:    rgba(255,255,255,.06);
+            --border-hi: rgba(255,255,255,.10);
+            --text:      #e2e2e6;
+            --muted:     #52525e;
+            --muted-hi:  #7c7c8a;
+            --accent:    #4361ee;
+            --accent-hi: #5b77f5;
+            --accent-glow: rgba(67,97,238,.18);
+            --danger:    #e05252;
+            --font:      'DM Sans', sans-serif;
+            --mono:      'DM Mono', monospace;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+
+        html, body { height: 100%; overflow: hidden; }
+
         body {
-            font-family: 'Poppins', sans-serif;
-            height: 100vh;
-            overflow: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            position: relative;
-        }
-        
-        /* Fondo con imagen de taller */
-        .background-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                linear-gradient(135deg, rgba(67, 97, 238, 0.9) 0%, rgba(63, 55, 201, 0.8) 100%),
-                url('https://images.unsplash.com/photo-1487754180451-c456f719a1fc?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80');
-            background-size: cover;
-            background-position: center;
-            filter: blur(3px);
-            z-index: 1;
-        }
-        
-        .login-container {
-            position: relative;
-            z-index: 10;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
             display: flex;
-            height: 100vh;
-            align-items: center;
-            padding: 2rem;
+            min-height: 100vh;
+            opacity: 0;
+            animation: pageFadeIn .55s ease .05s forwards;
         }
-        
-        /* Panel izquierdo - Información */
-        .info-panel {
+
+        @keyframes pageFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        /* ═══════════════════════════════
+           LEFT PANEL
+        ═══════════════════════════════ */
+        .left-panel {
             flex: 1;
-            color: white;
-            padding: 2rem;
-            max-width: 600px;
-        }
-        
-        .version-badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 0.5rem 1.5rem;
-            border-radius: 50px;
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .main-title {
-            font-size: 4rem;
-            font-weight: 900;
-            line-height: 1.1;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .main-title .highlight {
-            color: #4cc9f0;
-            -webkit-text-fill-color: #4cc9f0;
-        }
-        
-        .subtitle {
-            font-size: 1.3rem;
-            font-weight: 400;
-            opacity: 0.9;
-            margin-bottom: 3rem;
-            line-height: 1.5;
-        }
-        
-        .subtitle .bold {
-            font-weight: 600;
-            color: #4cc9f0;
-        }
-        
-        /* Animación de engranajes */
-        .gears-container {
-            position: absolute;
-            bottom: 2rem;
-            left: 2rem;
             display: flex;
-            gap: 1.5rem;
-            opacity: 0.3;
-        }
-        
-        .gear {
-            color: white;
-            font-size: 3rem;
-            animation: spin 8s linear infinite;
-            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4));
-            transition: all 0.3s ease;
-        }
-        
-        .gear:nth-child(1) {
-            animation-duration: 8s;
-            color: rgba(76, 201, 240, 0.8);
-            filter: drop-shadow(0 0 15px rgba(76, 201, 240, 0.6));
-        }
-        
-        .gear:nth-child(2) {
-            animation-direction: reverse;
-            animation-duration: 6s;
-            color: rgba(248, 150, 30, 0.8);
-            filter: drop-shadow(0 0 15px rgba(248, 150, 30, 0.6));
-        }
-        
-        .gear:nth-child(3) {
-            animation-duration: 10s;
-            color: rgba(247, 37, 133, 0.8);
-            filter: drop-shadow(0 0 15px rgba(247, 37, 133, 0.6));
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Panel derecho - Formulario */
-        .form-panel {
-            flex: 0 0 400px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .login-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 2.5rem;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 
-                0 25px 50px rgba(0, 0, 0, 0.25),
-                0 0 0 1px rgba(255, 255, 255, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 44px 56px;
             position: relative;
             overflow: hidden;
-            animation: slideInRight 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
-        .login-card::before {
+
+        /* Animated grid */
+        .grid-bg {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+            background-size: 52px 52px;
+            animation: gridDrift 30s linear infinite;
+        }
+
+        @keyframes gridDrift {
+            0%   { background-position: 0 0; }
+            100% { background-position: 52px 52px; }
+        }
+
+        /* Orb accent */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            pointer-events: none;
+        }
+
+        .orb-1 {
+            width: 420px; height: 420px;
+            top: -10%; left: -5%;
+            background: radial-gradient(circle, rgba(67,97,238,.14) 0%, transparent 70%);
+            animation: orbFloat 12s ease-in-out infinite;
+        }
+
+        .orb-2 {
+            width: 280px; height: 280px;
+            bottom: 10%; right: 5%;
+            background: radial-gradient(circle, rgba(91,119,245,.08) 0%, transparent 70%);
+            animation: orbFloat 16s ease-in-out infinite reverse;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0,0) scale(1); }
+            33%       { transform: translate(20px, -30px) scale(1.05); }
+            66%       { transform: translate(-15px, 20px) scale(.97); }
+        }
+
+        /* Brand */
+        .brand {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0;
+            animation: fadeUp .6s ease .1s forwards;
+        }
+
+        .brand img {
+            width: 38px; height: 38px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 12px var(--accent-glow));
+        }
+
+        .brand-name {
+            font-family: var(--mono);
+            font-size: .85rem;
+            font-weight: 500;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .brand-version {
+            font-family: var(--mono);
+            font-size: .65rem;
+            color: var(--muted);
+            letter-spacing: .08em;
+            margin-top: 1px;
+        }
+
+        /* Hero */
+        .hero {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-eyebrow {
+            font-family: var(--mono);
+            font-size: .7rem;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            animation: fadeUp .6s ease .2s forwards;
+        }
+
+        .hero-eyebrow::before {
+            content: '';
+            display: block;
+            width: 22px; height: 1px;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .hero-title {
+            font-size: clamp(2.2rem, 3.5vw, 3.2rem);
+            font-weight: 300;
+            line-height: 1.15;
+            letter-spacing: -.025em;
+            color: var(--text);
+            margin-bottom: 18px;
+            opacity: 0;
+            animation: fadeUp .6s ease .3s forwards;
+        }
+
+        .hero-title strong {
+            font-weight: 600;
+            color: #fff;
+            display: block;
+        }
+
+        .hero-desc {
+            font-size: .9rem;
+            color: var(--muted-hi);
+            line-height: 1.75;
+            max-width: 380px;
+            font-weight: 300;
+            opacity: 0;
+            animation: fadeUp .6s ease .4s forwards;
+        }
+
+        /* Stats */
+        .stats-row {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            gap: 36px;
+            opacity: 0;
+            animation: fadeUp .6s ease .5s forwards;
+        }
+
+        .stat-value {
+            font-family: var(--mono);
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: #fff;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: .72rem;
+            color: var(--muted);
+            letter-spacing: .04em;
+        }
+
+        /* Separator */
+        .left-right-sep {
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, var(--border-hi) 20%, var(--border-hi) 80%, transparent);
+            flex-shrink: 0;
+        }
+
+        /* ═══════════════════════════════
+           RIGHT PANEL
+        ═══════════════════════════════ */
+        .right-panel {
+            width: 400px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 56px 44px;
+            background: var(--surface);
+            position: relative;
+            animation: panelSlideIn .65s cubic-bezier(.22,.68,0,1.1) .15s both;
+        }
+
+        @keyframes panelSlideIn {
+            from { opacity: 0; transform: translateX(28px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Subtle top accent line */
+        .right-panel::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 30% 20%, rgba(67, 97, 238, 0.1) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 1;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: .7;
         }
-        
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+
+        .form-header {
+            margin-bottom: 36px;
+            opacity: 0;
+            animation: fadeUp .6s ease .25s forwards;
         }
-        
-        /* Decoración superior de la tarjeta */
-        .card-decoration {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 6px;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
-            border-radius: 24px 24px 0 0;
-            z-index: 2;
-            box-shadow: 0 0 20px rgba(67, 97, 238, 0.4);
-        }
-        
-        .welcome-section {
-            text-align: left;
-            margin-bottom: 2rem;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .welcome-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.95);
-            margin-bottom: 0.5rem;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-        
-        .welcome-subtitle {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.95rem;
-            font-weight: 400;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 1rem 1rem 1rem 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 16px;
-            font-size: 1rem;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-            outline: none;
-            color: rgba(255, 255, 255, 0.9);
+
+        .form-header h2 {
+            font-size: 1.45rem;
             font-weight: 500;
-            box-shadow: 
-                inset 0 1px 0 rgba(255, 255, 255, 0.1),
-                0 4px 15px rgba(0, 0, 0, 0.1);
+            color: #fff;
+            letter-spacing: -.015em;
+            margin-bottom: 5px;
         }
-        
-        .form-input:focus {
-            border-color: rgba(67, 97, 238, 0.6);
-            background: rgba(255, 255, 255, 0.12);
-            box-shadow: 
-                0 0 0 3px rgba(67, 97, 238, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15),
-                0 8px 25px rgba(67, 97, 238, 0.15);
-            transform: translateY(-2px);
+
+        .form-header p {
+            font-size: .82rem;
+            color: var(--muted-hi);
+            font-weight: 300;
         }
-        
-        .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-            font-weight: 400;
+
+        /* Error */
+        .alert-error {
+            background: rgba(224,82,82,.07);
+            border: 1px solid rgba(224,82,82,.2);
+            border-radius: 8px;
+            padding: 11px 14px;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: .82rem;
+            color: #d88;
+            animation: shake .35s ease;
         }
-        
-        .form-input:hover {
-            border-color: rgba(255, 255, 255, 0.25);
-            background: rgba(255, 255, 255, 0.1);
+
+        .alert-error i { font-size: .75rem; flex-shrink: 0; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%       { transform: translateX(-5px); }
+            40%       { transform: translateX(5px); }
+            60%       { transform: translateX(-3px); }
+            80%       { transform: translateX(3px); }
         }
-        
-        .password-toggle {
+
+        /* Field */
+        .field {
+            margin-bottom: 14px;
+            opacity: 0;
+            animation: fadeUp .5s ease forwards;
+        }
+
+        .field:nth-child(1) { animation-delay: .35s; }
+        .field:nth-child(2) { animation-delay: .42s; }
+
+        .field label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .7rem;
+            font-weight: 500;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+            color: var(--muted-hi);
+            margin-bottom: 7px;
+            transition: color .2s;
+        }
+
+        .field:focus-within label { color: var(--accent-hi); }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-icon {
             position: absolute;
-            right: 1rem;
+            left: 13px;
             top: 50%;
             transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.6);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 3;
-            padding: 0.5rem;
+            color: var(--muted);
+            font-size: .75rem;
+            pointer-events: none;
+            transition: color .25s;
+        }
+
+        .field:focus-within .input-icon { color: var(--accent); }
+
+        .field input {
+            width: 100%;
+            padding: 12px 13px 12px 36px;
+            background: var(--card);
+            border: 1px solid var(--border-hi);
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(5px);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: .88rem;
+            font-weight: 400;
+            outline: none;
+            transition: border-color .25s, box-shadow .25s, background .25s;
         }
-        
-        .password-toggle:hover {
-            color: rgba(67, 97, 238, 0.9);
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-50%) scale(1.1);
+
+        .field input:focus {
+            border-color: rgba(67,97,238,.55);
+            background: rgba(67,97,238,.04);
+            box-shadow: 0 0 0 3px rgba(67,97,238,.1);
         }
-        
-        .sign-in-btn {
-            width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, rgba(67, 97, 238, 0.9) 0%, rgba(63, 55, 201, 0.9) 100%);
-            backdrop-filter: blur(15px);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 1.5rem;
-            z-index: 2;
-            box-shadow: 
-                0 8px 25px rgba(67, 97, 238, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+        .field input::placeholder { color: var(--muted); font-size: .84rem; }
+
+        /* filled state */
+        .field input.filled {
+            border-color: rgba(67,97,238,.3);
         }
-        
-        .sign-in-btn::before {
-            content: '';
+
+        /* Eye toggle */
+        .eye-btn {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.1);
+            right: 12px;
+            top: 50%; transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: .75rem;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color .2s;
+        }
+
+        .eye-btn:hover { color: var(--muted-hi); }
+
+        /* Submit */
+        .btn-form-area {
+            margin-top: 4px;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            animation: fadeUp .5s ease .5s forwards;
         }
-        
-        .sign-in-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 
-                0 12px 35px rgba(67, 97, 238, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-            background: linear-gradient(135deg, rgba(67, 97, 238, 1) 0%, rgba(63, 55, 201, 1) 100%);
-        }
-        
-        .sign-in-btn:hover::before {
-            opacity: 1;
-        }
-        
-        .sign-in-btn:active {
-            transform: translateY(0);
-        }
-        
-        /* Enlace de olvidar contraseña */
-        .forgot-password-section {
-            text-align: center;
-            margin-bottom: 1rem;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .forgot-password-link {
-            color: rgba(76, 201, 240, 0.9);
-            text-decoration: none;
-            font-size: 0.9rem;
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: .88rem;
             font-weight: 500;
-            display: inline-flex;
+            cursor: pointer;
+            letter-spacing: .01em;
+            display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-            background: rgba(76, 201, 240, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(76, 201, 240, 0.2);
-            transition: all 0.3s ease;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: background .2s, box-shadow .2s, transform .1s;
         }
-        
-        .forgot-password-link:hover {
-            color: rgba(76, 201, 240, 1);
-            background: rgba(76, 201, 240, 0.15);
-            border-color: rgba(76, 201, 240, 0.4);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(76, 201, 240, 0.3);
+
+        /* Shimmer on hover */
+        .btn-submit::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 60%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+            transform: skewX(-20deg);
+            transition: left .5s ease;
+        }
+
+        .btn-submit:hover {
+            background: var(--accent-hi);
+            box-shadow: 0 4px 22px rgba(67,97,238,.38);
+        }
+
+        .btn-submit:hover::after { left: 150%; }
+        .btn-submit:active { transform: scale(.99); }
+
+        .btn-submit:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit:disabled::after { display: none; }
+
+        /* Spinner */
+        .spinner {
+            width: 13px; height: 13px;
+            border: 2px solid rgba(255,255,255,.25);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .55s linear infinite;
+            display: none;
+            flex-shrink: 0;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Arrow icon */
+        .arrow-icon { font-size: .7rem; transition: transform .2s; }
+        .btn-submit:not(:disabled):hover .arrow-icon { transform: translateX(3px); }
+
+        /* Footer */
+        .form-footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            opacity: 0;
+            animation: fadeUp .5s ease .6s forwards;
+        }
+
+        .link-muted {
+            font-size: .78rem;
+            color: var(--muted);
             text-decoration: none;
-        }
-        
-        .forgot-password-link i {
-            font-size: 0.8rem;
-            filter: drop-shadow(0 0 5px rgba(76, 201, 240, 0.6));
-        }
-        
-        /* Animación de carga del botón */
-        .sign-in-btn.loading {
-            pointer-events: none;
-        }
-        
-        .sign-in-btn.loading::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            animation: shimmer 1.5s infinite;
-        }
-        
-        @keyframes shimmer {
-            to {
-                left: 100%;
-            }
-        }
-        
-        .loading-spinner {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 0.5rem;
-        }
-        
-        .sign-in-btn.loading .loading-spinner {
-            display: inline-block;
-        }
-        
-        /* Alert personalizado */
-        .alert-custom {
-            background: rgba(249, 65, 68, 0.15);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(249, 65, 68, 0.3);
-            border-radius: 16px;
-            color: rgba(255, 255, 255, 0.95);
-            padding: 1rem;
-            margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            animation: slideInDown 0.5s ease-out;
-            position: relative;
-            z-index: 2;
-            box-shadow: 
-                0 8px 25px rgba(249, 65, 68, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
-        
-        .alert-custom i {
-            color: #f94144;
-            filter: drop-shadow(0 0 8px rgba(249, 65, 68, 0.6));
-        }
-        
-        @keyframes slideInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Animación especial de éxito mejorada */
-        .success-animation {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 50%, rgba(15, 52, 96, 0.95) 100%),
-                url('https://images.unsplash.com/photo-1581092160607-ee22621dd758?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80');
-            background-size: cover;
-            background-position: center;
-            backdrop-filter: blur(20px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            color: white;
-            flex-direction: column;
-        }
-        
-        .success-animation::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 50% 50%, rgba(67, 97, 238, 0.1) 0%, transparent 50%);
-            z-index: 1;
-        }
-        
-        .success-animation.show {
-            display: flex;
-            animation: fadeIn 0.5s ease-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        /* Sistema de arranque del motor */
-        .engine-startup {
-            position: relative;
-            text-align: center;
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 3rem 2rem;
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
-        
-        .startup-title {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            color: #4cc9f0;
-            opacity: 0;
-            animation: titleGlow 2s ease-in-out forwards;
-            text-shadow: 0 0 20px rgba(76, 201, 240, 0.5);
-        }
-        
-        @keyframes titleGlow {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); text-shadow: 0 0 30px rgba(76, 201, 240, 0.8), 0 0 60px rgba(76, 201, 240, 0.4); }
-        }
-        
-        .startup-subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 3rem;
-            color: rgba(160, 174, 192, 0.9);
-            opacity: 0;
-            animation: subtitleFade 1s ease-in-out 0.5s forwards;
-        }
-        
-        @keyframes subtitleFade {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        /* Sistema de engranajes mejorado para animación */
-        .engine-gears {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 3rem;
-            opacity: 0;
-            animation: gearsAppear 1s ease-in-out 1s forwards;
-        }
-        
-        @keyframes gearsAppear {
-            from { opacity: 0; transform: scale(0.5); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        .main-gear {
-            position: relative;
-            font-size: 4rem;
-            color: #4cc9f0;
-            animation: mainGearSpin 2s ease-in-out infinite;
-            filter: drop-shadow(0 0 20px rgba(76, 201, 240, 0.6));
-            background: radial-gradient(circle, rgba(76, 201, 240, 0.2) 0%, transparent 70%);
-            border-radius: 50%;
-            padding: 1rem;
-            backdrop-filter: blur(5px);
-        }
-        
-        .side-gear {
-            font-size: 2.5rem;
-            color: #f8961e;
-            animation: sideGearSpin 1.5s ease-in-out infinite reverse;
-            filter: drop-shadow(0 0 15px rgba(248, 150, 30, 0.6));
-            background: radial-gradient(circle, rgba(248, 150, 30, 0.15) 0%, transparent 70%);
-            border-radius: 50%;
-            padding: 0.8rem;
-            backdrop-filter: blur(5px);
-        }
-        
-        .micro-gear {
-            font-size: 1.5rem;
-            color: #f72585;
-            animation: microGearSpin 1s ease-in-out infinite;
-            filter: drop-shadow(0 0 10px rgba(247, 37, 133, 0.6));
-            background: radial-gradient(circle, rgba(247, 37, 133, 0.15) 0%, transparent 70%);
-            border-radius: 50%;
-            padding: 0.6rem;
-            backdrop-filter: blur(5px);
-        }
-        
-        @keyframes mainGearSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        @keyframes sideGearSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(-360deg); }
-        }
-        
-        @keyframes microGearSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Barra de progreso del sistema */
-        .progress-container {
-            width: 400px;
-            margin: 0 auto 2rem;
-            opacity: 0;
-            animation: progressAppear 1s ease-in-out 1.5s forwards;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
-        
-        @keyframes progressAppear {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 12px;
-            background: rgba(255, 255, 255, 0.1);
+            gap: 6px;
+            transition: color .2s;
+            padding: 4px 8px;
             border-radius: 6px;
-            overflow: hidden;
-            position: relative;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 50%, #f8961e 100%);
-            border-radius: 6px;
-            width: 0%;
-            animation: progressFill 3s ease-out 2s forwards;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(67, 97, 238, 0.5);
+
+        .link-muted:hover { color: var(--muted-hi); }
+        .link-muted i { font-size: .68rem; }
+
+        /* ═══════════════════════════════
+           ANIMATIONS
+        ═══════════════════════════════ */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
-        
-        .progress-fill::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-            animation: progressShine 1s ease-in-out infinite;
-        }
-        
-        @keyframes progressFill {
-            to { width: 100%; }
-        }
-        
-        @keyframes progressShine {
-            to { left: 100%; }
-        }
-        
-        .progress-text {
-            text-align: center;
-            margin-top: 1rem;
-            font-size: 1rem;
-            color: rgba(160, 174, 192, 0.9);
-            opacity: 0;
-            animation: progressTextShow 1s ease-in-out 2s forwards;
-        }
-        
-        @keyframes progressTextShow {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        /* Partículas flotantes */
-        .particles-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 2;
-        }
-        
-        .particle {
-            position: absolute;
-            width: 6px;
-            height: 6px;
-            background: #4cc9f0;
-            border-radius: 50%;
-            opacity: 0;
-            animation: particleFloat 4s ease-in-out infinite;
-            box-shadow: 0 0 10px rgba(76, 201, 240, 0.8);
-        }
-        
-        .particle:nth-child(1) { left: 10%; animation-delay: 2s; }
-        .particle:nth-child(2) { left: 20%; animation-delay: 2.2s; background: #f8961e; box-shadow: 0 0 10px rgba(248, 150, 30, 0.8); }
-        .particle:nth-child(3) { left: 30%; animation-delay: 2.4s; }
-        .particle:nth-child(4) { left: 40%; animation-delay: 2.6s; background: #f72585; box-shadow: 0 0 10px rgba(247, 37, 133, 0.8); }
-        .particle:nth-child(5) { left: 50%; animation-delay: 2.8s; }
-        .particle:nth-child(6) { left: 60%; animation-delay: 3s; background: #f8961e; box-shadow: 0 0 10px rgba(248, 150, 30, 0.8); }
-        .particle:nth-child(7) { left: 70%; animation-delay: 3.2s; }
-        .particle:nth-child(8) { left: 80%; animation-delay: 3.4s; background: #f72585; box-shadow: 0 0 10px rgba(247, 37, 133, 0.8); }
-        .particle:nth-child(9) { left: 90%; animation-delay: 3.6s; }
-        
-        @keyframes particleFloat {
-            0% { 
-                transform: translateY(100vh) scale(0); 
-                opacity: 0; 
-            }
-            20% { 
-                opacity: 0.8; 
-                transform: translateY(80vh) scale(1); 
-            }
-            80% { 
-                opacity: 0.8; 
-                transform: translateY(20vh) scale(1); 
-            }
-            100% { 
-                transform: translateY(-20vh) scale(0); 
-                opacity: 0; 
-            }
-        }
-        
-        /* Mensaje final */
-        .final-message {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #4cc9f0;
-            opacity: 0;
-            animation: finalMessageShow 1s ease-in-out 5s forwards;
-            text-align: center;
-            text-shadow: 0 0 20px rgba(76, 201, 240, 0.6);
-        }
-        
-        @keyframes finalMessageShow {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); text-shadow: 0 0 30px rgba(76, 201, 240, 0.8); }
-        }
-        
-        /* Sistema de estados */
-        .system-status {
-            position: absolute;
-            top: 3rem;
-            left: 3rem;
-            opacity: 0;
-            animation: statusShow 1s ease-in-out 1.8s forwards;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 
-                0 10px 30px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            z-index: 10;
-        }
-        
-        @keyframes statusShow {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 0.75rem;
-            font-size: 0.9rem;
-            color: rgba(160, 174, 192, 0.9);
-            padding: 0.5rem;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(5px);
-            transition: all 0.3s ease;
-        }
-        
-        .status-item:last-child {
-            margin-bottom: 0;
-        }
-        
-        .status-icon {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4cc9f0;
-            animation: statusPulse 1s ease-in-out infinite;
-            box-shadow: 0 0 10px rgba(76, 201, 240, 0.6);
-        }
-        
-        @keyframes statusPulse {
-            0%, 100% { 
-                opacity: 1; 
-                transform: scale(1);
-                box-shadow: 0 0 10px rgba(76, 201, 240, 0.6);
-            }
-            50% { 
-                opacity: 0.3; 
-                transform: scale(1.2);
-                box-shadow: 0 0 20px rgba(76, 201, 240, 0.8);
-            }
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .login-container {
-                flex-direction: column;
-                padding: 1rem;
-            }
-            
-            .info-panel {
+
+        /* ═══════════════════════════════
+           RESPONSIVE
+        ═══════════════════════════════ */
+        @media (max-width: 820px) {
+            html, body { overflow: auto; }
+
+            body { flex-direction: column; }
+
+            .left-panel {
                 flex: none;
-                text-align: center;
-                padding: 1rem;
-                margin-bottom: 2rem;
+                padding: 32px 28px 28px;
+                min-height: 200px;
             }
-            
-            .main-title {
-                font-size: 2.5rem;
-            }
-            
-            .subtitle {
-                font-size: 1.1rem;
-                margin-bottom: 2rem;
-            }
-            
-            .form-panel {
-                flex: none;
-            }
-            
-            .login-card {
-                padding: 2rem 1.5rem;
-                background: rgba(255, 255, 255, 0.1);
-                backdrop-filter: blur(25px);
-            }
-            
-            .pistons-container {
-                position: static;
-                justify-content: center;
-                margin-top: 1rem;
-                opacity: 0.5;
-            }
-            
-            .piston {
-                transform: scale(0.8);
+
+            .left-right-sep { display: none; }
+            .stats-row { display: none; }
+            .hero-desc { display: none; }
+
+            .right-panel {
+                width: 100%;
+                padding: 36px 28px;
             }
         }
-        
+
         @media (max-width: 480px) {
-            .main-title {
-                font-size: 2rem;
-            }
-            
-            .login-card {
-                padding: 1.5rem 1rem;
-                background: rgba(255, 255, 255, 0.12);
-                backdrop-filter: blur(30px);
-            }
-            
-            .version-badge {
-                font-size: 1rem;
-                padding: 0.4rem 1rem;
-            }
+            .left-panel { padding: 24px 20px; }
+            .right-panel { padding: 32px 20px; }
         }
     </style>
 </head>
 <body>
-    <!-- Fondo con overlay -->
-    <div class="background-overlay"></div>
-    
-    <!-- Animación de éxito mejorada -->
-    <div class="success-animation" id="successAnimation">
-        <div class="particles-container">
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-        </div>
-        
-        <div class="system-status">
-            <div class="status-item">
-                <div class="status-icon"></div>
-                <span>Verificando credenciales...</span>
-            </div>
-            <div class="status-item">
-                <div class="status-icon"></div>
-                <span>Iniciando sistemas...</span>
-            </div>
-            <div class="status-item">
-                <div class="status-icon"></div>
-                <span>Cargando módulos...</span>
-            </div>
-            <div class="status-item">
-                <div class="status-icon"></div>
-                <span>Sistema listo</span>
+
+    <!-- ══ LEFT ══════════════════════════ -->
+    <div class="left-panel">
+        <div class="grid-bg"></div>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+
+        <div class="brand">
+            <img src="{% static 'img/favicon.png' %}" alt="OPENMOTORS">
+            <div>
+                <div class="brand-name">OpenMotors</div>
+                <div class="brand-version">v2.0 · Sistema de Gestión</div>
             </div>
         </div>
-        
-        <div class="engine-startup">
-            <h1 class="startup-title">OPENMOTORS</h1>
-            <p class="startup-subtitle">Sistema iniciando...</p>
-            
-            <div class="engine-gears">
-                <i class="fas fa-cog side-gear"></i>
-                <i class="fas fa-cog main-gear"></i>
-                <i class="fas fa-cog micro-gear"></i>
-            </div>
-            
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                </div>
-                <div class="progress-text">Cargando sistema de gestión...</div>
-            </div>
-            
-            <div class="final-message">¡Bienvenido al taller digital!</div>
-        </div>
-    </div>
-    
-    <div class="login-container">
-        <!-- Panel izquierdo - Información -->
-        <div class="info-panel">
-            <div class="version-badge">v2.0</div>
-            <h1 class="main-title">
-                Centro de Control<br>
-                <span class="highlight">OPENMOTORS</span>
+
+        <div class="hero">
+            <div class="hero-eyebrow">Sistema de Gestión Automotriz</div>
+            <h1 class="hero-title">
+                Control total
+                <strong>de tu taller</strong>
             </h1>
-            <p class="subtitle">
-                El hub tecnológico más avanzado que combina <span class="bold">Innovación Digital</span> 
-                con <span class="bold">Experiencia Mecánica</span> para transformar la gestión 
-                de tu taller automotriz y optimizar cada proceso.
+            <p class="hero-desc">
+                Inventario, ventas, taller y clientes en una sola plataforma diseñada para maximizar la eficiencia operativa de tu negocio.
             </p>
-            
-            <!-- Engranajes animados -->
-            <div class="gears-container">
-                <i class="fas fa-cog gear"></i>
-                <i class="fas fa-cog gear"></i>
-                <i class="fas fa-cog gear"></i>
-            </div>
         </div>
-        
-        <!-- Panel derecho - Formulario -->
-        <div class="form-panel">
-            <div class="login-card">
-                <div class="card-decoration"></div>
-                
-                <div class="welcome-section">
-                    <h2 class="welcome-title">¡Hola!</h2>
-                    <p class="welcome-subtitle">Nos alegra verte de nuevo en el sistema</p>
-                </div>
-                
-                {% if form.errors %}
-                <div class="alert-custom">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Usuario o contraseña incorrectos. Intenta nuevamente.</span>
-                </div>
-                {% endif %}
-                
-                <form method="post" action="{% url 'usuarios:login' %}" id="loginForm">
-                    {% csrf_token %}
-                    
-                    <div class="form-group">
-                        <input type="text" id="id_username" name="username" class="form-input" placeholder="Nombre de usuario" required autocomplete="username">
-                    </div>
-                    
-                    <div class="form-group">
-                        <input type="password" id="id_password" name="password" class="form-input" placeholder="Contraseña" required autocomplete="current-password">
-                        <i class="fas fa-eye password-toggle" id="passwordToggle"></i>
-                    </div>
-                    
-                    <button type="submit" class="sign-in-btn" id="submitBtn">
-                        <div class="loading-spinner"></div>
-                        <span class="btn-text">Iniciar Sesión</span>
-                    </button>
-                    
-                    <div class="forgot-password-section">
-                        <a href="{% url 'usuarios:cambiar_password' %}" class="forgot-password-link">
-                            <i class="fas fa-key"></i>
-                            ¿Olvidaste tu contraseña?
-                        </a>
-                    </div>
-                    
-                    <input type="hidden" name="next" value="{{ next }}">
-                </form>
+
+        <div class="stats-row">
+            <div class="stat">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Módulos activos</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">24/7</div>
+                <div class="stat-label">Disponibilidad</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">v2.0</div>
+                <div class="stat-label">Versión actual</div>
             </div>
         </div>
     </div>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
+    <!-- Separator -->
+    <div class="left-right-sep"></div>
+
+    <!-- ══ RIGHT ═════════════════════════ -->
+    <div class="right-panel">
+
+        <div class="form-header">
+            <h2>Bienvenido</h2>
+            <p>Ingresa tus credenciales para continuar</p>
+        </div>
+
+        {% if form.errors %}
+        <div class="alert-error">
+            <i class="fas fa-circle-xmark"></i>
+            <span>Usuario o contraseña incorrectos. Intenta de nuevo.</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'usuarios:login' %}" id="loginForm">
+            {% csrf_token %}
+
+            <div class="field">
+                <label for="id_username">
+                    <i class="fas fa-at" style="font-size:.65rem;"></i> Usuario
+                </label>
+                <div class="input-wrap">
+                    <i class="fas fa-at input-icon"></i>
+                    <input type="text" id="id_username" name="username"
+                           placeholder="tu_usuario"
+                           required autocomplete="username" autofocus>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="id_password">
+                    <i class="fas fa-lock" style="font-size:.65rem;"></i> Contraseña
+                </label>
+                <div class="input-wrap">
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" id="id_password" name="password"
+                           placeholder="••••••••"
+                           required autocomplete="current-password">
+                    <button type="button" class="eye-btn" id="eyeBtn" tabindex="-1">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="btn-form-area">
+                <button type="submit" class="btn-submit" id="btnSubmit">
+                    <div class="spinner" id="spinner"></div>
+                    <span id="btnText">Iniciar sesión</span>
+                    <i class="fas fa-arrow-right arrow-icon" id="btnArrow"></i>
+                </button>
+            </div>
+
+            <input type="hidden" name="next" value="{{ next }}">
+        </form>
+
+        <div class="form-footer">
+            <a href="{% url 'usuarios:cambiar_password' %}" class="link-muted">
+                <i class="fas fa-key"></i> Cambiar contraseña
+            </a>
+        </div>
+
+    </div>
+
     <script>
-        // Toggle de contraseña
-        document.getElementById('passwordToggle').addEventListener('click', function() {
-            const passwordInput = document.getElementById('id_password');
-            const icon = this;
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
+        // ── Eye toggle ────────────────────────
+        document.getElementById('eyeBtn').addEventListener('click', function () {
+            const inp  = document.getElementById('id_password');
+            const icon = document.getElementById('eyeIcon');
+            const show = inp.type === 'password';
+            inp.type       = show ? 'text' : 'password';
+            icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
         });
-        
-        // Animación del formulario de login mejorada
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault(); // Prevenir envío para mostrar animación
-            
-            const submitBtn = document.getElementById('submitBtn');
-            const btnText = submitBtn.querySelector('.btn-text');
-            const successAnimation = document.getElementById('successAnimation');
-            
-            // Activar estado de carga
-            submitBtn.classList.add('loading');
-            submitBtn.style.background = 'linear-gradient(135deg, rgba(76, 201, 240, 0.9) 0%, rgba(67, 97, 238, 0.9) 100%)';
-            btnText.textContent = 'Verificando credenciales...';
-            submitBtn.disabled = true;
-            
-            // Simular verificación (en producción esto se envía al servidor)
-            setTimeout(() => {
-                btnText.textContent = 'Arrancando motor...';
-                submitBtn.style.background = 'linear-gradient(135deg, rgba(248, 150, 30, 0.9) 0%, rgba(247, 37, 133, 0.9) 100%)';
-                
-                setTimeout(() => {
-                    // Mostrar animación de éxito mejorada
-                    successAnimation.classList.add('show');
-                    
-                    // Secuencia de mensajes de estado
-                    const statusItems = document.querySelectorAll('.status-item span');
-                    
-                    setTimeout(() => {
-                        statusItems[0].textContent = '✓ Credenciales verificadas';
-                        statusItems[0].style.color = '#4cc9f0';
-                    }, 500);
-                    
-                    setTimeout(() => {
-                        statusItems[1].textContent = '✓ Motor precalentado';
-                        statusItems[1].style.color = '#4cc9f0';
-                    }, 1500);
-                    
-                    setTimeout(() => {
-                        statusItems[2].textContent = '✓ Pistones sincronizados';
-                        statusItems[2].style.color = '#4cc9f0';
-                    }, 2500);
-                    
-                    setTimeout(() => {
-                        statusItems[3].textContent = '✓ Motor funcionando';
-                        statusItems[3].style.color = '#4cc9f0';
-                    }, 4000);
-                    
-                    // Después de toda la secuencia, enviar el formulario real
-                    setTimeout(() => {
-                        // Aquí enviarías el formulario real al servidor
-                        this.submit(); // Envío real del formulario
-                    }, 6000);
-                    
-                }, 1000);
-                
-            }, 1500);
+
+        // ── Filled state on inputs ────────────
+        document.querySelectorAll('.field input').forEach(input => {
+            const update = () => input.classList.toggle('filled', input.value.length > 0);
+            input.addEventListener('input', update);
+            update();
         });
-        
-        // Navegación por teclado
-        document.addEventListener('keydown', function(e) {
+
+        // ── Enter: user → password ────────────
+        document.getElementById('id_username').addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
-                const focusedElement = document.activeElement;
-                if (focusedElement.id === 'id_username') {
-                    e.preventDefault();
-                    document.getElementById('id_password').focus();
-                } else if (focusedElement.id === 'id_password') {
-                    e.preventDefault();
-                    document.getElementById('submitBtn').click();
-                }
-            }
-        });
-        
-        // Efecto de focus en inputs mejorado
-        document.querySelectorAll('.form-input').forEach(input => {
-            input.addEventListener('focus', function() {
-                this.parentElement.style.transform = 'scale(1.02)';
-                this.style.background = 'rgba(255, 255, 255, 0.15)';
-                this.style.borderColor = 'rgba(67, 97, 238, 0.8)';
-            });
-            
-            input.addEventListener('blur', function() {
-                this.parentElement.style.transform = 'scale(1)';
-                this.style.background = 'rgba(255, 255, 255, 0.08)';
-                this.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-            });
-            
-            // Efecto de typing
-            input.addEventListener('input', function() {
-                if (this.value.length > 0) {
-                    this.style.background = 'rgba(255, 255, 255, 0.12)';
-                    this.style.borderColor = 'rgba(76, 201, 240, 0.5)';
-                } else {
-                    this.style.background = 'rgba(255, 255, 255, 0.08)';
-                    this.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                }
-            });
-        });
-        
-        // Animación de los pistones al hacer hover
-        document.querySelectorAll('.piston').forEach(piston => {
-            piston.addEventListener('mouseenter', function() {
-                const pistonHead = this.querySelector('.piston-head');
-                pistonHead.style.animationDuration = '0.3s';
-            });
-            
-            piston.addEventListener('mouseleave', function() {
-                const pistonHead = this.querySelector('.piston-head');
-                pistonHead.style.animationDuration = '2s';
-            });
-        });
-        
-        // Prevenir múltiples envíos
-        let formSubmitted = false;
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            if (formSubmitted) {
                 e.preventDefault();
-                return false;
+                document.getElementById('id_password').focus();
             }
-            formSubmitted = true;
+        });
+
+        // ── Submit ────────────────────────────
+        document.getElementById('loginForm').addEventListener('submit', function () {
+            const btn    = document.getElementById('btnSubmit');
+            const spin   = document.getElementById('spinner');
+            const text   = document.getElementById('btnText');
+            const arrow  = document.getElementById('btnArrow');
+
+            btn.disabled        = true;
+            spin.style.display  = 'block';
+            text.textContent    = 'Verificando...';
+            arrow.style.display = 'none';
+
+            // Fade out suave al salir
+            document.body.style.transition = 'opacity .4s ease';
+            document.body.style.opacity    = '0';
         });
     </script>
+
 </body>
 </html>

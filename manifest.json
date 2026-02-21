@@ -1,0 +1,67 @@
+{
+    "name": "OPENMOTORS",
+    "short_name": "OpenMotors",
+    "description": "Sistema de Gestión Automotriz — Inventario, Ventas, Taller y Clientes",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#080809",
+    "theme_color": "#4361ee",
+    "lang": "es",
+    "categories": ["business", "productivity"],
+    "icons": [
+        {
+            "src": "/static/img/favicon.png",
+            "sizes": "48x48",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/img/icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/img/icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/img/icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/img/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/img/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/static/img/screenshot-desktop.png",
+            "sizes": "1280x800",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Dashboard OPENMOTORS"
+        },
+        {
+            "src": "/static/img/screenshot-mobile.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Dashboard OPENMOTORS móvil"
+        }
+    ]
+}

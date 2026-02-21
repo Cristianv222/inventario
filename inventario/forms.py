@@ -9,7 +9,8 @@ class ProductoForm(forms.ModelForm):
         fields = [
             'categoria', 'marca', 'codigo_unico', 'nombre', 'descripcion',
             'precio_compra', 'precio_venta', 'stock_actual', 'stock_minimo',
-            'incluye_iva', 'activo', 'ubicacion_almacen'
+            'incluye_iva', 'activo', 'ubicacion_almacen', 
+            'imagen', 'imagen_2', 'imagen_3'
         ]
         widgets = {
             'categoria': forms.Select(attrs={'class': 'form-select'}),
@@ -24,6 +25,9 @@ class ProductoForm(forms.ModelForm):
             'incluye_iva': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'ubicacion_almacen': forms.TextInput(attrs={'class': 'form-control'}),
+            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'imagen_2': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'imagen_3': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
     
     def clean_codigo_unico(self):

@@ -151,8 +151,8 @@ MIDDLEWARE = [
     'core.middleware.role_middleware.RoleMiddleware',
     
     # ✅ FASE 2 ACTIVADO - Middlewares de sucursales
-    'core.middleware.tenant_middleware.TenantFromUserMiddleware',
-    'core.middleware.schema_middleware.AutoSchemaMiddleware',
+    #'core.middleware.tenant_middleware.TenantFromUserMiddleware',
+    #'core.middleware.schema_middleware.AutoSchemaMiddleware',
 ]
 
 # Agregar WhiteNoise para archivos estáticos en producción
@@ -243,6 +243,7 @@ if not DEBUG:
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+SITE_URL = os.environ.get('PUBLIC_BASE_URL', 'http://localhost:8001')
 
 # ==================== DEFAULT PRIMARY KEY ====================
 
@@ -285,3 +286,5 @@ if not DEBUG:
     CSRF_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
     SECURE_REFERRER_POLICY = 'same-origin'
+
+print("SETTINGS RELOADED! DEBUG IS", DEBUG, flush=True)

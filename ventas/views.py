@@ -2,28 +2,33 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.db import transaction, models
-from django.db.models import Q  
+from django.db.models import Q, Sum, Count, Avg
 from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.paginator import Paginator
+from django.conf import settings
+from django.db.models.functions import TruncDate
 import json
+import os
+import base64
+import imghdr
+import logging
 import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from .services.ticket_service import TicketThermalService
-from django.conf import settings
 from .models import Venta, DetalleVenta, CierreCaja
 from .forms import VentaForm, DetalleVentaFormSet, CierreCajaForm, AgregarProductoForm
 # from .services.factura_service import FacturaService  # ← COMENTADO PARA EVITAR ERROR AL INICIAR
-from clientes.models import Cliente
+from clientes.models import Cliente, PedidoOnline, DetallePedidoOnline
 from inventario.models import Producto
+from inventario.views import requiere_token_api
 from taller.models import TipoServicio, OrdenTrabajo, Tecnico
-from django.db.models import Sum, Count, Avg
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.db.models.functions import TruncDate
 
+logger = logging.getLogger(__name__)
 # ========== FUNCIONES AUXILIARES ==========
 
 def obtener_venta_por_id_o_numero(identificador):
@@ -639,7 +644,8 @@ def api_buscar_producto(request):
                     'precio': float(producto.precio_venta),
                     'stock': float(producto.stock_actual),
                     'categoria': producto.categoria.nombre if producto.categoria else None,
-                    'activo': producto.activo
+                    'activo': producto.activo,
+                    'incluye_iva': producto.incluye_iva  # ✅ NUEVO
                 }
             })
         else:
@@ -675,7 +681,8 @@ def api_productos(request):
             'stock': float(producto.stock_actual),
             'categoria': producto.categoria.nombre if producto.categoria else None,
             'activo': producto.activo,
-            'descripcion': producto.descripcion or ''
+            'descripcion': producto.descripcion or '',
+            'incluye_iva': producto.incluye_iva  # ✅ NUEVO
         })
     
     return JsonResponse({
@@ -1921,3 +1928,454 @@ def api_productos_populares(request):
             'message': f'Error: {str(e)}',
             'productos': []
         })
+@login_required
+@require_POST
+def marcar_pago_verificado(request, pedido_id):
+    pedido = get_object_or_404(PedidoOnline, pk=pedido_id)
+    pedido.estado_pago = 'PAGADO'
+    pedido.save()
+    messages.success(request, f'Pago del pedido #{pedido.numero_orden} verificado.')
+    return redirect('ventas:detalle_pedido_online', pedido_id=pedido.id)
+@csrf_exempt
+@requiere_token_api
+def api_crear_pedido_online(request):
+    """
+    Crea un pedido online desde la tienda PHP.
+
+    POST /ventas/api/publica/pedidos/crear/
+    Authorization: Bearer <token>
+
+    Body JSON:
+    {
+        "nombres": "Juan",
+        "apellidos": "Pérez",
+        "cedula": "1234567890",
+        "telefono": "0999999999",
+        "email": "juan@email.com",
+        "tipo_entrega": "RETIRO" | "SERVIENTREGA",
+        "direccion_envio": "...",
+        "ciudad_envio": "...",
+        "provincia_envio": "...",
+        "referencia_envio": "...",
+        "metodo_pago": "PAYPHONE" | "TRANSFERENCIA" | "CONTRA_ENTREGA",
+        "numero_comprobante": "TRF-2025-001",
+        "comprobante_base64": "data:image/jpeg;base64,/9j/...",
+        "banco_origen": "Banco Pichincha",
+        "items": [
+            { "producto_id": 1, "cantidad": 2, "precio_unitario": 4.20 }
+        ],
+        "costo_envio": 5.00,
+        "descuento": 0,
+        "observaciones": "..."
+    }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'success': False, 'error': 'JSON inválido'}, status=400)
+
+    # ── Validación de campos obligatorios ─────────────────────────
+    required = ['nombres', 'apellidos', 'cedula', 'telefono', 'tipo_entrega', 'metodo_pago', 'items']
+    for field in required:
+        if not data.get(field):
+            return JsonResponse({'success': False, 'error': f'Campo requerido: {field}'}, status=400)
+
+    if data['tipo_entrega'] == 'SERVIENTREGA' and not data.get('direccion_envio'):
+        return JsonResponse({
+            'success': False,
+            'error': 'Dirección de envío requerida para Servientrega'
+        }, status=400)
+
+    # ── Validación específica para TRANSFERENCIA ───────────────────
+    if data['metodo_pago'] == 'TRANSFERENCIA':
+        if not data.get('numero_comprobante'):
+            return JsonResponse({
+                'success': False,
+                'error': 'El número de comprobante es requerido para pagos por transferencia'
+            }, status=400)
+
+    if not data.get('items'):
+        return JsonResponse({'success': False, 'error': 'El pedido no tiene productos'}, status=400)
+
+    # ── Procesar imagen base64 del comprobante ─────────────────────
+    comprobante_base64_limpio = ''
+    comprobante_content_type = ''
+
+    if data.get('comprobante_base64'):
+        raw = data['comprobante_base64'].strip()
+        try:
+            if ',' in raw and raw.startswith('data:'):
+                # Formato completo: "data:image/jpeg;base64,/9j/..."
+                header, encoded = raw.split(',', 1)
+                content_type = header.split(':')[1].split(';')[0].strip()
+            else:
+                # Base64 puro sin header
+                encoded = raw
+                content_type = ''
+
+            # Validar tipo de imagen permitido
+            allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+            if content_type and content_type not in allowed_types:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Tipo de imagen no permitido: {content_type}. Use JPEG, PNG, WEBP o GIF'
+                }, status=400)
+
+            # Decodificar para validar
+            decoded = base64.b64decode(encoded)
+
+            # Validar tamaño máximo 5MB
+            if len(decoded) > 5 * 1024 * 1024:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'La imagen del comprobante no puede superar 5MB'
+                }, status=400)
+
+            # Detectar tipo real
+            detected = imghdr.what(None, decoded)
+            if not detected:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'El archivo enviado no es una imagen válida'
+                }, status=400)
+
+            if not content_type:
+                content_type = f'image/{detected}'
+
+            comprobante_base64_limpio = encoded
+            comprobante_content_type = content_type
+
+        except Exception:
+            return JsonResponse({
+                'success': False,
+                'error': 'comprobante_base64 inválido. Use formato: data:image/jpeg;base64,<datos>'
+            }, status=400)
+
+    # ── Verificar stock ───────────────────────────────────────────
+    items_procesados = []
+    errores_stock = []
+
+    for item in data['items']:
+        try:
+            producto = Producto.objects.get(id=item['producto_id'], activo=True)
+            cantidad = int(item['cantidad'])
+            if producto.stock_actual < cantidad:
+                errores_stock.append(
+                    f"{producto.nombre}: disponible {int(producto.stock_actual)}, solicitado {cantidad}"
+                )
+            else:
+                items_procesados.append({
+                    'producto': producto,
+                    'cantidad': cantidad,
+                    'precio_unitario': Decimal(str(item.get('precio_unitario', producto.precio_venta))),
+                })
+        except Producto.DoesNotExist:
+            errores_stock.append(f"Producto ID {item.get('producto_id')} no encontrado")
+
+    if errores_stock:
+        return JsonResponse({
+            'success': False,
+            'error': 'Stock insuficiente o producto no encontrado',
+            'detalle': errores_stock
+        }, status=400)
+
+    # ── Calcular totales ──────────────────────────────────────────
+    subtotal = sum(i['precio_unitario'] * i['cantidad'] for i in items_procesados)
+    costo_envio = Decimal(str(data.get('costo_envio', 0)))
+    descuento = Decimal(str(data.get('descuento', 0)))
+    total = subtotal + costo_envio - descuento
+
+    # ── Crear pedido en transacción ───────────────────────────────
+    try:
+        with transaction.atomic():
+            pedido = PedidoOnline.objects.create(
+                nombres_comprador=data['nombres'],
+                apellidos_comprador=data['apellidos'],
+                cedula_comprador=data['cedula'],
+                telefono_comprador=data['telefono'],
+                email_comprador=data.get('email', ''),
+                tipo_entrega=data['tipo_entrega'],
+                direccion_envio=data.get('direccion_envio', ''),
+                ciudad_envio=data.get('ciudad_envio', ''),
+                provincia_envio=data.get('provincia_envio', ''),
+                referencia_envio=data.get('referencia_envio', ''),
+                metodo_pago=data['metodo_pago'],
+                # ── Datos de transferencia ────────────────────────
+                numero_comprobante=data.get('numero_comprobante', ''),
+                banco_origen=data.get('banco_origen', ''),
+                comprobante_base64=comprobante_base64_limpio,
+                comprobante_content_type=comprobante_content_type,
+                # ─────────────────────────────────────────────────
+                subtotal=subtotal,
+                costo_envio=costo_envio,
+                descuento=descuento,
+                total=total,
+                observaciones=data.get('observaciones', ''),
+            )
+
+            for item in items_procesados:
+                DetallePedidoOnline.objects.create(
+                    pedido=pedido,
+                    producto=item['producto'],
+                    nombre_producto=item['producto'].nombre,
+                    codigo_producto=item['producto'].codigo_unico,
+                    cantidad=item['cantidad'],
+                    precio_unitario=item['precio_unitario'],
+                    subtotal=item['precio_unitario'] * item['cantidad'],
+                    total=item['precio_unitario'] * item['cantidad'],
+                )
+                item['producto'].stock_actual -= item['cantidad']
+                item['producto'].save()
+
+        numero_tienda = os.environ.get('WHATSAPP_TIENDA', '593999999999')
+
+        return JsonResponse({
+            'success': True,
+            'numero_orden': pedido.numero_orden,
+            'total': float(pedido.total),
+            'estado': pedido.estado,
+            'whatsapp_url': pedido.get_whatsapp_url(numero_tienda),
+            'mensaje': f'Pedido #{pedido.numero_orden} creado correctamente',
+        }, status=201)
+
+    except Exception as e:
+        logger.error(f"Error creando pedido online: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Error interno: {str(e)}'}, status=500)
+
+@requiere_token_api
+def api_estado_pedido(request, numero_orden):
+    """
+    Consulta el estado de un pedido.
+    GET /ventas/api/publica/pedidos/<numero_orden>/estado/
+    """
+    try:
+        pedido = PedidoOnline.objects.get(numero_orden=numero_orden)
+        return JsonResponse({
+            'success': True,
+            'numero_orden': pedido.numero_orden,
+            'estado': pedido.estado,
+            'estado_display': pedido.get_estado_display(),
+            'estado_pago': pedido.estado_pago,
+            'numero_guia': pedido.numero_guia or '',
+            'fecha_pedido': pedido.fecha_pedido.strftime('%d/%m/%Y %H:%M'),
+        })
+    except PedidoOnline.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Pedido no encontrado'}, status=404)
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  PANEL ADMIN — gestión de pedidos online
+# ──────────────────────────────────────────────────────────────────────
+
+@login_required
+def lista_pedidos_online(request):
+    """Panel con todos los pedidos online"""
+    estado = request.GET.get('estado', '')
+    metodo_pago = request.GET.get('metodo_pago', '')
+    busqueda = request.GET.get('q', '').strip()
+
+    pedidos = PedidoOnline.objects.all().prefetch_related('detalles')
+
+    if estado:
+        pedidos = pedidos.filter(estado=estado)
+    if metodo_pago:
+        pedidos = pedidos.filter(metodo_pago=metodo_pago)
+    if busqueda:
+        from django.db.models import Q
+        pedidos = pedidos.filter(
+            Q(numero_orden__icontains=busqueda) |
+            Q(nombres_comprador__icontains=busqueda) |
+            Q(apellidos_comprador__icontains=busqueda) |
+            Q(cedula_comprador__icontains=busqueda) |
+            Q(telefono_comprador__icontains=busqueda)
+        )
+
+    pedidos = pedidos.order_by('-fecha_pedido')
+
+    # Estadísticas rápidas
+    from django.db.models import Sum, Count
+    stats = {
+        'pendientes': PedidoOnline.objects.filter(estado='PENDIENTE').count(),
+        'confirmados': PedidoOnline.objects.filter(estado='CONFIRMADO').count(),
+        'despachados': PedidoOnline.objects.filter(estado='DESPACHADO').count(),
+        'entregados_hoy': PedidoOnline.objects.filter(
+            estado='ENTREGADO',
+            fecha_entrega__date=timezone.now().date()
+        ).count(),
+        'ingresos_hoy': PedidoOnline.objects.filter(
+            estado__in=['CONFIRMADO', 'PREPARANDO', 'DESPACHADO', 'ENTREGADO'],
+            fecha_pedido__date=timezone.now().date()
+        ).aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
+    }
+
+    paginator = Paginator(pedidos, 20)
+    page = request.GET.get('page', 1)
+    pedidos_paginados = paginator.get_page(page)
+
+    return render(request, 'ventas/pedidos_online/lista.html', {
+        'active_page': 'ventas',
+        'active_sub': 'pedidos_online',
+        'pedidos': pedidos_paginados,
+        'stats': stats,
+        'estado_filtro': estado,
+        'metodo_pago_filtro': metodo_pago,
+        'busqueda': busqueda,
+        'estados': PedidoOnline.ESTADO_CHOICES,
+        'metodos_pago': PedidoOnline.METODO_PAGO_CHOICES,
+    })
+
+
+@login_required
+def detalle_pedido_online(request, pedido_id):
+    """Detalle de un pedido online"""
+    pedido = get_object_or_404(PedidoOnline, pk=pedido_id)
+    detalles = pedido.detalles.select_related('producto')
+
+    # Construir URL de WhatsApp apuntando al número del CLIENTE
+    whatsapp_url = None
+    if pedido.telefono_comprador:
+        import urllib.parse
+
+        # Limpiar el número: dejar solo dígitos
+        telefono = ''.join(filter(str.isdigit, pedido.telefono_comprador))
+
+        # Convertir a formato internacional Ecuador
+        # 0991234567 (10 dígitos con 0) → 593991234567
+        if telefono.startswith('0') and len(telefono) == 10:
+            telefono = '593' + telefono[1:]
+        # 991234567 (9 dígitos sin 0) → 593991234567
+        elif len(telefono) == 9:
+            telefono = '593' + telefono
+        # Si ya empieza con 593, dejarlo igual
+
+        mensaje = (
+            f"Hola {pedido.nombres_comprador}, le contactamos desde *Vpmotos* "
+            f"en relación a su pedido *#{pedido.numero_orden}* "
+            f"por un total de *${pedido.total:.2f}*. ¿En qué le podemos ayudar?"
+        )
+        whatsapp_url = f"https://wa.me/{telefono}?text={urllib.parse.quote(mensaje)}"
+
+    return render(request, 'ventas/pedidos_online/detalle.html', {
+        'active_page': 'ventas',
+        'pedido': pedido,
+        'detalles': detalles,
+        'whatsapp_url': whatsapp_url,
+    })
+
+
+@login_required
+@require_POST
+def confirmar_pedido_online(request, pedido_id):
+    pedido = get_object_or_404(PedidoOnline, pk=pedido_id)
+    if pedido.estado == 'PENDIENTE':
+        pedido.confirmar()
+        messages.success(request, f'Pedido #{pedido.numero_orden} confirmado.')
+    else:
+        messages.error(request, 'El pedido no está en estado pendiente.')
+    return redirect('ventas:detalle_pedido_online', pedido_id=pedido.id)
+
+
+@login_required
+@require_POST
+def despachar_pedido_online(request, pedido_id):
+    pedido = get_object_or_404(PedidoOnline, pk=pedido_id)
+    numero_guia = request.POST.get('numero_guia', '')
+    if pedido.estado in ('CONFIRMADO', 'PREPARANDO'):
+        pedido.despachar(numero_guia=numero_guia or None)
+        messages.success(request, f'Pedido #{pedido.numero_orden} despachado.')
+    else:
+        messages.error(request, 'El pedido no está listo para despachar.')
+    return redirect('ventas:detalle_pedido_online', pedido_id=pedido.id)
+
+
+@login_required
+@require_POST
+def entregar_pedido_online(request, pedido_id):
+    pedido = get_object_or_404(PedidoOnline, pk=pedido_id)
+    if pedido.estado == 'DESPACHADO':
+        pedido.entregar()
+        messages.success(request, f'Pedido #{pedido.numero_orden} marcado como entregado.')
+    else:
+        messages.error(request, 'El pedido no está despachado.')
+    return redirect('ventas:detalle_pedido_online', pedido_id=pedido.id)
+
+
+@login_required
+@require_POST
+def cancelar_pedido_online(request, pedido_id):
+    pedido = get_object_or_404(PedidoOnline, pk=pedido_id)
+    if pedido.cancelar():
+        messages.success(request, f'Pedido #{pedido.numero_orden} cancelado. Stock revertido.')
+    else:
+        messages.error(request, 'No se puede cancelar este pedido.')
+    return redirect('ventas:detalle_pedido_online', pedido_id=pedido.id)
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def procesar_venta_desde_pedido(request, pedido_id):
+    """
+    Convierte un pedido online en una Venta real del POS.
+    Se usa cuando el cliente paga en tienda (RETIRO) o se confirma el pago.
+    """
+    pedido = get_object_or_404(PedidoOnline, pk=pedido_id)
+
+    if pedido.venta:
+        messages.warning(request, 'Este pedido ya tiene una venta asociada.')
+        return redirect('ventas:detalle_pedido_online', pedido_id=pedido.id)
+
+    if pedido.estado == 'CANCELADO':
+        messages.error(request, 'No se puede procesar un pedido cancelado.')
+        return redirect('ventas:detalle_pedido_online', pedido_id=pedido.id)
+
+    # Obtener o crear cliente
+    cliente = pedido.cliente or Cliente.get_consumidor_final()
+
+    # Mapear método de pago al formato del POS
+    tipo_pago_map = {
+        'PAYPHONE':       'TARJETA',
+        'TRANSFERENCIA':  'TRANSFERENCIA',
+        'CONTRA_ENTREGA': 'EFECTIVO',
+    }
+    tipo_pago = tipo_pago_map.get(pedido.metodo_pago, 'EFECTIVO')
+
+    # Crear venta
+    venta = Venta.objects.create(
+        cliente=cliente,
+        usuario=request.user,
+        subtotal=pedido.subtotal,
+        iva=Decimal('0.00'),
+        descuento=pedido.descuento,
+        total=pedido.total,
+        tipo_pago=tipo_pago,
+        observaciones=f'Pedido online #{pedido.numero_orden}',
+    )
+
+    # Crear detalles de venta (el stock ya fue descontado al crear el pedido)
+    for detalle in pedido.detalles.all():
+        DetalleVenta.objects.create(
+            venta=venta,
+            producto=detalle.producto,
+            cantidad=detalle.cantidad,
+            precio_unitario=detalle.precio_unitario,
+            subtotal=detalle.subtotal,
+            iva_porcentaje=Decimal('0.00'),
+            iva=Decimal('0.00'),
+            descuento=detalle.descuento,
+            total=detalle.total,
+        )
+
+    # Vincular pedido con venta
+    pedido.venta = venta
+    pedido.estado_pago = 'PAGADO'
+    if pedido.estado not in ('DESPACHADO', 'ENTREGADO'):
+        pedido.estado = 'CONFIRMADO'
+        pedido.fecha_confirmacion = timezone.now()
+    pedido.save()
+
+    messages.success(request, f'Venta {venta.numero_factura} creada desde pedido #{pedido.numero_orden}.')
+    return redirect('ventas:detalle_venta', venta_id=venta.id)

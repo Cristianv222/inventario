@@ -1,0 +1,496 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb_page %}
+<li class="breadcrumb-item">
+    <a href="{% url 'core:sucursales_lista' %}">Sucursales</a>
+</li>
+<li class="breadcrumb-item active">{{ sucursal.nombre_corto }}</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <a href="{% url 'core:sucursales_lista' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+                <h1 class="mb-0">
+                    <i class="fas fa-building text-primary me-2"></i>{{ sucursal.nombre }}
+                </h1>
+            </div>
+            {% if can_change %}
+            <button class="btn btn-primary" onclick="editarSucursal()">
+                <i class="fas fa-edit me-1"></i> Editar
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Badges de estado -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            {% if sucursal.activa %}
+            <span class="badge bg-success fs-6">
+                <i class="fas fa-check me-1"></i>Activa
+            </span>
+            {% else %}
+            <span class="badge bg-danger fs-6">
+                <i class="fas fa-times me-1"></i>Inactiva
+            </span>
+            {% endif %}
+            {% if sucursal.es_principal %}
+            <span class="badge bg-info fs-6">
+                <i class="fas fa-star me-1"></i>Sucursal Matriz
+            </span>
+            {% endif %}
+            <span class="badge bg-secondary fs-6">
+                <i class="fas fa-users me-1"></i>{{ sucursal.get_usuarios_count }} usuarios activos
+            </span>
+            <code class="bg-light px-2 py-1 rounded">{{ sucursal.codigo }}</code>
+        </div>
+    </div>
+</div>
+
+<!-- Cards de información -->
+<div class="row mb-4">
+
+    <!-- Información básica -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-id-card text-primary me-2"></i> Información Básica
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3" width="40%">Código</td>
+                            <td><code class="bg-light px-2 py-1 rounded">{{ sucursal.codigo }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Schema DB</td>
+                            <td><code class="text-primary">{{ sucursal.schema_name }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Nombre Corto</td>
+                            <td>{{ sucursal.nombre_corto }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Fecha Apertura</td>
+                            <td>{{ sucursal.fecha_apertura|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% if sucursal.fecha_cierre %}
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Fecha Cierre</td>
+                            <td>{{ sucursal.fecha_cierre|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if sucursal.prefijo_facturas %}
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Prefijo Facturas</td>
+                            <td><code>{{ sucursal.prefijo_facturas }}</code></td>
+                        </tr>
+                        {% endif %}
+                        {% if sucursal.prefijo_ordenes %}
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Prefijo Órdenes</td>
+                            <td><code>{{ sucursal.prefijo_ordenes }}</code></td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contacto y ubicación -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-map-marker-alt text-success me-2"></i> Contacto y Ubicación
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3" width="40%">Dirección</td>
+                            <td>{{ sucursal.direccion }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Ciudad</td>
+                            <td>{{ sucursal.ciudad }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Provincia</td>
+                            <td>{{ sucursal.provincia }}</td>
+                        </tr>
+                        {% if sucursal.telefono %}
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Teléfono</td>
+                            <td><i class="fas fa-phone text-muted me-1"></i>{{ sucursal.telefono }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if sucursal.celular %}
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Celular</td>
+                            <td><i class="fas fa-mobile-alt text-muted me-1"></i>{{ sucursal.celular }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if sucursal.email %}
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Email</td>
+                            <td>
+                                <a href="mailto:{{ sucursal.email }}" class="text-decoration-none">
+                                    <i class="fas fa-envelope text-muted me-1"></i>{{ sucursal.email }}
+                                </a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Datos fiscales -->
+    {% if sucursal.ruc or sucursal.nombre_comercial %}
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-invoice text-warning me-2"></i> Datos Fiscales
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% if sucursal.ruc %}
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3" width="40%">RUC</td>
+                            <td><code class="bg-light px-2 py-1 rounded">{{ sucursal.ruc }}</code></td>
+                        </tr>
+                        {% endif %}
+                        {% if sucursal.nombre_comercial %}
+                        <tr>
+                            <td class="text-muted fw-semibold ps-3">Nombre Comercial</td>
+                            <td>{{ sucursal.nombre_comercial }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Observaciones -->
+    {% if sucursal.observaciones %}
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-sticky-note text-secondary me-2"></i> Observaciones
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0 text-muted">{{ sucursal.observaciones }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Dominios -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-globe text-info me-2"></i> Dominios / Subdominios
+            </h5>
+            {% if can_change %}
+            <button class="btn btn-sm btn-outline-primary" onclick="abrirModalDominio()">
+                <i class="fas fa-plus me-1"></i> Agregar Dominio
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Dominio</th>
+                        <th width="15%" class="text-center">Tipo</th>
+                        {% if can_change %}<th width="15%" class="text-center">Acciones</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody id="tbody-dominios">
+                    {% for d in dominios %}
+                    <tr id="dominio-{{ d.pk }}">
+                        <td>
+                            <code class="bg-light px-2 py-1 rounded">{{ d.domain }}</code>
+                        </td>
+                        <td class="text-center">
+                            {% if d.is_primary %}
+                            <span class="badge bg-info text-white">
+                                <i class="fas fa-star me-1"></i>Primario
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Secundario</span>
+                            {% endif %}
+                        </td>
+                        {% if can_change %}
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                {% if not d.is_primary %}
+                                <button class="btn btn-outline-info btn-marcar-primario"
+                                        data-pk="{{ d.pk }}"
+                                        data-domain="{{ d.domain }}"
+                                        title="Marcar como primario" data-bs-toggle="tooltip">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-eliminar-dominio"
+                                        data-pk="{{ d.pk }}"
+                                        data-domain="{{ d.domain }}"
+                                        title="Eliminar" data-bs-toggle="tooltip">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% else %}
+                                <span class="text-muted small">—</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center py-4 text-muted">
+                            <i class="fas fa-globe fa-2x mb-2 d-block opacity-25"></i>
+                            No hay dominios configurados
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: AGREGAR DOMINIO
+═══════════════════════════════════════════ -->
+<div class="modal fade" id="modalDominio" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-globe me-2"></i> Nuevo Dominio
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Dominio <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control font-monospace" id="dom-domain"
+                           placeholder="cayambe.vpmotos.com">
+                    <div class="invalid-feedback" id="err-dom-domain"></div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="dom-is_primary">
+                    <label class="form-check-label fw-semibold" for="dom-is_primary">
+                        Dominio primario
+                    </label>
+                </div>
+                <div class="alert alert-danger d-none mt-3" id="dom-error-general"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" id="btnGuardarDominio" onclick="guardarDominio()">
+                    <i class="fas fa-save me-1"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: CONFIRMAR ELIMINAR DOMINIO
+═══════════════════════════════════════════ -->
+<div class="modal fade" id="modalEliminarDominio" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-danger me-2"></i> Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas eliminar el dominio <strong id="dom-nombre-eliminar"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button class="btn btn-danger" id="btnConfirmarEliminarDominio">
+                    <i class="fas fa-trash me-1"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CSRF         = '{{ csrf_token }}';
+const SUCURSAL_PK  = {{ sucursal.pk }};
+const URL_DOMINIOS = "{% url 'core:dominios_api' sucursal.pk %}";
+const URL_LISTA    = "{% url 'core:sucursales_lista' %}";
+let dominioPkEliminar = null;
+
+// ── Tooltips ────────────────────────────────
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    new bootstrap.Tooltip(el);
+});
+
+// ── Toast helper ────────────────────────────
+function showToast(msg, tipo = 'success') {
+    if (typeof window.mostrarToast === 'function') {
+        window.mostrarToast(msg, tipo);
+        return;
+    }
+    const div = document.createElement('div');
+    div.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} position-fixed top-0 end-0 m-3`;
+    div.style.zIndex = 9999;
+    div.textContent = msg;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3500);
+}
+
+// ── Editar: volver a lista y abrir modal ─────
+function editarSucursal() {
+    window.location.href = `${URL_LISTA}?editar={{ sucursal.pk }}`;
+}
+
+// ── Dominio: abrir modal ─────────────────────
+function abrirModalDominio() {
+    document.getElementById('dom-domain').value = '';
+    document.getElementById('dom-is_primary').checked = false;
+    document.getElementById('dom-domain').classList.remove('is-invalid');
+    document.getElementById('err-dom-domain').textContent = '';
+    document.getElementById('dom-error-general').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('modalDominio')).show();
+}
+
+// ── Dominio: guardar ─────────────────────────
+async function guardarDominio() {
+    const btn    = document.getElementById('btnGuardarDominio');
+    const domain = document.getElementById('dom-domain').value.trim();
+    const is_primary = document.getElementById('dom-is_primary').checked;
+
+    document.getElementById('dom-domain').classList.remove('is-invalid');
+    document.getElementById('err-dom-domain').textContent = '';
+    document.getElementById('dom-error-general').classList.add('d-none');
+
+    if (!domain) {
+        document.getElementById('dom-domain').classList.add('is-invalid');
+        document.getElementById('err-dom-domain').textContent = 'El dominio es requerido';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
+
+    try {
+        const r = await fetch(URL_DOMINIOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ domain, is_primary }),
+        });
+        const d = await r.json();
+
+        if (d.success) {
+            bootstrap.Modal.getInstance(document.getElementById('modalDominio'))?.hide();
+            showToast(d.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            const msg = d.errors?.domain || d.errors?.general || 'Error al guardar';
+            const errMsg = Array.isArray(msg) ? msg.join(' ') : msg;
+            if (d.errors?.domain) {
+                document.getElementById('dom-domain').classList.add('is-invalid');
+                document.getElementById('err-dom-domain').textContent = errMsg;
+            } else {
+                const el = document.getElementById('dom-error-general');
+                el.textContent = errMsg;
+                el.classList.remove('d-none');
+            }
+        }
+    } catch {
+        showToast('Error de conexión', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-1"></i> Guardar';
+    }
+}
+
+// ── Dominio: marcar primario ─────────────────
+document.querySelectorAll('.btn-marcar-primario').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const pk  = this.dataset.pk;
+        const url = `${URL_DOMINIOS}${pk}/`;
+        const r   = await fetch(url, { method: 'PATCH', headers: { 'X-CSRFToken': CSRF } });
+        const d   = await r.json();
+        if (d.success) { showToast(d.message, 'success'); setTimeout(() => location.reload(), 1000); }
+        else showToast(d.errors?.general || 'Error', 'danger');
+    });
+});
+
+// ── Dominio: eliminar ────────────────────────
+document.querySelectorAll('.btn-eliminar-dominio').forEach(btn => {
+    btn.addEventListener('click', function() {
+        dominioPkEliminar = this.dataset.pk;
+        document.getElementById('dom-nombre-eliminar').textContent = this.dataset.domain;
+        new bootstrap.Modal(document.getElementById('modalEliminarDominio')).show();
+    });
+});
+
+document.getElementById('btnConfirmarEliminarDominio').addEventListener('click', async () => {
+    if (!dominioPkEliminar) return;
+    const url = `${URL_DOMINIOS}${dominioPkEliminar}/`;
+    const r   = await fetch(url, { method: 'DELETE', headers: { 'X-CSRFToken': CSRF } });
+    const d   = await r.json();
+    bootstrap.Modal.getInstance(document.getElementById('modalEliminarDominio'))?.hide();
+    if (d.success) {
+        document.getElementById(`dominio-${dominioPkEliminar}`)?.remove();
+        showToast(d.message, 'success');
+    } else {
+        showToast(d.errors?.general || 'Error', 'danger');
+    }
+});
+</script>
+
+<style>
+.card { transition: all 0.3s ease; }
+.btn { transition: all 0.2s ease; }
+.table td { vertical-align: middle; }
+.table-sm td { padding: 0.6rem 0.75rem; }
+code { font-size: 0.875rem; font-weight: 500; }
+</style>
+{% endblock %}

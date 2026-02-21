@@ -1,0 +1,787 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb_page %}
+<li class="breadcrumb-item active">Sucursales</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h1 class="mb-0"><i class="fas fa-building text-primary"></i> Sucursales</h1>
+            <div class="d-flex gap-2 flex-wrap">
+                {% if can_add %}
+                <button class="btn btn-primary" onclick="abrirModalCrear()">
+                    <i class="fas fa-plus me-1"></i> Nueva Sucursal
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Total Sucursales</p>
+                        <h3 class="mb-0 fw-bold">{{ total }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+                        <i class="fas fa-building fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Activas</p>
+                        <h3 class="mb-0 fw-bold text-success">{{ activas }}</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded p-3">
+                        <i class="fas fa-check-circle fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Inactivas</p>
+                        <h3 class="mb-0 fw-bold text-danger">{{ inactivas }}</h3>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 text-danger rounded p-3">
+                        <i class="fas fa-times-circle fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Matriz</p>
+                        {% with principal=sucursales|dictsort:"es_principal" %}
+                        <h3 class="mb-0 fw-bold text-info">
+                            {% for s in sucursales %}{% if s.es_principal %}{{ s.nombre_corto }}{% endif %}{% endfor %}
+                        </h3>
+                        {% endwith %}
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded p-3">
+                        <i class="fas fa-star fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-filter text-primary me-2"></i> Filtros de Búsqueda
+            </h5>
+            <button class="btn btn-sm btn-outline-secondary" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#filtrosCollapse">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+    </div>
+    <div class="collapse show" id="filtrosCollapse">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-search text-primary me-1"></i> Buscar
+                    </label>
+                    <input type="text" class="form-control" id="buscador"
+                           placeholder="Nombre, código, ciudad..."
+                           oninput="filtrarTabla()">
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-map-marker-alt text-success me-1"></i> Provincia
+                    </label>
+                    <select class="form-select" id="filtroProvincia" onchange="filtrarTabla()">
+                        <option value="">Todas las provincias</option>
+                        {% for prov in provincias %}
+                        <option value="{{ prov|lower }}">{{ prov }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-toggle-on text-secondary me-1"></i> Estado
+                    </label>
+                    <select class="form-select" id="filtroEstado" onchange="filtrarTabla()">
+                        <option value="">Todos los estados</option>
+                        <option value="activa">Activas</option>
+                        <option value="inactiva">Inactivas</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-6 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()">
+                        <i class="fas fa-times me-1"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Sucursales -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list text-primary me-2"></i> Listado de Sucursales
+            </h5>
+            <span class="badge bg-primary fs-6" id="badge-total">{{ total }} sucursales</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="8%">Código</th>
+                        <th width="22%">Sucursal</th>
+                        <th width="18%">Ubicación</th>
+                        <th width="15%">Contacto</th>
+                        <th width="8%" class="text-center">Usuarios</th>
+                        <th width="9%" class="text-center">Estado</th>
+                        <th width="8%" class="text-center">Tipo</th>
+                        <th width="12%" class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-sucursales">
+                    {% for s in sucursales %}
+                    <tr id="row-{{ s.pk }}"
+                        data-nombre="{{ s.nombre|lower }}"
+                        data-codigo="{{ s.codigo|lower }}"
+                        data-ciudad="{{ s.ciudad|lower }}"
+                        data-provincia="{{ s.provincia|lower }}"
+                        data-activa="{{ s.activa|yesno:'activa,inactiva' }}">
+                        <td>
+                            <code class="bg-light px-2 py-1 rounded">{{ s.codigo }}</code>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ s.nombre }}</div>
+                            <small class="text-muted">{{ s.nombre_corto }}</small>
+                        </td>
+                        <td>
+                            <div>{{ s.ciudad }}</div>
+                            <small class="text-muted">{{ s.provincia }}</small>
+                        </td>
+                        <td>
+                            {% if s.telefono %}
+                            <div><i class="fas fa-phone fa-xs text-muted me-1"></i>{{ s.telefono }}</div>
+                            {% endif %}
+                            {% if s.email %}
+                            <small class="text-muted"><i class="fas fa-envelope fa-xs me-1"></i>{{ s.email }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary">{{ s.get_usuarios_count }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if s.activa %}
+                            <span class="badge bg-success text-white">
+                                <i class="fas fa-check me-1"></i>Activa
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger text-white">
+                                <i class="fas fa-times me-1"></i>Inactiva
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if s.es_principal %}
+                            <span class="badge bg-info text-white">
+                                <i class="fas fa-star me-1"></i>Matriz
+                            </span>
+                            {% else %}
+                            <span class="text-muted small">Sucursal</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'core:sucursales_detalle' s.pk %}"
+                                   class="btn btn-info text-white"
+                                   title="Ver detalle" data-bs-toggle="tooltip">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if can_change %}
+                                <button class="btn btn-primary"
+                                        title="Editar" data-bs-toggle="tooltip"
+                                        onclick="abrirModalEditar({{ s.pk }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-{% if s.activa %}warning{% else %}success{% endif %} text-white btn-toggle"
+                                        data-pk="{{ s.pk }}"
+                                        data-nombre="{{ s.nombre }}"
+                                        data-activa="{{ s.activa|yesno:'true,false' }}"
+                                        title="{% if s.activa %}Desactivar{% else %}Activar{% endif %}"
+                                        data-bs-toggle="tooltip">
+                                    <i class="fas fa-{% if s.activa %}ban{% else %}check{% endif %}"></i>
+                                </button>
+                                {% endif %}
+                                {% if can_delete and not s.es_principal %}
+                                <button class="btn btn-danger btn-eliminar"
+                                        data-pk="{{ s.pk }}"
+                                        data-nombre="{{ s.nombre }}"
+                                        title="Desactivar" data-bs-toggle="tooltip">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <div class="text-muted py-4">
+                                <i class="fas fa-building fa-4x mb-3 opacity-25 d-block"></i>
+                                <h5>No hay sucursales registradas</h5>
+                                {% if can_add %}
+                                <button class="btn btn-primary" onclick="abrirModalCrear()">
+                                    <i class="fas fa-plus me-1"></i> Crear Primera Sucursal
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: CREAR / EDITAR SUCURSAL
+═══════════════════════════════════════════ -->
+<div class="modal fade" id="modalSucursal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalSucursalTitle">
+                    <i class="fas fa-building me-2"></i> Nueva Sucursal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSucursal" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" id="suc-id">
+
+                    <!-- Identificación -->
+                    <h6 class="fw-bold text-muted text-uppercase small mb-3 border-bottom pb-2">
+                        <i class="fas fa-id-card me-1"></i> Identificación
+                    </h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control text-uppercase" id="suc-codigo"
+                                   placeholder="CAYAMBE" maxlength="10" oninput="previewSchema()">
+                            <div class="invalid-feedback" id="err-codigo"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Schema PostgreSQL</label>
+                            <input type="text" class="form-control font-monospace" id="suc-schema_name"
+                                   placeholder="Auto-generado" readonly>
+                            <div id="schema-preview-badge" class="mt-1"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Nombre Completo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="suc-nombre"
+                                   placeholder="Sucursal Cayambe" maxlength="100">
+                            <div class="invalid-feedback" id="err-nombre"></div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Nombre Corto <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="suc-nombre_corto"
+                                   placeholder="Cayambe" maxlength="50">
+                            <div class="invalid-feedback" id="err-nombre_corto"></div>
+                        </div>
+                    </div>
+
+                    <!-- Ubicación -->
+                    <h6 class="fw-bold text-muted text-uppercase small mb-3 border-bottom pb-2">
+                        <i class="fas fa-map-marker-alt me-1"></i> Ubicación
+                    </h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Dirección <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="suc-direccion"
+                                   placeholder="Av. Rocafuerte 123" maxlength="200">
+                            <div class="invalid-feedback" id="err-direccion"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Ciudad <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="suc-ciudad" placeholder="Cayambe">
+                            <div class="invalid-feedback" id="err-ciudad"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Provincia <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="suc-provincia" placeholder="Pichincha">
+                            <div class="invalid-feedback" id="err-provincia"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Teléfono</label>
+                            <input type="text" class="form-control" id="suc-telefono"
+                                   placeholder="02-123-4567" maxlength="20">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Celular</label>
+                            <input type="text" class="form-control" id="suc-celular"
+                                   placeholder="099-123-4567" maxlength="20">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" class="form-control" id="suc-email"
+                                   placeholder="cayambe@vpmotos.com">
+                            <div class="invalid-feedback" id="err-email"></div>
+                        </div>
+                    </div>
+
+                    <!-- Datos Fiscales -->
+                    <h6 class="fw-bold text-muted text-uppercase small mb-3 border-bottom pb-2">
+                        <i class="fas fa-file-invoice me-1"></i> Datos Fiscales
+                    </h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">RUC</label>
+                            <input type="text" class="form-control font-monospace" id="suc-ruc"
+                                   placeholder="1234567890001" maxlength="13">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Nombre Comercial</label>
+                            <input type="text" class="form-control" id="suc-nombre_comercial"
+                                   placeholder="VPMOTOS Cayambe" maxlength="200">
+                        </div>
+                    </div>
+
+                    <!-- Configuración -->
+                    <h6 class="fw-bold text-muted text-uppercase small mb-3 border-bottom pb-2">
+                        <i class="fas fa-sliders-h me-1"></i> Configuración
+                    </h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Prefijo Facturas</label>
+                            <input type="text" class="form-control font-monospace" id="suc-prefijo_facturas"
+                                   placeholder="001" maxlength="5">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Prefijo Órdenes</label>
+                            <input type="text" class="form-control font-monospace" id="suc-prefijo_ordenes"
+                                   placeholder="OT-B" maxlength="5">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Fecha Apertura <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="suc-fecha_apertura">
+                            <div class="invalid-feedback" id="err-fecha_apertura"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Fecha Cierre</label>
+                            <input type="date" class="form-control" id="suc-fecha_cierre">
+                        </div>
+                        <div class="col-md-6" id="wrap-dominio-primario">
+                            <label class="form-label fw-semibold">Dominio Primario</label>
+                            <input type="text" class="form-control font-monospace" id="suc-dominio_primario"
+                                   placeholder="cayambe.vpmotos.com">
+                            <div class="form-text">Dejar vacío para configurar después</div>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end pb-1">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="suc-es_principal">
+                                <label class="form-check-label fw-semibold" for="suc-es_principal">
+                                    Sucursal Matriz
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end pb-1">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="suc-activa" checked>
+                                <label class="form-check-label fw-semibold" for="suc-activa">
+                                    Activa
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Observaciones</label>
+                            <textarea class="form-control" id="suc-observaciones" rows="2"
+                                      placeholder="Notas adicionales..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Error general -->
+                    <div class="alert alert-danger d-none" id="form-error-general"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="btnGuardarSucursal" onclick="guardarSucursal()">
+                    <i class="fas fa-save me-1"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: TOGGLE ACTIVA
+═══════════════════════════════════════════ -->
+<div class="modal fade" id="modalToggle" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i> Confirmar Acción
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="textoToggle" class="mb-0"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarToggle">
+                    <i class="fas fa-check me-1"></i> Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: CONFIRMAR ELIMINAR
+═══════════════════════════════════════════ -->
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-danger me-2"></i> Confirmar Desactivación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas desactivar la sucursal <strong id="eliminar-nombre"></strong>?</p>
+                <p class="text-muted small mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    El schema de datos no será eliminado. Puedes reactivarla después.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">
+                    <i class="fas fa-trash me-1"></i> Desactivar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+const URL_API       = "{% url 'core:sucursales_api' %}";
+const URL_SCHEMA    = "{% url 'core:schema_preview' %}";
+let sucursalIdEditar   = null;
+let sucursalIdEliminar = null;
+let sucursalIdToggle   = null;
+let schemaTimer        = null;
+
+// ── Tooltips ────────────────────────────────
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    new bootstrap.Tooltip(el);
+});
+
+// ── Toast helper ────────────────────────────
+function showToast(msg, tipo = 'success') {
+    // Usa el toast global del base.html si existe, sino alert
+    if (typeof window.mostrarToast === 'function') {
+        window.mostrarToast(msg, tipo);
+        return;
+    }
+    // Fallback simple
+    const div = document.createElement('div');
+    div.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} position-fixed top-0 end-0 m-3`;
+    div.style.zIndex = 9999;
+    div.textContent = msg;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3500);
+}
+
+// ── Schema preview ───────────────────────────
+async function previewSchema() {
+    clearTimeout(schemaTimer);
+    const codigo = document.getElementById('suc-codigo').value;
+    schemaTimer = setTimeout(async () => {
+        if (!codigo) {
+            document.getElementById('suc-schema_name').value = '';
+            document.getElementById('schema-preview-badge').innerHTML = '';
+            return;
+        }
+        const r = await fetch(`${URL_SCHEMA}?codigo=${encodeURIComponent(codigo)}`);
+        const d = await r.json();
+        document.getElementById('suc-schema_name').value = d.schema_name;
+        const cls = d.disponible ? 'text-success' : 'text-danger';
+        const icon = d.disponible ? 'fa-check-circle' : 'fa-times-circle';
+        const txt  = d.disponible ? 'Disponible' : 'Ya existe';
+        document.getElementById('schema-preview-badge').innerHTML =
+            `<small class="${cls}"><i class="fas ${icon} me-1"></i>${txt}: <code>${d.schema_name}</code></small>`;
+    }, 400);
+}
+
+// ── Limpiar form ─────────────────────────────
+function limpiarForm() {
+    ['codigo','schema_name','nombre','nombre_corto','direccion','ciudad','provincia',
+     'telefono','celular','email','ruc','nombre_comercial',
+     'prefijo_facturas','prefijo_ordenes','fecha_apertura','fecha_cierre',
+     'observaciones','dominio_primario'].forEach(f => {
+        const el = document.getElementById(`suc-${f}`);
+        if (el) { el.value = ''; el.classList.remove('is-invalid'); }
+    });
+    document.getElementById('suc-activa').checked = true;
+    document.getElementById('suc-es_principal').checked = false;
+    document.getElementById('suc-id').value = '';
+    document.getElementById('schema-preview-badge').innerHTML = '';
+    document.getElementById('form-error-general').classList.add('d-none');
+    // Limpiar errores de campos
+    document.querySelectorAll('[id^="err-"]').forEach(el => el.textContent = '');
+}
+
+// ── Abrir modal crear ────────────────────────
+function abrirModalCrear() {
+    limpiarForm();
+    sucursalIdEditar = null;
+    document.getElementById('modalSucursalTitle').innerHTML =
+        '<i class="fas fa-plus-circle me-2"></i> Nueva Sucursal';
+    document.getElementById('wrap-dominio-primario').style.display = '';
+    new bootstrap.Modal(document.getElementById('modalSucursal')).show();
+}
+
+// ── Abrir modal editar ───────────────────────
+async function abrirModalEditar(pk) {
+    limpiarForm();
+    sucursalIdEditar = pk;
+    document.getElementById('modalSucursalTitle').innerHTML =
+        '<i class="fas fa-edit me-2"></i> Editar Sucursal';
+    document.getElementById('wrap-dominio-primario').style.display = 'none';
+
+    try {
+        const r = await fetch(`${URL_API}${pk}/`);
+        const d = await r.json();
+        if (!d.success) { showToast('No se pudo cargar la sucursal', 'danger'); return; }
+        const s = d.sucursal;
+
+        ['codigo','schema_name','nombre','nombre_corto','direccion','ciudad','provincia',
+         'telefono','celular','email','ruc','nombre_comercial',
+         'prefijo_facturas','prefijo_ordenes','fecha_apertura','fecha_cierre','observaciones'
+        ].forEach(f => {
+            const el = document.getElementById(`suc-${f}`);
+            if (el) el.value = s[f] || '';
+        });
+        document.getElementById('suc-activa').checked      = s.activa;
+        document.getElementById('suc-es_principal').checked = s.es_principal;
+
+        new bootstrap.Modal(document.getElementById('modalSucursal')).show();
+    } catch {
+        showToast('Error de conexión', 'danger');
+    }
+}
+
+// ── Guardar (crear/editar) ───────────────────
+async function guardarSucursal() {
+    const btn = document.getElementById('btnGuardarSucursal');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
+
+    // Limpiar errores previos
+    document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
+    document.querySelectorAll('[id^="err-"]').forEach(el => el.textContent = '');
+    document.getElementById('form-error-general').classList.add('d-none');
+
+    const data = {
+        codigo:           document.getElementById('suc-codigo').value.toUpperCase(),
+        schema_name:      document.getElementById('suc-schema_name').value,
+        nombre:           document.getElementById('suc-nombre').value,
+        nombre_corto:     document.getElementById('suc-nombre_corto').value,
+        direccion:        document.getElementById('suc-direccion').value,
+        ciudad:           document.getElementById('suc-ciudad').value,
+        provincia:        document.getElementById('suc-provincia').value,
+        telefono:         document.getElementById('suc-telefono').value,
+        celular:          document.getElementById('suc-celular').value,
+        email:            document.getElementById('suc-email').value,
+        ruc:              document.getElementById('suc-ruc').value,
+        nombre_comercial: document.getElementById('suc-nombre_comercial').value,
+        es_principal:     document.getElementById('suc-es_principal').checked,
+        activa:           document.getElementById('suc-activa').checked,
+        prefijo_facturas: document.getElementById('suc-prefijo_facturas').value,
+        prefijo_ordenes:  document.getElementById('suc-prefijo_ordenes').value,
+        fecha_apertura:   document.getElementById('suc-fecha_apertura').value,
+        fecha_cierre:     document.getElementById('suc-fecha_cierre').value,
+        observaciones:    document.getElementById('suc-observaciones').value,
+        dominio_primario: document.getElementById('suc-dominio_primario')?.value || '',
+    };
+
+    const isEdit = !!sucursalIdEditar;
+    const url    = isEdit ? `${URL_API}${sucursalIdEditar}/` : URL_API;
+    const method = isEdit ? 'PUT' : 'POST';
+
+    try {
+        const r = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify(data),
+        });
+        const d = await r.json();
+
+        if (d.success) {
+            bootstrap.Modal.getInstance(document.getElementById('modalSucursal'))?.hide();
+            showToast(d.message, 'success');
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            Object.entries(d.errors || {}).forEach(([field, msgs]) => {
+                const msg = Array.isArray(msgs) ? msgs.join(' ') : msgs;
+                if (field === 'general') {
+                    const el = document.getElementById('form-error-general');
+                    el.textContent = msg;
+                    el.classList.remove('d-none');
+                } else {
+                    const input = document.getElementById(`suc-${field}`);
+                    const errEl = document.getElementById(`err-${field}`);
+                    if (input) input.classList.add('is-invalid');
+                    if (errEl) errEl.textContent = msg;
+                }
+            });
+        }
+    } catch {
+        showToast('Error de conexión', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-1"></i> Guardar';
+    }
+}
+
+// ── Toggle activa ────────────────────────────
+document.querySelectorAll('.btn-toggle').forEach(btn => {
+    btn.addEventListener('click', function() {
+        sucursalIdToggle = this.dataset.pk;
+        const activa     = this.dataset.activa === 'true';
+        const accion     = activa ? 'desactivar' : 'activar';
+        document.getElementById('textoToggle').innerHTML =
+            `¿Estás seguro que deseas <strong>${accion}</strong> la sucursal <strong>${this.dataset.nombre}</strong>?`;
+        const btnConf = document.getElementById('btnConfirmarToggle');
+        btnConf.className = `btn btn-${activa ? 'warning' : 'success'}`;
+        btnConf.innerHTML = `<i class="fas fa-${activa ? 'ban' : 'check'} me-1"></i>${accion.charAt(0).toUpperCase() + accion.slice(1)}`;
+        new bootstrap.Modal(document.getElementById('modalToggle')).show();
+    });
+});
+
+document.getElementById('btnConfirmarToggle').addEventListener('click', async () => {
+    if (!sucursalIdToggle) return;
+    const r = await fetch(`${URL_API}${sucursalIdToggle}/toggle/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+    });
+    const d = await r.json();
+    bootstrap.Modal.getInstance(document.getElementById('modalToggle'))?.hide();
+    if (d.success) { showToast(d.message, 'success'); setTimeout(() => location.reload(), 1000); }
+    else showToast(d.errors?.general || 'Error', 'danger');
+});
+
+// ── Eliminar ─────────────────────────────────
+document.querySelectorAll('.btn-eliminar').forEach(btn => {
+    btn.addEventListener('click', function() {
+        sucursalIdEliminar = this.dataset.pk;
+        document.getElementById('eliminar-nombre').textContent = this.dataset.nombre;
+        new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+    });
+});
+
+document.getElementById('btnConfirmarEliminar').addEventListener('click', async () => {
+    if (!sucursalIdEliminar) return;
+    const r = await fetch(`${URL_API}${sucursalIdEliminar}/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': CSRF },
+    });
+    const d = await r.json();
+    bootstrap.Modal.getInstance(document.getElementById('modalEliminar'))?.hide();
+    if (d.success) { showToast(d.message, 'success'); setTimeout(() => location.reload(), 1000); }
+    else showToast(d.errors?.general || 'Error', 'danger');
+});
+
+// ── Filtros en tabla ─────────────────────────
+function filtrarTabla() {
+    const q      = document.getElementById('buscador').value.toLowerCase();
+    const estado = document.getElementById('filtroEstado').value;
+    const prov   = document.getElementById('filtroProvincia').value.toLowerCase();
+    let visible  = 0;
+
+    document.querySelectorAll('#tbody-sucursales tr[id^="row-"]').forEach(tr => {
+        const matchQ      = !q      || tr.dataset.nombre.includes(q) || tr.dataset.codigo.includes(q) || tr.dataset.ciudad.includes(q);
+        const matchEstado = !estado || tr.dataset.activa === estado;
+        const matchProv   = !prov   || tr.dataset.provincia.includes(prov);
+        const show        = matchQ && matchEstado && matchProv;
+        tr.style.display  = show ? '' : 'none';
+        if (show) visible++;
+    });
+
+    document.getElementById('badge-total').textContent = `${visible} sucursales`;
+}
+
+function limpiarFiltros() {
+    document.getElementById('buscador').value = '';
+    document.getElementById('filtroEstado').value = '';
+    document.getElementById('filtroProvincia').value = '';
+    filtrarTabla();
+}
+
+// Enter en modal para guardar
+document.getElementById('modalSucursal').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') guardarSucursal();
+});
+</script>
+
+<style>
+.card { transition: all 0.3s ease; }
+.btn { transition: all 0.2s ease; }
+.table-hover tbody tr:hover { background-color: rgba(0,0,0,.02); }
+.badge { font-weight: 500; padding: 0.4em 0.8em; }
+code { font-size: 0.875rem; font-weight: 500; }
+@media (max-width: 768px) {
+    .btn-group-sm > .btn { padding: 0.25rem 0.4rem; font-size: 0.75rem; }
+}
+</style>
+{% endblock %}
