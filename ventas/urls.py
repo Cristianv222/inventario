@@ -51,6 +51,7 @@ urlpatterns = [
 
     # ========== IMPRESIÓN TÉRMICA ==========
     path('api/impresoras-disponibles/', views.api_impresoras_disponibles, name='api_impresoras_disponibles'),
+    path('api/trabajos-pendientes/', views.api_trabajos_pendientes, name='api_trabajos_pendientes'),
     path('api/probar-impresora/', views.api_probar_impresora, name='api_probar_impresora'),
     path('imprimir-ticket/<int:venta_id>/', views.imprimir_ticket_venta, name='imprimir_ticket_venta'),
     path('preview-ticket/<int:venta_id>/', views.preview_ticket, name='preview_ticket'),

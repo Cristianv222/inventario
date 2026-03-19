@@ -118,6 +118,24 @@ class InventarioAjusteForm(forms.ModelForm):
         # Filtrar solo productos activos
         self.fields['producto'].queryset = Producto.objects.filter(activo=True)
 
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo_ajuste = cleaned_data.get('tipo_ajuste')
+        cantidad = cleaned_data.get('cantidad')
+        producto = cleaned_data.get('producto')
+
+        if tipo_ajuste and cantidad and producto:
+            if tipo_ajuste == 'SALIDA':
+                if producto.stock_actual < cantidad:
+                    raise forms.ValidationError(
+                        f"Stock insuficiente. Stock actual: {producto.stock_actual}, Salida solicitada: {cantidad}"
+                    )
+            elif tipo_ajuste == 'AJUSTE':
+                if cantidad < 0:
+                    raise forms.ValidationError("El stock resultante en un ajuste absoluto no puede ser negativo.")
+        
+        return cleaned_data
+
 class ProductoSearchForm(forms.Form):
     """Formulario para búsqueda de productos"""
     

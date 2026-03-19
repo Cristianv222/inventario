@@ -43,8 +43,8 @@
                 <td>
                     {% if detalle.producto %}
                     {{ detalle.producto.nombre }}
-                    {% elif detalle.servicio %}
-                    {{ detalle.servicio.tipo_servicio.nombre }}
+                    {% elif detalle.tipo_servicio %}
+                    {{ detalle.nombre_personalizado|default:detalle.tipo_servicio.nombre }}
                     {% endif %}
                 </td>
                 <td>{{ detalle.cantidad }}</td>

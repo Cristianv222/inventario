@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Hardware{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hardware-stat-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.3s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .hardware-stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .bg-soft-primary { background-color: rgba(67, 97, 238, 0.1); color: #4361ee; }
+    .bg-soft-success { background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; }
+    .bg-soft-warning { background-color: rgba(241, 196, 15, 0.1); color: #f1c40f; }
+    .bg-soft-danger { background-color: rgba(231, 76, 60, 0.1); color: #e74c3c; }
+    .bg-soft-info { background-color: rgba(52, 152, 219, 0.1); color: #3498db; }
+
+    .quick-access-list {
+        list-style: none;
+        padding: 0;
+    }
+    .quick-access-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--gray-700);
+        transition: all 0.3s;
+        margin-bottom: 8px;
+        border: 1px solid var(--gray-200);
+    }
+    .quick-access-item:hover {
+        background: var(--gray-100);
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+    .quick-access-item i {
+        font-size: 1.2rem;
+        width: 24px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Panel de Hardware y Periféricos</h1>
+            <p class="text-muted">Control centralizado de dispositivos conectados</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'hardware_integration:impresora_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nueva Impresora
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card hardware-stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon bg-soft-primary">
+                        <i class="fas fa-print"></i>
+                    </div>
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Impresoras</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_impresoras }} Total</div>
+                    <div class="mt-2 small text-muted">
+                        <span class="text-success"><i class="fas fa-check-circle"></i> {{ impresoras_activas }} Activas</span>
+                        {% if impresoras_error %}
+                        <span class="text-danger ms-2"><i class="fas fa-exclamation-circle"></i> {{ impresoras_error }} Error</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card hardware-stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon bg-soft-success">
+                        <i class="fas fa-cash-register"></i>
+                    </div>
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Gaveta de Dinero</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_gavetas }} Configuradas</div>
+                    <div class="mt-2 small text-muted">Apertura remota activa</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card hardware-stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon bg-soft-info">
+                        <i class="fas fa-barcode"></i>
+                    </div>
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Escáneres</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_escaners }} Activos</div>
+                    <div class="mt-2 small text-muted">Plug & Play detectados</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card hardware-stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon bg-soft-warning">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Impresiones de Hoy</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ impresiones_hoy }} Trabajos</div>
+                    <div class="mt-2 small text-muted">Carga del sistema: Normal</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Column -->
+        <div class="col-lg-8">
+            <!-- Impresoras Recap -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Estado de Impresoras</h6>
+                    <a href="{% url 'hardware_integration:impresora_list' %}" class="btn btn-sm btn-link">Ver todas</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Impresora</th>
+                                    <th>Tipo</th>
+                                    <th>Conexión</th>
+                                    <th>Estado</th>
+                                    <th>Contador</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for impresora in total_impresoras_list|slice:":5" %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ impresora.nombre }}</div>
+                                        <small class="text-muted">{{ impresora.marca|default:"" }} {{ impresora.modelo|default:"" }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ impresora.get_tipo_impresora_display }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="d-block">{{ impresora.get_tipo_conexion_display }}</small>
+                                        <code class="text-xs">{{ impresora.identificador_conexion|truncatechars:15 }}</code>
+                                    </td>
+                                    <td>
+                                        {% if impresora.estado == 'ACTIVA' %}
+                                            <span class="badge bg-success">En línea</span>
+                                        {% elif impresora.estado == 'ERROR' %}
+                                            <span class="badge bg-danger">Error</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Desconectada</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ impresora.contador_impresiones }}</td>
+                                    <td>
+                                        <a href="{% url 'hardware_integration:impresora_update' impresora.pk %}" class="btn btn-sm btn-light">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        No hay impresoras configuradas. <a href="{% url 'hardware_integration:impresora_create' %}">Agregar una</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Print Jobs -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Trabajos de Impresión Recientes</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Impresora</th>
+                                    <th>Documento</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for print in ultimas_impresiones %}
+                                <tr>
+                                    <td><small>{{ print.fecha_impresion|date:"d/m/Y H:i" }}</small></td>
+                                    <td>{{ print.impresora.nombre }}</td>
+                                    <td>
+                                        {% if print.venta %}
+                                            Venta #{{ print.venta.numero_factura }}
+                                        {% else %}
+                                            Personalizado
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if print.estado == 'COMPLETADO' %}
+                                            <span class="text-success"><i class="fas fa-check-circle"></i> OK</span>
+                                        {% elif print.estado == 'ERROR' %}
+                                            <span class="text-danger" title="{{ print.mensaje_error }}"><i class="fas fa-times-circle"></i> Falló</span>
+                                        {% else %}
+                                            <span class="text-warning"><i class="fas fa-clock"></i> Pendiente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3 text-muted">No hay registros de impresión</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Column -->
+        <div class="col-lg-4">
+            <!-- Quick Access -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Accesos Rápidos</h6>
+                </div>
+                <div class="card-body">
+                    <div class="quick-access-list">
+                        <a href="{% url 'hardware_integration:impresora_list' %}" class="quick-access-item">
+                            <i class="fas fa-print text-primary"></i>
+                            <div>
+                                <div class="fw-bold">Gestión de Impresoras</div>
+                                <small class="text-muted">Tickets y etiquetas</small>
+                            </div>
+                        </a>
+                        <a href="{% url 'hardware_integration:plantilla_list' %}" class="quick-access-item">
+                            <i class="fas fa-file-code text-info"></i>
+                            <div>
+                                <div class="fw-bold">Plantillas de Impresión</div>
+                                <small class="text-muted">Personalizar recibos</small>
+                            </div>
+                        </a>
+                        <a href="#" class="quick-access-item" onclick="abrirGavetaPrueba()">
+                            <i class="fas fa-cash-register text-success"></i>
+                            <div>
+                                <div class="fw-bold">Abrir Gaveta de Prueba</div>
+                                <small class="text-muted">Prueba de conexión</small>
+                            </div>
+                        </a>
+                        <a href="{% url 'hardware_integration:test_impresion' %}" class="quick-access-item">
+                            <i class="fas fa-vial text-warning"></i>
+                            <div>
+                                <div class="fw-bold">Test de Impresión</div>
+                                <small class="text-muted">Asegurar funcionamiento</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Info -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Mantenimiento</h6>
+                </div>
+                <div class="card-body">
+                    {% for imp in impresoras_mantenimiento %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small fw-bold">{{ imp.nombre }}</span>
+                            <span class="small text-muted">{{ imp.contador_impresiones|add:"0" }}/10,000</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            {% widthratio imp.contador_impresiones 10000 100 as pct %}
+                            <div class="progress-bar {% if pct|add:0 > 90 %}bg-danger{% elif pct|add:0 > 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" style="width: {{ pct }}%"></div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small text-center mb-0">No hay equipos que requieran mantenimiento urgente</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function abrirGavetaPrueba() {
+        if (!confirm('¿Desea enviar comando de apertura a la gaveta de prueba?')) return;
+        
+        fetch("{% url 'hardware_integration:gaveta_test' %}")
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Comando enviado correctamente');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('Error de conexión'));
+    }
+</script>
+{% endblock %}

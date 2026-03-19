@@ -10,6 +10,11 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     gettext \
     curl \
+    libpango-1.0-0 \
+    libharfbuzz0b \
+    libpangoft2-1.0-0 \
+    libglib2.0-0 \
+    libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

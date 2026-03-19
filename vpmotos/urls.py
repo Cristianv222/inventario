@@ -27,6 +27,8 @@ urlpatterns = [
     path('inventario/', include('inventario.urls')),
     path('taller/', include('taller.urls', namespace='taller')),
     path('reportes/', include('reportes.urls', namespace='reportes')),
+    path('hardware/', include('hardware_integration.urls', namespace='hardware_integration')),
+    path('api/hardware/', include('hardware_integration.api.urls', namespace='hardware_api')),
 ]
 
 if settings.DEBUG:

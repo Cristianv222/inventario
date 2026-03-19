@@ -258,7 +258,9 @@ class TipoServicio(models.Model):
     tiempo_estimado_horas = models.DecimalField(
         max_digits=5, 
         decimal_places=2, 
-        help_text="Tiempo estimado en horas"
+        help_text="Tiempo estimado en horas",
+        blank=True,
+        null=True
     )
     requiere_repuestos = models.BooleanField(default=False)
     requiere_especialidad = models.ForeignKey(
@@ -268,9 +270,13 @@ class TipoServicio(models.Model):
         null=True
     )
     nivel_dificultad = models.CharField(
-        max_length=20, 
+        max_length=200, 
         choices=NIVEL_DIFICULTAD_CHOICES, 
         default='BASICO'
+    )
+    es_personalizable = models.BooleanField(
+        default=False,
+        help_text="Si se marca, el nombre y precio serán editables al seleccionar este servicio"
     )
     
     # Metadata
@@ -632,6 +638,35 @@ class OrdenTrabajo(models.Model):
         servicios_completados = self.servicios.filter(completado=True).count()
         return int((servicios_completados / total_servicios) * 100)
 
+    def get_subtotal_servicios(self):
+        return self.precio_mano_obra
+
+    def get_subtotal_repuestos(self):
+        return self.precio_repuestos
+
+    def get_subtotal(self):
+        return self.precio_total
+
+    def get_porcentaje_iva(self):
+        return Decimal('0.00')
+
+    def get_valor_iva(self):
+        return Decimal('0.00')
+    
+    def generar_cotizacion_data(self):
+        return {
+            'orden': self,
+            'servicios': self.servicios.all(),
+            'repuestos': self.repuestos_utilizados.all(),
+            'totales': {
+                'subtotal_servicios': self.get_subtotal_servicios(),
+                'subtotal_repuestos': self.get_subtotal_repuestos(),
+                'subtotal': self.get_subtotal(),
+                'porcentaje_iva': self.get_porcentaje_iva(),
+                'valor_iva': self.get_valor_iva(),
+                'total': self.precio_total
+            }
+        }
 
 # ================== MODELOS RELACIONADOS CON ORDENES ==================
 
@@ -644,7 +679,15 @@ class ServicioOrden(models.Model):
     )
     tipo_servicio = models.ForeignKey(
         TipoServicio, 
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
+    nombre_servicio_personalizado = models.CharField(
+        max_length=200, 
+        blank=True, 
+        null=True,
+        help_text="Nombre personalizado para servicios genéricos"
     )
     tecnico_asignado = models.ForeignKey(
         Tecnico, 
@@ -701,15 +744,21 @@ class ServicioOrden(models.Model):
     
     # ✅ CAMBIO 4: Simplificar método save
     def save(self, *args, **kwargs):
-        # Establecer precio por defecto si no está definido
+        # Establecer precio por defecto si no está definido y hay tipo de servicio
         if not self.precio_servicio:
-            self.precio_servicio = self.tipo_servicio.precio
+            if self.tipo_servicio:
+                self.precio_servicio = self.tipo_servicio.precio
+            else:
+                self.precio_servicio = Decimal('0.00')
         
         if not self.tiempo_estimado:
-            self.tiempo_estimado = self.tipo_servicio.tiempo_estimado_horas
+            if self.tipo_servicio:
+                self.tiempo_estimado = self.tipo_servicio.tiempo_estimado_horas
+            else:
+                self.tiempo_estimado = Decimal('0.50') # Valor por defecto para manuales
         
-        # Si no hay técnico asignado, usar el principal
-        if not self.tecnico_asignado:
+        # Si no hay técnico asignado y no es un item genérico con técnico vacío intencionalmente, usar el principal
+        if not self.tecnico_asignado and self.tipo_servicio:
             self.tecnico_asignado = self.orden.tecnico_principal
         
         super().save(*args, **kwargs)

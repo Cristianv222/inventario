@@ -36,14 +36,18 @@ def obtener_venta_por_id_o_numero(identificador):
     Obtiene una venta por ID numérico o por número de factura
     """
     try:
-        # Primero intentar como ID numérico
-        if identificador.isdigit():
+        # Si ya es un número (int o float)
+        if isinstance(identificador, (int, float)):
             return get_object_or_404(Venta, pk=int(identificador))
-    except (ValueError, TypeError):
+            
+        # Si es string, ver si es numérico
+        if isinstance(identificador, str) and identificador.isdigit():
+            return get_object_or_404(Venta, pk=int(identificador))
+    except (ValueError, TypeError, AttributeError):
         pass
     
-    # Si no es numérico o falló, buscar por número de factura
-    return get_object_or_404(Venta, numero_factura=identificador)
+    # Buscar por número de factura (FAC-XXXXXX)
+    return get_object_or_404(Venta, numero_factura=str(identificador))
 
 # ========== VISTAS PRINCIPALES DE VENTAS ==========
 
@@ -506,6 +510,7 @@ def punto_venta(request):
                         detalle = DetalleVenta.objects.create(
                             venta=venta,
                             tipo_servicio=tipo_servicio,
+                            nombre_personalizado=item.get('name', ''),
                             tecnico=tecnico,
                             cantidad=cantidad,
                             precio_unitario=precio_unitario,
@@ -518,7 +523,7 @@ def punto_venta(request):
                         )
                         
                         detalles_creados += 1
-                        logger.info(f"Detalle creado para servicio: {tipo_servicio.nombre} SIN IVA")
+                        logger.info(f"Detalle creado para servicio: {tipo_servicio.nombre} SIN IVA - Custom Name: {item.get('name')}")
                         
                     except (TipoServicio.DoesNotExist, Tecnico.DoesNotExist) as e:
                         venta.delete()
@@ -526,7 +531,24 @@ def punto_venta(request):
                         return JsonResponse({'success': False, 'mensaje': f'Servicio o técnico no encontrado: {str(e)}'})
                 
                 else:
-                    logger.warning(f"Tipo de item desconocido: {item.get('tipo')}")
+                    # Item manual o genérico
+                    logger.info(f"Procesando item manual: {item.get('name')}")
+                    cantidad = Decimal(str(item.get('cantidad', '1.00')))
+                    precio_unitario = Decimal(str(item.get('precio_unitario', '0.00')))
+                    subtotal = cantidad * precio_unitario
+                    
+                    detalle = DetalleVenta.objects.create(
+                        venta=venta,
+                        nombre_personalizado=item.get('name', 'Servicio Manual'),
+                        cantidad=cantidad,
+                        precio_unitario=precio_unitario,
+                        subtotal=subtotal,
+                        iva_porcentaje=Decimal('0.00'),
+                        iva=Decimal('0.00'),
+                        total=subtotal,
+                        es_servicio=True
+                    )
+                    detalles_creados += 1
             
             logger.info(f"Detalles creados: {detalles_creados} de {len(data.get('items', []))} items")
             
@@ -751,6 +773,7 @@ def api_servicios(request):
                 'categoria': servicio.categoria.nombre if servicio.categoria else None,
                 'tiempo_estimado': float(servicio.tiempo_estimado_horas or 0),
                 'nivel_dificultad': servicio.nivel_dificultad,
+                'es_personalizable': servicio.es_personalizable,
                 'requiere_especialidad': servicio.requiere_especialidad.nombre if servicio.requiere_especialidad else None
             })
         
@@ -991,21 +1014,70 @@ def api_impresoras_disponibles(request):
         })
 
 @login_required
+def api_trabajos_pendientes(request):
+    """API para obtener el estado de los trabajos de impresión del usuario actual"""
+    try:
+        from hardware_integration.models import TrabajoImpresion
+        from django.utils import timezone
+        
+        # Obtener trabajos de las últimas 2 horas
+        hace_2_horas = timezone.now() - timezone.timedelta(hours=2)
+        
+        trabajos = TrabajoImpresion.objects.filter(
+            usuario=request.user,
+            fecha_creacion__gte=hace_2_horas
+        ).order_by('-fecha_creacion')[:10]
+        
+        data = []
+        for t in trabajos:
+            data.append({
+                'id': t.id,
+                'impresora': t.impresora_nombre,
+                'tipo': t.tipo,
+                'estado': t.estado,
+                'fecha': t.fecha_creacion.strftime('%H:%M:%S'),
+                'error': t.mensaje_error
+            })
+            
+        return JsonResponse({
+            'success': True,
+            'trabajos': data,
+            'count_pendientes': sum(1 for t in data if t['estado'] == 'PENDIENTE')
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@login_required
 @require_POST
 def api_probar_impresora(request):
-    """API para probar una impresora térmica"""
+    """API para enviar un ticket de prueba a una impresora o imprimir una venta específica"""
     try:
         data = json.loads(request.body)
         printer_name = data.get('printer_name')
         printer_type = data.get('printer_type', 'GENERIC_80MM')
+        venta_id = data.get('venta_id') or data.get('id')
+        open_drawer = data.get('open_drawer', False)
         
         if not printer_name:
-            return JsonResponse({
-                'success': False,
-                'message': 'Nombre de impresora requerido'
-            })
+            return JsonResponse({'success': False, 'message': 'Nombre de impresora requerido'})
         
-        success, message = TicketThermalService.test_printer(printer_name, printer_type)
+        if venta_id:
+            # Si hay un ID de venta, imprimir la venta real
+            venta = obtener_venta_por_id_o_numero(venta_id)
+            success, message = TicketThermalService.print_ticket(
+                venta, 
+                printer_name, 
+                printer_type, 
+                open_drawer,
+                user=request.user
+            )
+        else:
+            # Si no hay ID de venta, es un ticket de prueba
+            success, message = TicketThermalService.test_printer(
+                printer_name, 
+                printer_type,
+                user=request.user
+            )
         
         return JsonResponse({
             'success': success,
@@ -1013,9 +1085,12 @@ def api_probar_impresora(request):
         })
         
     except Exception as e:
+        import traceback
+        logger.error(f"Error en api_probar_impresora: {e}")
+        logger.error(traceback.format_exc())
         return JsonResponse({
             'success': False,
-            'message': f'Error al probar impresora: {str(e)}'
+            'message': f'Error al procesar impresión: {str(e)}'
         })
 
 @login_required
@@ -1100,6 +1175,7 @@ def api_procesar_venta_pos_mejorado(request):
                     DetalleVenta.objects.create(
                         venta=venta,
                         tipo_servicio=tipo_servicio,
+                        nombre_personalizado=item.get('name', ''),
                         tecnico=tecnico,
                         cantidad=Decimal(str(item['quantity'])),
                         precio_unitario=Decimal(str(item['unit_price'])),
@@ -1113,6 +1189,25 @@ def api_procesar_venta_pos_mejorado(request):
                     
                 except (TipoServicio.DoesNotExist, Tecnico.DoesNotExist) as e:
                     raise Exception(f'Servicio o técnico no encontrado: {str(e)}')
+            
+            elif item['type'] == 'manual':
+                # Item personalizado/genérico sin catálogo
+                subtotal_item = Decimal(str(item['subtotal']))
+                iva_item = subtotal_item * Decimal('0.15')
+                total_item = subtotal_item + iva_item
+                
+                DetalleVenta.objects.create(
+                    venta=venta,
+                    nombre_personalizado=item.get('name', 'Servicio Manual'),
+                    cantidad=Decimal(str(item['quantity'])),
+                    precio_unitario=Decimal(str(item['unit_price'])),
+                    subtotal=subtotal_item,
+                    iva_porcentaje=Decimal('15.00'),
+                    iva=iva_item,
+                    descuento=Decimal('0.00'),
+                    total=total_item,
+                    es_servicio=True
+                )
         
         # Manejar orden de trabajo si existe
         if data.get('order_id'):
@@ -1207,15 +1302,25 @@ def api_procesar_venta_pos(request):
 
 @login_required
 @require_POST
-def imprimir_ticket_venta(request, venta_id):
+def imprimir_ticket_venta(request, venta_id=None):
     """Imprime un ticket térmico de una venta existente"""
     try:
-        venta = obtener_venta_por_id_o_numero(venta_id)
+        # El venta_id puede venir en la URL o en el cuerpo JSON
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            # Soporte legacy para FormData
+            data = request.POST
+            
+        final_venta_id = venta_id or data.get('venta_id') or data.get('id')
+        if not final_venta_id:
+            return JsonResponse({'success': False, 'message': 'ID de venta no proporcionado'})
+
+        venta = obtener_venta_por_id_o_numero(final_venta_id)
         
-        data = json.loads(request.body)
-        printer_name = data.get('printer_name')
-        printer_type = data.get('printer_type', 'GENERIC_80MM')
-        open_drawer = data.get('open_drawer', False)
+        printer_name = data.get('printer_name') or data.get('impresora_id')
+        printer_type = data.get('printer_type') or data.get('tipo_impresora') or 'GENERIC_80MM'
+        open_drawer = str(data.get('open_drawer', '')).lower() in ['true', '1', 'on']
         
         if not printer_name:
             return JsonResponse({
@@ -1227,7 +1332,8 @@ def imprimir_ticket_venta(request, venta_id):
             venta, 
             printer_name, 
             printer_type, 
-            open_drawer
+            open_drawer,
+            user=request.user
         )
         
         return JsonResponse({
@@ -1236,6 +1342,7 @@ def imprimir_ticket_venta(request, venta_id):
         })
         
     except Exception as e:
+        logger.error(f"Error en imprimir_ticket_venta: {e}", exc_info=True)
         return JsonResponse({
             'success': False,
             'message': f'Error al imprimir ticket: {str(e)}'
@@ -1463,31 +1570,35 @@ def imprimir_factura(request):
         })
 
 @login_required
-@require_POST
 def imprimir_ticket(request):
-    """Imprime un ticket"""
-    identificador = request.GET.get('id')
+    """View to print a receipt (ticket) via the local hardware agent"""
+    if request.method == 'POST':
+        identificador = request.POST.get('id') or request.GET.get('id')
+        impresora_id = request.POST.get('impresora_id') or request.POST.get('impresora')
+    else:
+        identificador = request.GET.get('id')
+        impresora_id = request.GET.get('impresora_id')
+
     if not identificador:
-        return JsonResponse({'success': False, 'resultado': 'ID de venta requerido'})
+        return JsonResponse({'success': False, 'message': 'ID de venta requerido'})
     
     try:
-        # IMPORT LOCAL AQUÍ:
         from .services.factura_service import FacturaService
-        
         venta = obtener_venta_por_id_o_numero(identificador)
-        impresora = request.POST.get('impresora')
         
-        success, result = FacturaService.imprimir_ticket(venta, impresora)
+        success, message = FacturaService.imprimir_ticket(venta, impresora_id)
         
         return JsonResponse({
             'success': success,
-            'resultado': result
+            'message': message,
+            'resultado': message # Compatibility
         })
         
     except Exception as e:
+        logger.exception("Error en vista imprimir_ticket")
         return JsonResponse({
             'success': False,
-            'resultado': f'Error: {str(e)}'
+            'message': f'Error: {str(e)}'
         })
 
 @login_required

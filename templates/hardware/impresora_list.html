@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Listado de Impresoras{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h1 class="h2 mb-0 fw-bold text-dark"><i class="fas fa-print text-primary me-2"></i> Gestión de Hardware</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'hardware_integration:dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Impresoras</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{% url 'hardware_integration:impresora_create' %}" class="btn btn-gradient-primary px-4 py-2 shadow-sm">
+            <i class="fas fa-plus-circle me-1"></i> Nueva Impresora
+        </a>
+    </div>
+
+    <!-- Filtros Premium -->
+    <div class="card border-0 shadow-sm mb-4 glass-panel overflow-hidden">
+        <div class="card-body p-4">
+            <form method="get" class="row g-4 align-items-end">
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label fw-bold text-muted small text-uppercase tracking-wider mb-2">Filtrar por Tipo</label>
+                    <div class="input-group input-group-premium">
+                        <span class="input-group-text bg-transparent border-0"><i class="fas fa-tag text-primary"></i></span>
+                        <select name="tipo" class="form-select border-0 bg-transparent">
+                            <option value="">Todos los tipos</option>
+                            <option value="TICKET" {% if request.GET.tipo == 'TICKET' %}selected{% endif %}>Ticket (Térmica)</option>
+                            <option value="ETIQUETA" {% if request.GET.tipo == 'ETIQUETAS' %}selected{% endif %}>Etiqueta (Zebra/TSC)</option>
+                            <option value="LOCAL" {% if request.GET.tipo == 'LOCAL' %}selected{% endif %}>Local (Sistema)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label fw-bold text-muted small text-uppercase tracking-wider mb-2">Estado de Conexión</label>
+                    <div class="input-group input-group-premium">
+                        <span class="input-group-text bg-transparent border-0"><i class="fas fa-signal text-success"></i></span>
+                        <select name="estado" class="form-select border-0 bg-transparent">
+                            <option value="">Cualquier estado</option>
+                            <option value="ACTIVA" {% if request.GET.estado == 'ACTIVA' %}selected{% endif %}>Activa</option>
+                            <option value="INACTIVA" {% if request.GET.estado == 'INACTIVA' %}selected{% endif %}>Inactiva</option>
+                            <option value="ERROR" {% if request.GET.estado == 'ERROR' %}selected{% endif %}>Con Error</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <button type="submit" class="btn btn-dark w-100 py-2 fw-bold">
+                        <i class="fas fa-filter me-2"></i> Aplicar
+                    </button>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <a href="{% url 'hardware_integration:impresora_list' %}" class="btn btn-outline-secondary w-100 py-2">
+                        <i class="fas fa-sync-alt me-2"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Impresoras con Cards Premium -->
+    <div class="row g-4">
+        {% for impresora in impresoras %}
+        <div class="col-xl-4 col-md-6 animate__animated animate__fadeInUp" style="animation-delay: {% widthratio forloop.counter0 1 100 %}ms">
+            <div class="card h-100 border-0 shadow-sm glass-card pointer-event transition-all">
+                <div class="card-header bg-transparent border-0 p-4 pb-0 d-flex justify-content-between align-items-start">
+                    <div class="status-indicator">
+                        {% if impresora.estado == 'ACTIVA' %}
+                            <span class="badge-pulse bg-success"></span>
+                            <span class="badge bg-soft-success text-success px-3">En Línea</span>
+                        {% elif impresora.estado == 'ERROR' %}
+                            <span class="badge-pulse bg-danger"></span>
+                            <span class="badge bg-soft-danger text-danger px-3">Desconectada</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary px-3">Inactiva</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-icon-round" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg">
+                            <li><a class="dropdown-item py-2" href="{% url 'hardware_integration:impresora_update' impresora.pk %}"><i class="fas fa-edit me-2 text-primary"></i> Editar Configuración</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'hardware_integration:impresora_test' impresora.pk %}"><i class="fas fa-vial me-2 text-info"></i> Probar Conexión</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2 text-danger" href="{% url 'hardware_integration:impresora_delete' impresora.pk %}"><i class="fas fa-trash-alt me-2"></i> Eliminar Dispositivo</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="printer-avatar me-3">
+                            {% if impresora.tipo_impresora == 'TICKET' %}
+                                <div class="icon-circle bg-primary bg-opacity-10 text-primary">
+                                    <i class="fas fa-receipt"></i>
+                                </div>
+                            {% elif impresora.tipo_impresora == 'ETIQUETAS' %}
+                                <div class="icon-circle bg-warning bg-opacity-10 text-warning">
+                                    <i class="fas fa-barcode"></i>
+                                </div>
+                            {% else %}
+                                <div class="icon-circle bg-info bg-opacity-10 text-info">
+                                    <i class="fas fa-print"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="overflow-hidden">
+                            <h5 class="fw-bold text-dark mb-1 text-truncate">{{ impresora.nombre }}</h5>
+                            <p class="text-muted small mb-0 text-truncate">
+                                <i class="fas fa-microchip me-1 opacity-50"></i> {{ impresora.marca|default:"Genérica" }} {{ impresora.modelo|default:"" }}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="device-info-grid mb-4">
+                        <div class="info-item">
+                            <span class="label">Conexión</span>
+                            <span class="value">{{ impresora.get_tipo_conexion_display }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">ID Sistema</span>
+                            <span class="value text-primary font-monospace small">{{ impresora.identificador_conexion|truncatechars:15 }}</span>
+                        </div>
+                    </div>
+
+                    {% if impresora.es_principal_tickets or impresora.es_principal_etiquetas or impresora.es_principal_facturas %}
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        {% if impresora.es_principal_tickets %}
+                            <span class="badge bg-primary rounded-pill small"><i class="fas fa-star me-1"></i> Tickets</span>
+                        {% endif %}
+                        {% if impresora.es_principal_etiquetas %}
+                            <span class="badge bg-warning text-dark rounded-pill small"><i class="fas fa-star me-1"></i> Etiquetas</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer bg-transparent border-0 p-4 pt-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="counter-badge">
+                            <span class="small text-muted mb-0">
+                                <i class="fas fa-file-invoice me-1"></i> <strong>{{ impresora.contador_impresiones }}</strong> trabajos
+                            </span>
+                        </div>
+                        <a href="{% url 'hardware_integration:impresora_update' impresora.pk %}" class="btn btn-sm btn-outline-primary px-3 rounded-pill fw-bold">
+                            Configurar <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="empty-state-container p-5 glass-panel rounded-4">
+                <div class="icon-circle bg-light mb-4 mx-auto fa-4x text-muted opacity-25">
+                    <i class="fas fa-print"></i>
+                </div>
+                <h3 class="fw-bold">No hay impresoras conectadas</h3>
+                <p class="text-muted mb-4 mx-auto" style="max-width: 400px;">
+                    Para empezar a imprimir tickets o etiquetas, configura tu primer dispositivo de hardware.
+                </p>
+                <a href="{% url 'hardware_integration:impresora_create' %}" class="btn btn-primary px-5 py-2 fw-bold shadow">
+                    Configurar Primera Impresora
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginación Premium -->
+    {% if is_paginated %}
+    <nav class="mt-5">
+        <ul class="pagination justify-content-center gap-2">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link border-0 rounded-3 shadow-sm" href="?page={{ page_obj.previous_page_number }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item active"><span class="page-link border-0 rounded-3 shadow-sm px-4">{{ page_obj.number }}</span></li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link border-0 rounded-3 shadow-sm" href="?page={{ page_obj.next_page_number }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<style>
+    /* ===== ESTILOS PREMIUM IMPRESORAS ===== */
+    .btn-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        color: white;
+        border: none;
+        transition: all 0.3s ease;
+    }
+    .btn-gradient-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(78, 115, 223, 0.4);
+        color: white;
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+    .glass-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1) !important;
+        border-color: rgba(78, 115, 223, 0.2);
+    }
+
+    .input-group-premium {
+        background: #f8f9fc;
+        border-radius: 12px;
+        padding: 5px 10px;
+        border: 1px solid #e3e6f0;
+        transition: all 0.2s ease;
+    }
+    .input-group-premium:focus-within {
+        background: white;
+        border-color: #4e73df;
+        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.1);
+    }
+
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .btn-icon-round {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #b7b9cc;
+        transition: all 0.2s ease;
+    }
+    .btn-icon-round:hover {
+        background: rgba(0,0,0,0.05);
+        color: #4e73df;
+    }
+
+    .device-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 15px;
+        background: #f8f9fc;
+        padding: 12px;
+        border-radius: 12px;
+    }
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    .info-item .label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: #999;
+        font-weight: bold;
+        letter-spacing: 0.05em;
+    }
+    .info-item .value {
+        font-weight: 600;
+        color: #333;
+        font-size: 0.85rem;
+    }
+
+    /* Indicador de Pulso para Estado */
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .badge-pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        position: relative;
+    }
+    .badge-pulse::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: inherit;
+        animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    @keyframes pulse-ring {
+        0% { transform: scale(.7); opacity: 0.8; }
+        80%, 100% { transform: scale(2.5); opacity: 0; }
+    }
+
+    .bg-soft-success { background-color: rgba(40, 167, 69, 0.1); }
+    .bg-soft-danger { background-color: rgba(220, 53, 69, 0.1); }
+    .bg-soft-primary { background-color: rgba(78, 115, 223, 0.1); }
+
+    .tracking-wider { letter-spacing: 0.05em !important; }
+</style>
+{% endblock %}

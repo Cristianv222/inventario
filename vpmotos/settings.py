@@ -75,6 +75,9 @@ INSTALLED_APPS = [
     'taller.apps.TallerConfig',
     'compras.apps.ComprasConfig',
     'reportes.apps.ReportesConfig',
+    'hardware_integration.apps.HardwareIntegrationConfig',
+    'crispy_forms',
+    'crispy_bootstrap5',
 ]
 
 SHARED_APPS = [
@@ -88,6 +91,8 @@ SHARED_APPS = [
     'widget_tweaks',
     'core.apps.CoreConfig',
     'usuarios.apps.UsuariosConfig',
+    'crispy_forms',
+    'crispy_bootstrap5',
 ]
 
 TENANT_APPS = [
@@ -98,6 +103,9 @@ TENANT_APPS = [
     'taller.apps.TallerConfig',
     'compras.apps.ComprasConfig',
     'reportes.apps.ReportesConfig',
+    'hardware_integration.apps.HardwareIntegrationConfig',
+    'crispy_forms',
+    'crispy_bootstrap5',
 ]
 
 TENANT_MODEL = "core.Sucursal"
@@ -212,6 +220,12 @@ if not DEBUG:
 # DEFAULT PRIMARY KEY
 # ============================================================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ============================================================
+# CRISPY FORMS
+# ============================================================
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # ============================================================
 # CUSTOM USER MODEL

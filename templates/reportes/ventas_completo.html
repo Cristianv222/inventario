@@ -210,6 +210,7 @@
             <div class="rp-card">
                 <div class="rp-card-header">
                     <h6 class="rp-card-title"><i class="fas fa-box"></i>Top productos vendidos</h6>
+                    <a href="{% url 'reportes:reporte_ventas_productos' %}?periodo={{ periodo }}" class="btn btn-sm btn-outline-primary">Análisis Detallado</a>
                 </div>
                 <div style="overflow-x:auto;">
                     <table class="rp-table">

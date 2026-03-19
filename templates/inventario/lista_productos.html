@@ -23,9 +23,9 @@
                 <a href="{% url 'inventario:exportar_productos' %}" class="btn btn-info text-white">
                     <i class="fas fa-file-download me-1"></i> Exportar
                 </a>
-                <a href="{% url 'inventario:imprimir_etiquetas' %}" class="btn btn-warning text-white">
+                <button type="button" class="btn btn-warning text-white" id="btnImprimirMasivo" data-bs-toggle="tooltip" title="Impresión rápida de etiquetas">
                     <i class="fas fa-print me-1"></i> Etiquetas
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -164,10 +164,10 @@
                         data-bs-toggle="tooltip" title="Exportar productos">
                         <i class="fas fa-download"></i>
                     </a>
-                    <a href="{% url 'inventario:imprimir_etiquetas' %}" class="btn btn-sm btn-warning text-white"
+                    <button type="button" class="btn btn-sm btn-warning text-white btn-imprimir-modal-masivo"
                         data-bs-toggle="tooltip" title="Imprimir etiquetas">
                         <i class="fas fa-print"></i>
-                    </a>
+                    </button>
                     <a href="{% url 'inventario:lista_ajustes' %}" class="btn btn-sm btn-dark"
                         data-bs-toggle="tooltip" title="Ver ajustes">
                         <i class="fas fa-sliders-h"></i>
@@ -309,7 +309,7 @@
                             </span>
                         </td>
                         <td class="text-end">
-                            <strong class="text-success fw-bold">${{ producto.precio_final|floatformat:2 }}</strong>
+                            <strong class="text-success fw-bold">${{ producto.precio_venta|floatformat:2 }}</strong>
                         </td>
                         <td class="text-center">
                             {% if producto.stock_actual == 0 %}
@@ -351,6 +351,12 @@
                                     class="btn btn-warning text-white" title="Ajustar stock" data-bs-toggle="tooltip">
                                     <i class="fas fa-sliders-h"></i>
                                 </a>
+                                <button type="button" class="btn btn-warning text-white btn-imprimir-etiqueta"
+                                    data-producto-id="{{ producto.id }}"
+                                    data-producto-nombre="{{ producto.nombre }}"
+                                    title="Imprimir etiquetas" data-bs-toggle="tooltip">
+                                    <i class="fas fa-print"></i>
+                                </button>
                                 <button type="button"
                                     class="btn btn-{% if producto.activo %}danger{% else %}success{% endif %} btn-toggle-estado"
                                     data-producto-id="{{ producto.id }}"
@@ -490,6 +496,59 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Impresión de Etiquetas Premium -->
+<div class="modal fade" id="modalImprimirEtiquetas" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl glass-modal overflow-hidden">
+            <div class="modal-header border-0 bg-gradient-warning text-white p-4">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                        <i class="fas fa-print fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0">Impresión de Etiquetas</h5>
+                        <small class="opacity-75" id="modalImprimirEtiquetasSubtitulo">Configuración rápida</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <div class="product-preview mb-4 p-3 rounded-3 bg-light border border-dashed text-center">
+                    <p id="modalImprimirEtiquetasTexto" class="mb-0 fw-bold text-dark fs-5"></p>
+                    <span class="badge bg-soft-warning text-warning mt-2" id="previewBadge">Vista previa de impresión</span>
+                </div>
+                
+                <div class="quantity-selector-container">
+                    <label class="form-label fw-bold text-muted small text-uppercase tracking-wider mb-3">Cantidad de Tickets</label>
+                    <div class="d-flex align-items-center justify-content-center gap-3">
+                        <button class="btn btn-premium-circle" type="button" id="btnRestarEtiqueta">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <div class="quantity-input-wrapper">
+                            <input type="number" class="form-control-premium text-center" id="inputCantidadEtiquetas" value="1" min="1" max="100">
+                        </div>
+                        <button class="btn btn-premium-circle" type="button" id="btnSumarEtiqueta">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="printAlert" class="alert-premium d-none mt-4 animate__animated animate__fadeInUp"></div>
+            </div>
+            
+            <div class="modal-footer border-0 p-4 bg-light bg-opacity-50">
+                <button type="button" class="btn btn-link text-muted text-decoration-none fw-semibold me-auto" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-gradient-warning text-white px-5 py-2 fw-bold shadow-sm" id="btnConfirmarImpresion">
+                    <span id="btnTextImpresion">Imprimir Ahora</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block inventory_js %}
@@ -530,56 +589,221 @@
             function () { $(this).addClass('shadow-lg').css('transform', 'translateY(-2px)'); },
             function () { $(this).removeClass('shadow-lg').css('transform', 'translateY(0)'); }
         );
+        // ==================== IMPRESIÓN DE ETIQUETAS ====================
+        let currentProductoId = null;
+        const modalImprimir = new bootstrap.Modal(document.getElementById('modalImprimirEtiquetas'));
+
+        $('.btn-imprimir-etiqueta').on('click', function() {
+            currentProductoId = $(this).data('producto-id');
+            const nombre = $(this).data('producto-nombre');
+            
+            $('#modalImprimirEtiquetasTexto').text(`Imprimir para: ${nombre}`);
+            $('#inputCantidadEtiquetas').val(1);
+            $('#printAlert').addClass('d-none');
+            $('#btnConfirmarImpresion').prop('disabled', false);
+            $('#btnTextImpresion').text('Imprimir');
+            
+            modalImprimir.show();
+        });
+
+        $('#btnSumarEtiqueta').on('click', function() {
+            const val = parseInt($('#inputCantidadEtiquetas').val());
+            if (val < 100) $('#inputCantidadEtiquetas').val(val + 1);
+        });
+
+        $('#btnRestarEtiqueta').on('click', function() {
+            const val = parseInt($('#inputCantidadEtiquetas').val());
+            if (val > 1) $('#inputCantidadEtiquetas').val(val - 1);
+        });
+
+        $('#btnConfirmarImpresion').on('click', function() {
+            ejecutarImpresion();
+        });
+
+        $('#inputCantidadEtiquetas').on('keypress', function(e) {
+            if (e.which === 13) {
+                ejecutarImpresion();
+            }
+        });
+
+        function ejecutarImpresion() {
+            const cantidad = $('#inputCantidadEtiquetas').val();
+            const $btn = $('#btnConfirmarImpresion');
+            const $alert = $('#printAlert');
+
+            $btn.prop('disabled', true);
+            $('#btnTextImpresion').html('<i class="fas fa-circle-notch fa-spin me-2"></i> Procesando...');
+            
+            $.ajax({
+                url: `/inventario/imprimir-etiqueta-rapida/${currentProductoId}/`,
+                method: 'POST',
+                data: {
+                    'cantidad': cantidad,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    $alert.removeClass('d-none alert-danger').addClass('alert-success d-flex align-items-center')
+                          .html('<i class="fas fa-check-circle fs-4 me-3"></i> <div><strong>¡Excelente!</strong><br>' + response.message + '</div>');
+                    
+                    $('#btnTextImpresion').html('<i class="fas fa-check me-2"></i>¡Enviado!');
+                    $btn.addClass('btn-success').removeClass('btn-gradient-warning');
+                    
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                        colors: ['#ffc107', '#ffca2c', '#ffffff']
+                    });
+
+                    setTimeout(() => {
+                        modalImprimir.hide();
+                        $btn.prop('disabled', false).removeClass('btn-success').addClass('btn-gradient-warning');
+                        $('#btnTextImpresion').text('Imprimir Ahora');
+                    }, 2500);
+                },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : 'Error desconocido';
+                    $alert.removeClass('d-none alert-success').addClass('alert-danger d-flex align-items-center')
+                          .html('<i class="fas fa-exclamation-circle fs-4 me-3"></i> <div><strong>Ups...</strong><br>' + errorMsg + '</div>');
+                    $btn.prop('disabled', false);
+                    $('#btnTextImpresion').text('Reintentar');
+                }
+            });
+        }
+
+        $('.btn-imprimir-modal-masivo, #btnImprimirMasivo').on('click', function() {
+            Swal.fire({
+                title: 'Información',
+                text: 'Para impresión masiva, por favor use los filtros de búsqueda y luego seleccione los productos deseados (Función en desarrollo). Por ahora, use el botón de impresión individual en cada fila.',
+                icon: 'info'
+            });
+        });
     });
 </script>
 
 <style>
-    .card {
+    /* ===== ESTILOS PREMIUM & GLASSMORPHISM ===== */
+    .glass-modal {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #ff9800 0%, #ffc107 100%);
+    }
+
+    .bg-soft-warning {
+        background-color: rgba(255, 193, 7, 0.15);
+    }
+
+    .btn-premium-circle {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border: 2px solid #eee;
+        color: #555;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .btn-premium-circle:hover {
+        transform: scale(1.1);
+        background: #ffc107;
+        color: white;
+        border-color: #ffc107;
+        box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+    }
+
+    .quantity-input-wrapper {
+        width: 100px;
+    }
+
+    .form-control-premium {
+        border: none;
+        background: #f8f9fa;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #212529;
+        padding: 0;
+        height: auto;
+        border-radius: 12px;
         transition: all 0.3s ease;
     }
 
-    .btn {
-        transition: all 0.2s ease;
+    .form-control-premium:focus {
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+        outline: none;
     }
 
-    .table-responsive {
-        border-radius: 0;
+    /* Quitar flechas del input number */
+    .form-control-premium::-webkit-inner-spin-button,
+    .form-control-premium::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
     }
 
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.02);
+    .btn-gradient-warning {
+        background: linear-gradient(135deg, #ff9800 0%, #ffc107 100%);
+        border: none;
+        border-radius: 10px;
+        transition: all 0.3s ease;
     }
 
-    .badge {
-        font-weight: 500;
-        padding: 0.4em 0.8em;
+    .btn-gradient-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3);
     }
 
-    code {
-        font-size: 0.875rem;
-        font-weight: 500;
+    .alert-premium {
+        padding: 1rem;
+        border-radius: 12px;
+        font-size: 0.95rem;
     }
 
-    .pagination .page-link {
-        padding: 0.5rem 0.75rem;
-        border-radius: 0.25rem;
-        margin: 0 2px;
+    .alert-success.alert-premium {
+        background-color: rgba(40, 167, 69, 0.1);
+        border: 1px solid rgba(40, 167, 69, 0.2);
+        color: #1e7e34;
     }
 
-    .pagination .page-item.active .page-link {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
+    .alert-danger.alert-premium {
+        background-color: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.2);
+        color: #bd2130;
     }
 
-    @media (max-width: 768px) {
-        .card-body h3 {
-            font-size: 1.5rem;
-        }
+    .product-preview {
+        border-style: dashed !important;
+        border-width: 2px !important;
+        background: #fffbef !important;
+    }
 
-        .btn-group-sm>.btn {
-            padding: 0.25rem 0.4rem;
-            font-size: 0.75rem;
-        }
+    .tracking-wider {
+        letter-spacing: 0.05em;
+    }
+
+    /* Animaciones Generales */
+    .card {
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08) !important;
+    }
+
+    .table tr {
+        transition: transform 0.2s ease;
+    }
+
+    .table tr:hover {
+        transform: scale(1.002);
     }
 </style>
 {% endblock %}

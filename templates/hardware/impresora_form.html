@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} Impresora{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-9">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <div>
+                    <h1 class="h2 mb-0 fw-bold text-dark"><i class="fas fa-cog text-primary me-2"></i> {% if object %}Configurar{% else %}Vincular{% endif %} Impresora</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{% url 'hardware_integration:dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'hardware_integration:impresora_list' %}" class="text-decoration-none">Impresoras</a></li>
+                            <li class="breadcrumb-item active">{% if object %}Editar{% else %}Nueva{% endif %}</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger border-0 shadow-sm animate__animated animate__shakeX">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle fs-4 me-3"></i>
+                    <div>
+                        <strong class="d-block mb-1">Hay problemas con la información:</strong>
+                        <ul class="mb-0 small opacity-90">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="post" id="printerForm">
+                {% csrf_token %}
+                {{ form.codigo.as_hidden }}
+
+                <!-- Sección: Identificación Premium -->
+                <div class="card border-0 shadow-sm mb-4 glass-form-card">
+                    <div class="card-header bg-transparent border-0 p-4 pb-0">
+                        <h5 class="fw-bold text-primary mb-1"><i class="fas fa-info-circle me-2"></i> Identificación del Dispositivo</h5>
+                        <p class="text-muted small mb-0">Define cómo se reconocerá esta impresora en el sistema.</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Nombre de Referencia <span class="text-danger">*</span></label>
+                                <div class="form-icon-input">
+                                    <i class="fas fa-tag"></i>
+                                    {{ form.nombre }}
+                                </div>
+                                {% if form.nombre.errors %}<div class="text-danger x-small mt-1">{{ form.nombre.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Tipo de Uso <span class="text-danger">*</span></label>
+                                {{ form.tipo_impresora }}
+                                {% if form.tipo_impresora.errors %}<div class="text-danger x-small mt-1">{{ form.tipo_impresora.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Marca</label>
+                                {{ form.marca }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Modelo</label>
+                                {{ form.modelo }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Serie / S/N</label>
+                                {{ form.numero_serie }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Conexión Glassmorphism -->
+                <div class="card border-0 shadow-sm mb-4 glass-form-card highlight-border">
+                    <div class="card-header bg-transparent border-0 p-4 pb-0">
+                        <h5 class="fw-bold text-primary mb-1"><i class="fas fa-link me-2"></i> Parámetros de Comunicación</h5>
+                        <p class="text-muted small mb-0">Selecciona el método de conexión física o lógica.</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Interfaz de Conexión <span class="text-danger">*</span></label>
+                                {{ form.tipo_conexion }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Estado Operativo</label>
+                                {{ form.estado }}
+                            </div>
+                        </div>
+
+                        <!-- Paneles dinámicos de conexión -->
+                        <div id="seccion-usb" class="mt-4 p-3 rounded-4 bg-light border border-white connection-panel animate__animated animate__fadeIn">
+                            <h6 class="fw-bold mb-3 text-secondary small text-uppercase"><i class="fab fa-usb me-2"></i> Configuración USB</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">{{ form.puerto_usb }} <div class="form-text x-small">Puerto (COM / dev)</div></div>
+                                <div class="col-md-4">{{ form.vid_usb }} <div class="form-text x-small">Vendor ID</div></div>
+                                <div class="col-md-4">{{ form.pid_usb }} <div class="form-text x-small">Product ID</div></div>
+                            </div>
+                        </div>
+
+                        <div id="seccion-red" class="mt-4 p-3 rounded-4 bg-light border border-white connection-panel animate__animated animate__fadeIn">
+                            <h6 class="fw-bold mb-3 text-secondary small text-uppercase"><i class="fas fa-network-wired me-2"></i> Configuración de Red</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">{{ form.direccion_ip }} <div class="form-text x-small">IP del Dispositivo</div></div>
+                                <div class="col-md-6">{{ form.puerto_red }} <div class="form-text x-small">Puerto (9100 defecto)</div></div>
+                            </div>
+                        </div>
+
+                        <div id="seccion-serial" class="mt-4 p-3 rounded-4 bg-light border border-white connection-panel animate__animated animate__fadeIn">
+                            <h6 class="fw-bold mb-3 text-secondary small text-uppercase"><i class="fas fa-microchip me-2"></i> Configuración Serial</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">{{ form.puerto_serial }}</div>
+                                <div class="col-md-6">{{ form.baudrate }}</div>
+                            </div>
+                        </div>
+
+                        <div id="seccion-driver" class="mt-4 p-3 rounded-4 bg-light border border-white connection-panel animate__animated animate__fadeIn">
+                            <h6 class="fw-bold mb-3 text-secondary small text-uppercase"><i class="fas fa-windows me-2"></i> Driver del Sistema</h6>
+                            <div class="row g-3">
+                                <div class="col-md-12">{{ form.nombre_driver }} <div class="form-text x-small">Nombre exacto en cola de impresión</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Etiquetas (Solo si aplica) -->
+                <div id="seccion-etiquetas-premium" class="card border-0 shadow-sm mb-4 glass-form-card bg-soft-warning border-start border-warning border-4 animate__animated animate__fadeIn" style="display: none;">
+                    <div class="card-header bg-transparent border-0 p-4 pb-0">
+                        <h5 class="fw-bold text-warning-dark mb-1"><i class="fas fa-barcode me-2"></i> Especificaciones de Etiquetas</h5>
+                        <p class="text-muted small mb-0">Configura el formato físico y visual de las etiquetas.</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-uppercase tracking-wider">Ancho (mm)</label>
+                                {{ form.ancho_etiqueta }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-uppercase tracking-wider">Alto (mm)</label>
+                                {{ form.alto_etiqueta }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-uppercase tracking-wider">Gap (mm)</label>
+                                {{ form.gap_etiquetas }}
+                            </div>
+                        </div>
+                        <div class="p-3 bg-white bg-opacity-50 rounded-4 border border-white shadow-inner">
+                            <h6 class="fw-bold mb-3 small text-uppercase"><i class="fas fa-eye me-2"></i> Elementos a Imprimir</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch custom-switch">
+                                        {{ form.imprime_nombre }}
+                                        <label class="form-check-label fw-bold ms-2">Nombre</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch custom-switch">
+                                        {{ form.imprime_precio }}
+                                        <label class="form-check-label fw-bold ms-2">Precio</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch custom-switch">
+                                        {{ form.imprime_codigo_barras }}
+                                        <label class="form-check-label fw-bold ms-2">Código Barras</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Predeterminados -->
+                <div class="card border-0 shadow-sm mb-4 glass-form-card">
+                    <div class="card-header bg-transparent border-0 p-4 pb-0">
+                        <h5 class="fw-bold text-dark mb-1"><i class="fas fa-star text-warning me-2"></i> Prioridad en el Sistema</h5>
+                        <p class="text-muted small mb-0">Define si esta es la impresora por defecto para tareas específicas.</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="card-option p-3 rounded-4 border transition-all text-center">
+                                    <div class="form-check form-switch justify-content-center mb-2">
+                                        {{ form.es_principal_tickets }}
+                                    </div>
+                                    <label class="fw-bold small text-uppercase mb-0">Principal Tickets</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card-option p-3 rounded-4 border transition-all text-center">
+                                    <div class="form-check form-switch justify-content-center mb-2">
+                                        {{ form.es_principal_facturas }}
+                                    </div>
+                                    <label class="fw-bold small text-uppercase mb-0">Principal Facturas</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card-option p-3 rounded-4 border transition-all text-center">
+                                    <div class="form-check form-switch justify-content-center mb-2">
+                                        {{ form.es_principal_etiquetas }}
+                                    </div>
+                                    <label class="fw-bold small text-uppercase mb-0">Principal Etiquetas</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-5 bg-white p-3 rounded-4 shadow-sm border animate__animated animate__fadeInUp">
+                    <a href="{% url 'hardware_integration:impresora_list' %}" class="btn btn-light px-4 py-2 fw-bold text-muted">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                    <button type="submit" class="btn btn-gradient-primary px-5 py-2 fw-bold shadow-sm">
+                        <i class="fas fa-save me-2"></i> {% if object %}Actualizar{% else %}Guardar{% endif %} Dispositivo
+                    </button>
+                </div>
+            </form>
+
+            {% if object %}
+            <div class="alert alert-info border-0 shadow-sm p-4 rounded-4 bg-gradient-info text-white mb-5 animate__animated animate__fadeInUp" style="animation-delay: 0.3s">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="fw-bold mb-1"><i class="fas fa-vial me-2"></i> Verificación de Conexión</h5>
+                        <p class="mb-0 opacity-75">Envía una prueba de impresión para confirmar que los parámetros son correctos.</p>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                        <a href="{% url 'hardware_integration:impresora_test' object.pk %}" class="btn btn-white text-info fw-bold px-4 py-2 shadow-sm rounded-pill">
+                            <i class="fas fa-print me-1"></i> Realizar Test
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ===== ESTILOS PREMIUM FORMULARIO ===== */
+    .glass-form-card {
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 20px !important;
+    }
+
+    .highlight-border {
+        border-bottom: 3px solid #4e73df;
+    }
+
+    .bg-soft-warning { background-color: #fffbef !important; }
+    .text-warning-dark { color: #856404; }
+
+    .form-icon-input {
+        position: relative;
+    }
+    .form-icon-input i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #b7b9cc;
+    }
+    .form-icon-input input {
+        padding-left: 45px !important;
+    }
+
+    .form-control, .form-select {
+        border-radius: 12px;
+        padding: 0.7rem 1rem;
+        border: 1px solid #e3e6f0;
+        transition: all 0.2s ease;
+        background-color: #f8f9fc;
+    }
+    .form-control:focus, .form-select:focus {
+        background-color: white;
+        border-color: #4e73df;
+        box-shadow: 0 0 0 4px rgba(78, 115, 223, 0.1);
+    }
+
+    .custom-switch .form-check-input {
+        width: 3.5em;
+        height: 1.75em;
+        cursor: pointer;
+    }
+
+    .card-option {
+        cursor: pointer;
+        background: #f8f9fc;
+        border-color: #e3e6f0 !important;
+    }
+    .card-option:hover {
+        background: white;
+        border-color: #4e73df !important;
+        transform: translateY(-3px);
+    }
+    .card-option:has(.form-check-input:checked) {
+        background: #f0f3ff;
+        border-color: #4e73df !important;
+        box-shadow: 0 4px 12px rgba(78, 115, 223, 0.1);
+    }
+
+    .btn-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        color: white;
+    }
+    
+    .bg-gradient-info {
+        background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+    }
+
+    .btn-white {
+        background: white;
+        border: none;
+    }
+    .btn-white:hover {
+        background: #f8f9fc;
+        transform: translateY(-1px);
+    }
+
+    .x-small { font-size: 0.75rem; }
+    .tracking-wider { letter-spacing: 0.05em; }
+
+    .connection-panel {
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tipoConexion = document.getElementById('id_tipo_conexion');
+
+        function toggleSecciones() {
+            const val = tipoConexion ? tipoConexion.value : '';
+            document.getElementById('seccion-usb').style.display = (val === 'USB') ? '' : 'none';
+            document.getElementById('seccion-red').style.display = (['LAN', 'WIFI', 'RAW'].includes(val)) ? '' : 'none';
+            document.getElementById('seccion-serial').style.display = (val === 'SERIAL') ? '' : 'none';
+            document.getElementById('seccion-driver').style.display = (val === 'DRIVER') ? '' : 'none';
+            
+            // Nueva sección de etiquetas
+            const seccionEtiquetas = document.getElementById('seccion-etiquetas-premium');
+            const tipoImpresora = document.getElementById('id_tipo_impresora');
+            if (seccionEtiquetas && tipoImpresora) {
+                seccionEtiquetas.style.display = (tipoImpresora.value === 'ETIQUETAS') ? '' : 'none';
+            }
+        }
+
+        if (tipoConexion) {
+            tipoConexion.addEventListener('change', toggleSecciones);
+        }
+        
+        const tipoImpresora = document.getElementById('id_tipo_impresora');
+        if (tipoImpresora) {
+            tipoImpresora.addEventListener('change', toggleSecciones);
+        }
+        
+        toggleSecciones();
+    });
+</script>
+{% endblock %}

@@ -217,8 +217,8 @@
             <a href="{% url 'reportes:reporte_vendedores' %}" class="btn btn-sm btn-outline-secondary">
                 <i class="fas fa-users me-1"></i>Vendedores
             </a>
-            <a href="{% url 'reportes:crear_gasto' %}" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus me-1"></i>Registrar Gasto
+            <a href="{% url 'reportes:lista_gastos' %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-receipt me-1"></i>Gastos
             </a>
         </div>
     </div>
@@ -458,6 +458,9 @@
                         </a>
                         <a href="{% url 'reportes:reporte_ventas_completo' %}" class="rp-quick-btn">
                             <i class="fas fa-chart-bar text-vp-blue"></i>Reporte de Ventas
+                        </a>
+                        <a href="{% url 'reportes:reporte_ventas_productos' %}" class="rp-quick-btn">
+                            <i class="fas fa-boxes text-vp-yellow"></i>Ventas por Producto
                         </a>
                         {% if taller_disponible %}
                         <a href="{% url 'reportes:reporte_tecnicos' %}" class="rp-quick-btn">

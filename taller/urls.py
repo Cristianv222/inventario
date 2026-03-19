@@ -41,6 +41,9 @@ urlpatterns = [
     # Para templates que usan 'orden_cotizacion'
     path('ordenes/<int:pk>/cotizacion/alt/', views.generar_cotizacion_pdf, name='orden_cotizacion'),
     
+    # Orden de Trabajo PDF
+    path('ordenes/<int:pk>/pdf/', views.generar_orden_pdf, name='generar_orden_pdf'),
+    
     # Evaluaciones
     path('ordenes/<int:orden_pk>/evaluar/', views.EvaluacionServicioCreateView.as_view(), name='evaluacion_create'),
     

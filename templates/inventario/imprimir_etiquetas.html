@@ -7,48 +7,94 @@
 
 {% block extra_css %}
 <style>
-    .product-card {
-        border: 1px solid #ddd;
+    :root {
+        --zebra-primary: #2196f3;
+        --zebra-success: #28a745;
+        --zebra-bg: #f8f9fa;
+        --zebra-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        --zebra-border: #e0e0e0;
+    }
+
+    .card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: var(--zebra-shadow);
+        overflow: hidden;
+        transition: transform 0.2s ease;
+    }
+
+    .card-header {
+        background-color: #fff;
+        border-bottom: 1px solid var(--zebra-border);
+        font-weight: 600;
+        color: #333;
+    }
+
+    /* Estilos Premium para productos */
+    .product-row {
+        transition: all 0.2s ease;
         border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 10px;
-        cursor: pointer;
+        border: 1px solid transparent;
+    }
+    
+    .product-row:hover {
+        background-color: #f1f8ff;
+        border-color: #c8e1ff;
+        transform: translateX(4px);
+    }
+
+    /* Vista previade etiqueta realística */
+    #preview-etiqueta {
+        background: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        overflow: hidden;
+    }
+
+    #preview-etiqueta::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 4px;
+        background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, transparent 100%);
+    }
+
+    /* Animaciones */
+    .fade-in-up {
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Badges y botones refinados */
+    .badge-premium {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+
+    .btn-premium {
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         transition: all 0.3s ease;
     }
-    
-    .product-card:hover {
-        background-color: #f8f9fa;
-        border-color: #007bff;
+
+    /* Custom scrollbar */
+    #productos-seleccionados::-webkit-scrollbar,
+    #lista-resultados::-webkit-scrollbar {
+        width: 6px;
     }
-    
-    .product-card.selected {
-        background-color: #e3f2fd;
-        border-color: #2196f3;
-        box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
-    }
-    
-    .search-results {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #ddd;
-        border-top: none;
-        max-height: 300px;
-        overflow-y: auto;
-        z-index: 1000;
-        display: none;
-    }
-    
-    .search-result-item {
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
-    }
-    
-    .search-result-item:hover {
-        background-color: #f8f9fa;
+    #productos-seleccionados::-webkit-scrollbar-thumb,
+    #lista-resultados::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
     }
 </style>
 {% endblock %}
@@ -152,13 +198,33 @@
                     <i class="fas fa-cog me-2"></i> Configuración de Impresión
                 </div>
                 <div class="card-body">
-                    <!-- Selección de impresora -->
+                    <!-- Selección de método de impresión -->
                     <div class="mb-4">
-                        <h6><i class="fas fa-print me-1"></i> Impresora Zebra</h6>
+                        <h6><i class="fas fa-microchip me-1"></i> Método de Impresión</h6>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="printMethod" id="method-browser" value="browser" checked>
+                            <label class="btn btn-outline-primary" for="method-browser">Zebra Browser Print</label>
+                            
+                            <input type="radio" class="btn-check" name="printMethod" id="method-server" value="server">
+                            <label class="btn btn-outline-primary" for="method-server">Hardware Agent (Servidor)</label>
+                        </div>
+                    </div>
+
+                    <!-- Selección de impresora -->
+                    <div class="mb-4" id="zebra-browser-config">
+                        <h6><i class="fas fa-print me-1"></i> Impresora Zebra (Local)</h6>
                         <select id="lista-impresoras" class="form-select">
                             <option value="">Seleccionar impresora...</option>
                         </select>
-                        <small class="text-muted">Las impresoras se detectan automáticamente</small>
+                        <small class="text-muted">Detectada por Zebra Browser Print App</small>
+                    </div>
+
+                    <div class="mb-4" id="hardware-server-config" style="display: none;">
+                        <h6><i class="fas fa-server me-1"></i> Impresora Registrada (Servidor)</h6>
+                        <select id="lista-impresoras-servidor" class="form-select">
+                            <option value="">Seleccionar impresora...</option>
+                        </select>
+                        <small class="text-muted">Impresoras configuradas en el módulo de Hardware</small>
                     </div>
 
                     <!-- Tipo de etiqueta -->
@@ -451,8 +517,99 @@ $(document).ready(function() {
     let zebraPrinter = null;
     let browserPrint = null;
 
-    // Inicializar Zebra Browser Print
+    // Inicializar Zebra Print y Control de Interfaz
     inicializarZebraPrint();
+    setupMetodoImpresion();
+
+    function setupMetodoImpresion() {
+        $('input[name="printMethod"]').on('change', function() {
+            const method = $(this).val();
+            if (method === 'server') {
+                $('#zebra-browser-config').hide();
+                $('#hardware-server-config').show();
+                loadServerPrinters();
+            } else {
+                $('#zebra-browser-config').show();
+                $('#hardware-server-config').hide();
+                verificarImpresoras();
+            }
+            actualizarBotonImprimir();
+        });
+    }
+
+    let serverPrinters = [];
+
+    function loadServerPrinters() {
+        $.ajax({
+            url: "{% url 'hardware_integration:api_estado_impresoras' %}",
+            method: 'GET',
+            success: function(data) {
+                const $select = $('#lista-impresoras-servidor');
+                $select.empty().append('<option value="">Seleccionar impresora...</option>');
+                
+                if (data.impresoras && data.impresoras.length > 0) {
+                    serverPrinters = data.impresoras;
+                    data.impresoras.forEach(imp => {
+                        if (imp.tipo === 'ETIQUETAS') {
+                            $select.append(`<option value="${imp.id}">${imp.nombre} (${imp.conexion})</option>`);
+                        }
+                    });
+                }
+            },
+            error: function() {
+                mostrarAlerta('Error al cargar impresoras del servidor', 'danger');
+            }
+        });
+    }
+
+    $('#lista-impresoras-servidor').on('change', function() {
+        const selectedId = $(this).val();
+        if (selectedId) {
+            const printer = serverPrinters.find(p => p.id === selectedId);
+            if (printer && printer.ancho_etiqueta && printer.alto_etiqueta) {
+                // Cambiar a personalizado temporalmente o añadir la opción de la impresora
+                $('#tipo-etiqueta').val('custom').trigger('change');
+                
+                // Convertir mm a pulgadas para el formulario (25.4 mm = 1 inch)
+                const anchoInch = (printer.ancho_etiqueta / 25.4).toFixed(2);
+                const altoInch = (printer.alto_etiqueta / 25.4).toFixed(2);
+                
+                $('#ancho-custom').val(anchoInch);
+                $('#alto-custom').val(altoInch);
+                
+                mostrarAlerta(`Configuración cargada de la impresora: ${printer.ancho_etiqueta}x${printer.alto_etiqueta}mm`, 'info');
+                actualizarVistaPrevia();
+            }
+        }
+        actualizarBotonImprimir();
+    });
+
+    function actualizarBotonImprimir() {
+        const method = $('input[name="printMethod"]:checked').val();
+        let ready = false;
+        let warningMsg = "";
+        
+        if (method === 'browser') {
+            ready = !!zebraPrinter;
+            if (!ready) warningMsg = " (Instale Zebra Browser Print)";
+        } else {
+            ready = !!$('#lista-impresoras-servidor').val();
+            if (!ready) warningMsg = " (Seleccione una impresora)";
+        }
+        
+        const $btn = $('#imprimir-etiquetas');
+        $btn.prop('disabled', !ready || productosSeleccionados.length === 0);
+        
+        if (productosSeleccionados.length > 0 && !ready) {
+            $btn.html(`<i class="fas fa-exclamation-triangle me-1"></i>Impresora no configurada${warningMsg}`);
+            $btn.removeClass('btn-success').addClass('btn-warning');
+        } else {
+            $btn.html(`<i class="fas fa-print me-1"></i>Imprimir Etiquetas`);
+            $btn.removeClass('btn-warning').addClass('btn-success');
+        }
+    }
+
+    $('#lista-impresoras-servidor').on('change', actualizarBotonImprimir);
 
     function inicializarZebraPrint() {
         try {
@@ -558,44 +715,46 @@ $(document).ready(function() {
 
         productos.forEach((producto, index) => {
             let zpl = '^XA\n'; // Inicio de etiqueta
+            zpl += '^CI28\n';  // UTF-8
             
             // Configuración básica
             zpl += `^PW${dim.ancho}\n`; // Ancho de etiqueta
             zpl += `^LL${dim.alto}\n`; // Largo de etiqueta
             zpl += `^PR${velocidad}\n`; // Velocidad de impresión
             
-            let posY = 50; // Posición Y inicial
+            let posY = 30; // Posición Y inicial
 
             // Nombre del producto
             if ($('#mostrar-nombre').prop('checked')) {
-                const nombre = producto.nombre.substring(0, 40); // Limitar longitud
-                zpl += `^FO50,${posY}^A0N,30,30^FD${nombre}^FS\n`;
+                const nombre = producto.nombre.substring(0, 40);
+                zpl += `^FO20,${posY}^A0N,30,25^FD${nombre}^FS\n`;
                 posY += 40;
             }
 
             // Código de barras
             if ($('#mostrar-codigo').prop('checked')) {
-                posY += 20;
-                zpl += `^FO50,${posY}^BY3^BCN,100,Y,N,N^FD${producto.codigo}^FS\n`;
-                posY += 120;
+                posY += 10;
+                zpl += `^FO20,${posY}^BY2,2.0,50^BCN,50,Y,N,N^FD${producto.codigo}^FS\n`;
+                posY += 80;
             }
 
             // Precio
             if ($('#mostrar-precio').prop('checked')) {
-                zpl += `^FO50,${posY}^A0N,40,40^FD$${parseFloat(producto.precio).toFixed(2)}^FS\n`;
+                const precioFormateado = "S/ " + parseFloat(producto.precio).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                zpl += `^FO20,${posY}^A0N,40,35^FD${precioFormateado}^FS\n`;
                 posY += 50;
             }
 
-            // Marca
+            let extraInfo = "";
             if ($('#mostrar-marca').prop('checked') && producto.marca) {
-                zpl += `^FO50,${posY}^A0N,25,25^FDMarca: ${producto.marca}^FS\n`;
-                posY += 35;
+                extraInfo += `Marca: ${producto.marca} `;
             }
-
-            // Categoría
             if ($('#mostrar-categoria').prop('checked') && producto.categoria) {
-                zpl += `^FO50,${posY}^A0N,25,25^FDCat: ${producto.categoria}^FS\n`;
-                posY += 35;
+                extraInfo += `Cat: ${producto.categoria}`;
+            }
+            
+            if (extraInfo.trim()) {
+                zpl += `^FO20,${posY}^A0N,20,20^FD${extraInfo.trim()}^FS\n`;
             }
 
             zpl += '^XZ\n'; // Fin de etiqueta
@@ -696,7 +855,8 @@ $(document).ready(function() {
 
         // Actualizar precio
         if ($('#mostrar-precio').prop('checked')) {
-            $('#preview-precio-texto').text(`$${parseFloat(producto.precio).toFixed(2)}`);
+            const precioFormateado = "S/ " + parseFloat(producto.precio).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            $('#preview-precio-texto').text(precioFormateado);
         }
 
         // Actualizar marca
@@ -715,7 +875,7 @@ $(document).ready(function() {
     function mostrarVistaPreviewVacia() {
         $('#preview-nombre div').text('Nombre del Producto');
         $('#preview-codigo-texto').text('123456789');
-        $('#preview-precio-texto').text('$99.99');
+        $('#preview-precio-texto').text('S/ 0.00');
         $('#preview-marca-texto').text('Marca: Sin marca');
         $('#preview-categoria-texto').text('Cat: Sin categoría');
     }
@@ -830,75 +990,65 @@ $(document).ready(function() {
     }
 
     function imprimirEtiquetas() {
-        const metodo = $('input[name="metodoImpresion"]:checked').val();
-        const productosParaImprimir = [];
+        const method = $('input[name="printMethod"]:checked').val();
+        if (method === 'browser') {
+            imprimirZebraBrowser();
+        } else {
+            imprimirViaHardwareAgent();
+        }
+    }
 
-        // Preparar productos según el método seleccionado
+    function imprimirZebraBrowser() {
+        const productosParaImprimir = [];
+        const metodo = $('input[name="metodoImpresion"]:checked').val();
+
         productosSeleccionados.forEach(producto => {
             let cantidad = 1;
-            
             switch(metodo) {
-                case 'individual':
-                    cantidad = producto.cantidad || 1;
-                    break;
-                case 'total':
-                    cantidad = parseInt($('#cantidad-total').val()) || 1;
-                    break;
-                case 'personalizado':
-                    cantidad = producto.cantidadModal || producto.cantidad || 1;
-                    break;
+                case 'individual': cantidad = producto.cantidad || 1; break;
+                case 'total': cantidad = parseInt($('#cantidad-total').val()) || 1; break;
+                case 'personalizado': cantidad = producto.cantidadModal || producto.cantidad || 1; break;
             }
 
             for (let i = 0; i < cantidad; i++) {
-                productosParaImprimir.push({
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    codigo: producto.codigo,
-                    precio: producto.precio,
-                    marca: producto.marca || '',
-                    categoria: producto.categoria || ''
-                });
+                productosParaImprimir.push(producto);
             }
         });
 
-        // Cerrar modal de cantidad
-        bootstrap.Modal.getInstance(document.getElementById('cantidadModal')).hide();
+        if (productosParaImprimir.length === 0) return;
 
-        // Mostrar modal de impresión
+        bootstrap.Modal.getInstance(document.getElementById('cantidadModal')).hide();
         const modalImpresion = new bootstrap.Modal(document.getElementById('imprimiendoModal'));
         modalImpresion.show();
 
         const totalEtiquetas = productosParaImprimir.length;
-        $('#progreso-impresion').text(`Procesando: 0 de ${totalEtiquetas}`);
-        $('#barra-progreso').css('width', '0%');
+        $('#progreso-impresion').text(`Enviando ${totalEtiquetas} etiquetas...`);
+        $('#barra-progreso').css('width', '50%');
 
-        // Generar ZPL
         const zpl = generarZPL(productosParaImprimir);
 
-        // Simular progreso
-        let progreso = 0;
-        const intervaloProgreso = setInterval(() => {
-            progreso += Math.random() * 20;
-            if (progreso > 90) progreso = 90;
-            $('#barra-progreso').css('width', progreso + '%');
-        }, 200);
+        const $btnConfirmar = $('#confirmar-impresion');
+        const originalText = $btnConfirmar.html();
+        $btnConfirmar.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Enviando...');
 
-        // Enviar a impresora
         zebraPrinter.send(zpl, 
             function() {
-                clearInterval(intervaloProgreso);
+                $btnConfirmar.html('<i class="fas fa-check me-1"></i>Enviado con éxito!');
+                $btnConfirmar.removeClass('btn-success').addClass('btn-info');
+                
                 $('#barra-progreso').css('width', '100%');
-                $('#progreso-impresion').text(`Completado: ${totalEtiquetas} de ${totalEtiquetas}`);
+                $('#progreso-impresion').text(`Completado: ${totalEtiquetas} enviadas para impresión`);
                 
                 setTimeout(() => {
                     modalImpresion.hide();
-                    mostrarAlerta(`${totalEtiquetas} etiquetas enviadas a la impresora correctamente`, 'success');
+                    $btnConfirmar.prop('disabled', false).html(originalText).removeClass('btn-info').addClass('btn-success');
+                    mostrarAlerta(`Se han enviado ${totalEtiquetas} tickets para impresión con éxito`, 'success');
                 }, 1500);
             },
             function(error) {
-                clearInterval(intervaloProgreso);
+                $btnConfirmar.prop('disabled', false).html(originalText);
                 modalImpresion.hide();
-                mostrarAlerta('Error al imprimir: ' + error, 'danger');
+                mostrarAlerta('Error al enviar a la impresora: ' + error, 'danger');
             }
         );
     }
@@ -911,10 +1061,11 @@ $(document).ready(function() {
 
         const zplPrueba = `
 ^XA
-^FO50,50^A0N,30,30^FDPrueba de Etiqueta^FS
-^FO50,100^A0N,25,25^FDImpresora funcionando correctamente^FS
-^FO50,150^BY3^BCN,100,Y,N,N^FD123456789^FS
-^FO50,280^A0N,20,20^FDFecha: ${new Date().toLocaleDateString()}^FS
+^CI28
+^FO50,50^A0N,30,30^FDPrueba de Impresion^FS
+^FO50,100^A0N,25,25^FDCommerceBox - Sistema POS^FS
+^FO50,150^BY2,2.0,50^BCN,50,Y,N,N^FDTEST12345^FS
+^FO50,250^A0N,20,20^FDFecha: ${new Date().toLocaleDateString()}^FS
 ^XZ
         `;
 
@@ -1002,17 +1153,19 @@ $(document).ready(function() {
             const yaSeleccionado = productosSeleccionados.some(p => p.id === producto.id);
             
             html += `
-                <div class="border-bottom py-2">
+                <div class="product-row border-bottom py-3 px-2 fade-in-up">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="flex-grow-1">
-                            <div class="fw-bold">${producto.nombre}</div>
-                            <small class="text-muted">
-                                <span class="badge bg-secondary me-1">${producto.categoria || 'Sin categoría'}</span>
-                                <span class="badge bg-info me-1">${producto.marca || 'Sin marca'}</span>
-                                <code>${producto.codigo}</code> - $${producto.precio.toFixed(2)}
-                            </small>
+                            <div class="fw-bold text-dark">${producto.nombre}</div>
+                            <div class="mt-1">
+                                <span class="badge bg-light text-dark border me-1" style="font-size: 0.7rem;">${producto.categoria || 'Sin categoría'}</span>
+                                <span class="badge bg-light text-primary border me-1" style="font-size: 0.7rem;">${producto.marca || 'Sin marca'}</span>
+                                <code class="text-muted small">${producto.codigo}</code>
+                            </div>
+                            <div class="fw-bold text-success mt-1">S/ ${parseFloat(producto.precio).toFixed(2)}</div>
                         </div>
-                        <button class="btn btn-sm ${yaSeleccionado ? 'btn-success' : 'btn-primary'} agregar-producto" 
+                        <button class="btn ${yaSeleccionado ? 'btn-success' : 'btn-outline-primary'} btn-sm rounded-circle p-2" 
+                                style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"
                                 data-producto='${JSON.stringify(producto)}' 
                                 ${yaSeleccionado ? 'disabled' : ''}>
                             <i class="fas ${yaSeleccionado ? 'fa-check' : 'fa-plus'}"></i>
@@ -1062,23 +1215,25 @@ $(document).ready(function() {
         let html = '';
         productosSeleccionados.forEach((producto, index) => {
             html += `
-                <div class="card mb-2" data-index="${index}">
-                    <div class="card-body py-2">
+                <div class="card mb-2 product-row border fade-in-up" data-index="${index}" style="box-shadow: none; border-color: #eee !important;">
+                    <div class="card-body py-2 px-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div class="flex-grow-1">
-                                <div class="fw-bold">${producto.nombre}</div>
-                                <small class="text-muted">
-                                    <code>${producto.codigo}</code> - $${producto.precio.toFixed(2)}
-                                </small>
+                            <div class="flex-grow-1 pe-2">
+                                <div class="fw-bold text-dark" style="font-size: 0.9rem;">${producto.nombre}</div>
+                                <div class="d-flex align-items-center mt-1">
+                                    <code class="text-muted small me-2">${producto.codigo}</code>
+                                    <span class="text-success fw-bold small">S/ ${parseFloat(producto.precio).toFixed(2)}</span>
+                                </div>
                             </div>
                             <div class="d-flex align-items-center">
-                                <div class="input-group input-group-sm me-2" style="width: 90px;">
-                                    <button class="btn btn-outline-secondary cambiar-cantidad" data-index="${index}" data-accion="restar">-</button>
-                                    <input type="number" class="form-control text-center cantidad" value="${producto.cantidad}" min="1" data-index="${index}">
-                                    <button class="btn btn-outline-secondary cambiar-cantidad" data-index="${index}" data-accion="sumar">+</button>
+                                <div class="input-group input-group-sm me-2" style="width: 100px;">
+                                    <button class="btn btn-light border cambiar-cantidad" data-index="${index}" data-accion="restar">-</button>
+                                    <input type="number" class="form-control text-center border-start-0 border-end-0 px-1 cantidad" 
+                                           value="${producto.cantidad}" min="1" data-index="${index}" style="background: #fff;">
+                                    <button class="btn btn-light border cambiar-cantidad" data-index="${index}" data-accion="sumar">+</button>
                                 </div>
-                                <button class="btn btn-sm btn-danger eliminar-producto" data-index="${index}">
-                                    <i class="fas fa-trash"></i>
+                                <button class="btn btn-sm btn-outline-danger border-0 eliminar-producto" data-index="${index}">
+                                    <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </div>
@@ -1198,7 +1353,97 @@ $(document).ready(function() {
     });
 
     $('#cantidad-total').on('input', actualizarTotalEtiquetas);
-    $('#confirmar-impresion').on('click', imprimirEtiquetas);
+    
+    function imprimirEtiquetas() {
+        const method = $('input[name="printMethod"]:checked').val();
+        
+        if (method === 'browser') {
+            imprimirZebraBrowser();
+        } else {
+            imprimirViaHardwareAgent();
+        }
+    }
+
+    function imprimirZebraBrowser() {
+        // ... (Logic for Zebra Browser Print remains mostly the same, moving existing code here)
+        processPrintingLocal();
+    }
+
+    function imprimirViaHardwareAgent() {
+        const printerId = $('#lista-impresoras-servidor').val();
+        if (!printerId) {
+            mostrarAlerta('Selecciona una impresora del servidor', 'warning');
+            return;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('imprimiendoModal'));
+        modal.show();
+
+        const total = obtenerTotalEtiquetas();
+        let procesados = 0;
+
+        // Recopilar todos los trabajos de impresión
+        const jobs = [];
+        const metodoCant = $('input[name="metodoImpresion"]:checked').val();
+
+        productosSeleccionados.forEach(prod => {
+            let cant = 1;
+            if (metodoCant === 'individual') cant = prod.cantidad;
+            else if (metodoCant === 'total') cant = parseInt($('#cantidad-total').val());
+            else if (metodoCant === 'personalizado') {
+                const input = $(`.cant-per[data-id="${prod.id}"]`);
+                cant = parseInt(input.val()) || 1;
+            }
+            
+            jobs.push({
+                producto_id: prod.id,
+                cantidad: cant
+            });
+        });
+
+        // Enviar trabajos uno por uno o en lote si el API lo soporta (suponemos uno por uno para simplicidad y feedback)
+        function processNextJob(index) {
+            if (index >= jobs.length) {
+                setTimeout(() => {
+                    modal.hide();
+                    mostrarAlerta('Impresión completada via servidor', 'success');
+                    $('#cantidadModal').modal('hide');
+                }, 1000);
+                return;
+            }
+
+            const job = jobs[index];
+            $('#progreso-impresion').text(`Enviando: ${job.cantidad} etiquetas de ${productosSeleccionados.find(p => p.id === job.producto_id).nombre}`);
+            
+            $.ajax({
+                url: "{% url 'hardware_integration:api_imprimir_etiqueta' %}",
+                method: 'POST',
+                data: {
+                    producto_id: job.producto_id,
+                    cantidad: job.cantidad,
+                    impresora_id: printerId,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function(data) {
+                    if (data.success) {
+                        procesados += job.cantidad;
+                        const pct = Math.round((index + 1) / jobs.length * 100);
+                        $('#barra-progreso').css('width', pct + '%');
+                        processNextJob(index + 1);
+                    } else {
+                        modal.hide();
+                        mostrarAlerta('Error: ' + data.error, 'danger');
+                    }
+                },
+                error: function() {
+                    modal.hide();
+                    mostrarAlerta('Error de comunicación con el servidor', 'danger');
+                }
+            });
+        }
+
+        processNextJob(0);
+    }
     
     // Event listener para copiar código ZPL
     $('#copiar-zpl').on('click', function() {

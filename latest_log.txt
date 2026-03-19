@@ -1,0 +1,50 @@
+Esperando a que la base de datos esté lista...
+db:5432 - accepting connections
+Base de datos lista!
+Aplicando migraciones...
+SETTINGS RELOADED! DEBUG IS True
+=== Starting migration
+Traceback (most recent call last):
+  File "/app/manage.py", line 22, in <module>
+    main()
+  File "/app/manage.py", line 18, in main
+    execute_from_command_line(sys.argv)
+  File "/usr/local/lib/python3.11/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/usr/local/lib/python3.11/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/usr/local/lib/python3.11/site-packages/django/core/management/base.py", line 416, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/usr/local/lib/python3.11/site-packages/django/core/management/base.py", line 460, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django_tenants/management/commands/migrate_schemas.py", line 66, in handle
+    executor.run_migrations(tenants=[self.PUBLIC_SCHEMA_NAME])
+  File "/usr/local/lib/python3.11/site-packages/django_tenants/migration_executors/standard.py", line 11, in run_migrations
+    run_migrations(self.args, self.options, self.codename, self.PUBLIC_SCHEMA_NAME)
+  File "/usr/local/lib/python3.11/site-packages/django_tenants/migration_executors/base.py", line 61, in run_migrations
+    migrate_command_class(stdout=stdout, stderr=stderr).execute(*args, **options)
+  File "/usr/local/lib/python3.11/site-packages/django/core/management/base.py", line 460, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/core/management/base.py", line 107, in wrapper
+    res = handle_func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/core/management/commands/migrate.py", line 114, in handle
+    executor = MigrationExecutor(connection, self.migration_progress_callback)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/migrations/executor.py", line 18, in __init__
+    self.loader = MigrationLoader(self.connection)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/migrations/loader.py", line 58, in __init__
+    self.build_graph()
+  File "/usr/local/lib/python3.11/site-packages/django/db/migrations/loader.py", line 276, in build_graph
+    self.graph.validate_consistency()
+  File "/usr/local/lib/python3.11/site-packages/django/db/migrations/graph.py", line 198, in validate_consistency
+    [n.raise_error() for n in self.node_map.values() if isinstance(n, DummyNode)]
+  File "/usr/local/lib/python3.11/site-packages/django/db/migrations/graph.py", line 198, in <listcomp>
+    [n.raise_error() for n in self.node_map.values() if isinstance(n, DummyNode)]
+     ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/migrations/graph.py", line 60, in raise_error
+    raise NodeNotFoundError(self.error_message, self.key, origin=self.origin)
+django.db.migrations.exceptions.NodeNotFoundError: Migration hardware_integration.0002_trabajoimpresion dependencies reference nonexistent parent node ('inventory_management', '0003_agregar_marca')

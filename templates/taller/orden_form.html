@@ -1746,9 +1746,10 @@ function addServiceToFormset(service, technicianId, technicianName) {
             name: service.nombre,
             technician_id: technicianId,
             technician_name: technicianName,
-            price: service.precio || 0,
+            price: service.price || service.precio || 0,
             quantity: 1,
-            isExisting: false
+            isExisting: false,
+            es_personalizable: service.es_personalizable || false
         });
     }
     
@@ -1777,9 +1778,23 @@ function updateServiciosDisplay() {
         return `
             <div class="item-row">
                 <div class="item-info">
-                    <div class="item-name">${escapeHtml(item.name)}</div>
+                    ${item.es_personalizable ? 
+                        `<input type="text" class="form-control form-control-sm mb-1 fw-bold" 
+                                value="${escapeHtml(item.name)}" 
+                                onchange="updateServicioField(${index}, 'name', this.value)"
+                                placeholder="Nombre personalizado">` :
+                        `<div class="item-name">${escapeHtml(item.name)}</div>`
+                    }
                     <div class="item-code">${escapeHtml(item.code || '')}</div>
-                    <div class="item-price">$${item.price.toFixed(2)} c/u</div>
+                    ${item.es_personalizable ?
+                        `<div class="input-group input-group-sm mt-1" style="max-width: 150px;">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" 
+                                   value="${item.price}" step="0.01" 
+                                   onchange="updateServicioField(${index}, 'price', this.value)">
+                        </div>` :
+                        `<div class="item-price">$${item.price.toFixed(2)} c/u</div>`
+                    }
                     ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
                 </div>
                 <div class="quantity-controls">
@@ -1798,6 +1813,17 @@ function updateServiciosDisplay() {
             </div>
         `;
     }).join('');
+}
+
+function updateServicioField(index, field, value) {
+    if (field === 'price') {
+        serviciosFormset[index].price = parseFloat(value) || 0;
+    } else if (field === 'name') {
+        serviciosFormset[index].name = value;
+    }
+    
+    calculateTotals();
+    // No llamamos a updateServiciosDisplay aquí para evitar perder el foco del input
 }
 
 function updateServicioQuantity(index, newQuantity) {
@@ -2105,6 +2131,7 @@ function syncServiciosFormset() {
         html += `
             <input type="hidden" name="servicios-${index}-tipo_servicio" value="${item.id}">
             <input type="hidden" name="servicios-${index}-tecnico_asignado" value="${item.technician_id || ''}">
+            <input type="hidden" name="servicios-${index}-nombre_servicio_personalizado" value="${item.es_personalizable ? item.name : ''}">
             <input type="hidden" name="servicios-${index}-precio_servicio" value="${item.price}">
             <input type="hidden" name="servicios-${index}-observaciones" value="">
             <input type="hidden" name="servicios-${index}-DELETE" value="">

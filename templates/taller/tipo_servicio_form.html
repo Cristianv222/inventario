@@ -501,7 +501,7 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="feature-toggle" id="ivaToggle" onclick="toggleSwitch('incluye_iva')">
+                            <div class="feature-toggle" id="incluye_ivaToggle" onclick="toggleSwitch('incluye_iva')">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1">¿Aplicar IVA al precio?</h6>
@@ -529,6 +529,22 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="col-md-12">
+                            <div class="card bg-light border-warning p-3 mb-3">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" name="es_personalizable" class="form-check-input" id="id_es_personalizable" 
+                                           {% if form.es_personalizable.value %}checked{% endif %}
+                                           onchange="handlePersonalizableChange(this)">
+                                    <label class="form-check-label fw-bold" for="id_es_personalizable">
+                                        ¿TIPO DE SERVICIO EDITABLE / GENÉRICO? <span class="badge bg-danger">VERSIÓN NUEVA</span>
+                                    </label>
+                                    <div class="text-muted small mt-1">
+                                        Active esta opción si desea que este servicio sea un "comodín" (ej: "OTROS") que le permita escribir el nombre y precio manualmente cada vez que lo use.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -551,7 +567,7 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="feature-toggle" id="repuestosToggle" onclick="toggleSwitch('requiere_repuestos')">
+                            <div class="feature-toggle" id="requiere_repuestosToggle" onclick="toggleSwitch('requiere_repuestos')">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1">¿Requiere Repuestos?</h6>
@@ -709,7 +725,6 @@ function toggleSwitch(fieldName) {
         console.error('❌ Checkbox no encontrado:', 'id_' + fieldName);
         return;
     }
-    
     // Toggle el estado
     checkbox.checked = !checkbox.checked;
     
@@ -723,7 +738,6 @@ function toggleSwitch(fieldName) {
             slider.classList.remove('checked');
         }
     }
-    
     if (toggle) {
         if (checkbox.checked) {
             toggle.classList.add('active');
@@ -739,6 +753,34 @@ function toggleSwitch(fieldName) {
     }
 }
 
+function handlePersonalizableChange(checkbox) {
+    console.log('📝 Cambio en personalizable:', checkbox.checked);
+    
+    if (checkbox.checked) {
+        const nombreInput = document.getElementById('id_nombre');
+        const codigoInput = document.getElementById('id_codigo');
+        const precioInput = document.getElementById('id_precio');
+        
+        // Si el nombre está vacío, sugerir "SERVICIO GENÉRICO - OTROS"
+        if (nombreInput && !nombreInput.value) {
+            nombreInput.value = "OTROS / SERVICIOS VARIOS";
+        }
+        
+        // Generar código si está vacío
+        if (codigoInput && !codigoInput.value) {
+            generarCodigo();
+        }
+        
+        // Enfocar el precio para que el usuario ponga uno base (aunque sea 0)
+        if (precioInput && !precioInput.value) {
+            precioInput.value = "0";
+        }
+        
+        updatePreview();
+        updateCalculator();
+    }
+}
+
 // ============================================
 // INICIALIZACIÓN
 // ============================================
@@ -749,6 +791,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSwitch('incluye_iva');
     initializeSwitch('activo');
     initializeSwitch('requiere_repuestos');
+    // es_personalizable ahora se maneja por su propia función handlePersonalizableChange
     
     // Inicializar calculadora y preview
     updateCalculator();
@@ -1085,7 +1128,7 @@ function probarEnPOS() {
 const servicioForm = document.getElementById('servicioForm');
 if (servicioForm) {
     servicioForm.addEventListener('submit', function(e) {
-        const requiredFields = ['id_nombre', 'id_codigo', 'id_precio', 'id_tiempo_estimado_horas'];
+        const requiredFields = ['id_nombre', 'id_codigo', 'id_precio'];
         let isValid = true;
         
         requiredFields.forEach(fieldId => {

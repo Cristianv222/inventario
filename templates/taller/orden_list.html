@@ -419,6 +419,11 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item" href="{% url 'taller:generar_orden_pdf' orden.pk %}">
+                                            <i class="fas fa-file-pdf me-2 text-danger"></i>Descargar PDF
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item" href="{% url 'taller:orden_update' orden.pk %}">
                                             <i class="fas fa-edit me-2"></i>Editar
                                         </a>

@@ -227,13 +227,6 @@
         {% endif %}
         <div class="col-6 col-lg-2">
             <div class="rp-stat">
-                <div class="rp-stat-icon red"><i class="fas fa-arrow-down"></i></div>
-                <div class="rp-stat-val" style="color:var(--vp-red)">${{ cierre.total_gastos_dia|floatformat:2 }}</div>
-                <div class="rp-stat-label">Gastos</div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-2">
-            <div class="rp-stat">
                 <div class="rp-stat-icon green"><i class="fas fa-flag-checkered"></i></div>
                 <div class="rp-stat-val" style="color:{% if cierre.saldo_final >= 0 %}var(--vp-green){% else %}var(--vp-red){% endif %}">
                     ${{ cierre.saldo_final|floatformat:2 }}
@@ -521,20 +514,14 @@
                 <div class="modal-body" style="padding:1.25rem;">
 
                     <!-- Resumen rápido -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-4">
+                    <div class="row g-2 mb-3 justify-content-center">
+                        <div class="col-5">
                             <div style="background:var(--vp-green-light);border:1px solid #86efac;border-radius:8px;padding:.75rem;text-align:center;">
                                 <div style="font-size:.7rem;text-transform:uppercase;color:var(--vp-green);font-weight:700;">Ingresos</div>
                                 <div style="font-size:1.15rem;font-weight:700;color:var(--vp-green);">${{ cierre.total_ingresos|floatformat:2 }}</div>
                             </div>
                         </div>
-                        <div class="col-4">
-                            <div style="background:var(--vp-red-light);border:1px solid #fca5a5;border-radius:8px;padding:.75rem;text-align:center;">
-                                <div style="font-size:.7rem;text-transform:uppercase;color:var(--vp-red);font-weight:700;">Gastos</div>
-                                <div style="font-size:1.15rem;font-weight:700;color:var(--vp-red);">${{ cierre.total_gastos_dia|floatformat:2 }}</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
+                        <div class="col-5">
                             <div style="background:var(--vp-blue-light);border:1px solid #bfdbfe;border-radius:8px;padding:.75rem;text-align:center;">
                                 <div style="font-size:.7rem;text-transform:uppercase;color:var(--vp-blue);font-weight:700;">Efectivo esperado</div>
                                 <div style="font-size:1.15rem;font-weight:700;color:var(--vp-blue);" id="efectivo-esperado-modal">${{ cierre.efectivo_ventas|floatformat:2 }}</div>

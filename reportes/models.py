@@ -75,21 +75,25 @@ class MovimientoCaja(models.Model):
         return f"{self.fecha} - {tipo}: ${self.monto} ({self.concepto})"
 
 
+class CategoriaGasto(models.Model):
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Categoría de Gasto'
+        verbose_name_plural = 'Categorías de Gastos'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class GastoDiario(models.Model):
     """Gastos del negocio — módulo independiente, NO ligado a caja"""
-    CATEGORIA_CHOICES = [
-        ('OPERATIVO', 'Gasto Operativo'),
-        ('ADMINISTRATIVO', 'Gasto Administrativo'),
-        ('MANTENIMIENTO', 'Mantenimiento'),
-        ('SERVICIOS_PUBLICOS', 'Servicios Públicos'),
-        ('NOMINA', 'Nómina'),
-        ('IMPUESTOS', 'Impuestos'),
-        ('MARKETING', 'Marketing'),
-        ('OTROS', 'Otros'),
-    ]
-
     fecha = models.DateField(default=timezone.now)
-    categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES)
+    categoria = models.ForeignKey(CategoriaGasto, on_delete=models.PROTECT, null=True, blank=True)
     concepto = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True, null=True)
     monto = models.DecimalField(max_digits=10, decimal_places=2)
@@ -202,8 +206,7 @@ class CierreDiario(models.Model):
     efectivo_contado = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     diferencia_efectivo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
-    # Gastos (referencial, no ligado directamente)
-    total_gastos_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Gastos han sido removidos del cierre de caja
 
     # Totales finales
     total_ingresos = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -297,11 +300,7 @@ class CierreDiario(models.Model):
         self.total_ordenes_taller = ordenes.aggregate(
             total=Sum('precio_total'))['total'] or Decimal('0.00')
 
-        # ── Gastos aprobados del día (solo referencial) ───────────
-        self.total_gastos_dia = GastoDiario.objects.filter(
-            fecha=self.fecha,
-            aprobado=True
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        # ── Gastos (eliminados del alcance de la caja física) ─────
 
         # ── Totales finales ───────────────────────────────────────
         self.total_ingresos = (
@@ -311,12 +310,13 @@ class CierreDiario(models.Model):
             + self.total_ventas_online
             + self.total_ordenes_taller
         )
-        self.total_egresos = self.total_gastos_dia
+        self.total_egresos = Decimal('0.00') # Placeholder por si en el futuro hay retiros de caja
+        # El saldo final del día se asume igual a saldo inicial + ingresos (ya no restamos gastos de este flujo de efectivo)
         self.saldo_final = self.saldo_inicial + self.total_ingresos - self.total_egresos
 
         # ── Diferencia efectivo (si ya hay conteo físico) ─────────
         if self.efectivo_contado is not None:
-            efectivo_esperado = self.saldo_inicial + self.efectivo_ventas - self.total_gastos_dia
+            efectivo_esperado = self.saldo_inicial + self.efectivo_ventas - self.total_egresos
             self.diferencia_efectivo = self.efectivo_contado - efectivo_esperado
 
     def calcular_efectivo_desde_desglose(self):
@@ -331,7 +331,7 @@ class CierreDiario(models.Model):
                 estado='COMPLETADA',
                 tipo_pago='EFECTIVO'
             ).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
-            efectivo_esperado = self.saldo_inicial + ventas_efectivo - self.total_gastos_dia
+            efectivo_esperado = self.saldo_inicial + ventas_efectivo - self.total_egresos
             self.diferencia_efectivo = self.efectivo_contado - efectivo_esperado
         self.save(update_fields=['efectivo_contado', 'diferencia_efectivo'])
         return self.efectivo_contado
@@ -412,16 +412,22 @@ class ResumenMensual(models.Model):
             servicios=Sum('total_ventas_servicios'),
             online=Sum('total_ventas_online'),
             taller=Sum('total_ordenes_taller'),
-            gastos=Sum('total_gastos_dia'),
             iva=Sum('total_iva_cobrado'),
             cant_ventas=Sum('cantidad_ventas'),
         )
+        
+        # Gastos independientes sumados por mes
+        gastos_mes = GastoDiario.objects.filter(
+            fecha__range=[primer_dia, ultimo_dia],
+            aprobado=True
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
         self.total_ventas = totales['ventas'] or Decimal('0.00')
         self.total_ventas_productos = totales['productos'] or Decimal('0.00')
         self.total_ventas_servicios = totales['servicios'] or Decimal('0.00')
         self.total_ventas_online = totales['online'] or Decimal('0.00')
         self.total_ordenes_taller = totales['taller'] or Decimal('0.00')
-        self.total_gastos = totales['gastos'] or Decimal('0.00')
+        self.total_gastos = gastos_mes
         self.total_iva = totales['iva'] or Decimal('0.00')
         self.cantidad_ventas = totales['cant_ventas'] or 0
         self.dias_operacion = cierres.count()

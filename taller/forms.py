@@ -84,7 +84,8 @@ class TipoServicioForm(forms.ModelForm):
             'tiempo_estimado_horas',
             'requiere_repuestos',
             'requiere_especialidad',
-            'nivel_dificultad'
+            'nivel_dificultad',
+            'es_personalizable'
         ]
         
         labels = {
@@ -97,7 +98,8 @@ class TipoServicioForm(forms.ModelForm):
             'tiempo_estimado_horas': 'Tiempo Estimado (horas)',
             'requiere_repuestos': 'Requiere Repuestos',
             'requiere_especialidad': 'Requiere Especialidad',
-            'nivel_dificultad': 'Nivel de Dificultad'
+            'nivel_dificultad': 'Nivel de Dificultad',
+            'es_personalizable': '¿Es Personalizable? (Permite editar nombre y precio al seleccionarlo)'
         }
         
         widgets = {
@@ -269,13 +271,15 @@ class ServicioOrdenForm(forms.ModelForm):
         model = ServicioOrden
         fields = [
             'tipo_servicio',
+            'nombre_servicio_personalizado',
             'tecnico_asignado',
-            'precio_servicio',  # ✅ CORREGIDO - nombre real del campo en el modelo
+            'precio_servicio',
             'observaciones'
         ]
         
         labels = {
-            'tipo_servicio': 'Servicio',
+            'tipo_servicio': 'Servicio (opcional)',
+            'nombre_servicio_personalizado': 'Nombre Personalizado',
             'tecnico_asignado': 'Técnico Asignado',
             'precio_servicio': 'Precio Total',
             'observaciones': 'Observaciones'
@@ -286,14 +290,17 @@ class ServicioOrdenForm(forms.ModelForm):
                 'class': 'form-select servicio-select',
                 'data-precio-url': '/taller/ajax/precio-servicio/'
             }),
+            'nombre_servicio_personalizado': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Solo si el servicio es manual/genérico'
+            }),
             'tecnico_asignado': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'precio_servicio': forms.NumberInput(attrs={  # ✅ CORREGIDO
+            'precio_servicio': forms.NumberInput(attrs={
                 'class': 'form-control precio-servicio',
                 'step': '0.01',
-                'min': '0',
-                'readonly': 'readonly'
+                'min': '0'
             }),
             'observaciones': forms.Textarea(attrs={
                 'class': 'form-control',

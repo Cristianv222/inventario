@@ -9,6 +9,7 @@ urlpatterns = [
 
     # ── Reporte de ventas unificado (POS + online + taller) ───────
     path('ventas/', views.reporte_ventas_completo, name='reporte_ventas_completo'),
+    path('ventas/productos/', views.reporte_ventas_productos, name='reporte_ventas_productos'),
 
     # ── Reportes por técnico ──────────────────────────────────────
     path('tecnicos/', views.reporte_tecnicos, name='reporte_tecnicos'),
@@ -23,6 +24,12 @@ urlpatterns = [
     path('caja/<int:cierre_id>/desglose/', views.guardar_desglose_billetes, name='guardar_desglose'),
 
     # ── Gastos (módulo independiente) ─────────────────────────────
+    path('gastos/categorias/', views.lista_categorias_gastos, name='lista_categorias_gastos'),
+    path('gastos/categorias/crear/', views.crear_categoria_gasto, name='crear_categoria_gasto'),
+    path('gastos/categorias/<int:categoria_id>/editar/', views.editar_categoria_gasto, name='editar_categoria_gasto'),
+    path('gastos/categorias/<int:categoria_id>/eliminar/', views.eliminar_categoria_gasto, name='eliminar_categoria_gasto'),
+    path('gastos/categorias/api/crear/', views.api_crear_categoria_gasto, name='api_crear_categoria_gasto'),
+
     path('gastos/', views.lista_gastos, name='lista_gastos'),
     path('gastos/crear/', views.crear_gasto, name='crear_gasto'),
     path('gastos/<int:pk>/editar/', views.editar_gasto, name='editar_gasto'),

@@ -342,7 +342,7 @@
                                 {% if detalle.producto %}
                                     {{ detalle.producto.nombre }}
                                 {% else %}
-                                    {{ detalle.tipo_servicio.nombre }}
+                                    {{ detalle.nombre_personalizado|default:detalle.tipo_servicio.nombre }}
                                 {% endif %}
                             </strong>
                             {% if detalle.producto %}
@@ -399,38 +399,124 @@
 
 {% block extra_js %}
 <script>
-function imprimirVenta() {
-    // Opciones de impresión
+let availablePrinters = [];
+
+async function loadPrinters() {
+    try {
+        const response = await fetch('/hardware/api/estado-impresoras/');
+        const data = await response.json();
+        if (data.success) {
+            availablePrinters = data.impresoras.filter(p => p.tipo === 'TICKET');
+        }
+    } catch (error) {
+        console.error('Error loading printers:', error);
+    }
+}
+
+async function imprimirVenta() {
+    await loadPrinters();
+    
+    let printerOptions = availablePrinters.map(p => 
+        `<option value="${p.id}">${p.nombre} (${p.identificador})</option>`
+    ).join('');
+
     Swal.fire({
         title: 'Opciones de Impresión',
         html: `
             <div class="text-start">
-                <div class="form-check mb-2">
+                <div class="form-check mb-3">
                     <input class="form-check-input" type="radio" name="printType" id="printTicket" value="ticket" checked>
                     <label class="form-check-label" for="printTicket">
-                        <i class="fas fa-receipt me-2"></i>Ticket Térmico
+                        <i class="fas fa-receipt me-2"></i>Ticket Térmico (Servidor)
                     </label>
                 </div>
-                <div class="form-check mb-2">
+                
+                <div id="printer-selection" class="mb-3 ps-4">
+                    <label class="small text-muted mb-1">Seleccionar Impresora:</label>
+                    <select id="selectedPrinter" class="form-select form-select-sm">
+                        ${printerOptions || '<option value="">Ninguna impresora activa</option>'}
+                    </select>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="openDrawer" value="true" checked>
+                        <label class="form-check-label small" for="openDrawer">Abrir Gaveta</label>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
                     <input class="form-check-input" type="radio" name="printType" id="printInvoice" value="invoice">
                     <label class="form-check-label" for="printInvoice">
-                        <i class="fas fa-file-invoice me-2"></i>Factura Completa
+                        <i class="fas fa-file-pdf me-2"></i>Factura Completa (PDF)
+                    </label>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="printType" id="printPreview" value="preview">
+                    <label class="form-check-label" for="printPreview">
+                        <i class="fas fa-eye me-2"></i>Vista Previa Ticket
                     </label>
                 </div>
             </div>
         `,
         showCancelButton: true,
         confirmButtonText: 'Imprimir',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
+        cancelButtonText: 'Cancelar',
+        didOpen: () => {
+            const ticketRadio = document.getElementById('printTicket');
+            const previewRadio = document.getElementById('printPreview');
+            const printerDiv = document.getElementById('printer-selection');
+            
+            const updateVisibility = () => {
+                printerDiv.style.opacity = ticketRadio.checked ? '1' : '0.4';
+                document.getElementById('selectedPrinter').disabled = !ticketRadio.checked;
+                document.getElementById('openDrawer').disabled = !ticketRadio.checked;
+            };
+
+            document.querySelectorAll('input[name="printType"]').forEach(radio => {
+                radio.addEventListener('change', updateVisibility);
+            });
+        }
+    }).then(async (result) => {
         if (result.isConfirmed) {
             const printType = document.querySelector('input[name="printType"]:checked').value;
             
             if (printType === 'ticket') {
-                // Imprimir ticket térmico
+                const printerId = document.getElementById('selectedPrinter').value;
+                const openDrawer = document.getElementById('openDrawer').checked;
+                
+                if (!printerId) {
+                    Swal.fire('Error', 'Debe seleccionar una impresora', 'error');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Enviando a impresora...',
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                try {
+                    const formData = new FormData();
+                    formData.append('id', '{{ venta.id }}');
+                    formData.append('impresora_id', printerId);
+                    formData.append('abrir_gaveta', openDrawer);
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                    const response = await fetch('{% url "ventas:imprimir_ticket" %}', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        Swal.fire('Éxito', 'Impresión enviada correctamente', 'success');
+                    } else {
+                        Swal.fire('Error', data.message || 'Error desconocido', 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Fallo de conexión con el servidor', 'error');
+                }
+            } else if (printType === 'preview') {
                 window.open('{% url "ventas:preview_ticket" venta.id %}', '_blank');
             } else {
-                // Imprimir factura completa
                 window.open('{% url "ventas:factura_pdf" %}?id={{ venta.id }}', '_blank');
             }
         }

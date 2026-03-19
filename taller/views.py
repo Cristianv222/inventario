@@ -26,6 +26,7 @@ from .models import (
     OrdenTrabajo, ServicioOrden, RepuestoOrden,
     SeguimientoOrden, EvaluacionServicio
 )
+from .service.cotizacion_service import CotizacionService
 from .forms import (
     TecnicoForm, TipoServicioForm, OrdenTrabajoForm, ServicioOrdenForm,
     RepuestoOrdenForm, EvaluacionServicioForm,
@@ -671,14 +672,14 @@ class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
         """Obtiene datos completos de servicios existentes para JavaScript"""
         import json
         servicios_data = []
-        
         for servicio_orden in self.object.servicios.all():
             servicios_data.append({
-                'servicioOrdenId': servicio_orden.id,  # ✅ ID del ServicioOrden
+                'servicioOrdenId': servicio_orden.id,
                 'id': servicio_orden.tipo_servicio.id,
-                'name': servicio_orden.tipo_servicio.nombre,
+                'name': servicio_orden.nombre_servicio_personalizado or servicio_orden.tipo_servicio.nombre,
                 'code': servicio_orden.tipo_servicio.codigo,
                 'price': float(servicio_orden.precio_servicio),
+                'es_personalizable': servicio_orden.tipo_servicio.es_personalizable,
                 'technician_id': servicio_orden.tecnico_asignado.id if servicio_orden.tecnico_asignado else None,
                 'technician_name': servicio_orden.tecnico_asignado.get_nombre_completo() if servicio_orden.tecnico_asignado else None,
                 'quantity': 1,
@@ -1310,17 +1311,67 @@ def exportar_orden_a_pos(request, pk):
 
 @login_required
 def generar_cotizacion_pdf(request, pk):
-    """Generar cotización en PDF"""
+    """Generar cotización en PDF utilizando el servicio de cotización"""
     orden = get_object_or_404(OrdenTrabajo, pk=pk)
     
     try:
-        # Aquí irías la lógica para generar PDF
-        # Por ahora simulamos con HTML que se puede imprimir
+        # Usar el servicio para generar el PDF real
+        pdf_content = CotizacionService.generar_cotizacion_pdf(orden)
         
+        response = HttpResponse(pdf_content, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="cotizacion_{orden.numero_orden or orden.id}.pdf"'
+        return response
+        
+    except Exception as e:
+        logger.exception(f"Error generando PDF para la orden {pk}")
+        # Si falla WeasyPrint o el servicio, intentamos renderizar HTML como fallback
         context = {
             'orden': orden,
             'servicios': orden.servicios.all(),
             'repuestos': orden.repuestos_utilizados.all(),
+            'error': str(e),
+            'empresa': {
+                'nombre': 'VPMOTOS',
+                'direccion': 'Dirección de la empresa',
+                'telefono': 'Teléfono',
+                'email': 'email@vpmotos.com'
+            }
+        }
+        return render(request, 'taller/cotizacion_pdf.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'Error al generar cotización: {str(e)}')
+        return redirect('taller:orden_detail', pk=pk)
+
+@login_required
+def generar_orden_pdf(request, pk):
+    """Generar Orden de Trabajo en PDF con el logo oficial"""
+    import os
+    import base64
+    from django.conf import settings
+    from django.template.loader import render_to_string
+    from django.http import HttpResponse
+    
+    orden = get_object_or_404(OrdenTrabajo, pk=pk)
+    
+    try:
+        # Cargar logo de forma segura en Base64 para WeasyPrint/HTML
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'logo_vp.png')
+        logo_base64 = ""
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                logo_base64 = f"data:image/png;base64,{encoded_string}"
+        
+        # Preparar data de la orden
+        cotizacion_data = orden.generar_cotizacion_data()
+        
+        context = {
+            'orden': orden,
+            'servicios': cotizacion_data['servicios'],
+            'repuestos': cotizacion_data['repuestos'],
+            'totales': cotizacion_data['totales'],
+            'logo_base64': logo_base64,
             'empresa': {
                 'nombre': 'VPMOTOS',
                 'direccion': 'Dirección de la empresa',
@@ -1329,18 +1380,42 @@ def generar_cotizacion_pdf(request, pk):
             }
         }
         
-        if request.GET.get('format') == 'pdf':
-            # Aquí podrías usar ReportLab o WeasyPrint para generar PDF real
-            # Por ahora devolvemos HTML
-            response = HttpResponse(content_type='text/html')
-            response['Content-Disposition'] = f'inline; filename="cotizacion_{orden.numero_orden}.html"'
-        else:
-            response = render(request, 'taller/cotizacion_pdf.html', context)
+        html_content = render_to_string('taller/orden_pdf.html', context)
         
-        return response
-        
+        # Renderizar a PDF directamente con WeasyPrint
+        try:
+            from weasyprint import HTML, CSS
+            from weasyprint.fonts import FontConfiguration
+            
+            font_config = FontConfiguration()
+            css = CSS(string='''
+                @page {
+                    size: A4;
+                    margin: 1cm;
+                    @top-center { content: "ORDEN DE TRABAJO - VPMOTOS"; font-size: 10px; color: #666; }
+                    @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 10px; color: #666; }
+                }
+            ''', font_config=font_config)
+            
+            html_doc = HTML(string=html_content, base_url=request.build_absolute_uri('/'))
+            pdf = html_doc.write_pdf(stylesheets=[css], font_config=font_config)
+            
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="orden_trabajo_{orden.numero_orden or orden.id}.pdf"'
+            return response
+            
+        except ImportError:
+            # Fallback a HTML para imprimir nativamente desde navegador
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("WeasyPrint no instalado, devolviendo HTML imprimible como fallback")
+            return HttpResponse(html_content)
+            
     except Exception as e:
-        messages.error(request, f'Error al generar cotización: {str(e)}')
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception(f"Error generando PDF para la orden {pk}")
+        messages.error(request, f'Error al generar PDF: {str(e)}')
         return redirect('taller:orden_detail', pk=pk)
 
 @login_required
@@ -1371,8 +1446,9 @@ def ajax_servicios_disponibles(request):
                 'nombre': servicio.nombre,
                 'categoria': servicio.categoria.nombre if servicio.categoria else '',
                 'precio': float(servicio.precio),  # ✅ Usar 'precio' en lugar de 'precio_total'
-                'tiempo_estimado': float(servicio.tiempo_estimado_horas),
-                'requiere_especialidad': servicio.requiere_especialidad.nombre if servicio.requiere_especialidad else None
+                'tiempo_estimado': float(servicio.tiempo_estimado_horas) if servicio.tiempo_estimado_horas else 0,
+                'requiere_especialidad': servicio.requiere_especialidad.nombre if servicio.requiere_especialidad else None,
+                'es_personalizable': servicio.es_personalizable
             })
         
         # ✅ FORMATO CORRECTO

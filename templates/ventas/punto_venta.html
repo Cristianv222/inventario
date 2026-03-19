@@ -59,7 +59,7 @@
 
     .actions-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 0.5rem;
     }
 
@@ -909,35 +909,31 @@
         }
     }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-        .pos-main {
-            grid-template-columns: 1fr;
-            gap: 1rem;
+        /* Cola de Impresión en POS */
+        .print-queue-section {
+            padding: 1rem 1.5rem;
+            border-top: 1px dashed #dee2e6;
+            background: #fff;
         }
+        .job-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        .job-status-pending { color: #f1c40f; }
+        .job-status-completed { color: #2ecc71; }
+        .job-status-error { color: #e74c3c; }
+        .job-icon { margin-right: 5px; }
 
-        .cart-panel {
-            order: -1;
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
-
-        .actions-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .payment-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .quick-access-menu {
-            bottom: 80px;
-        }
-
-        .quick-access-btn {
-            min-width: 180px;
-            font-size: 0.875rem;
-        }
-    }
-</style>
+        .spin { animation: spin 1s linear infinite; }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -966,6 +962,10 @@
                     <a href="#" class="action-btn" onclick="showProductsModal()">
                         <i class="bi bi-box-seam"></i>
                         <span>Productos</span>
+                    </a>
+                    <a href="#" class="action-btn" onclick="addManualService()" style="background: #fff3cd; color: #856404; border-color: #ffeeba;">
+                        <i class="bi bi-plus-circle-dotted"></i>
+                        <span>Serv. Manual</span>
                     </a>
                 </div>
             </div>
@@ -1071,6 +1071,17 @@
                     <span>Completar Venta</span>
                 </button>
             </div>
+
+            <!-- Cola de Impresión -->
+            <div class="print-queue-section">
+                <div class="section-title d-flex justify-content-between align-items-center mb-2">
+                    <span><i class="bi bi-printer"></i> Cola de Impresión (Hoy)</span>
+                    <span class="badge bg-light text-dark" id="pendingJobsCount">0</span>
+                </div>
+                <div id="printJobQueue" style="max-height: 150px; overflow-y: auto;">
+                    <p class="text-muted small text-center my-2">No hay trabajos recientes</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1117,7 +1128,7 @@
 
                 <div class="print-question">
                     <h6><i class="bi bi-printer"></i> ¿Desea imprimir el comprobante?</h6>
-                    <div class="print-options">
+                    <div class="print-options mb-3">
                         <div class="print-option-btn selected" data-print="none" onclick="selectPrintOption('none')">
                             <i class="bi bi-x"></i>
                             <div class="print-option-title">No imprimir</div>
@@ -1129,6 +1140,19 @@
                         <div class="print-option-btn" data-print="pdf" onclick="selectPrintOption('pdf')">
                             <i class="bi bi-file-pdf"></i>
                             <div class="print-option-title">PDF</div>
+                        </div>
+                    </div>
+                    
+                    <div id="printer-selection-container" style="display: none;">
+                        <label class="form-label small mb-1"><i class="bi bi-device-ssd"></i> Seleccionar Impresora del Servidor</label>
+                        <select id="pos-printer-select" class="form-select form-select-sm">
+                            <option value="">Cargando impresoras...</option>
+                        </select>
+                        <div class="mt-1">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="openDrawerCheck">
+                                <label class="form-check-label small" for="openDrawerCheck">Abrir gaveta de dinero</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1183,12 +1207,12 @@
 <div class="modal fade" id="createCustomerModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header" style="background: #28a745;">
+            <div class="modal-header" style="background: #28a745; color: white;">
                 <h5 class="modal-title">
                     <i class="bi bi-person-plus"></i>
                     Nuevo Cliente Rápido
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="createCustomerForm" onsubmit="handleCreateCustomer(event)">
@@ -1202,8 +1226,7 @@
 
                     <!-- Apellidos -->
                     <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="newCustomerApellidos" placeholder="Apellidos"
-                            required>
+                        <input type="text" class="form-control" id="newCustomerApellidos" placeholder="Apellidos" required>
                         <label for="newCustomerApellidos">
                             <i class="bi bi-person"></i> Apellidos *
                         </label>
@@ -1211,27 +1234,25 @@
 
                     <!-- Tipo de Identificación -->
                     <div class="form-floating mb-3">
-                        <select class="form-select" id="newCustomerTipoId" required>
+                        <select class="form-select" id="newCustomerTipoId" required style="padding-top: 1.625rem; padding-bottom: 0.625rem;">
                             <option value="CEDULA" selected>Cédula</option>
                             <option value="RUC">RUC</option>
                             <option value="PASAPORTE">Pasaporte</option>
                         </select>
                         <label for="newCustomerTipoId">
-                            <i class="bi bi-card-text"></i> Tipo de Identificación *
+                            <i class="bi bi-card-list"></i> Tipo de Identificación *
                         </label>
                     </div>
 
-                    <!-- Identificación con validación -->
-                    <div class="form-floating mb-3">
-                        <div class="input-with-icon">
-                            <input type="text" class="form-control" id="newCustomerIdentificacion"
-                                placeholder="Identificación" required oninput="validateIdentification()">
-                            <span class="input-icon" id="identificationIcon"></span>
-                        </div>
+                    <!-- Identificación con validación arreglada para flotar correctamente -->
+                    <div class="form-floating mb-3 position-relative">
+                        <input type="text" class="form-control" id="newCustomerIdentificacion" placeholder="Identificación" required oninput="validateIdentification()" style="padding-right: 40px;">
                         <label for="newCustomerIdentificacion">
                             <i class="bi bi-card-text"></i> Identificación *
                         </label>
-                        <div class="validation-message" id="identificationValidation"></div>
+                        <!-- El icono de validación ahora flota a la derecha sin romper el form-floating -->
+                        <span id="identificationIcon" class="position-absolute" style="right: 15px; top: 18px; z-index: 10;"></span>
+                        <div class="validation-message small mt-1 text-danger" id="identificationValidation"></div>
                     </div>
 
                     <!-- Teléfono -->
@@ -1252,8 +1273,7 @@
 
                     <!-- Dirección (opcional) -->
                     <div class="form-floating mb-3">
-                        <textarea class="form-control" id="newCustomerDireccion" placeholder="Dirección"
-                            style="height: 80px;"></textarea>
+                        <textarea class="form-control" id="newCustomerDireccion" placeholder="Dirección" style="height: 80px;"></textarea>
                         <label for="newCustomerDireccion">
                             <i class="bi bi-geo-alt"></i> Dirección
                         </label>
@@ -1480,7 +1500,7 @@
     // Variables de configuración desde Django
     window.POS_CONFIG = {
         USER_ID: {{ user.id }},
-    USER_NAME: '{% if user.get_full_name %}{{ user.get_full_name|escapejs }}{% else %}{{ user.username|escapejs }}{% endif %}',
+        USER_NAME: '{% if user.get_full_name %}{{ user.get_full_name|escapejs }}{% else %}{{ user.username|escapejs }}{% endif %}',
         CSRF_TOKEN: '{{ csrf_token }}'
     };
 </script>
@@ -1494,6 +1514,7 @@
     let selectedService = null;
     let currentPaymentMethod = null;
     let selectedPrintType = 'none';
+    let availablePrinters = [];
     let lastSaleData = null;
     const IVA_RATE = 0.15;
     let validationTimeout = null;
@@ -1509,6 +1530,7 @@
         loadInitialData();
         setupEventListeners();
         loadPendingOrdersCount();
+        startPrintQueuePolling();
     });
 
     function initializePOS() {
@@ -1649,6 +1671,33 @@
         enableCheckoutIfReady();
     }
 
+    function addManualService() {
+        const manualItem = {
+            id: Date.now(), // ID temporal único
+            code: 'MANUAL',
+            name: 'Servicio Manual',
+            type: 'manual',
+            price: 0,
+            quantity: 1,
+            technician_id: null,
+            technician_name: null
+        };
+        cart.push(manualItem);
+        updateCartDisplay();
+        updateCartCount();
+        updateTotals();
+        enableCheckoutIfReady();
+    }
+
+    function updateManualItem(index, field, value) {
+        if (field === 'price') {
+            cart[index].price = parseFloat(value) || 0;
+        } else if (field === 'name') {
+            cart[index].name = value;
+        }
+        updateTotals();
+    }
+
     function updateCartDisplay() {
         const cartItems = document.getElementById('cartItems');
         if (!cartItems) return;
@@ -1702,6 +1751,37 @@
                     </div>
                 </div>
             `;
+            }
+
+            if (item.type === 'manual' || item.es_personalizable) {
+                return `
+                <div class="cart-item" style="border-left: 4px solid #ffc107;">
+                    <div class="item-info">
+                        <input type="text" class="form-control form-control-sm mb-1" value="${escapeHtml(item.name)}" 
+                               onchange="updateManualItem(${index}, 'name', this.value)" placeholder="Nombre del servicio"
+                               ${item.type === 'manual' ? '' : 'title="Editando servicio del catálogo"'}>
+                        <div class="item-code"><span class="badge bg-warning text-dark">${item.type === 'manual' ? 'MANUAL' : 'EDITABLE'}</span></div>
+                        <div class="input-group input-group-sm mt-1" style="max-width: 150px;">
+                            <span class="input-group-text">S/</span>
+                            <input type="number" class="form-control" value="${item.price}" step="0.01"
+                                   onchange="updateManualItem(${index}, 'price', this.value)">
+                        </div>
+                    </div>
+                    <div class="quantity-controls">
+                        <button class="qty-btn" onclick="updateQuantity(${index}, ${item.quantity - 1})">
+                            <i class="bi bi-dash"></i>
+                        </button>
+                        <span class="qty-display">${item.quantity}</span>
+                        <button class="qty-btn" onclick="updateQuantity(${index}, ${item.quantity + 1})">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
+                    <div class="item-total">S/ ${subtotalItem.toFixed(2)}</div>
+                    <button class="remove-btn" onclick="removeFromCart(${index})" title="Eliminar">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                `;
             }
 
             return `
@@ -1820,6 +1900,52 @@
         if (totalElement) totalElement.textContent = `S/ ${total.toFixed(2)}`;
     }
 
+    // ========== GESTIÓN DE COLA DE IMPRESIÓN ==========
+    function startPrintQueuePolling() {
+        updatePrintQueue();
+        setInterval(updatePrintQueue, 5000); // Actualizar cada 5 segundos
+    }
+
+    function updatePrintQueue() {
+        fetch('/ventas/api/trabajos-pendientes/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const $queue = document.getElementById('printJobQueue');
+                    const $count = document.getElementById('pendingJobsCount');
+                    
+                    $count.textContent = data.count_pendientes;
+                    $count.className = data.count_pendientes > 0 ? 'badge bg-warning text-dark' : 'badge bg-light text-dark';
+
+                    if (data.trabajos.length === 0) {
+                        $queue.innerHTML = '<p class="text-muted small text-center my-2">No hay trabajos recientes</p>';
+                        return;
+                    }
+
+                    $queue.innerHTML = data.trabajos.map(job => {
+                        let statusClass = 'job-status-pending';
+                        let icon = 'bi-clock spin';
+                        if (job.estado === 'COMPLETADO') { statusClass = 'job-status-completed'; icon = 'bi-check-circle'; }
+                        if (job.estado === 'ERROR') { statusClass = 'job-status-error'; icon = 'bi-exclamation-circle'; }
+
+                        return `
+                        <div class="job-item">
+                            <div>
+                                <i class="bi ${icon} ${statusClass} job-icon"></i>
+                                <span class="fw-bold">${job.tipo}</span>
+                                <div class="text-muted" style="font-size: 0.65rem;">${job.impresora}</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="${statusClass}">${job.estado}</div>
+                                <div class="text-muted" style="font-size: 0.65rem;">${job.fecha}</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+            })
+            .catch(err => console.error('Error polling print queue:', err));
+    }
+
     // ========== PROCESAMIENTO DE VENTA ==========
 
     function selectPrintOption(type) {
@@ -1829,6 +1955,72 @@
         if (selectedBtn) {
             selectedBtn.classList.add('selected');
         }
+        
+        const printerContainer = document.getElementById('printer-selection-container');
+        if (type === 'ticket' || type === 'factura') {
+            loadPosPrinters(type);
+        } else {
+            printerContainer.style.display = 'none';
+        }
+    }
+
+    function loadPosPrinters(printType = 'ticket') {
+        const $select = document.getElementById('pos-printer-select');
+        const printerContainer = document.getElementById('printer-selection-container');
+        
+        if (availablePrinters.length > 0) {
+            handlePrinterAutoSelection(printType);
+            return;
+        }
+
+        fetch('/ventas/api/impresoras-disponibles/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.printers) {
+                    availablePrinters = data.printers;
+                    fillPrinterSelect($select);
+                    handlePrinterAutoSelection(printType);
+                } else {
+                    console.error('Error in printer API:', data.message);
+                    $select.innerHTML = '<option value="">No hay impresoras disponibles</option>';
+                    printerContainer.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('Error loading printers:', err);
+                $select.innerHTML = '<option value="">Error al conectar con impresoras</option>';
+                printerContainer.style.display = 'block';
+            });
+    }
+
+    function handlePrinterAutoSelection(printType) {
+        const $select = document.getElementById('pos-printer-select');
+        const printerContainer = document.getElementById('printer-selection-container');
+        
+        let principalPrinter = null;
+        if (printType === 'ticket') {
+            principalPrinter = availablePrinters.find(p => p.es_principal_tickets);
+        } else if (printType === 'factura') {
+            principalPrinter = availablePrinters.find(p => p.es_principal_facturas);
+        }
+
+        if (principalPrinter) {
+            $select.value = principalPrinter.id || principalPrinter.name;
+            printerContainer.style.display = 'none'; // Ocultar si hay asignada
+            console.log(`Impresora autoseleccionada: ${principalPrinter.display_name}`);
+        } else {
+            printerContainer.style.display = 'block'; // Mostrar selector si no hay principal
+        }
+    }
+
+    function fillPrinterSelect($select) {
+        if (availablePrinters.length === 0) {
+            $select.innerHTML = '<option value="">No hay impresoras disponibles</option>';
+            return;
+        }
+        $select.innerHTML = availablePrinters.map(p => 
+            `<option value="${p.id || p.name}">${escapeHtml(p.display_name || p.name)}</option>`
+        ).join('');
     }
 
     function confirmSale() {
@@ -1881,6 +2073,7 @@
                 return {
                     tipo: item.type === 'product' ? 'producto' : 'servicio',
                     id: item.id,
+                    name: item.name,
                     cantidad: item.quantity,
                     precio_unitario: item.price,
                     subtotal: itemSubtotal,
@@ -1944,33 +2137,56 @@
     }
 
     function printThermalTicket(ventaId) {
+        const $select = document.getElementById('pos-printer-select');
+        const printerId = $select.value;
+        const printerName = $select.options[$select.selectedIndex]?.text || '';
+        const openDrawer = document.getElementById('openDrawerCheck').checked;
+        
+        // Determinar el tipo de impresora basado en los datos disponibles
+        const printerObj = availablePrinters.find(p => (p.id || p.name) === printerId);
+        const printerType = printerObj ? printerObj.type : 'GENERIC_80MM';
+
+        if (!printerId) {
+            showToast('⚠️ Seleccione una impresora', 'warning');
+            return;
+        }
+
         showLoading('Enviando a impresora térmica...');
 
-        fetch(`/ventas/imprimir-ticket/?id=${ventaId}`, {
+        const printData = {
+            venta_id: ventaId,
+            printer_name: printerId, // El backend busca por id/nombre en la BD o SO
+            printer_type: printerType,
+            open_drawer: openDrawer
+        };
+
+        fetch(`/ventas/api/probar-impresora/`, { // Reutilizando endpoint de prueba que ya maneja JSON o ticket directo
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCsrfToken()
             },
             body: JSON.stringify({
-                printer_name: 'default',
-                printer_type: 'GENERIC_80MM',
-                open_drawer: false
+                printer_name: printerId,
+                printer_type: printerType,
+                venta_id: ventaId, // Pasar el ID de venta para que imprima la venta real
+                open_drawer: openDrawer
             })
         })
             .then(response => response.json())
             .then(data => {
                 hideLoading();
                 if (data.success) {
-                    showToast('Ticket impreso correctamente', 'success');
+                    showToast('✅ Ticket enviado a cola de impresión', 'success');
                 } else {
-                    showToast('Error al imprimir ticket: ' + data.message, 'error');
+                    showToast('❌ Error: ' + (data.message || data.resultado), 'error');
                 }
                 resetPOS();
             })
             .catch(error => {
                 hideLoading();
-                showToast('Error de conexión al imprimir: ' + error.message, 'error');
+                console.error('Error al imprimir:', error);
+                showToast('❌ Error de conexión al imprimir: ' + error.message, 'error');
                 resetPOS();
             });
     }
@@ -2510,6 +2726,7 @@
             name: selectedService.nombre,
             type: 'service',
             price: selectedService.precio_total,
+            es_personalizable: selectedService.es_personalizable,
             technician_id: technicianId,
             technician_name: technician ? technician.nombre : null
         });

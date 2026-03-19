@@ -1,0 +1,69 @@
+-web  |                  ^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/apps/config.py", line 178, in create
+inventario-web  |     mod = import_module(mod_path)
+inventario-web  |           ^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+inventario-web  |     return _bootstrap._gcd_import(name[level:], package, level)
+inventario-web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1140, in _find_and_load_unlocked
+inventario-web  | ModuleNotFoundError: No module named 'core.apps'
+inventario-web  | Esperando a que la base de datos est├® lista...
+inventario-web  | db:5432 - accepting connections
+inventario-web  | Base de datos lista!
+inventario-web  | Aplicando migraciones...
+inventario-web  | SETTINGS RELOADED! DEBUG IS True
+inventario-web  | Traceback (most recent call last):
+inventario-web  |   File "/app/manage.py", line 22, in <module>
+inventario-web  |     main()
+inventario-web  |   File "/app/manage.py", line 18, in main
+inventario-web  |     execute_from_command_line(sys.argv)
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+inventario-web  |     utility.execute()
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/core/management/__init__.py", line 416, in execute
+inventario-web  |     django.setup()
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/__init__.py", line 24, in setup
+inventario-web  |     apps.populate(settings.INSTALLED_APPS)
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/apps/registry.py", line 91, in populate
+inventario-web  |     app_config = AppConfig.create(entry)
+inventario-web  |                  ^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/apps/config.py", line 178, in create
+inventario-web  |     mod = import_module(mod_path)
+inventario-web  |           ^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+inventario-web  |     return _bootstrap._gcd_import(name[level:], package, level)
+inventario-web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1140, in _find_and_load_unlocked
+inventario-web  | ModuleNotFoundError: No module named 'core.apps'
+inventario-web  | Esperando a que la base de datos est├® lista...
+inventario-web  | db:5432 - accepting connections
+inventario-web  | Base de datos lista!
+inventario-web  | Aplicando migraciones...
+inventario-web  | SETTINGS RELOADED! DEBUG IS True
+inventario-web  | Traceback (most recent call last):
+inventario-web  |   File "/app/manage.py", line 22, in <module>
+inventario-web  |     main()
+inventario-web  |   File "/app/manage.py", line 18, in main
+inventario-web  |     execute_from_command_line(sys.argv)
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+inventario-web  |     utility.execute()
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/core/management/__init__.py", line 416, in execute
+inventario-web  |     django.setup()
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/__init__.py", line 24, in setup
+inventario-web  |     apps.populate(settings.INSTALLED_APPS)
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/apps/registry.py", line 91, in populate
+inventario-web  |     app_config = AppConfig.create(entry)
+inventario-web  |                  ^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "/usr/local/lib/python3.11/site-packages/django/apps/config.py", line 178, in create
+inventario-web  |     mod = import_module(mod_path)
+inventario-web  |           ^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+inventario-web  |     return _bootstrap._gcd_import(name[level:], package, level)
+inventario-web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+inventario-web  |   File "<frozen importlib._bootstrap>", line 1140, in _find_and_load_unlocked
+inventario-web  | ModuleNotFoundError: No module named 'core.apps'

@@ -14,11 +14,12 @@ from decimal import Decimal
 
 from .models import (
     MovimientoCaja, GastoDiario, CierreDiario, TipoMovimiento,
-    ResumenMensual, DesgloseBilletes
+    ResumenMensual, DesgloseBilletes, CategoriaGasto
 )
 from .forms import (
     GastoDiarioForm, CierreDiarioForm, ReporteVentasForm, FiltroFechasForm,
-    FiltroMovimientosForm, FiltroGastosForm, ComparativoVentasForm, ExportarReporteForm
+    FiltroMovimientosForm, FiltroGastosForm, ComparativoVentasForm, ExportarReporteForm,
+    CategoriaGastoForm, FiltroReporteProductosForm
 )
 from ventas.models import Venta, DetalleVenta
 
@@ -199,15 +200,24 @@ def reporte_ventas_completo(request):
 
     # ── Ventas POS ────────────────────────────────────────────────
     ventas_pos = _ventas_pos(fecha_inicio, fecha_fin)
-    stats_pos = ventas_pos.aggregate(
-        total=Sum('total'),
-        subtotal=Sum('subtotal'),
-        iva=Sum('iva'),
-        cantidad=Count('id'),
-        efectivo=Sum('total', filter=Q(tipo_pago='EFECTIVO')),
-        tarjeta=Sum('total', filter=Q(tipo_pago='TARJETA')),
-        transferencia=Sum('total', filter=Q(tipo_pago='TRANSFERENCIA')),
+    aggs_pos = ventas_pos.aggregate(
+        total_suma=Sum('total'),
+        subtotal_suma=Sum('subtotal'),
+        iva_suma=Sum('iva'),
+        cantidad_suma=Count('id'),
+        efectivo_suma=Sum('total', filter=Q(tipo_pago='EFECTIVO')),
+        tarjeta_suma=Sum('total', filter=Q(tipo_pago='TARJETA')),
+        transferencia_suma=Sum('total', filter=Q(tipo_pago='TRANSFERENCIA')),
     )
+    stats_pos = {
+        'total': aggs_pos['total_suma'],
+        'subtotal': aggs_pos['subtotal_suma'],
+        'iva': aggs_pos['iva_suma'],
+        'cantidad': aggs_pos['cantidad_suma'],
+        'efectivo': aggs_pos['efectivo_suma'],
+        'tarjeta': aggs_pos['tarjeta_suma'],
+        'transferencia': aggs_pos['transferencia_suma'],
+    }
 
     detalles_productos = DetalleVenta.objects.filter(
         venta__fecha_hora__date__range=[fecha_inicio, fecha_fin],
@@ -306,6 +316,84 @@ def reporte_ventas_completo(request):
         'online_disponible': ONLINE_DISPONIBLE,
     }
     return render(request, 'reportes/ventas_completo.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  REPORTES DE PRODUCTOS
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+def reporte_ventas_productos(request):
+    """
+    Reporte detallado de productos vendidos agrupados por producto,
+    con filtros por fecha, categoria y marca.
+    """
+    form = FiltroReporteProductosForm(request.GET or None)
+    
+    # Valores por defecto para fechas si no hay query
+    hoy = timezone.now().date()
+    fecha_inicio = form.fields['fecha_desde'].initial
+    fecha_fin = form.fields['fecha_hasta'].initial
+    
+    periodo = request.GET.get('periodo')
+    if periodo and not request.GET.get('fecha_desde'):
+        fecha_inicio, fecha_fin = _rango_periodo(periodo, hoy)
+    
+    if form.is_valid():
+        fecha_inicio = form.cleaned_data.get('fecha_desde') or fecha_inicio
+        fecha_fin = form.cleaned_data.get('fecha_hasta') or fecha_fin
+    
+    # Filtrar solo detalles de venta de productos (no servicios) completadas
+    detalles = DetalleVenta.objects.filter(
+        venta__fecha_hora__date__range=[fecha_inicio, fecha_fin],
+        venta__estado='COMPLETADA',
+        es_servicio=False,
+        producto__isnull=False
+    ).select_related('producto', 'producto__categoria', 'producto__marca')
+    
+    # Aplicar filtros del formulario
+    if form.is_valid():
+        cat = form.cleaned_data.get('categoria')
+        marca = form.cleaned_data.get('marca')
+        busqueda = form.cleaned_data.get('busqueda')
+        
+        if cat:
+            detalles = detalles.filter(producto__categoria=cat)
+        if marca:
+            detalles = detalles.filter(producto__marca=marca)
+        if busqueda:
+            detalles = detalles.filter(
+                Q(producto__nombre__icontains=busqueda) | 
+                Q(producto__codigo_unico__icontains=busqueda)
+            )
+            
+    # Agrupar por producto y calcular totales
+    productos_agrupados = detalles.values(
+        'producto__id',
+        'producto__codigo_unico',
+        'producto__nombre',
+        'producto__categoria__nombre',
+        'producto__marca__nombre'
+    ).annotate(
+        cantidad_total=Sum('cantidad'),
+        vtas_subtotal=Sum('subtotal'),
+        vtas_total=Sum('total')
+    ).order_by('-cantidad_total')
+    
+    total_general_cantidad = sum(p['cantidad_total'] or Decimal('0') for p in productos_agrupados)
+    total_general_monto = sum(p['vtas_total'] or Decimal('0') for p in productos_agrupados)
+    
+    context = {
+        'active_page': 'reportes',
+        'form': form,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'periodo': periodo,
+        'productos': productos_agrupados,
+        'total_general_cantidad': total_general_cantidad,
+        'total_general_monto': total_general_monto,
+    }
+    return render(request, 'reportes/ventas_productos.html', context)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -684,7 +772,7 @@ def guardar_desglose_billetes(request, cierre_id):
 
             # Actualizar efectivo contado y diferencia
             cierre.efectivo_contado = total_contado
-            efectivo_esperado = cierre.saldo_inicial + cierre.efectivo_ventas - cierre.total_gastos_dia
+            efectivo_esperado = cierre.saldo_inicial + cierre.efectivo_ventas - cierre.total_egresos
             cierre.diferencia_efectivo = total_contado - efectivo_esperado
             cierre.save(update_fields=['efectivo_contado', 'diferencia_efectivo'])
 
@@ -812,7 +900,9 @@ def lista_gastos(request):
     aprobados = gastos.filter(aprobado=True).aggregate(t=Sum('monto'))['t'] or Decimal('0')
     pendientes = gastos.filter(aprobado=False).aggregate(t=Sum('monto'))['t'] or Decimal('0')
 
-    gastos_por_categoria = gastos.values('categoria').annotate(
+    gastos_por_categoria = gastos.values(
+        categoria_nombre=F('categoria__nombre')
+    ).annotate(
         total=Sum('monto'), cantidad=Count('id')
     ).order_by('-total')
 
@@ -826,7 +916,7 @@ def lista_gastos(request):
         'gastos_aprobados': aprobados,
         'gastos_pendientes': pendientes,
         'gastos_por_categoria': gastos_por_categoria,
-        'categorias': GastoDiario.CATEGORIA_CHOICES,
+        'categorias': CategoriaGasto.objects.filter(activo=True),
         'filtros': {
             'fecha_desde': fecha_desde or '',
             'fecha_hasta': fecha_hasta or '',
@@ -987,13 +1077,19 @@ def reportes_mensuales(request):
         fecha__range=[primer_dia, ultimo_dia], estado='CERRADO'
     ).order_by('fecha')
 
-    datos_diarios = [{
-        'fecha': c.fecha,
-        'ventas': c.total_ingresos,
-        'gastos': c.total_gastos_dia,
-        'utilidad': c.total_ingresos - c.total_gastos_dia,
-        'cantidad_ventas': c.cantidad_ventas,
-    } for c in cierres_mes]
+    datos_diarios = []
+    for c in cierres_mes:
+        gastos_dia = GastoDiario.objects.filter(
+            fecha=c.fecha, aprobado=True
+        ).aggregate(t=Sum('monto'))['t'] or Decimal('0.00')
+        
+        datos_diarios.append({
+            'fecha': c.fecha,
+            'ventas': c.total_ingresos,
+            'gastos': gastos_dia,
+            'utilidad': c.total_ingresos - gastos_dia,
+            'cantidad_ventas': c.cantidad_ventas,
+        })
 
     meses_disponibles = ResumenMensual.objects.values_list(
         'año', 'mes'
@@ -1050,6 +1146,36 @@ def lista_movimientos(request):
 # ══════════════════════════════════════════════════════════════════════
 
 @login_required
+@require_POST
+def api_crear_categoria_gasto(request):
+    try:
+        data = json.loads(request.body)
+        nombre = data.get('nombre', '').strip()
+        descripcion = data.get('descripcion', '').strip()
+        
+        if not nombre:
+            return JsonResponse({'success': False, 'error': 'El nombre es requerido'})
+            
+        if CategoriaGasto.objects.filter(nombre__iexact=nombre).exists():
+            return JsonResponse({'success': False, 'error': 'Ya existe una categoría con este nombre'})
+            
+        cat = CategoriaGasto.objects.create(
+            nombre=nombre,
+            descripcion=descripcion,
+            activo=True
+        )
+        return JsonResponse({
+            'success': True,
+            'categoria': {
+                'id': cat.id,
+                'nombre': cat.nombre
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
 def api_dashboard_data(request):
     hoy = timezone.now().date()
     ventas_7_dias = []
@@ -1089,7 +1215,7 @@ def api_caja_status(request):
             'existe': True,
             'estado': cierre.estado,
             'total_ingresos': float(cierre.total_ingresos),
-            'total_gastos': float(cierre.total_gastos_dia),
+            'total_gastos': float(cierre.total_egresos),
             'saldo_final': float(cierre.saldo_final),
             'puede_cerrar': cierre.estado == 'ABIERTO',
         })
@@ -1107,3 +1233,53 @@ def comparativo_ventas(request):
 def exportar_reporte(request):
     messages.info(request, 'Exportación en desarrollo.')
     return redirect('reportes:dashboard')
+
+# ══════════════════════════════════════════════════════════════════════
+#  CATEGORÍAS DE GASTOS
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+def lista_categorias_gastos(request):
+    categorias = CategoriaGasto.objects.all()
+    context = {'active_page': 'reportes', 'categorias': categorias}
+    return render(request, 'reportes/categorias_gastos.html', context)
+
+@login_required
+def crear_categoria_gasto(request):
+    if request.method == 'POST':
+        form = CategoriaGastoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Categoría creada correctamente.')
+            return redirect('reportes:lista_categorias_gastos')
+    else:
+        form = CategoriaGastoForm()
+    
+    context = {'active_page': 'reportes', 'form': form, 'titulo': 'Nueva Categoría', 'btn_texto': 'Crear Categoría'}
+    return render(request, 'reportes/categoria_gasto_form.html', context)
+
+@login_required
+def editar_categoria_gasto(request, categoria_id):
+    categoria = get_object_or_404(CategoriaGasto, id=categoria_id)
+    if request.method == 'POST':
+        form = CategoriaGastoForm(request.POST, instance=categoria)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Categoría actualizada correctamente.')
+            return redirect('reportes:lista_categorias_gastos')
+    else:
+        form = CategoriaGastoForm(instance=categoria)
+    
+    context = {'active_page': 'reportes', 'form': form, 'titulo': 'Editar Categoría', 'btn_texto': 'Guardar Cambios'}
+    return render(request, 'reportes/categoria_gasto_form.html', context)
+
+@login_required
+@require_POST
+def eliminar_categoria_gasto(request, categoria_id):
+    categoria = get_object_or_404(CategoriaGasto, id=categoria_id)
+    try:
+        categoria.delete()
+        messages.success(request, 'Categoría eliminada correctamente.')
+    except Exception as e:
+        messages.error(request, 'No se pudo eliminar, posiblemente esté en uso.')
+    return redirect('reportes:lista_categorias_gastos')

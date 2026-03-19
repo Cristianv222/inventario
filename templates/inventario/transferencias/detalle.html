@@ -265,7 +265,7 @@
                                 {% endif %}
                                 <td class="text-end">${{ detalle.precio_unitario|floatformat:2 }}</td>
                                 <td class="text-end">
-                                    <strong>${{ detalle.cantidad_enviada|multiply:detalle.precio_unitario|floatformat:2 }}</strong>
+                                    <strong>${% widthratio detalle.cantidad_enviada 1 detalle.precio_unitario %}</strong>
                                 </td>
                             </tr>
                             {% empty %}

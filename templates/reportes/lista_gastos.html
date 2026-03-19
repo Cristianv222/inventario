@@ -46,38 +46,7 @@
         box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
     }
 
-    /* ========== ESTADÍSTICAS ========== */
-    .stats-overview {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: var(--border-radius-lg);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        position: relative;
-        overflow: hidden;
-    }
 
-    .stats-overview::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
-        animation: move 20s linear infinite;
-        opacity: 0.1;
-    }
-
-    @keyframes move {
-        0% { transform: translate(-50%, -50%); }
-        100% { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-
-    .stats-content {
-        position: relative;
-        z-index: 2;
-    }
 
     /* ========== GASTO ITEMS ========== */
     .gasto-item {
@@ -222,6 +191,9 @@
                     <p class="text-muted mb-0">Gestión y control de gastos del negocio</p>
                 </div>
                 <div>
+                    <a href="{% url 'reportes:lista_categorias_gastos' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-tags me-2"></i>Categorías
+                    </a>
                     <a href="{% url 'reportes:crear_gasto' %}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>Nuevo Gasto
                     </a>
@@ -231,32 +203,36 @@
     </div>
 
     <!-- ========== ESTADÍSTICAS GENERALES ========== -->
-    <div class="stats-overview animate-fade-in">
-        <div class="stats-content">
-            <div class="row">
-                <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                    <div class="text-center">
-                        <h4 class="mb-1">${{ total_gastos|floatformat:0 }}</h4>
-                        <p class="mb-0 opacity-75">Total Gastos</p>
-                    </div>
+    <div class="row g-3 mb-4 animate-fade-in">
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h4 class="mb-1 text-primary fw-bold">${{ total_gastos|floatformat:0 }}</h4>
+                    <p class="text-muted mb-0 fw-semibold text-uppercase" style="font-size: 0.8rem;">Total Gastos</p>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                    <div class="text-center">
-                        <h4 class="mb-1">${{ gastos_aprobados|floatformat:0 }}</h4>
-                        <p class="mb-0 opacity-75">Aprobados</p>
-                    </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100 border-start border-success border-4">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h4 class="mb-1 text-success fw-bold">${{ gastos_aprobados|floatformat:0 }}</h4>
+                    <p class="text-muted mb-0 fw-semibold text-uppercase" style="font-size: 0.8rem;">Aprobados</p>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                    <div class="text-center">
-                        <h4 class="mb-1">${{ gastos_pendientes|floatformat:0 }}</h4>
-                        <p class="mb-0 opacity-75">Pendientes</p>
-                    </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100 border-start border-warning border-4">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h4 class="mb-1 text-warning fw-bold">${{ gastos_pendientes|floatformat:0 }}</h4>
+                    <p class="text-muted mb-0 fw-semibold text-uppercase" style="font-size: 0.8rem;">Pendientes</p>
                 </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="text-center">
-                        <h4 class="mb-1">{{ gastos.paginator.count }}</h4>
-                        <p class="mb-0 opacity-75">Total Registros</p>
-                    </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100 border-start border-secondary border-4">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h4 class="mb-1 text-secondary fw-bold">{{ gastos.paginator.count }}</h4>
+                    <p class="text-muted mb-0 fw-semibold text-uppercase" style="font-size: 0.8rem;">Total Registros</p>
                 </div>
             </div>
         </div>
@@ -283,16 +259,7 @@
                 <label class="form-label fw-semibold">
                     <i class="fas fa-tag me-1"></i>Categoría
                 </label>
-                <select name="categoria" class="form-select">
-                    <option value="">Todas</option>
-                    {% for key, value in form.categoria.field.choices %}
-                        {% if key %}
-                        <option value="{{ key }}" {% if form.categoria.value == key %}selected{% endif %}>
-                            {{ value }}
-                        </option>
-                        {% endif %}
-                    {% endfor %}
-                </select>
+                {{ form.categoria }}
             </div>
             <div class="col-md-2">
                 <label class="form-label fw-semibold">
@@ -320,7 +287,7 @@
                 <div class="col-md-8">
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <h5 class="mb-0 fw-bold">{{ gasto.concepto }}</h5>
-                        <span class="categoria-badge">{{ gasto.get_categoria_display }}</span>
+                        <span class="categoria-badge">{{ gasto.categoria.nombre|default:"Sin categoría" }}</span>
                         <span class="status-badge {% if gasto.aprobado %}status-aprobado{% else %}status-pendiente{% endif %}">
                             {% if gasto.aprobado %}Aprobado{% else %}Pendiente{% endif %}
                         </span>

@@ -1,0 +1,21 @@
+﻿docker : Error response from 
+daemon: Container a25622de2a0
+359ad82b43039f2cfe113f73e6844
+5a8c79ee8ec0cce24e1f96b1 is 
+restarting, wait until the 
+container is running
+En línea: 1 Carácter: 1
++ docker exec inventario-web 
+python manage.py check > 
+check_err.txt 2>& ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Error r  
+  esponse ...iner is runni   
+ ng:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 

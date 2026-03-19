@@ -3,7 +3,8 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 import datetime
-from .models import GastoDiario, CierreDiario, TipoMovimiento
+from .models import GastoDiario, CierreDiario, TipoMovimiento, CategoriaGasto
+from inventario.models import Marca, CategoriaProducto
 
 
 class FiltroFechasForm(forms.Form):
@@ -26,7 +27,21 @@ class FiltroFechasForm(forms.Form):
         
         if not self.data:
             self.fields['fecha_desde'].initial = primer_dia_mes
+        if not self.data:
+            self.fields['fecha_desde'].initial = primer_dia_mes
             self.fields['fecha_hasta'].initial = hoy
+
+
+class CategoriaGastoForm(forms.ModelForm):
+    """Formulario para gestionar categorías de gastos"""
+    class Meta:
+        model = CategoriaGasto
+        fields = ['nombre', 'descripcion', 'activo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej. Servicios, Nómina, etc.'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Descripción opcional'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        }
 
 
 class GastoDiarioForm(forms.ModelForm):
@@ -126,27 +141,16 @@ class ReporteVentasForm(FiltroFechasForm):
 
 class FiltroGastosForm(FiltroFechasForm):
     """Form para filtrar gastos"""
-    CATEGORIA_CHOICES = [
-        ('', 'Todas las categorías'),
-        ('oficina', 'Oficina'),
-        ('mantenimiento', 'Mantenimiento'),
-        ('servicios', 'Servicios'),
-        ('inventario', 'Inventario'),
-        ('marketing', 'Marketing'),
-        ('personal', 'Personal'),
-        ('transporte', 'Transporte'),
-        ('otros', 'Otros'),
-    ]
-    
     APROBADO_CHOICES = [
         ('', 'Todos'),
         ('True', 'Aprobados'),
         ('False', 'Pendientes'),
     ]
     
-    categoria = forms.ChoiceField(
-        choices=CATEGORIA_CHOICES,
+    categoria = forms.ModelChoiceField(
+        queryset=CategoriaGasto.objects.all(),
         required=False,
+        empty_label='Todas las categorías',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
@@ -235,6 +239,31 @@ class ComparativoVentasForm(forms.Form):
             raise ValidationError('Debe seleccionar una fecha para la comparación personalizada')
         
         return cleaned_data
+
+
+class FiltroReporteProductosForm(FiltroFechasForm):
+    """Form para filtrar el reporte de ventas por productos"""
+    categoria = forms.ModelChoiceField(
+        queryset=CategoriaProducto.objects.filter(activa=True),
+        required=False,
+        empty_label='Todas las categorías',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    marca = forms.ModelChoiceField(
+        queryset=Marca.objects.filter(activa=True),
+        required=False,
+        empty_label='Todas las marcas',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    busqueda = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar por nombre o código de producto'
+        })
+    )
 
 
 class ExportarReporteForm(forms.Form):

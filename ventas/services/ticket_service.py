@@ -5,7 +5,12 @@ import subprocess
 from decimal import Decimal
 from django.conf import settings
 from django.utils import timezone
+from django.db import models
 from datetime import datetime
+from hardware_integration.models import Impresora
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TicketThermalService:
     """Servicio para manejo de tickets en impresoras térmicas"""
@@ -40,9 +45,27 @@ class TicketThermalService:
     
     @classmethod
     def get_available_printers(cls):
-        """Obtiene lista de impresoras disponibles en el sistema"""
+        """Obtiene lista de impresoras disponibles (Sistema + Base de Datos)"""
         printers = []
         
+        # 1. Agregar impresoras configuradas en el módulo de Hardware (Base de Datos)
+        try:
+            db_printers = Impresora.objects.filter(estado='ACTIVA')
+            logger.info(f"Buscando impresoras en BD. Encontradas: {db_printers.count()}")
+            for p in db_printers:
+                printers.append({
+                    'id': str(p.id),
+                    'name': p.nombre_driver or p.nombre,
+                    'display_name': f"{p.nombre} ({p.get_tipo_conexion_display()})",
+                    'type': p.tipo_impresora or 'TERMICA_TICKET',
+                    'is_db': True,
+                    'es_principal_tickets': p.es_principal_tickets,
+                    'es_principal_facturas': p.es_principal_facturas
+                })
+        except Exception as e:
+            logger.error(f"Error cargando impresoras de BD: {e}", exc_info=True)
+
+        # 2. Intentar detectar impresoras del Sistema Operativo
         try:
             if platform.system() == "Windows":
                 # Windows - usar wmic para obtener impresoras
@@ -54,10 +77,14 @@ class TicketThermalService:
                 for line in lines:
                     printer_name = line.strip()
                     if printer_name and printer_name != 'Name':
-                        printers.append({
-                            'name': printer_name,
-                            'type': cls._detect_printer_type(printer_name)
-                        })
+                        # Evitar duplicados si ya está en DB
+                        if not any(p['name'] == printer_name for p in printers):
+                            printers.append({
+                                'name': printer_name,
+                                'display_name': f"SO: {printer_name}",
+                                'type': cls._detect_printer_type(printer_name),
+                                'is_db': False
+                            })
             
             elif platform.system() == "Linux":
                 # Linux - usar lpstat
@@ -68,32 +95,19 @@ class TicketThermalService:
                 for line in result.stdout.split('\n'):
                     if line.startswith('printer'):
                         printer_name = line.split()[1]
-                        printers.append({
-                            'name': printer_name,
-                            'type': cls._detect_printer_type(printer_name)
-                        })
-            
-            elif platform.system() == "Darwin":  # macOS
-                # macOS - usar lpstat
-                result = subprocess.run(
-                    ['lpstat', '-p'],
-                    capture_output=True, text=True, check=True
-                )
-                for line in result.stdout.split('\n'):
-                    if line.startswith('printer'):
-                        printer_name = line.split()[1]
-                        printers.append({
-                            'name': printer_name,
-                            'type': cls._detect_printer_type(printer_name)
-                        })
+                        if not any(p['name'] == printer_name for p in printers):
+                            printers.append({
+                                'name': printer_name,
+                                'display_name': f"SO: {printer_name}",
+                                'type': cls._detect_printer_type(printer_name),
+                                'is_db': False
+                            })
         
         except Exception as e:
-            print(f"Error obteniendo impresoras: {e}")
-            # Agregar impresoras por defecto si no se pueden detectar
-            printers = [
-                {'name': 'Impresora Térmica', 'type': 'GENERIC_80MM'},
-                {'name': 'Ticket Printer', 'type': 'GENERIC_58MM'}
-            ]
+            logger.warning(f"No se pudieron detectar impresoras del SO (normal en Docker): {e}")
+            if not printers:
+                # Agregar impresoras genéricas solo si no hay nada
+                printers.append({'name': 'POS-80', 'display_name': 'Genérica POS-80', 'type': 'GENERIC_80MM', 'is_db': False})
         
         return printers
     
@@ -166,7 +180,13 @@ class TicketThermalService:
         lines.append(f"Cliente: {venta.cliente.get_nombre_completo()[:width-9]}")
         if venta.cliente.identificacion != '9999999999':
             lines.append(f"CI/RUC: {venta.cliente.identificacion}")
-        lines.append(f"Vendedor: {venta.usuario.get_full_name() or venta.usuario.username}")
+        
+        # VENDEDOR RESALTADO
+        lines.append(separator_line(width))
+        vendedor_nombre = (venta.usuario.get_full_name() or venta.usuario.username).upper()
+        lines.append(center_text("VENDEDOR:", width))
+        lines.append(center_text(vendedor_nombre, width))
+        lines.append(separator_line(width))
         
         lines.append(separator_line(width))
         
@@ -206,10 +226,12 @@ class TicketThermalService:
                     remaining = remaining[width-4:]
                     lines.append(f"    {chunk}")
             
-            # Información adicional si es servicio
-            if detalle.tipo_servicio and detalle.tecnico:
-                tech_line = f"    Tecnico: {detalle.tecnico.get_nombre_completo()[:width-13]}"
-                lines.append(tech_line)
+            # Información adicional si es servicio - TECNICO RESALTADO
+            if (detalle.tipo_servicio or detalle.es_servicio) and detalle.tecnico:
+                tecnico_nombre = detalle.tecnico.get_nombre_completo().upper()
+                lines.append(center_text("TECNICO ASIGNADO:", width))
+                lines.append(center_text(tecnico_nombre, width))
+                lines.append(separator_line(width, '.'))
         
         lines.append(separator_line(width))
         
@@ -248,13 +270,70 @@ class TicketThermalService:
         return '\n'.join(lines)
     
     @classmethod
-    def print_ticket(cls, venta, printer_name=None, printer_type='GENERIC_80MM', open_drawer=False):
-        """Imprime ticket en impresora térmica"""
+    def print_ticket(cls, venta, printer_name=None, printer_type='GENERIC_80MM', open_drawer=False, user=None):
+        """
+        Imprime ticket en impresora térmica.
+        Soporta impresión directa (SO) o a través del Agente de Hardware (DB).
+        """
         try:
-            # Generar contenido del ticket
+            # Detectar si es una impresora de la base de datos
+            db_printer = None
+            if printer_name:
+                import uuid
+                try:
+                    # Intentar primero por ID
+                    uuid_val = uuid.UUID(str(printer_name))
+                    db_printer = Impresora.objects.filter(id=uuid_val, estado='ACTIVA').first()
+                except (ValueError, TypeError):
+                    pass
+                
+                if not db_printer:
+                    # Luego por nombre o driver
+                    db_printer = Impresora.objects.filter(
+                        models.Q(nombre=printer_name) | models.Q(nombre_driver=printer_name),
+                        estado='ACTIVA'
+                    ).first()
+            
+            logger.info(f"Imprimiendo ticket: Venta={venta.id}, Impresora_solicitada='{printer_name}', BD_Found={db_printer is not None}")
+
+            # Generar contenido del ticket (texto)
             content = cls.generate_ticket_content(venta, printer_type)
             
-            # Configuración de la impresora
+            # Si es impresora de BD, enviar a la cola de trabajos del AGENTE
+            # 🔥 ROBUSTEZ: Siempre enviar al agente si estamos en un entorno donde la impresión directa falla o es preferible el agente
+            if db_printer or printer_name:
+                from hardware_integration.api.agente_views import crear_trabajo_impresion
+                
+                # Convertir contenido a HEX (formato que espera el agente)
+                # ESC @ (inicializar) + Contenido + GS V (corte)
+                config = cls.THERMAL_PRINTERS.get(printer_type, cls.THERMAL_PRINTERS['GENERIC_80MM'])
+                commands = b'\x1B\x40' + content.encode('utf-8', errors='ignore') + config['cut_command']
+                if open_drawer:
+                    commands += config['drawer_command']
+                
+                comandos_hex = commands.hex()
+                
+                # Si no hay db_printer, usamos el printer_name tal cual
+                p_name = (db_printer.nombre_driver or db_printer.nombre) if db_printer else printer_name
+                
+                job_id = crear_trabajo_impresion(
+                    usuario=user or venta.usuario,
+                    impresora_nombre=p_name,
+                    comandos_hex=comandos_hex,
+                    tipo='TICKET',
+                    prioridad=1,
+                    abrir_gaveta=open_drawer
+                )
+                
+                if job_id:
+                    return True, f"Ticket enviado a la cola de impresión (ID: {job_id})"
+                elif not db_printer:
+                    # Si no logramos crear el trabajo y no era impresora de BD, seguimos al flujo normal
+                    pass
+                else:
+                    return False, "Error al crear el trabajo de impresión en el agente"
+
+            # Si NO es de BD, intentar impresión directa (solo funciona si el servidor tiene acceso)
             config = cls.THERMAL_PRINTERS.get(printer_type, cls.THERMAL_PRINTERS['GENERIC_80MM'])
             
             # Preparar comandos ESC/POS
@@ -370,9 +449,57 @@ class TicketThermalService:
             return False
     
     @classmethod
-    def test_printer(cls, printer_name, printer_type='GENERIC_80MM'):
+    def test_printer(cls, printer_name, printer_type='GENERIC_80MM', user=None):
         """Imprime un ticket de prueba"""
         try:
+            # Detectar si es una impresora de la base de datos
+            db_printer = None
+            if printer_name:
+                import uuid
+                try:
+                    uuid_val = uuid.UUID(str(printer_name))
+                    db_printer = Impresora.objects.filter(id=uuid_val, estado='ACTIVA').first()
+                except (ValueError, TypeError):
+                    pass
+                
+                if not db_printer:
+                    db_printer = Impresora.objects.filter(
+                        models.Q(nombre=printer_name) | models.Q(nombre_driver=printer_name),
+                        estado='ACTIVA'
+                    ).first()
+
+            logger.info(f"Test impresora: '{printer_name}', Tipo: '{printer_type}', BD_Found: {db_printer is not None}")
+
+            if db_printer:
+                from hardware_integration.api.agente_views import crear_trabajo_impresion
+                
+                # Texto de prueba
+                test_text = f"TICKET DE PRUEBA\n"
+                test_text += f"Impresora: {db_printer.nombre}\n"
+                test_text += f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n"
+                test_text += "--------------------------------\n"
+                test_text += "Prueba exitosa desde el punto de venta\n\n\n\n"
+                
+                config = cls.THERMAL_PRINTERS.get(printer_type, cls.THERMAL_PRINTERS['GENERIC_80MM'])
+                commands = b''.join([
+                    b'\x1B\x40', 
+                    test_text.encode('utf-8', errors='ignore'), 
+                    config['cut_command']
+                ])
+                
+                job_id = crear_trabajo_impresion(
+                    usuario=user,
+                    impresora_nombre=db_printer.nombre_driver or db_printer.nombre,
+                    comandos_hex=commands.hex(),
+                    tipo='OTRO',
+                    prioridad=0
+                )
+                
+                if job_id:
+                    return True, "Ticket de prueba enviado a la cola del agente"
+                else:
+                    return False, "Error al crear trabajo de prueba en el agente"
+
             config = cls.THERMAL_PRINTERS.get(printer_type, cls.THERMAL_PRINTERS['GENERIC_80MM'])
             width = config['width']
             

@@ -279,7 +279,12 @@
                                         <i class="fas fa-tag text-muted"></i>
                                         Categoría
                                     </label>
-                                    {{ form.categoria }}
+                                    <div class="input-group">
+                                        {{ form.categoria }}
+                                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#modalNuevaCategoria" title="Crear nueva categoría">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
                                     {% if form.categoria.errors %}
                                         <div class="text-danger small mt-1">
                                             {{ form.categoria.errors.0 }}
@@ -410,11 +415,98 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Nueva Categoría -->
+<div class="modal fade" id="modalNuevaCategoria" tabindex="-1" aria-labelledby="modalNuevaCategoriaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title text-white" id="modalNuevaCategoriaLabel">
+                    <i class="fas fa-tags me-2"></i>Nueva Categoría
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-danger d-none" id="errorFlashCategoria"></div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre de la Categoría</label>
+                    <input type="text" class="form-control" id="nuevaCategoriaNombre" placeholder="Ej. Materiales, Transporte" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción (Opcional)</label>
+                    <textarea class="form-control" id="nuevaCategoriaDesc" rows="2" placeholder="Detalles de la categoría"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarCategoria" onclick="guardarNuevaCategoria()">
+                    <i class="fas fa-save me-2"></i>Guardar Categoría
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 // ========== FUNCIONES PRINCIPALES ==========
+
+// Guardar nueva categoría vía AJAX
+function guardarNuevaCategoria() {
+    const btn = document.getElementById('btnGuardarCategoria');
+    const inputNombre = document.getElementById('nuevaCategoriaNombre');
+    const inputDesc = document.getElementById('nuevaCategoriaDesc');
+    const errorBox = document.getElementById('errorFlashCategoria');
+    
+    const nombre = inputNombre.value.trim();
+    if (!nombre) {
+        inputNombre.classList.add('is-invalid');
+        return;
+    }
+    inputNombre.classList.remove('is-invalid');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+    errorBox.classList.add('d-none');
+    
+    fetch('{% url "reportes:api_crear_categoria_gasto" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            nombre: nombre,
+            descripcion: inputDesc.value.trim()
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Añadir al select y seleccionarlo
+            const select = document.getElementById('{{ form.categoria.id_for_label }}');
+            const option = new Option(data.categoria.nombre, data.categoria.id, true, true);
+            select.add(option);
+            
+            // Cerrar modal y limpiar
+            bootstrap.Modal.getInstance(document.getElementById('modalNuevaCategoria')).hide();
+            inputNombre.value = '';
+            inputDesc.value = '';
+        } else {
+            errorBox.textContent = data.error || 'Error al guardar la categoría.';
+            errorBox.classList.remove('d-none');
+        }
+    })
+    .catch(err => {
+        errorBox.textContent = 'Error de conexión. Intente nuevamente.';
+        errorBox.classList.remove('d-none');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Categoría';
+    });
+}
 
 // Manejo del input de archivo
 function setupFileInput() {

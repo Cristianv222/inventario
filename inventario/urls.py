@@ -50,6 +50,7 @@ urlpatterns = [
     # ========================================
     # ETIQUETAS
     # ========================================
+    path('imprimir-etiqueta-rapida/<int:producto_id>/', views.imprimir_etiqueta_rapida, name='imprimir_etiqueta_rapida'),
     path('imprimir-etiquetas/', views.imprimir_etiquetas, name='imprimir_etiquetas'),
     path('etiquetas/generar/', views.generar_etiquetas_pdf, name='generar_etiquetas_pdf'),
     path('api/generar-pdf-etiquetas/', views.generar_etiquetas_pdf, name='generar_pdf_etiquetas'),  # Alias para compatibilidad

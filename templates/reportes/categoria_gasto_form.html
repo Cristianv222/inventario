@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titulo }} | Reportes{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">{{ titulo }}</h1>
+        </div>
+        <a href="{% url 'reportes:lista_categorias_gastos' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Lista
+        </a>
+    </div>
+
+    <!-- Formulario -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                            <a href="{% url 'reportes:lista_categorias_gastos' %}" class="btn btn-light me-2">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {{ btn_texto }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

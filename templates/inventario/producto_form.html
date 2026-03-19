@@ -766,6 +766,19 @@ $(document).ready(function () {
     $('#producto-form').on('submit', function (e) {
         if (formSubmitting) return true;
         e.preventDefault();
+
+        // FORZAR ACTUALIZACIÓN DE STOCK OCULTO ANTES DE ENVIAR (MODO EDICIÓN)
+        if (esEdicion) {
+            const stockAgregarValue = parseInt($('#stock_agregar').val()) || 0;
+            const finalizedStock = stockOriginal + stockAgregarValue;
+            $('#id_stock_actual').val(finalizedStock);
+            console.log('Stock final sincronizado para envío:', finalizedStock);
+        } else {
+            // MODO NUEVO
+            const stockInicialValue = parseInt($('#stock_agregar').val()) || 0;
+            $('#id_stock_actual').val(stockInicialValue);
+        }
+
         if (currentStep !== 4) {
             mostrarNotificacion('Debes completar todos los pasos antes de guardar', 'warning');
             return false;

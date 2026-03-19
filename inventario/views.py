@@ -61,6 +61,51 @@ from usuarios.models import Usuario
 # ========================================
 
 @login_required
+@require_POST
+def imprimir_etiqueta_rapida(request, producto_id):
+    """
+    Vista AJAX para imprimir etiquetas de un producto usando la impresora principal.
+    """
+    producto = get_object_or_404(Producto, id=producto_id)
+    cantidad = int(request.POST.get('cantidad', 1))
+    
+    try:
+        from hardware_integration.models import Impresora
+        from hardware_integration.printers.label_printer import LabelPrinter
+        
+        # Buscar impresora principal de etiquetas
+        impresora = Impresora.objects.filter(
+            tipo_impresora='ETIQUETAS', 
+            es_principal_etiquetas=True,
+            estado='ACTIVA'
+        ).first()
+        
+        if not impresora:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Impresora no identificada. Configure una impresora de etiquetas como principal.'
+            }, status=400)
+            
+        success, message = LabelPrinter.imprimir_etiqueta_producto(
+            producto=producto,
+            cantidad=cantidad,
+            impresora=impresora,
+            usuario=request.user
+        )
+        
+        if success:
+            return JsonResponse({
+                'success': True,
+                'message': f'Enviado para impresión: {cantidad} etiquetas de {producto.nombre}.'
+            })
+        else:
+            return JsonResponse({'success': False, 'error': message}, status=500)
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
 def lista_productos(request):
     """Vista para listar productos con filtros"""
     form = ProductoSearchForm(request.GET)
@@ -1882,7 +1927,7 @@ def api_publica_productos(request):
             'codigo': p.codigo_unico,
             'nombre': p.nombre,
             'descripcion': p.descripcion,
-            'precio': float(p.precio_final),
+            'precio': float(p.precio_venta),
             'stock': p.stock_actual,
             'categoria': p.categoria.nombre if p.categoria else '',
             'marca': p.marca.nombre if p.marca else '',

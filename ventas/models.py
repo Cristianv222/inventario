@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.db import models
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from django.conf import settings
 from django.utils import timezone
@@ -183,8 +184,15 @@ class DetalleVenta(models.Model):
         on_delete=models.PROTECT,
         blank=True,
         null=True,
-        related_name='detalles_venta',  # ✅ Agregado related_name
+        related_name='detalles_venta',
         help_text="Tipo de servicio del taller"
+    )
+    
+    nombre_personalizado = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="Nombre para items manuales o genéricos"
     )
     
     es_servicio = models.BooleanField(
@@ -238,6 +246,8 @@ class DetalleVenta(models.Model):
     
     def get_nombre_item(self):
         """Devuelve el nombre del producto o servicio"""
+        if self.nombre_personalizado:
+            return self.nombre_personalizado
         if self.tipo_servicio:
             return self.tipo_servicio.nombre
         elif self.producto:

@@ -695,6 +695,15 @@
                         <i class="fas fa-building"></i>
                         <span>Sucursales</span>
                     </a>
+                    <div class="navbar-divider"></div>
+                    <a href="{% url 'hardware_integration:dashboard' %}" class="navbar-dropdown-link">
+                        <i class="fas fa-server"></i>
+                        <span>Panel de Hardware</span>
+                    </a>
+                    <a href="{% url 'hardware_integration:impresora_list' %}" class="navbar-dropdown-link">
+                        <i class="fas fa-print"></i>
+                        <span>Impresoras</span>
+                    </a>
                 </div>
             </li>
             {% endif %}
@@ -876,6 +885,24 @@
                     onclick="handleMobileSidebarClick(event)">
                     <i class="fas fa-key"></i>
                     <span>Permisos</span>
+                </a>
+            </li>
+
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'hardware_integration:impresora_list' %}" 
+                    class="mobile-sidebar-link {% if active_page == 'hardware_impresoras' %}active{% endif %}"
+                    onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-print"></i>
+                    <span>Impresoras</span>
+                </a>
+            </li>
+
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'hardware_integration:dashboard' %}" 
+                    class="mobile-sidebar-link {% if active_page == 'hardware' %}active{% endif %}"
+                    onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-server"></i>
+                    <span>Panel de Hardware</span>
                 </a>
             </li>
             {% endif %}

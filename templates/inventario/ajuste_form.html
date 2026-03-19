@@ -199,7 +199,7 @@
             var producto_id = $(this).val();
             if (producto_id) {
                 $.ajax({
-                    url: '{% url "inventario:buscar_producto_api" %}',
+                    url: '{% url "inventario:api_buscar_producto_por_codigo" %}',
                     data: {
                         'codigo': $('#id_producto option:selected').text().split(' - ')[0]
                     },

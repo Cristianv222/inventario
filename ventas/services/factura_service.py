@@ -65,55 +65,30 @@ class FacturaService:
     
     @staticmethod
     def imprimir_factura(venta, impresora=None):
-        """Imprime una factura en la impresora seleccionada"""
+        """Imprime una factura en la impresora seleccionada usando hardware_integration"""
         try:
-            # Generar el PDF
-            pdf_file = FacturaService.generar_pdf(venta)
+            from hardware_integration.printers.ticket_printer import TicketPrinter
+            from hardware_integration.models import Impresora
             
-            # Guardar temporalmente el archivo
-            temp_fd, temp_filename = tempfile.mkstemp(suffix='.pdf')
-            os.close(temp_fd)
+            if not impresora:
+                impresora = Impresora.objects.filter(tipo_impresora='TICKET', estado='ACTIVA').first()
+            elif isinstance(impresora, str):
+                impresora = Impresora.objects.get(pk=impresora)
+
+            if not impresora:
+                return False, "No se encontró una impresora de tickets activa"
+
+            success = TicketPrinter.imprimir_ticket(venta, impresora)
             
-            with open(temp_filename, 'wb') as f:
-                f.write(pdf_file.read())
-            
-            # En Windows, usando la impresora predeterminada o especificada
-            if os.name == 'nt':  # Windows
-                if impresora:
-                    cmd = ['print', '/D:"{}"'.format(impresora), temp_filename]
-                else:
-                    cmd = ['print', temp_filename]
-                
-                # En Windows usar shell=True
-                process = subprocess.Popen(' '.join(cmd), shell=True)
-                process.wait()
-                
-                # Verificar resultado
-                if process.returncode != 0:
-                    os.unlink(temp_filename)
-                    return False, "Error al imprimir"
-            else:  # Linux/Mac
-                if impresora:
-                    cmd = ['lpr', '-P', impresora, temp_filename]
-                else:
-                    cmd = ['lpr', temp_filename]
-                
-                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                stdout, stderr = process.communicate()
-                
-                # Verificar resultado
-                if process.returncode != 0:
-                    os.unlink(temp_filename)
-                    return False, stderr.decode('utf-8')
-            
-            # Eliminar archivo temporal
-            os.unlink(temp_filename)
-            return True, "Factura enviada a impresión correctamente"
+            if success:
+                return True, "Factura enviada a impresión correctamente"
+            else:
+                return False, "Error al imprimir la factura con el agente local"
             
         except Exception as e:
             logger.exception("Error al imprimir factura")
             return False, str(e)
-    
+
     @staticmethod
     def generar_ticket(venta):
         """Genera un ticket en formato PDF (versión simplificada de factura)"""
@@ -159,50 +134,25 @@ class FacturaService:
     
     @staticmethod
     def imprimir_ticket(venta, impresora=None):
-        """Imprime un ticket en la impresora seleccionada"""
+        """Imprime un ticket en la impresora seleccionada usando hardware_integration"""
         try:
-            # Generar el ticket en PDF
-            pdf_file = FacturaService.generar_ticket(venta)
+            from hardware_integration.printers.ticket_printer import TicketPrinter
+            from hardware_integration.models import Impresora
             
-            # Guardar temporalmente el archivo
-            temp_fd, temp_filename = tempfile.mkstemp(suffix='.pdf')
-            os.close(temp_fd)
+            if not impresora:
+                impresora = Impresora.objects.filter(tipo_impresora='TICKET', estado='ACTIVA').first()
+            elif isinstance(impresora, str):
+                impresora = Impresora.objects.get(pk=impresora)
+
+            if not impresora:
+                return False, "No se encontró una impresora de tickets activa"
+
+            success = TicketPrinter.imprimir_ticket(venta, impresora)
             
-            with open(temp_filename, 'wb') as f:
-                f.write(pdf_file.read())
-            
-            # En Windows, usando la impresora predeterminada o especificada
-            if os.name == 'nt':  # Windows
-                if impresora:
-                    cmd = ['print', '/D:"{}"'.format(impresora), temp_filename]
-                else:
-                    cmd = ['print', temp_filename]
-                
-                # En Windows usar shell=True
-                process = subprocess.Popen(' '.join(cmd), shell=True)
-                process.wait()
-                
-                # Verificar resultado
-                if process.returncode != 0:
-                    os.unlink(temp_filename)
-                    return False, "Error al imprimir"
-            else:  # Linux/Mac
-                if impresora:
-                    cmd = ['lpr', '-P', impresora, temp_filename]
-                else:
-                    cmd = ['lpr', temp_filename]
-                
-                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                stdout, stderr = process.communicate()
-                
-                # Verificar resultado
-                if process.returncode != 0:
-                    os.unlink(temp_filename)
-                    return False, stderr.decode('utf-8')
-            
-            # Eliminar archivo temporal
-            os.unlink(temp_filename)
-            return True, "Ticket enviado a impresión correctamente"
+            if success:
+                return True, "Ticket enviado a impresión correctamente"
+            else:
+                return False, "Error al imprimir el ticket con el agente local"
             
         except Exception as e:
             logger.exception("Error al imprimir ticket")

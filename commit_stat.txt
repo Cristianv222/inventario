@@ -1,0 +1,52 @@
+﻿commit 44c9e4b7d684492aa79d1d0de013662f7879e7b5
+Author: Cristianv222 <cris.vasq2003@hotmail.com>
+Date:   Thu Mar 12 12:58:02 2026 -0500
+
+    cambios para sucursales
+
+ clientes/admin.py                                  |  650 ------------
+ clientes/apps.py                                   |    6 -
+ clientes/forms.py                                  |  549 -----------
+ clientes/migrations/0001_initial.py                |   60 --
+ ...uracionpuntos_alter_cliente_options_and_more.py |  154 ---
+ ...a_marketing_cliente_canal_preferido_and_more.py |  189 ----
+ ...004_pedidoonline_comprobante_base64_and_more.py |   38 -
+ clientes/migrations/__init__.py                    |    0
+ clientes/models.py                                 |  677 -------------
+ clientes/services/__init__.py                      |    0
+ clientes/services/sri_service.py                   |  401 --------
+ clientes/signals.py                                |  281 ------
+ clientes/tasks.py                                  |   72 --
+ clientes/test.py                                   |  751 --------------
+ clientes/tests.py                                  |    3 -
+ clientes/urls.py                                   |   43 -
+ clientes/utils.py                                  |  620 ------------
+ clientes/views.py                                  | 1034 --------------------
+ compras/__init__.py                                |    0
+ compras/admin.py                                   |    3 -
+ compras/apps.py                                    |    6 -
+ compras/migrations/__init__.py                     |    0
+ compras/models.py                                  |    3 -
+ compras/tests.py                                   |    3 -
+ compras/views.py                                   |    3 -
+ core/__init__.py                                   |    0
+ core/admin.py                                      |  209 ----
+ core/apps.py                                       |    6 -
+ core/context_processors.py                         |   49 -
+ core/forms.py                                      |   68 --
+ core/middleware.py                                 |    0
+ core/middleware/__init__.py                        |    0
+ core/middleware/role_middleware.py                 |  215 ----
+ core/middleware/schema_middleware.py               |   73 --
+ core/middleware/tenant_middleware.py               |   63 --
+ core/migrations/0001_initial.py                    |   28 -
+ core/migrations/0002_sucursal_dominiosucursal.py   |   60 --
+ core/migrations/__init__.py                        |    0
+ core/models.py                                     |  183 ----
+ core/templatetags/__init__.py                      |    0
+ core/tests.py                                      |    3 -
+ core/urls.py                                       |   31 -
+ core/utils/__init__.py                             |    0
+ core/views.py                                      |  441 ---------
+ clientes/__init__.py => pros                       |    0
+ 45 files changed, 6975 deletions(-)
