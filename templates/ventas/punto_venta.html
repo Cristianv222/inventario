@@ -59,7 +59,7 @@
 
     .actions-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 0.5rem;
     }
 
@@ -963,10 +963,6 @@
                         <i class="bi bi-box-seam"></i>
                         <span>Productos</span>
                     </a>
-                    <a href="#" class="action-btn" onclick="addManualService()" style="background: #fff3cd; color: #856404; border-color: #ffeeba;">
-                        <i class="bi bi-plus-circle-dotted"></i>
-                        <span>Serv. Manual</span>
-                    </a>
                 </div>
             </div>
 
@@ -1021,8 +1017,13 @@
 
             <!-- Método de Pago -->
             <div class="cart-section">
-                <div class="section-title">Método de Pago</div>
-                <div class="payment-grid">
+                <div class="section-title d-flex justify-content-between align-items-center">
+                    Método de Pago
+                    <span id="paymentWarning" class="text-danger small" style="display: none; font-weight: bold;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> ¡Atención: Seleccione un método de pago!
+                    </span>
+                </div>
+                <div class="payment-grid" id="paymentGridContainer">
                     <div class="payment-option" data-method="EFECTIVO" onclick="selectPaymentMethod('EFECTIVO')">
                         <i class="bi bi-cash"></i>
                         <span>Efectivo</span>
@@ -1207,85 +1208,94 @@
 <div class="modal fade" id="createCustomerModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header" style="background: #28a745; color: white;">
-                <h5 class="modal-title">
-                    <i class="bi bi-person-plus"></i>
-                    Nuevo Cliente Rápido
+            <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #3f51b5 0%, #2c387e 100%); color: white;">
+                <h5 class="modal-title fw-bold fs-5 px-2 py-2">
+                    <i class="bi bi-person-plus-fill me-2 opacity-75"></i>
+                    Crear Nuevo Cliente
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body bg-light">
                 <form id="createCustomerForm" onsubmit="handleCreateCustomer(event)">
-                    <!-- Nombres -->
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="newCustomerNombres" placeholder="Nombres" required>
-                        <label for="newCustomerNombres">
-                            <i class="bi bi-person"></i> Nombres *
-                        </label>
-                    </div>
+                    <div class="row g-3">
+                        <!-- Nombres y Apellidos en 2 columnas -->
+                        <div class="col-md-6">
+                            <div class="form-floating shadow-sm">
+                                <input type="text" class="form-control border-0 rounded-3" id="newCustomerNombres" placeholder="Nombres" required>
+                                <label for="newCustomerNombres" class="text-muted">
+                                    <i class="bi bi-person text-primary"></i> Nombres *
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating shadow-sm">
+                                <input type="text" class="form-control border-0 rounded-3" id="newCustomerApellidos" placeholder="Apellidos" required>
+                                <label for="newCustomerApellidos" class="text-muted">
+                                    <i class="bi bi-person text-primary"></i> Apellidos *
+                                </label>
+                            </div>
+                        </div>
 
-                    <!-- Apellidos -->
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="newCustomerApellidos" placeholder="Apellidos" required>
-                        <label for="newCustomerApellidos">
-                            <i class="bi bi-person"></i> Apellidos *
-                        </label>
-                    </div>
+                        <!-- Tipo de Identificación e Identificación -->
+                        <div class="col-md-4">
+                            <div class="form-floating shadow-sm">
+                                <select class="form-select border-0 rounded-3" id="newCustomerTipoId" required style="padding-top: 1.625rem; padding-bottom: 0.625rem;">
+                                    <option value="CEDULA" selected>Cédula</option>
+                                    <option value="RUC">RUC</option>
+                                    <option value="PASAPORTE">Pasaporte</option>
+                                </select>
+                                <label for="newCustomerTipoId" class="text-muted">
+                                    <i class="bi bi-card-list text-primary"></i> Tipo Doc. *
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-floating shadow-sm position-relative">
+                                <input type="text" class="form-control border-0 rounded-3" id="newCustomerIdentificacion" placeholder="Identificación" required oninput="validateIdentification()" style="padding-right: 40px;">
+                                <label for="newCustomerIdentificacion" class="text-muted">
+                                    <i class="bi bi-card-text text-primary"></i> Número de Identificación *
+                                </label>
+                                <span id="identificationIcon" class="position-absolute" style="right: 15px; top: 18px; z-index: 10;"></span>
+                            </div>
+                            <div class="validation-message small mt-1 text-danger px-2" id="identificationValidation"></div>
+                        </div>
 
-                    <!-- Tipo de Identificación -->
-                    <div class="form-floating mb-3">
-                        <select class="form-select" id="newCustomerTipoId" required style="padding-top: 1.625rem; padding-bottom: 0.625rem;">
-                            <option value="CEDULA" selected>Cédula</option>
-                            <option value="RUC">RUC</option>
-                            <option value="PASAPORTE">Pasaporte</option>
-                        </select>
-                        <label for="newCustomerTipoId">
-                            <i class="bi bi-card-list"></i> Tipo de Identificación *
-                        </label>
-                    </div>
+                        <!-- Contacto -->
+                        <div class="col-md-6">
+                            <div class="form-floating shadow-sm">
+                                <input type="tel" class="form-control border-0 rounded-3" id="newCustomerTelefono" placeholder="Teléfono">
+                                <label for="newCustomerTelefono" class="text-muted">
+                                    <i class="bi bi-telephone text-primary"></i> Teléfono
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating shadow-sm">
+                                <input type="email" class="form-control border-0 rounded-3" id="newCustomerEmail" placeholder="Email">
+                                <label for="newCustomerEmail" class="text-muted">
+                                    <i class="bi bi-envelope text-primary"></i> Correo Electrónico
+                                </label>
+                            </div>
+                        </div>
 
-                    <!-- Identificación con validación arreglada para flotar correctamente -->
-                    <div class="form-floating mb-3 position-relative">
-                        <input type="text" class="form-control" id="newCustomerIdentificacion" placeholder="Identificación" required oninput="validateIdentification()" style="padding-right: 40px;">
-                        <label for="newCustomerIdentificacion">
-                            <i class="bi bi-card-text"></i> Identificación *
-                        </label>
-                        <!-- El icono de validación ahora flota a la derecha sin romper el form-floating -->
-                        <span id="identificationIcon" class="position-absolute" style="right: 15px; top: 18px; z-index: 10;"></span>
-                        <div class="validation-message small mt-1 text-danger" id="identificationValidation"></div>
-                    </div>
-
-                    <!-- Teléfono -->
-                    <div class="form-floating mb-3">
-                        <input type="tel" class="form-control" id="newCustomerTelefono" placeholder="Teléfono">
-                        <label for="newCustomerTelefono">
-                            <i class="bi bi-telephone"></i> Teléfono
-                        </label>
-                    </div>
-
-                    <!-- Email (opcional) -->
-                    <div class="form-floating mb-3">
-                        <input type="email" class="form-control" id="newCustomerEmail" placeholder="Email">
-                        <label for="newCustomerEmail">
-                            <i class="bi bi-envelope"></i> Email
-                        </label>
-                    </div>
-
-                    <!-- Dirección (opcional) -->
-                    <div class="form-floating mb-3">
-                        <textarea class="form-control" id="newCustomerDireccion" placeholder="Dirección" style="height: 80px;"></textarea>
-                        <label for="newCustomerDireccion">
-                            <i class="bi bi-geo-alt"></i> Dirección
-                        </label>
+                        <!-- Dirección -->
+                        <div class="col-12">
+                            <div class="form-floating shadow-sm">
+                                <textarea class="form-control border-0 rounded-3" id="newCustomerDireccion" placeholder="Dirección" style="height: 80px;"></textarea>
+                                <label for="newCustomerDireccion" class="text-muted">
+                                    <i class="bi bi-geo-alt text-primary"></i> Dirección Completa
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Botones -->
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="modal">
-                            <i class="bi bi-x"></i> Cancelar
+                    <div class="d-flex gap-3 justify-content-end mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4 shadow-sm" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg text-secondary me-1"></i> Cancelar
                         </button>
-                        <button type="submit" class="btn btn-success flex-fill" id="btnCreateCustomer">
-                            <i class="bi bi-check"></i> Crear Cliente
+                        <button type="submit" class="btn btn-primary px-4 shadow text-white" id="btnCreateCustomer" style="background: linear-gradient(135deg, #3f51b5 0%, #2c387e 100%); border: none;">
+                            <i class="bi bi-check2-circle me-1"></i> Confirmar y Crear
                         </button>
                     </div>
                 </form>
@@ -2237,7 +2247,12 @@
     function selectPaymentMethod(method) {
         currentPaymentMethod = method;
 
+        const warning = document.getElementById('paymentWarning');
+        if (warning) warning.style.display = 'none';
+
         document.querySelectorAll('.payment-option').forEach(btn => {
+            btn.style.backgroundColor = '';
+            btn.style.borderColor = '';
             btn.classList.remove('active');
             btn.style.transform = 'scale(1)';
         });
@@ -3015,12 +3030,26 @@
         if (!currentPaymentMethod || currentPaymentMethod === '' || currentPaymentMethod === null) {
             showToast('⚠️ Debe seleccionar un método de pago antes de continuar', 'error');
 
+            const warning = document.getElementById('paymentWarning');
+            if (warning) {
+                warning.style.display = 'block';
+                warning.style.animation = 'shake 0.5s';
+                setTimeout(() => { warning.style.display = 'none'; }, 4000);
+            }
+
             const paymentButtons = document.querySelectorAll('.payment-option');
             paymentButtons.forEach(btn => {
                 btn.style.animation = 'pulse 0.5s';
+                btn.style.backgroundColor = '#fff3cd';
+                btn.style.borderColor = '#dc3545';
+                
                 setTimeout(() => {
                     btn.style.animation = '';
-                }, 500);
+                    if (!btn.classList.contains('active')) {
+                        btn.style.backgroundColor = '';
+                        btn.style.borderColor = '';
+                    }
+                }, 1500);
             });
 
             return false;
