@@ -434,22 +434,30 @@ def reporte_tecnicos(request):
         fecha_completado__date__range=[fecha_inicio, fecha_fin]
     )
 
+    from ventas.models import DetalleVenta
     resumen_tecnicos = []
     for tec in tecnicos:
         ordenes_tec = ordenes_periodo.filter(tecnico_principal=tec)
 
-        # Servicios realizados por este técnico en el período
+        # Servicios desde OrdenTrabajo
         servicios_tec = ServicioOrden.objects.filter(
             orden__in=ordenes_tec,
             tecnico_asignado=tec
         )
 
-        # Servicios más realizados por este técnico
-        top_servicios_tec = servicios_tec.values(
+        # Servicios desde ventas POS directas
+        detalles_pos = DetalleVenta.objects.filter(
+            tecnico=tec,
+            es_servicio=True,
+            venta__fecha_hora__date__range=[fecha_inicio, fecha_fin]
+        )
+
+        # Top servicios POS
+        top_servicios_pos = detalles_pos.values(
             'tipo_servicio__nombre'
         ).annotate(
             cantidad=Count('id'),
-            total=Sum('precio_servicio')
+            total=Sum('total')
         ).order_by('-cantidad')[:5]
 
         # Promedio de evaluación
@@ -462,18 +470,21 @@ def reporte_tecnicos(request):
             p=Avg('calificacion_tecnico')
         )['p'] or 0
 
-        total_facturado = ordenes_tec.aggregate(
-            t=Sum('precio_total')
-        )['t'] or Decimal('0')
+        # Total facturado = ordenes taller + ventas POS
+        total_ordenes = ordenes_tec.aggregate(t=Sum('precio_total'))['t'] or Decimal('0')
+        total_pos = detalles_pos.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        total_facturado = total_ordenes + total_pos
+
+        total_servicios = servicios_tec.count() + detalles_pos.count()
 
         resumen_tecnicos.append({
             'tecnico': tec,
             'ordenes_completadas': ordenes_tec.count(),
-            'total_servicios': servicios_tec.count(),
+            'total_servicios': total_servicios,
             'total_facturado': total_facturado,
             'promedio_evaluacion': round(promedio_eval, 1),
             'comision_estimada': total_facturado * (tec.porcentaje_comision / 100) if tec.porcentaje_comision else Decimal('0'),
-            'top_servicios': list(top_servicios_tec),
+            'top_servicios': list(top_servicios_pos),
         })
 
     # Ordenar por total facturado desc
@@ -487,35 +498,35 @@ def reporte_tecnicos(request):
             ordenes_sel = ordenes_periodo.filter(tecnico_principal=tec_sel)
 
             # Servicios agrupados por tipo
-            servicios_agrupados = ServicioOrden.objects.filter(
-                orden__in=ordenes_sel,
-                tecnico_asignado=tec_sel
+            # Servicios desde ventas POS
+            from ventas.models import DetalleVenta, Venta as VentaM
+            servicios_agrupados = DetalleVenta.objects.filter(
+                tecnico=tec_sel,
+                es_servicio=True,
+                venta__fecha_hora__date__range=[fecha_inicio, fecha_fin]
             ).values(
                 'tipo_servicio__nombre',
                 'tipo_servicio__categoria__nombre'
             ).annotate(
                 cantidad=Count('id'),
-                total=Sum('precio_servicio'),
-                tiempo_promedio=Avg('tiempo_real')
+                total=Sum('total'),
+                tiempo_promedio=Avg('id')
             ).order_by('-cantidad')
 
-            # Órdenes del período con detalle
-            ordenes_detalle = ordenes_sel.select_related(
-                'cliente'
-            ).prefetch_related('servicios').order_by('-fecha_completado')
+            # Ventas POS con este tecnico
+            ventas_pos_tec = VentaM.objects.filter(
+                detalleventa__tecnico=tec_sel,
+                detalleventa__es_servicio=True,
+                fecha_hora__date__range=[fecha_inicio, fecha_fin]
+            ).distinct().select_related('cliente').order_by('-fecha_hora')
 
-            # Estadísticas por semana dentro del período
+            ordenes_detalle = ordenes_sel.select_related('cliente').prefetch_related('servicios').order_by('-fecha_completado')
             from django.db.models.functions import TruncWeek
-            por_semana = ordenes_sel.annotate(
-                semana=TruncWeek('fecha_completado')
-            ).values('semana').annotate(
-                total=Sum('precio_total'),
-                cantidad=Count('id')
-            ).order_by('semana')
-
+            por_semana = ordenes_sel.annotate(semana=TruncWeek('fecha_completado')).values('semana').annotate(total=Sum('precio_total'),cantidad=Count('id')).order_by('semana')
             detalle_tecnico = {
                 'tecnico': tec_sel,
                 'ordenes': ordenes_detalle,
+                'ventas_pos': ventas_pos_tec,
                 'servicios_agrupados': servicios_agrupados,
                 'por_semana': list(por_semana),
                 'stats': resumen_tecnicos[
@@ -527,14 +538,17 @@ def reporte_tecnicos(request):
             pass
 
     # ── Servicios más realizados en general ───────────────────────
-    top_servicios_global = ServicioOrden.objects.filter(
-        orden__in=ordenes_periodo
+    from ventas.models import DetalleVenta as DV
+    top_servicios_global = DV.objects.filter(
+        tecnico__isnull=False,
+        es_servicio=True,
+        venta__fecha_hora__date__range=[fecha_inicio, fecha_fin]
     ).values(
         'tipo_servicio__nombre',
         'tipo_servicio__categoria__nombre'
     ).annotate(
         cantidad=Count('id'),
-        total=Sum('precio_servicio')
+        total=Sum('total')
     ).order_by('-cantidad')[:15]
 
     context = {

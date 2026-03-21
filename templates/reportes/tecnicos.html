@@ -207,9 +207,18 @@
                             <td style="font-size:.8rem;">{{ o.cliente }}</td>
                             <td class="text-end fw-bold" style="color:var(--vp-green);">${{ o.precio_total|floatformat:2 }}</td>
                         </tr>
-                        {% empty %}
-                        <tr><td colspan="4"><div class="rp-empty" style="padding:1.5rem;"><p>Sin órdenes</p></div></td></tr>
                         {% endfor %}
+                        {% for v in detalle_tecnico.ventas_pos %}
+                        <tr>
+                            <td><span style="font-size:.8rem;font-family:monospace;background:#e8f4fd;padding:.15rem .4rem;border-radius:4px;">{{ v.numero_factura }}</span></td>
+                            <td style="font-size:.8rem;">Venta POS</td>
+                            <td style="font-size:.8rem;">{{ v.cliente }}</td>
+                            <td class="text-end fw-bold" style="color:var(--vp-green);">${{ v.total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if not detalle_tecnico.ordenes and not detalle_tecnico.ventas_pos %}
+                        <tr><td colspan="4"><div class="rp-empty" style="padding:1.5rem;"><p>Sin órdenes</p></div></td></tr>
+                        {% endif %}
                         </tbody>
                     </table>
                     </div>
