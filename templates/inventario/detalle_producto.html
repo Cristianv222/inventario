@@ -149,7 +149,7 @@
                                     </span>
                                 </td>
                                 <td>{{ mov.cantidad }}</td>
-                                <td>{{ mov.usuario.get_full_name }}</td>
+                                <td>{% if mov.usuario %}{{ mov.usuario.get_nombre_completo|default:mov.usuario.usuario }}{% else %}Sistema{% endif %}</td>
                                 <td>
                                     {% if mov.venta %}
                                     <a href="{% url 'ventas:detalle_venta' mov.venta.id %}">Venta #{{ mov.venta.id }}</a>
@@ -202,7 +202,7 @@
                                 </span>
                             </td>
                             <td>{{ ajuste.cantidad }}</td>
-                            <td>{{ ajuste.usuario.get_full_name }}</td>
+                            <td>{% if ajuste.usuario %}{{ ajuste.usuario.get_nombre_completo|default:ajuste.usuario.usuario }}{% else %}Sistema{% endif %}</td>
                             <td>{{ ajuste.motivo|truncatechars:30 }}</td>
                         </tr>
                         {% empty %}

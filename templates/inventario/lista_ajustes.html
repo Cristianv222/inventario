@@ -198,7 +198,7 @@
                         </td>
                         <td>
                             <span data-bs-toggle="tooltip" title="Usuario que realizó el ajuste">
-                                <i class="fas fa-user me-1 text-muted"></i> {{ ajuste.usuario.get_full_name|default:ajuste.usuario.username }}
+                                <i class="fas fa-user me-1 text-muted"></i> {% if ajuste.usuario %}{{ ajuste.usuario.get_nombre_completo|default:ajuste.usuario.usuario }}{% else %}Sistema{% endif %}
                             </span>
                         </td>
                         <td>

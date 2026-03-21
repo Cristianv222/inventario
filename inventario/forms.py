@@ -109,7 +109,7 @@ class InventarioAjusteForm(forms.ModelForm):
         widgets = {
             'producto': forms.Select(attrs={'class': 'form-select'}),
             'tipo_ajuste': forms.Select(attrs={'class': 'form-select'}),
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '1'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
             'motivo': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
     
@@ -117,6 +117,14 @@ class InventarioAjusteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Filtrar solo productos activos
         self.fields['producto'].queryset = Producto.objects.filter(activo=True)
+        # Hacer motivo opcional
+        self.fields['motivo'].required = False
+
+    def clean_motivo(self):
+        motivo = self.cleaned_data.get('motivo')
+        if not motivo:
+            return "Ajuste manual sin motivo especificado"
+        return motivo
 
     def clean(self):
         cleaned_data = super().clean()

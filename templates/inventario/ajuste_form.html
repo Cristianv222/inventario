@@ -96,10 +96,10 @@
                         </div>
                         
                         <div class="form-group mb-2">
-                            <label for="{{ form.motivo.id_for_label }}" class="form-label">Motivo del Ajuste</label>
+                            <label for="{{ form.motivo.id_for_label }}" class="form-label">Motivo del Ajuste (Recomendado)</label>
                             {{ form.motivo }}
                             <small class="form-text text-muted">
-                                Especifica el motivo detallado del ajuste (obligatorio). Esta información será visible en el historial.
+                                Especifica el motivo detallado del ajuste si es posible. Esta información será visible en el historial.
                             </small>
                         </div>
                     </div>
@@ -198,28 +198,37 @@
         $('#id_producto').change(function() {
             var producto_id = $(this).val();
             if (producto_id) {
-                $.ajax({
-                    url: '{% url "inventario:api_buscar_producto_por_codigo" %}',
-                    data: {
-                        'codigo': $('#id_producto option:selected').text().split(' - ')[0]
-                    },
-                    dataType: 'json',
-                    success: function(data) {
-                        if (data.success) {
-                            $('#producto-nombre').text(data.producto.nombre);
-                            $('#producto-codigo').text(data.producto.codigo);
-                            $('#producto-stock').text(data.producto.stock);
-                            $('#producto-precio').text(data.producto.precio);
-                            $('#producto-categoria').text($('#id_producto option:selected').data('categoria'));
-                            $('#producto-marca').text($('#id_producto option:selected').data('marca'));
-                            $('#producto-info').removeClass('d-none');
-                            $('#submit-button').prop('disabled', false);
-                            
-                            // Actualizar el preview
-                            updatePreview();
+                var selectedText = $('#id_producto option:selected').text().trim();
+                var matches = selectedText.match(/\(([^)]+)\)$/); // Busca lo que esté entre paréntesis al final
+                var codigo = matches ? matches[1] : '';
+                
+                if (codigo) {
+                    $.ajax({
+                        url: '{% url "inventario:api_buscar_producto_por_codigo" %}',
+                        data: { 'codigo': codigo },
+                        dataType: 'json',
+                        success: function(data) {
+                            if (data.success) {
+                                $('#producto-nombre').text(data.producto.nombre);
+                                $('#producto-codigo').text(data.producto.codigo);
+                                $('#producto-stock').text(data.producto.stock);
+                                $('#producto-precio').text(data.producto.precio);
+                                $('#producto-categoria').text($('#id_producto option:selected').data('categoria'));
+                                $('#producto-marca').text($('#id_producto option:selected').data('marca'));
+                                $('#producto-info').removeClass('d-none');
+                                $('#submit-button').prop('disabled', false);
+                                
+                                // Actualizar el preview
+                                updatePreview();
+                            }
                         }
-                    }
-                });
+                    });
+                } else {
+                    // Si no encuentra el código, fall-back
+                    $('#producto-info').addClass('d-none');
+                    $('#submit-button').prop('disabled', true);
+                    $('#preview-result').addClass('d-none');
+                }
             } else {
                 $('#producto-info').addClass('d-none');
                 $('#submit-button').prop('disabled', true);
@@ -309,13 +318,6 @@
             if (tipoAjuste === 'SALIDA' && cantidad > stockActual) {
                 e.preventDefault();
                 alert('No hay suficiente stock para realizar esta salida.');
-                return false;
-            }
-            
-            if (!$('#id_motivo').val().trim()) {
-                e.preventDefault();
-                alert('El motivo del ajuste es obligatorio.');
-                $('#id_motivo').focus();
                 return false;
             }
             

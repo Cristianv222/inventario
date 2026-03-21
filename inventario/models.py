@@ -148,14 +148,14 @@ class InventarioAjuste(models.Model):
             cantidad_ajuste = self.cantidad
             
             if self.tipo_ajuste == 'ENTRADA':
-                self.producto.stock_actual += int(self.cantidad)
+                self.producto.stock_actual += self.cantidad
             elif self.tipo_ajuste == 'SALIDA':
-                self.producto.stock_actual -= int(self.cantidad)
+                self.producto.stock_actual -= self.cantidad
             elif self.tipo_ajuste == 'AJUSTE':
                 # En ajuste, la cantidad ingresada es el nuevo stock total
                 # Calculamos la diferencia para el movimiento
                 cantidad_ajuste = self.cantidad - stock_anterior
-                self.producto.stock_actual = int(self.cantidad)
+                self.producto.stock_actual = self.cantidad
             
             # Guardar el producto con el nuevo stock
             self.producto.save()
