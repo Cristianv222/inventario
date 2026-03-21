@@ -210,24 +210,31 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-3">
                                 <div class="form-floating required-field">
                                     {{ form.identificacion }}
                                     <label for="{{ form.identificacion.id_for_label }}">Identificación</label>
                                     {% if form.identificacion.errors %}
                                     <div class="text-danger small">{{ form.identificacion.errors.0 }}</div>
                                     {% endif %}
-                                    <div class="help-text">Número de cédula o identificación</div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    {{ form.fecha_nacimiento }}
+                                    <label for="{{ form.fecha_nacimiento.id_for_label }}">Fecha de Nacimiento</label>
+                                    {% if form.fecha_nacimiento.errors %}
+                                    <div class="text-danger small">{{ form.fecha_nacimiento.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
                                 <div class="form-floating">
                                     {{ form.codigo }}
                                     <label for="{{ form.codigo.id_for_label }}">Código de Técnico</label>
                                     {% if form.codigo.errors %}
                                     <div class="text-danger small">{{ form.codigo.errors.0 }}</div>
                                     {% endif %}
-                                    <div class="help-text">Se genera automáticamente si está vacío</div>
                                 </div>
                             </div>
                         </div>

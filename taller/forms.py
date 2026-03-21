@@ -46,7 +46,7 @@ class TecnicoForm(forms.ModelForm):
         model = Tecnico
         fields = [
             'codigo', 'nombres', 'apellidos', 'identificacion', 
-            'tipo_identificacion', 'telefono', 'celular', 'email', 
+            'tipo_identificacion', 'fecha_nacimiento', 'telefono', 'celular', 'email', 
             'direccion', 'fecha_ingreso', 'estado', 'especialidades',
             'porcentaje_comision', 'salario_base', 'foto', 'observaciones'
         ]
@@ -56,6 +56,7 @@ class TecnicoForm(forms.ModelForm):
             'apellidos': forms.TextInput(attrs={'class': 'form-control'}),
             'identificacion': forms.TextInput(attrs={'class': 'form-control'}),
             'tipo_identificacion': forms.Select(attrs={'class': 'form-select'}),
+            'fecha_nacimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'celular': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),

@@ -381,6 +381,12 @@
                     {{ form.telefono }}
                 </div>
             </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-semibold">Fecha de Nacimiento</label>
+                    {{ form.fecha_nacimiento }}
+                </div>
+            </div>
         </div>
 
         <!-- ══ 2. SUCURSAL ═══════════════════════════════════════ -->
@@ -484,11 +490,10 @@
                     {% for error in form.password1.errors %}
                     <div class="text-danger mt-1"><small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small></div>
                     {% endfor %}
+                    <div class="form-text text-muted small">{{ form.password1.help_text }}</div>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
-                        Confirmar Contraseña{% if not usuario %} <span class="text-danger">*</span>{% endif %}
-                    </label>
+                    <label class="form-label fw-semibold">Confirmar Contraseña {% if not usuario %}<span class="text-danger">*</span>{% endif %}</label>
                     {{ form.password2 }}
                     <div id="passwordMatch" class="password-match" style="display:none;"></div>
                     {% for error in form.password2.errors %}

@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.db import connection, IntegrityError, transaction, models
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
 
 from .models import Sucursal, DominioSucursal, ParametroSistema
 from .forms import SucursalForm, DominioSucursalForm
@@ -109,6 +110,35 @@ def dashboard(request):
         'total_facturas':   total_facturas,
         'total_usuarios':   total_usuarios,
     }
+
+    # PROCESAMIENTO DE CUMPLEAÑOS
+    today = timezone.now().date()
+    
+    # 1. ¿Es el cumpleaños del usuario actual?
+    context['es_mi_cumple'] = False
+    if request.user.fecha_nacimiento and request.user.fecha_nacimiento.day == today.day and request.user.fecha_nacimiento.month == today.month:
+        context['es_mi_cumple'] = True
+    
+    # 2. Otros usuarios que cumplen años hoy
+    context['otros_cumples_usuarios'] = []
+    if 'usuarios_usuario' in existing_tables:
+        from usuarios.models import Usuario
+        context['otros_cumples_usuarios'] = Usuario.objects.filter(
+            fecha_nacimiento__day=today.day,
+            fecha_nacimiento__month=today.month,
+            activo=True
+        ).exclude(pk=request.user.pk)
+    
+    # 3. Técnicos que cumplen años hoy
+    context['cumples_tecnicos'] = []
+    if 'taller_tecnico' in existing_tables:
+        from taller.models import Tecnico
+        context['cumples_tecnicos'] = Tecnico.objects.filter(
+            fecha_nacimiento__day=today.day,
+            fecha_nacimiento__month=today.month,
+            activo=True
+        )
+
     return render(request, 'core/dashboard.html', context)
 
 

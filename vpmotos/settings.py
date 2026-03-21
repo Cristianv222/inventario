@@ -126,6 +126,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.role_middleware.RoleMiddleware',
+    'core.middleware.session_timeout_middleware.MidnightLogoutMiddleware',
 ]
 
 if not DEBUG:

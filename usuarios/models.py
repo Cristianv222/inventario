@@ -51,6 +51,7 @@ class Usuario(AbstractUser):
     activo = models.BooleanField(_('activo'), default=True)
     fecha_creacion = models.DateTimeField(_('fecha de creación'), auto_now_add=True)
     fecha_modificacion = models.DateTimeField(_('fecha de modificación'), auto_now=True)
+    fecha_nacimiento = models.DateField(_('fecha de nacimiento'), null=True, blank=True)
     
     # ✅ NUEVOS CAMPOS PARA MULTI-SUCURSAL
     sucursal = models.ForeignKey(

@@ -113,7 +113,7 @@ class UsuarioForm(forms.ModelForm):
     class Meta:
         model = Usuario
         fields = [
-            'usuario', 'nombre', 'apellido', 'email', 'telefono',
+            'usuario', 'nombre', 'apellido', 'email', 'telefono', 'fecha_nacimiento',
             'sucursal', 'puede_ver_todas_sucursales',
             'activo', 'is_staff', 'is_superuser',
         ]
@@ -143,6 +143,10 @@ class UsuarioForm(forms.ModelForm):
                 'placeholder': 'Teléfono (opcional)',
                 'autocomplete': 'tel',
             }),
+            'fecha_nacimiento': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+            }),
             'activo':       forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_staff':     forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -153,6 +157,7 @@ class UsuarioForm(forms.ModelForm):
             'apellido':     'Apellido',
             'email':        'Correo Electrónico',
             'telefono':     'Teléfono',
+            'fecha_nacimiento': 'Fecha de Nacimiento',
             'activo':       'Usuario Activo',
             'is_staff':     'Es Administrador',
             'is_superuser': 'Es Super Administrador (acceso total)',
