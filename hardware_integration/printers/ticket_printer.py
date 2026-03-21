@@ -1,357 +1,226 @@
 # apps/hardware_integration/printers/ticket_printer.py
-
 import logging
-from escpos import printer as escpos_printer
-from escpos.exceptions import Error as EscposError
-from ..models import RegistroImpresion
 from django.conf import settings
-import io
+from django.utils import timezone as tz
 
 logger = logging.getLogger(__name__)
 
+ANCHO = 48  # igual que printer_service.py que funciona bien
+
+
+def get_sucursal():
+    try:
+        from core.models import Sucursal
+        return Sucursal.objects.filter(es_principal=True).first() or Sucursal.objects.first()
+    except Exception as e:
+        logger.warning(f"No se pudo obtener sucursal: {e}")
+        return None
+
+
+def get_config():
+    class Config:
+        def __init__(self, s):
+            vs = getattr(settings, "VPMOTOS_SETTINGS", {})
+            if s:
+                self.nombre = s.nombre_comercial or s.nombre or "EMPRESA"
+                self.ruc    = s.ruc or ""
+                self.ciudad = f"{s.ciudad}, {s.provincia}" if s.ciudad else ""
+                self.tel    = s.telefono or s.celular or ""
+            else:
+                self.nombre = vs.get("COMPANY_NAME", "EMPRESA")
+                self.ruc    = vs.get("COMPANY_TAX_ID", "")
+                self.ciudad = ""
+                self.tel    = vs.get("COMPANY_PHONE", "")
+            self.S   = "$"
+            self.D   = 2
+            self.iva = vs.get("IVA_PERCENTAGE", 15.0)
+    return Config(get_sucursal())
+
+
+def centrar(texto, ancho=ANCHO):
+    texto = str(texto)[:ancho]
+    pad = (ancho - len(texto)) // 2
+    return (" " * pad + texto + "\n").encode("utf-8")
+
+
+def izquierda(texto):
+    return (str(texto) + "\n").encode("utf-8")
+
+
+def fila(izq, der, ancho=ANCHO):
+    izq = str(izq)
+    der = str(der)
+    espacio = ancho - len(izq) - len(der)
+    if espacio < 1: espacio = 1
+    return (izq + " " * espacio + der + "\n").encode("utf-8")
+
+
+def sep(char="=", ancho=ANCHO):
+    return (char * ancho + "\n").encode("utf-8")
+
+
+# Comandos ESC/POS
+ESC       = b"\x1B"
+BOLD_ON   = b"\x1B\x21\x08"
+BOLD_OFF  = b"\x1B\x21\x00"
+BIG_ON    = b"\x1B\x21\x38"
+BIG_OFF   = b"\x1B\x21\x00"
+CENTER    = b"\x1B\x61\x01"
+LEFT      = b"\x1B\x61\x00"
+CUT       = b"\x1D\x56\x41\x03"
+FEED      = b"\n\n\n\n"
+
 
 class TicketPrinter:
-    """
-    Servicio para imprimir tickets de venta
-    ✅ ACTUALIZADO: Usa configuración desde system_configuration
-    """
-    
+
     @staticmethod
     def generar_comandos_ticket(venta, impresora_obj):
-        """
-        Genera los comandos ESC/POS para imprimir un ticket
-        
-        Args:
-            venta: Instancia del modelo Venta
-            impresora_obj: Instancia del modelo Impresora
-        
-        Returns:
-            str: Comandos ESC/POS en formato hexadecimal
-        """
         try:
-            # ✅ Obtener configuración del sistema
-            from django.conf import settings
-            class MockConfig:
-                def __init__(self):
-                    vs = getattr(settings, 'VPMOTOS_SETTINGS', {})
-                    self.nombre_empresa = vs.get('COMPANY_NAME', 'VPMOTOS')
-                    self.ruc_empresa = vs.get('COMPANY_TAX_ID', '')
-                    self.direccion_empresa = vs.get('COMPANY_ADDRESS', '')
-                    self.telefono_empresa = vs.get('COMPANY_PHONE', '')
-                    self.email_empresa = vs.get('COMPANY_EMAIL', '')
-                    self.sitio_web = vs.get('COMPANY_WEBSITE', '')
-                    self.prefijo_numero_venta = vs.get('TICKET_PREFIX', 'TKT')
-                    self.simbolo_moneda = '$'
-                    self.decimales_moneda = 2
-                    self.iva_activo = True
-                    self.porcentaje_iva = vs.get('IVA_PERCENTAGE', 15.0)
-                    self.moneda = vs.get('DEFAULT_CURRENCY', 'USD')
-                    self.zona_horaria = getattr(settings, 'TIME_ZONE', 'America/Guayaquil')
-            config = MockConfig()
-            
-            # Crear impresora virtual (Dummy) para capturar comandos
-            # Esto NO envía a imprimir, solo genera los bytes
-            p = escpos_printer.Dummy()
-            
-            # ========================================
+            cfg = get_config()
+            S = cfg.S
+            D = cfg.D
+            c = b""
+
             # ENCABEZADO
-            # ========================================
-            p.set(align='center', bold=True, double_width=True, double_height=True)
-            p.text(f"{config.nombre_empresa}\n")
-            
-            p.set(align='center', bold=False, double_width=False, double_height=False)
-            
-            # RUC/NIT
-            if config.ruc_empresa:
-                p.text(f"RUC: {config.ruc_empresa}\n")
-            
-            # Dirección
-            if config.direccion_empresa:
-                # Truncar dirección si es muy larga (máx 42 caracteres)
-                direccion = config.direccion_empresa[:42]
-                p.text(f"{direccion}\n")
-            
-            # Teléfono
-            if config.telefono_empresa:
-                p.text(f"Tel: {config.telefono_empresa}\n")
-            
-            # Email
-            if config.email_empresa:
-                p.text(f"{config.email_empresa}\n")
-            
-            # Sitio web
-            if config.sitio_web:
-                # Remover http:// o https:// para ahorrar espacio
-                sitio = config.sitio_web.replace('https://', '').replace('http://', '')
-                p.text(f"{sitio}\n")
-            
-            p.text("=" * 42 + "\n")
-            
-            # ========================================
-            # DATOS DE LA VENTA
-            # ========================================
-            p.set(align='left', bold=False)
-            
-            # Número de ticket con el prefijo configurado
-            numero_venta = f"{config.prefijo_numero_venta}-{venta.numero_venta}"
-            p.text(f"Ticket: {numero_venta}\n")
-            
-            # Fecha en formato configurado
-            fecha_formato = venta.fecha_venta.strftime('%d/%m/%Y %H:%M')
-            p.text(f"Fecha: {fecha_formato}\n")
-            p.text(f"Vendedor: {venta.vendedor.username}\n")
-            
+            c += CENTER
+            c += BOLD_ON
+            c += centrar(cfg.nombre)
+            c += BOLD_OFF
+            if cfg.ruc:    c += centrar("RUC: " + cfg.ruc)
+            if cfg.ciudad: c += centrar(cfg.ciudad)
+            if cfg.tel:    c += centrar("TEL: " + cfg.tel)
+            c += sep("=")
+
+            # DATOS VENTA
+            c += LEFT
+            fecha_local = tz.localtime(venta.fecha_hora)
+            c += izquierda("TICKET: TKT-" + str(venta.numero_factura))
+            c += izquierda("FECHA : " + fecha_local.strftime("%d/%m/%Y  %H:%M"))
+            cajero = venta.usuario.usuario if venta.usuario else "Sistema"
+            c += izquierda("CAJERO: " + cajero)
             if venta.cliente:
-                p.text(f"Cliente: {venta.cliente.nombre_completo()}\n")
-                p.text(f"Doc: {venta.cliente.numero_documento}\n")
-            
-            p.text("=" * 42 + "\n")
-            
-            # ========================================
-            # DETALLES DE PRODUCTOS
-            # ========================================
-            p.set(bold=False)
-            p.text("PRODUCTO          CANT      PRECIO     TOTAL\n")
-            p.text("-" * 42 + "\n")
-            
-            for detalle in venta.detalleventa_set.all():
-                # Obtener nombre priorizando el personalizado
-                if detalle.producto:
-                    nombre_base = detalle.producto.nombre
-                elif detalle.tipo_servicio:
-                    nombre_base = detalle.nombre_personalizado or detalle.tipo_servicio.nombre
-                else:
-                    nombre_base = detalle.nombre_personalizado or "Item"
-                
-                nombre = nombre_base[:15].ljust(15)
-                
-                if detalle.producto and hasattr(detalle.producto, 'es_quintal') and detalle.producto.es_quintal():
-                    cant = f"{detalle.cantidad:.2f}".rjust(4)
-                    uni = "kg" # Simplificado
-                    cant_str = f"{cant} {uni}"
-                else:
-                    cant_str = f"{int(detalle.cantidad):>4} un"
-                
-                # ✅ Usar símbolo de moneda configurado
-                simbolo = config.simbolo_moneda
-                decimales = config.decimales_moneda
-                
-                precio = f"{simbolo}{detalle.precio_unitario:.{decimales}f}".rjust(9)
-                total = f"{simbolo}{detalle.total:.{decimales}f}".rjust(9)
-                
-                p.text(f"{nombre} {cant_str:>7} {precio} {total}\n")
-            
-            p.text("=" * 42 + "\n")
-            
-            # ========================================
+                c += izquierda("CLIENT: " + venta.cliente.get_nombre_completo()[:40])
+                c += izquierda("CI/RUC: " + str(venta.cliente.identificacion))
+
+            # ORDEN DE TALLER
+            if venta.orden_trabajo:
+                ot = venta.orden_trabajo
+                c += sep("-")
+                c += CENTER
+                c += BOLD_ON
+                c += centrar("ORDEN DE TALLER")
+                c += BOLD_OFF
+                c += LEFT
+                c += izquierda("OT    : " + str(ot.numero_orden))
+                moto = ((ot.moto_marca or "") + " " + (ot.moto_modelo or "")).strip()
+                if moto: c += izquierda("MOTO  : " + moto[:40])
+                if ot.moto_placa: c += izquierda("PLACA : " + ot.moto_placa)
+                if ot.moto_año: c += izquierda("ANO   : " + str(ot.moto_año))
+                if ot.kilometraje_entrada: c += izquierda("KM    : " + str(ot.kilometraje_entrada))
+                if ot.tecnico_principal:
+                    t = ot.tecnico_principal
+                    c += izquierda("TEC   : " + t.nombres + " " + t.apellidos)
+                if ot.trabajo_realizado:
+                    c += izquierda("TRAB  : " + ot.trabajo_realizado[:40])
+
+            # ITEMS
+            c += sep("=")
+            c += BOLD_ON
+            c += fila("DESCRIPCION", "TOTAL")
+            c += BOLD_OFF
+            c += sep("-")
+
+            for det in venta.detalleventa_set.select_related("producto", "tipo_servicio", "tecnico").all():
+                if det.nombre_personalizado:  nombre = det.nombre_personalizado
+                elif det.producto:            nombre = det.producto.nombre
+                elif det.tipo_servicio:       nombre = det.tipo_servicio.nombre
+                else:                         nombre = "Item"
+
+                total_str = S + "{:.{}f}".format(det.total, D)
+                cant_str  = "{:.0f} x ".format(det.cantidad) + S + "{:.{}f}".format(det.precio_unitario, D)
+
+                # nombre + total en misma linea
+                c += fila(nombre[:38], total_str)
+                if len(nombre) > 38:
+                    c += izquierda("  " + nombre[38:])
+                c += izquierda("  " + cant_str)
+                if det.tecnico:
+                    tec = det.tecnico.nombres + " " + det.tecnico.apellidos
+                    c += izquierda("  TECNICO: " + tec[:36])
+
             # TOTALES
-            # ========================================
-            p.set(bold=True)  # Negrita
-            
-            simbolo = config.simbolo_moneda
-            decimales = config.decimales_moneda
-            
-            p.text(f"{'SUBTOTAL:':.<30} {simbolo}{venta.subtotal:>9.{decimales}f}\n")
-            
-            if venta.descuento > 0:
-                p.text(f"{'DESCUENTO:':.<30} -{simbolo}{venta.descuento:>8.{decimales}f}\n")
-            
-            # ✅ Mostrar IVA solo si está activo en configuración
-            if config.iva_activo and venta.impuestos > 0:
-                p.text(f"{'IVA ({:.0f}%):'.format(config.porcentaje_iva):.<30} {simbolo}{venta.impuestos:>9.{decimales}f}\n")
-            
-            p.set(bold=True, double_width=True, double_height=True)
-            p.text(f"{'TOTAL:':.<30} {simbolo}{venta.total:>9.{decimales}f}\n")
-            
-            p.set(bold=False, double_width=False, double_height=False)
-            p.text("=" * 42 + "\n")
-            
-            # ========================================
-            # FORMAS DE PAGO
-            # ========================================
-            for pago in venta.pagos.all():
-                forma = pago.get_forma_pago_display()
-                p.text(f"{forma:.<30} {simbolo}{pago.monto:>9.{decimales}f}\n")
-            
-            if venta.cambio > 0:
-                p.set(bold=True)
-                p.text(f"{'CAMBIO:':.<30} {simbolo}{venta.cambio:>9.{decimales}f}\n")
-                p.set(bold=False)
-            
-            p.text("=" * 42 + "\n\n")
-            
-            # ========================================
-            # PIE DE TICKET
-            # ========================================
-            p.set(align='center')
-            p.text("GRACIAS POR SU COMPRA\n")
-            
-            # Mensaje personalizado si existe
-            if hasattr(venta, 'mensaje_personalizado') and venta.mensaje_personalizado:
-                p.text(f"{venta.mensaje_personalizado}\n")
-            
-            # Sitio web en el pie
-            if config.sitio_web:
-                sitio = config.sitio_web.replace('https://', '').replace('http://', '')
-                p.text(f"{sitio}\n")
-            
-            p.text("\n")
-            
-            # ========================================
-            # ABRIR GAVETA DE DINERO
-            # ========================================
+            c += sep("=")
+            c += fila("SUBTOTAL", S + "{:.{}f}".format(venta.subtotal, D))
+            if venta.descuento and venta.descuento > 0:
+                c += fila("DESCUENTO", "-" + S + "{:.{}f}".format(venta.descuento, D))
+            if venta.iva and venta.iva > 0:
+                c += fila("IVA {:.0f}%".format(cfg.iva), S + "{:.{}f}".format(venta.iva, D))
+
+            pagos = {"EFECTIVO":"EFECTIVO","TARJETA":"TARJETA","TRANSFERENCIA":"TRANSFERENCIA","CREDITO":"CREDITO","MIXTO":"MIXTO"}
+            if venta.tipo_pago:
+                c += izquierda("(" + pagos.get(venta.tipo_pago, venta.tipo_pago) + ")")
+
+            c += sep("-")
+            c += BOLD_ON
+            c += fila("TOTAL A PAGAR", S + "{:.{}f}".format(venta.total, D))
+            c += BOLD_OFF
+            c += sep("=")
+
+            # PIE
+            c += CENTER
+            c += b"\n"
+            c += centrar("GRACIAS POR SU PREFERENCIA")
+            c += centrar("Vuelva pronto!")
+            c += FEED
+            c += CUT
+
             if impresora_obj.tiene_gaveta:
-                logger.info("💰 Abriendo gaveta de dinero...")
-                p.cashdraw(2)  # Pin 2
-                p.cashdraw(5)  # Pin 5 (por compatibilidad)
-            
-            # Cortar papel
-            p.cut()
-            
-            # Obtener los bytes generados
-            comandos_bytes = p.output
-            
-            # Convertir a hexadecimal para enviar al agente
-            comandos_hex = comandos_bytes.hex()
-            
-            logger.info(f"✅ Comandos generados: {len(comandos_hex)} caracteres hex")
-            logger.info(f"   Empresa: {config.nombre_empresa}")
-            logger.info(f"   Moneda: {config.simbolo_moneda} ({config.moneda})")
-            logger.info(f"   IVA activo: {config.iva_activo}")
-            
-            return comandos_hex
-            
+                c += b"\x10\x14\x01\x00\x05"
+
+            return c.hex()
+
         except Exception as e:
-            logger.error(f"❌ Error generando comandos de ticket: {e}", exc_info=True)
+            logger.error("Error generando ticket: " + str(e), exc_info=True)
             raise
-    
-    
+
     @staticmethod
     def imprimir_ticket(venta, impresora_obj):
-        """
-        Método de compatibilidad para imprimir directamente
-        (usado en pruebas del módulo de hardware)
-        """
         try:
-            comandos_hex = TicketPrinter.generar_comandos_ticket(venta, impresora_obj)
-            
-            # Encolar trabajo
+            hex_data = TicketPrinter.generar_comandos_ticket(venta, impresora_obj)
             from ..api.agente_views import crear_trabajo_impresion
-            
-            trabajo_id = crear_trabajo_impresion(
-                usuario=venta.vendedor,
+            crear_trabajo_impresion(
+                usuario=venta.usuario,
                 impresora_nombre=impresora_obj.nombre_driver or impresora_obj.nombre,
-                comandos_hex=comandos_hex,
-                tipo='ticket',
-                prioridad=2
+                comandos_hex=hex_data, tipo="ticket", prioridad=1
             )
-            
-            logger.info(f"✅ Ticket encolado con ID: {trabajo_id}")
             return True
-            
         except Exception as e:
-            logger.error(f"❌ Error al imprimir ticket: {e}", exc_info=True)
+            logger.error("Error imprimir ticket: " + str(e), exc_info=True)
             return False
-    
-    
+
     @staticmethod
     def imprimir_ticket_prueba(impresora_obj):
-        """
-        Imprime un ticket de prueba
-        ✅ ACTUALIZADO: Usa configuración del sistema
-        """
         try:
-            # ✅ Obtener configuración del sistema
-            from django.conf import settings
-            class MockConfig:
-                def __init__(self):
-                    vs = getattr(settings, 'VPMOTOS_SETTINGS', {})
-                    self.nombre_empresa = vs.get('COMPANY_NAME', 'VPMOTOS')
-                    self.ruc_empresa = vs.get('COMPANY_TAX_ID', '')
-                    self.direccion_empresa = vs.get('COMPANY_ADDRESS', '')
-                    self.telefono_empresa = vs.get('COMPANY_PHONE', '')
-                    self.email_empresa = vs.get('COMPANY_EMAIL', '')
-                    self.sitio_web = vs.get('COMPANY_WEBSITE', '')
-                    self.prefijo_numero_venta = vs.get('TICKET_PREFIX', 'TKT')
-                    self.simbolo_moneda = '$'
-                    self.decimales_moneda = 2
-                    self.iva_activo = True
-                    self.porcentaje_iva = vs.get('IVA_PERCENTAGE', 15.0)
-                    self.moneda = vs.get('DEFAULT_CURRENCY', 'USD')
-                    self.zona_horaria = getattr(settings, 'TIME_ZONE', 'America/Guayaquil')
-            config = MockConfig()
-            
-            p = escpos_printer.Dummy()
-            
-            # Encabezado de prueba
-            p.set(align='center', bold=True, double_width=True, double_height=True)
-            p.text("TICKET DE PRUEBA\n\n")
-            
-            # Información de la empresa
-            p.set(align='center', bold=False, double_width=False, double_height=False)
-            p.text(f"{config.nombre_empresa}\n")
-            
-            if config.ruc_empresa:
-                p.text(f"RUC: {config.ruc_empresa}\n")
-            
-            p.text("=" * 42 + "\n")
-            
-            # Información técnica
-            p.set(align='left', bold=False)
-            p.text(f"Impresora: {impresora_obj.nombre}\n")
-            p.text(f"Modelo: {impresora_obj.modelo}\n")
-            p.text(f"Moneda: {config.moneda} ({config.simbolo_moneda})\n")
-            p.text(f"Decimales: {config.decimales_moneda}\n")
-            p.text(f"IVA: {config.porcentaje_iva}% ")
-            p.text(f"({'Activo' if config.iva_activo else 'Inactivo'})\n")
-            p.text(f"Zona Horaria: {config.zona_horaria}\n")
-            
-            p.text("=" * 42 + "\n\n")
-            
-            # Mensaje de éxito
-            p.set(align='center')
-            p.text("Si puede leer esto,\n")
-            p.text("su impresora funciona correctamente\n\n")
-            
-            # Información de contacto
-            if config.telefono_empresa:
-                p.text(f"Tel: {config.telefono_empresa}\n")
-            
-            if config.email_empresa:
-                p.text(f"{config.email_empresa}\n")
-            
-            if config.sitio_web:
-                sitio = config.sitio_web.replace('https://', '').replace('http://', '')
-                p.text(f"{sitio}\n")
-            
-            p.text("\n")
-            
-            # Probar gaveta si está configurada
-            if impresora_obj.tiene_gaveta:
-                p.text("Probando apertura de gaveta...\n")
-                p.cashdraw(2)
-                p.cashdraw(5)
-            
-            p.cut()
-            
-            comandos_hex = p.output.hex()
-            
+            cfg = get_config()
+            c = b""
+            c += CENTER
+            c += BOLD_ON
+            c += centrar("TICKET DE PRUEBA")
+            c += BOLD_OFF
+            c += centrar(cfg.nombre)
+            if cfg.ruc: c += centrar("RUC: " + cfg.ruc)
+            c += sep("=")
+            c += centrar("Impresora funcionando OK")
+            c += FEED
+            c += CUT
+
             from ..api.agente_views import crear_trabajo_impresion, obtener_usuario_para_impresion
-            
-            usuario = obtener_usuario_para_impresion()
-            
-            trabajo_id = crear_trabajo_impresion(
-                usuario=usuario,
+            crear_trabajo_impresion(
+                usuario=obtener_usuario_para_impresion(),
                 impresora_nombre=impresora_obj.nombre_driver or impresora_obj.nombre,
-                comandos_hex=comandos_hex,
-                tipo='test',
-                prioridad=3  # Máxima prioridad para pruebas
+                comandos_hex=c.hex(), tipo="test", prioridad=1
             )
-            
-            logger.info(f"✅ Ticket de prueba encolado con ID: {trabajo_id}")
-            logger.info(f"   Configuración: {config.nombre_empresa}")
             return True
-            
         except Exception as e:
-            logger.error(f"❌ Error al imprimir ticket de prueba: {e}", exc_info=True)
+            logger.error("Error ticket prueba: " + str(e), exc_info=True)
             return False

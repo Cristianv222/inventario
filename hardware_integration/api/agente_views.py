@@ -48,7 +48,7 @@ def es_usuario_sistema(user):
     El usuario de sistema puede ver TODOS los trabajos de impresión,
     mientras que los usuarios normales solo ven los suyos.
     """
-    return user.username == USUARIO_SISTEMA
+    return user.usuario == USUARIO_SISTEMA
 
 
 def normalizar_nombre_impresora(nombre_solicitado):
@@ -950,7 +950,7 @@ def obtener_trabajos_sin_auth(request):
         User = get_user_model()
 
         try:
-            user = User.objects.get(username='agente_impresion')
+            user = User.objects.get(usuario='agente_impresion')
         except User.DoesNotExist:
             return Response({
                 'error': 'Usuario agente_impresion no existe'

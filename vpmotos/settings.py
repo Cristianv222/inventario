@@ -271,3 +271,18 @@ if not DEBUG:
 
 if DEBUG:
     print("SETTINGS RELOADED! DEBUG IS", DEBUG, flush=True)
+# ============================================================
+# REST FRAMEWORK
+# ============================================================
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+}
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]

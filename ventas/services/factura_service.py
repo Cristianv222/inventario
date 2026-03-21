@@ -71,7 +71,7 @@ class FacturaService:
             from hardware_integration.models import Impresora
             
             if not impresora:
-                impresora = Impresora.objects.filter(tipo_impresora='TICKET', estado='ACTIVA').first()
+                impresora = Impresora.objects.filter(es_principal_tickets=True, estado='ACTIVA').first() or Impresora.objects.filter(tipo_impresora='TICKET', estado='ACTIVA').order_by('-es_principal_tickets').first()
             elif isinstance(impresora, str):
                 impresora = Impresora.objects.get(pk=impresora)
 
@@ -140,7 +140,7 @@ class FacturaService:
             from hardware_integration.models import Impresora
             
             if not impresora:
-                impresora = Impresora.objects.filter(tipo_impresora='TICKET', estado='ACTIVA').first()
+                impresora = Impresora.objects.filter(es_principal_tickets=True, estado='ACTIVA').first() or Impresora.objects.filter(tipo_impresora='TICKET', estado='ACTIVA').order_by('-es_principal_tickets').first()
             elif isinstance(impresora, str):
                 impresora = Impresora.objects.get(pk=impresora)
 
