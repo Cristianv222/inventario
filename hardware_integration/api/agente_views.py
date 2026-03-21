@@ -289,7 +289,7 @@ def obtener_trabajos_pendientes(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])
 @throttle_classes([NoThrottle])
 def reportar_resultado(request):
     """

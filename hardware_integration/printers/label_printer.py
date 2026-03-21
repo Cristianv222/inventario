@@ -11,65 +11,62 @@ class LabelPrinter:
     """Servicio para imprimir etiquetas de códigos de barras"""
     
     @staticmethod
+    @staticmethod
+    @staticmethod
+    @staticmethod
+    @staticmethod
+    @staticmethod
+    @staticmethod
     def generar_zpl_producto(producto, configuracion=None, impresora=None):
-        """Genera comandos ZPL para un producto basado en la configuración de la impresora"""
-        # Priorizar configuración de la impresora si existe
+        """Genera comandos ZPL para un producto"""
         if impresora:
-            imp_nombre = impresora.imprime_nombre
-            imp_precio = impresora.imprime_precio
-            imp_codigo = impresora.imprime_codigo_barras
             ancho_mm = impresora.ancho_etiqueta or 50
-            alto_mm = impresora.alto_etiqueta or 25
+            alto_mm  = impresora.alto_etiqueta or 30
         else:
-            # Valores por defecto o de la configuración predeterminada
-            if not configuracion:
-                configuracion = ConfiguracionCodigoBarras.objects.filter(es_predeterminada=True).first()
-            
-            if configuracion:
-                imp_nombre = configuracion.incluir_nombre_producto
-                imp_precio = configuracion.incluir_precio
-                imp_codigo = True
-                ancho_mm = 50 # Default
-                alto_mm = 25 # Default
-            else:
-                imp_nombre = imp_precio = imp_codigo = True
-                ancho_mm, alto_mm = 50, 25
+            ancho_mm, alto_mm = 50, 30
 
-        # Convertir mm a dots (8 dots per mm para 203 DPI)
         pw = int(ancho_mm * 8)
-        ll = int(alto_mm * 8)
-        
-        # Iniciar ZPL
-        zpl = [
-            "^XA",
-            "^CI28",  # UTF-8
-            f"^PW{pw}",
-            f"^LL{ll}"
-        ]
-        
-        current_y = 30
-        
-        # Nombre del producto
-        if imp_nombre:
-            nombre = producto.nombre[:40]
-            zpl.append(f"^FO20,{current_y}^A0N,30,25^FD{nombre}^FS")
-            current_y += 40
-            
-        # Código de barras
-        if imp_codigo:
-            codigo = producto.codigo_unico
-            zpl.append(f"^FO20,{current_y}^BY2,2.0,50^BCN,50,Y,N,N^FD{codigo}^FS")
-            current_y += 80
-            
-        # Precio
-        if imp_precio:
-            precio = f"S/ {producto.precio_venta:,.2f}"
-            zpl.append(f"^FO20,{current_y}^A0N,40,35^FD{precio}^FS")
-            
+        ll = int(alto_mm  * 8)
+
+        try:
+            from core.models import Sucursal
+            s = Sucursal.objects.filter(es_principal=True).first()
+            empresa = s.nombre_comercial or s.nombre if s else "VPMOTOS"
+        except:
+            empresa = "VPMOTOS"
+
+        nombre = producto.nombre
+        codigo = producto.codigo_unico
+        precio = f"${producto.precio_venta:,.2f}"
+
+        n1 = nombre[:30]
+        n2 = nombre[30:60] if len(nombre) > 30 else ""
+
+        zpl = ["^XA", "^CI28", f"^PW{pw}", f"^LL{ll}"]
+
+        # 1. EMPRESA centrada arriba con ^FB (Field Block centrado)
+        zpl.append(f"^FO0,5^A0N,22,20^FB{pw},1,0,C,0^FD{empresa}^FS")
+
+        # 2. PRECIO arriba derecha
+        zpl.append(f"^FO0,5^A0N,28,26^FB{pw},1,0,R,0^FD{precio}  ^FS")
+
+        # 3. CODIGO DE BARRAS centrado
+        bar_h = 55
+        bar_y = 35
+        # CODE128: ~11 modulos por char x 2 dots = 22 dots/char + overhead
+        bar_w = len(codigo) * 22 + 60
+        bar_x = max(0, (pw - bar_w) // 2)
+        zpl.append(f"^FO{bar_x},{bar_y}^BY2,2.0,{bar_h}^BCN,{bar_h},Y,N,N^FD{codigo}^FS")
+
+        # 4. NOMBRE centrado abajo con ^FB
+        nombre_y = ll - 44 if not n2 else ll - 60
+        zpl.append(f"^FO0,{nombre_y}^A0N,20,18^FB{pw},1,0,C,0^FD{n1}^FS")
+        if n2:
+            zpl.append(f"^FO0,{nombre_y+22}^A0N,20,18^FB{pw},1,0,C,0^FD{n2}^FS")
+
         zpl.append("^XZ")
         return "\n".join(zpl)
 
-    @staticmethod
     def imprimir_etiqueta_producto(producto, cantidad=1, impresora=None, usuario=None):
         """Imprime etiquetas para un producto"""
         try:
@@ -90,24 +87,18 @@ class LabelPrinter:
             if "^XZ" in zpl:
                 zpl = zpl.replace("^XZ", f"^PQ{cantidad}^XZ")
             
-            success, msg = PrinterService.print_test_page(impresora, usar_agente=True) # El service debe manejar el envío raw
-            # Nota: print_test_page genera su propio ZPL. Necesitamos un método que envíe RAW ZPL.
-            # Según printer_service.py analizado antes, hay métodos para enviar raw.
-            
-            success, msg = PrinterService.imprimir_raw_windows(impresora.nombre_driver, zpl.encode('utf-8')) if hasattr(PrinterService, 'imprimir_raw_windows') else (False, "Método no disponible")
-            
-            if not success and impresora.direccion_ip:
-                # Intento por red si falla driver
-                try:
-                    import socket
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                        s.settimeout(5)
-                        s.connect((impresora.direccion_ip, impresora.puerto_red or 9100))
-                        s.sendall(zpl.encode('utf-8'))
-                        success = True
-                        msg = "Enviado por red"
-                except:
-                    pass
+            from ..api.agente_views import crear_trabajo_impresion
+            zpl_hex = zpl.encode('utf-8').hex()
+            trabajo_id = crear_trabajo_impresion(
+                usuario=usuario,
+                impresora_nombre=impresora.nombre_driver or impresora.nombre,
+                comandos_hex=zpl_hex,
+                tipo='ETIQUETA',
+                prioridad=2,
+                abrir_gaveta=False
+            )
+            success = True
+            msg = f'Trabajo creado: {trabajo_id}'
 
             # Registrar actividad
             RegistroImpresion.objects.create(
