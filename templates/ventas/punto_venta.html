@@ -1868,34 +1868,32 @@
         let subtotalProductos = 0;
         let subtotalServicios = 0;
         let subtotalOrdenes = 0;
-        let tax = 0; // ✅ Inicializar variable de impuestos
-
+        let tax = 0;
 
         cart.forEach(item => {
-            const itemTotal = item.price * item.quantity;
-            subtotalTotal += itemTotal;
-
+            const itemTotalPrice = item.price * item.quantity;
+            let itemSubtotal = itemTotalPrice;
             let itemTax = 0;
 
             if (item.type === 'product') {
-                subtotalProductos += itemTotal;
-                // Calcular IVA solo si el producto incluye IVA
-                if (item.incluye_iva) {
-                    itemTax = itemTotal * IVA_RATE;
+                // Desglosar IVA del precio asumiendo que el precio del producto es el final (incluye IVA)
+                if (item.incluye_iva !== false) {
+                    itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
+                    itemTax = itemTotalPrice - itemSubtotal;
+                } else {
+                    itemSubtotal = itemTotalPrice;
+                    itemTax = itemSubtotal * IVA_RATE;
                 }
+                subtotalProductos += itemSubtotal;
             } else if (item.type === 'service') {
-                subtotalServicios += itemTotal;
-                // Servicios sin IVA por ahora (o agregar lógica si aplica)
+                subtotalServicios += itemSubtotal;
             } else if (item.type === 'orden_trabajo') {
-                subtotalOrdenes += itemTotal;
-                // Órdenes ya tienen precio total calculado
+                subtotalOrdenes += itemSubtotal;
             }
 
+            subtotalTotal += itemSubtotal;
             tax += itemTax;
         });
-
-        // El impuesto se calcula ítem por ítem arriba
-        // const tax = subtotalProductos * IVA_RATE; // <-- ELIMINADO: Cálculo global incorrecto
         const discount = 0;
         const total = subtotalTotal + tax - discount;
 
@@ -2048,21 +2046,32 @@
         let subtotalProductos = 0;
         let subtotalServicios = 0;
         let subtotalOrdenes = 0;
+        let tax = 0;
 
         cart.forEach(item => {
-            const itemTotal = item.price * item.quantity;
-            subtotalTotal += itemTotal;
+            const itemTotalPrice = item.price * item.quantity;
+            let itemSubtotal = itemTotalPrice;
+            let itemTax = 0;
 
             if (item.type === 'product') {
-                subtotalProductos += itemTotal;
+                if (item.incluye_iva !== false) {
+                    itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
+                    itemTax = itemTotalPrice - itemSubtotal;
+                } else {
+                    itemSubtotal = itemTotalPrice;
+                    itemTax = itemSubtotal * IVA_RATE;
+                }
+                subtotalProductos += itemSubtotal;
             } else if (item.type === 'service') {
-                subtotalServicios += itemTotal;
+                subtotalServicios += itemSubtotal;
             } else if (item.type === 'orden_trabajo') {
-                subtotalOrdenes += itemTotal;
+                subtotalOrdenes += itemSubtotal;
             }
+
+            subtotalTotal += itemSubtotal;
+            tax += itemTax;
         });
 
-        const tax = subtotalProductos * IVA_RATE;
         const total = subtotalTotal + tax;
 
         const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
@@ -2076,8 +2085,20 @@
                     return null;
                 }
 
-                const itemSubtotal = item.price * item.quantity;
-                const itemIva = item.type === 'product' ? (itemSubtotal * IVA_RATE) : 0;
+                const itemTotalPrice = item.price * item.quantity;
+                let itemSubtotal = itemTotalPrice;
+                let itemIva = 0;
+
+                if (item.type === 'product') {
+                    if (item.incluye_iva !== false) {
+                        itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
+                        itemIva = itemTotalPrice - itemSubtotal;
+                    } else {
+                        itemSubtotal = itemTotalPrice;
+                        itemIva = itemSubtotal * IVA_RATE;
+                    }
+                }
+
                 const itemTotal = itemSubtotal + itemIva;
 
                 return {
@@ -2085,7 +2106,7 @@
                     id: item.id,
                     name: item.name,
                     cantidad: item.quantity,
-                    precio_unitario: item.price,
+                    precio_unitario: item.type === 'product' && item.incluye_iva !== false ? (item.price / (1 + IVA_RATE)) : item.price,
                     subtotal: itemSubtotal,
                     iva: itemIva,
                     descuento: 0,
@@ -3097,21 +3118,32 @@
         let subtotalProductos = 0;
         let subtotalServicios = 0;
         let subtotalOrdenes = 0;
+        let tax = 0;
 
         cart.forEach(item => {
-            const itemTotal = item.price * item.quantity;
-            subtotalTotal += itemTotal;
+            const itemTotalPrice = item.price * item.quantity;
+            let itemSubtotal = itemTotalPrice;
+            let itemTax = 0;
 
             if (item.type === 'product') {
-                subtotalProductos += itemTotal;
+                if (item.incluye_iva !== false) {
+                    itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
+                    itemTax = itemTotalPrice - itemSubtotal;
+                } else {
+                    itemSubtotal = itemTotalPrice;
+                    itemTax = itemSubtotal * IVA_RATE;
+                }
+                subtotalProductos += itemSubtotal;
             } else if (item.type === 'service') {
-                subtotalServicios += itemTotal;
+                subtotalServicios += itemSubtotal;
             } else if (item.type === 'orden_trabajo') {
-                subtotalOrdenes += itemTotal;
+                subtotalOrdenes += itemSubtotal;
             }
+
+            subtotalTotal += itemSubtotal;
+            tax += itemTax;
         });
 
-        const tax = subtotalProductos * IVA_RATE;
         const total = subtotalTotal + tax;
 
         const confirmationTotal = document.getElementById('confirmationTotal');
