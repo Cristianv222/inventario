@@ -2823,6 +2823,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.productos.length > 0) {
+                    // Guardar los productos nuevos en el array global para que la función selectProductFromModal los encuentre
+                    data.productos.forEach(newProduct => {
+                        if (!products.some(p => p.id === newProduct.id)) {
+                            products.push(newProduct);
+                        }
+                    });
                     displayProductsInModal(data.productos);
                 } else {
                     if (resultsContainer) {
