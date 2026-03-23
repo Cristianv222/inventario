@@ -2798,16 +2798,48 @@
     `).join('');
     }
 
-    function searchProducts() {
+    const searchProductsAjax = debounce(function() {
         const productSearch = document.getElementById('productSearch');
         if (!productSearch) return;
 
-        const search = productSearch.value.trim().toLowerCase();
-        const filteredProductsModal = products.filter(product =>
-            product.nombre.toLowerCase().includes(search) ||
-            product.codigo.toLowerCase().includes(search)
-        );
-        displayProductsInModal(filteredProductsModal);
+        const search = productSearch.value.trim();
+        const resultsContainer = document.getElementById('productResults');
+        
+        if (search.length === 0 && products.length > 0) {
+            displayProductsInModal(products);
+            return;
+        }
+
+        if (resultsContainer) {
+            resultsContainer.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <div class="loading-spinner"></div>
+                    <p style="margin-top: 1rem;">Buscando productos...</p>
+                </div>
+            `;
+        }
+
+        fetch(`/ventas/api/productos/?q=${encodeURIComponent(search)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.productos.length > 0) {
+                    displayProductsInModal(data.productos);
+                } else {
+                    if (resultsContainer) {
+                        resultsContainer.innerHTML = '<p style="text-align: center;">No se encontraron productos</p>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error searching products:', error);
+                if (resultsContainer) {
+                    resultsContainer.innerHTML = '<p style="text-align: center;">Error al buscar productos</p>';
+                }
+            });
+    }, 300);
+
+    function searchProducts() {
+        searchProductsAjax();
     }
 
     function selectProductFromModal(productId) {
