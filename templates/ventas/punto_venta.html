@@ -1876,14 +1876,9 @@
             let itemTax = 0;
 
             if (item.type === 'product') {
-                // Desglosar IVA del precio asumiendo que el precio del producto es el final (incluye IVA)
-                if (item.incluye_iva !== false) {
-                    itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
-                    itemTax = itemTotalPrice - itemSubtotal;
-                } else {
-                    itemSubtotal = itemTotalPrice;
-                    itemTax = itemSubtotal * IVA_RATE;
-                }
+                // Desglosar IVA del precio (el precio del producto siempre incluye IVA)
+                itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
+                itemTax = itemTotalPrice - itemSubtotal;
                 subtotalProductos += itemSubtotal;
             } else if (item.type === 'service') {
                 subtotalServicios += itemSubtotal;
@@ -2090,13 +2085,8 @@
                 let itemIva = 0;
 
                 if (item.type === 'product') {
-                    if (item.incluye_iva !== false) {
-                        itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
-                        itemIva = itemTotalPrice - itemSubtotal;
-                    } else {
-                        itemSubtotal = itemTotalPrice;
-                        itemIva = itemSubtotal * IVA_RATE;
-                    }
+                    itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
+                    itemIva = itemTotalPrice - itemSubtotal;
                 }
 
                 const itemTotal = itemSubtotal + itemIva;
@@ -2106,7 +2096,7 @@
                     id: item.id,
                     name: item.name,
                     cantidad: item.quantity,
-                    precio_unitario: item.type === 'product' && item.incluye_iva !== false ? (item.price / (1 + IVA_RATE)) : item.price,
+                    precio_unitario: item.type === 'product' ? (item.price / (1 + IVA_RATE)) : item.price,
                     subtotal: itemSubtotal,
                     iva: itemIva,
                     descuento: 0,
