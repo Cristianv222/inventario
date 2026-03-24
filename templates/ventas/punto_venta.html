@@ -2049,13 +2049,9 @@
             let itemTax = 0;
 
             if (item.type === 'product') {
-                if (item.incluye_iva !== false) {
-                    itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
-                    itemTax = itemTotalPrice - itemSubtotal;
-                } else {
-                    itemSubtotal = itemTotalPrice;
-                    itemTax = itemSubtotal * IVA_RATE;
-                }
+                // Desglosar IVA del precio (el precio del producto siempre incluye IVA)
+                itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
+                itemTax = itemTotalPrice - itemSubtotal;
                 subtotalProductos += itemSubtotal;
             } else if (item.type === 'service') {
                 subtotalServicios += itemSubtotal;
@@ -3116,13 +3112,9 @@
             let itemTax = 0;
 
             if (item.type === 'product') {
-                if (item.incluye_iva !== false) {
-                    itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
-                    itemTax = itemTotalPrice - itemSubtotal;
-                } else {
-                    itemSubtotal = itemTotalPrice;
-                    itemTax = itemSubtotal * IVA_RATE;
-                }
+                // Desglosar IVA del precio (el precio del producto siempre incluye IVA)
+                itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
+                itemTax = itemTotalPrice - itemSubtotal;
                 subtotalProductos += itemSubtotal;
             } else if (item.type === 'service') {
                 subtotalServicios += itemSubtotal;
