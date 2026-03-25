@@ -45,13 +45,13 @@ class RoleMiddleware:
             '/taller/tecnicos/': ['view_tecnico'],
             '/taller/servicios/': ['view_servicio'],
             
-            # Reportes - TODOS requieren ser admin o staff
-            '/reportes/': 'ADMIN_ONLY',
-            '/reportes/caja/': 'ADMIN_ONLY',
-            '/reportes/gastos/': 'ADMIN_ONLY',
-            '/reportes/estadisticas/': 'ADMIN_ONLY',
-            '/reportes/inventario/': 'ADMIN_ONLY',
-            '/reportes/ventas/': 'ADMIN_ONLY',
+            # Reportes
+            '/reportes/': ['view_cierrediario', 'view_gastodiario', 'view_resumenmensual'],
+            '/reportes/caja/': ['view_cierrediario', 'add_cierrediario', 'change_cierrediario'],
+            '/reportes/gastos/': ['view_gastodiario', 'add_gastodiario', 'change_gastodiario'],
+            '/reportes/estadisticas/': ['view_resumenmensual'],
+            '/reportes/inventario/': ['view_cierrediario', 'view_resumenmensual'],
+            '/reportes/ventas/': ['view_cierrediario', 'view_resumenmensual'],
         }
     
     def __call__(self, request):
