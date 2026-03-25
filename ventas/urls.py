@@ -18,6 +18,11 @@ urlpatterns = [
     path('<int:venta_id>/anular/', views.anular_venta, name='anular_venta'),
     path('<int:venta_id>/agregar-producto/', views.agregar_producto, name='agregar_producto'),
 
+    # ========== DEVOLUCIONES ==========
+    path('<int:venta_id>/devolucion/crear/', views.devolucion_create, name='devolucion_create'),
+    path('devolucion/<int:devolucion_id>/', views.devolucion_detail, name='devolucion_detail'),
+    path('api/devolucion/procesar/', views.api_procesar_devolucion, name='api_procesar_devolucion'),
+
     # ========== PEDIDOS ONLINE — PANEL ADMIN ==========
     path('pedidos-online/', views.lista_pedidos_online, name='lista_pedidos_online'),
     path('pedidos-online/<int:pedido_id>/', views.detalle_pedido_online, name='detalle_pedido_online'),

@@ -121,7 +121,7 @@ class Venta(models.Model):
     
     @staticmethod
     def get_ventas_por_dia(fecha=None):
-        """Obtiene el total de ventas por día"""
+        """Obtiene el total de ventas por día, incluyendo impacto de devoluciones"""
         if fecha is None:
             fecha = timezone.now().date()
             
@@ -142,15 +142,37 @@ class Venta(models.Model):
             for detalle in venta.detalleventa_set.filter(servicio__isnull=False)
         )
         
+        # Incluir servicios nuevos (es_servicio=True)
+        total_servicios_nuevos = sum(
+            detalle.total for venta in ventas 
+            for detalle in venta.detalleventa_set.filter(es_servicio=True, tipo_servicio__isnull=False)
+        )
+        total_servicios += total_servicios_nuevos
+        
         total_ventas = sum(venta.total for venta in ventas)
+        
+        # Devoluciones del día
+        from django.apps import apps
+        Devolucion = apps.get_model('ventas', 'Devolucion')
+        devoluciones = Devolucion.objects.filter(
+            fecha_hora__date=fecha,
+            estado='COMPLETADA'
+        )
+        
+        total_reembolsos = sum(abs(d.diferencia) for d in devoluciones if d.diferencia < 0)
+        total_ingresos_extra = sum(d.diferencia for d in devoluciones if d.diferencia > 0)
         
         return {
             'fecha': fecha,
             'total_productos': total_productos,
             'total_servicios': total_servicios,
             'total_ventas': total_ventas,
-            'num_ventas': ventas.count()
+            'num_ventas': ventas.count(),
+            'total_reembolsos': total_reembolsos,
+            'total_ingresos_extra': total_ingresos_extra,
+            'ventas_netas': total_ventas + total_ingresos_extra - total_reembolsos
         }
+
     
 
 class DetalleVenta(models.Model):
@@ -174,6 +196,7 @@ class DetalleVenta(models.Model):
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
     iva = models.DecimalField(max_digits=10, decimal_places=2)
+    descuento_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Porcentaje de descuento aplicado")
     descuento = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2)
     observaciones = models.TextField(blank=True, null=True)
@@ -275,6 +298,9 @@ class CierreCaja(models.Model):
     total_productos = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_servicios = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_ventas = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_reembolsos = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Dinero devuelto a clientes")
+    total_ingresos_extra = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Dinero extra cobrado por cambios a mayor valor")
+    ventas_netas = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Ventas + Ingresos Extras - Reembolsos")
     observaciones = models.TextField(blank=True, null=True)
     
     class Meta:
@@ -292,5 +318,101 @@ class CierreCaja(models.Model):
             self.total_productos = ventas_dia['total_productos']
             self.total_servicios = ventas_dia['total_servicios']
             self.total_ventas = ventas_dia['total_ventas']
+            self.total_reembolsos = ventas_dia.get('total_reembolsos', Decimal('0.00'))
+            self.total_ingresos_extra = ventas_dia.get('total_ingresos_extra', Decimal('0.00'))
+            self.ventas_netas = ventas_dia.get('ventas_netas', self.total_ventas)
             
         super().save(*args, **kwargs)
+
+
+class Devolucion(models.Model):
+    """Registro de una devolución o cambio de productos"""
+    ESTADO_CHOICES = [
+        ('COMPLETADA', 'Completada'),
+        ('ANULADA', 'Anulada'),
+    ]
+    
+    venta = models.ForeignKey(Venta, on_delete=models.PROTECT, related_name='devoluciones')
+    usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT)
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+    
+    # Valores económicos
+    total_devuelto = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Total de productos devueltos por el cliente")
+    total_nuevo = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Total de productos nuevos entregados al cliente")
+    diferencia = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Si es < 0, se reembolsa dinero. Si es > 0, el cliente paga más.")
+    
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='COMPLETADA')
+    observaciones = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = _('Devolución')
+        verbose_name_plural = _('Devoluciones')
+        ordering = ['-fecha_hora']
+    
+    def __str__(self):
+        return f"Devolución de Fac. {self.venta.numero_factura} ({self.fecha_hora.strftime('%d/%m/%Y')})"
+    
+    def save(self, *args, **kwargs):
+        self.diferencia = self.total_nuevo - self.total_devuelto
+        super().save(*args, **kwargs)
+        
+    def aplicar_inventario(self):
+        """Aplica los cambios de stock basados en los detalles de esta devolución"""
+        if self.estado != 'COMPLETADA':
+            return False
+            
+        detalles = self.detalles.all()
+        for detalle in detalles:
+            if not detalle.producto:
+                continue
+                
+            producto = detalle.producto
+            if detalle.tipo == 'DEVUELTO':
+                # El cliente devuelve el producto, sumamos al stock
+                producto.stock_actual += detalle.cantidad
+            elif detalle.tipo == 'NUEVO':
+                # El cliente se lleva un nuevo producto, restamos del stock
+                producto.stock_actual -= detalle.cantidad
+                
+            producto.save() # El signal de Inventario se encargará de crear el MovimientoInventario
+            
+        return True
+
+
+class DetalleDevolucion(models.Model):
+    """Detalle de los productos devueltos o llevados en cambio"""
+    TIPO_CHOICES = [
+        ('DEVUELTO', 'Producto Devuelto (Entra a Stock)'),
+        ('NUEVO', 'Producto Nuevo (Sale de Stock)'),
+    ]
+    
+    devolucion = models.ForeignKey(Devolucion, on_delete=models.CASCADE, related_name='detalles')
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT, null=True, blank=True)
+    tipo_servicio = models.ForeignKey('taller.TipoServicio', on_delete=models.PROTECT, blank=True, null=True)
+    nombre_personalizado = models.CharField(max_length=200, blank=True, null=True, help_text="Nombre para items manuales o genéricos")
+    
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    class Meta:
+        verbose_name = _('Detalle de Devolución')
+        verbose_name_plural = _('Detalles de Devolución')
+    
+    def __str__(self):
+        if self.producto:
+            item_name = self.producto.nombre
+        elif self.tipo_servicio:
+            item_name = self.tipo_servicio.nombre
+        elif self.nombre_personalizado:
+            item_name = self.nombre_personalizado
+        else:
+            item_name = "Item manual"
+            
+        return f"{self.get_tipo_display()}: {item_name} x {self.cantidad}"
+    
+    def save(self, *args, **kwargs):
+        self.subtotal = self.cantidad * self.precio_unitario
+        super().save(*args, **kwargs)

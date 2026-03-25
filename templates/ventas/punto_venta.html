@@ -1664,6 +1664,7 @@
                 cart.push({
                     ...item,
                     quantity: item.quantity || 1,
+                    descuento_porcentaje: 0,
                     technician_id: null,
                     technician_name: null
                 });
@@ -1671,7 +1672,8 @@
         } else {
             cart.push({
                 ...item,
-                quantity: item.quantity || 1
+                quantity: item.quantity || 1,
+                descuento_porcentaje: 0
             });
         }
 
@@ -1689,6 +1691,7 @@
             type: 'manual',
             price: 0,
             quantity: 1,
+            descuento_porcentaje: 0,
             technician_id: null,
             technician_name: null
         };
@@ -1734,7 +1737,21 @@
         }
 
         cartItems.innerHTML = cart.map((item, index) => {
-            const subtotalItem = item.price * item.quantity;
+            const itemTotalPrice = item.price * item.quantity;
+            let itemDescPct = item.descuento_porcentaje || 0;
+            
+            // Calculate item subtotal for UI display
+            let netItemTotal = itemTotalPrice;
+            if (item.type === 'product') {
+                let grossSub = itemTotalPrice / (1 + IVA_RATE);
+                let itemDesc = grossSub * (itemDescPct / 100);
+                let netSub = grossSub - itemDesc;
+                let ivaVal = netSub * IVA_RATE;
+                netItemTotal = netSub + ivaVal;
+            } else {
+                let itemDesc = itemTotalPrice * (itemDescPct / 100);
+                netItemTotal = itemTotalPrice - itemDesc;
+            }
 
             if (item.type === 'orden_trabajo') {
                 return `
@@ -1747,8 +1764,13 @@
                             <span class="badge bg-primary">ORDEN DE TRABAJO</span> ${escapeHtml(item.code)}
                         </div>
                         ${item.description ? `<div class="item-description" style="font-size: 0.85rem; color: #6c757d; margin-top: 4px;">${escapeHtml(item.description)}</div>` : ''}
+                        <div class="input-group input-group-sm mt-1" style="max-width: 120px;">
+                            <span class="input-group-text">Desc %</span>
+                            <input type="number" class="form-control" value="${itemDescPct}" min="0" max="100" step="1"
+                                   onchange="updateDiscount(${index}, this.value)">
+                        </div>
                         <div class="item-price" style="margin-top: 8px; font-weight: 600; color: #0d6efd;">
-                            Total: S/ ${item.price.toFixed(2)}
+                            Total: S/ ${netItemTotal.toFixed(2)}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -1776,6 +1798,11 @@
                             <input type="number" class="form-control" value="${item.price}" step="0.01"
                                    onchange="updateManualItem(${index}, 'price', this.value)">
                         </div>
+                        <div class="input-group input-group-sm mt-1" style="max-width: 120px;">
+                            <span class="input-group-text">Desc %</span>
+                            <input type="number" class="form-control" value="${itemDescPct}" min="0" max="100" step="1"
+                                   onchange="updateDiscount(${index}, this.value)">
+                        </div>
                     </div>
                     <div class="quantity-controls">
                         <button class="qty-btn" onclick="updateQuantity(${index}, ${item.quantity - 1})">
@@ -1786,7 +1813,7 @@
                             <i class="bi bi-plus"></i>
                         </button>
                     </div>
-                    <div class="item-total">S/ ${subtotalItem.toFixed(2)}</div>
+                    <div class="item-total">S/ ${netItemTotal.toFixed(2)}</div>
                     <button class="remove-btn" onclick="removeFromCart(${index})" title="Eliminar">
                         <i class="bi bi-x"></i>
                     </button>
@@ -1801,6 +1828,11 @@
                     <div class="item-code">${escapeHtml(item.code)}</div>
                     <div class="item-price">S/ ${item.price.toFixed(2)} c/u</div>
                     ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
+                    <div class="input-group input-group-sm mt-1" style="max-width: 120px;">
+                        <span class="input-group-text">Desc %</span>
+                        <input type="number" class="form-control" value="${itemDescPct}" min="0" max="100" step="1"
+                               onchange="updateDiscount(${index}, this.value)">
+                    </div>
                 </div>
                 <div class="quantity-controls">
                     <button class="qty-btn" onclick="updateQuantity(${index}, ${item.quantity - 1})">
@@ -1811,7 +1843,7 @@
                         <i class="bi bi-plus"></i>
                     </button>
                 </div>
-                <div class="item-total">S/ ${subtotalItem.toFixed(2)}</div>
+                <div class="item-total">S/ ${netItemTotal.toFixed(2)}</div>
                 <button class="remove-btn" onclick="removeFromCart(${index})" title="Eliminar">
                     <i class="bi bi-x"></i>
                 </button>
@@ -1868,29 +1900,39 @@
         let subtotalProductos = 0;
         let subtotalServicios = 0;
         let subtotalOrdenes = 0;
-        let tax = 0;
+        let taxTotal = 0;
+        let discountTotal = 0;
 
         cart.forEach(item => {
             const itemTotalPrice = item.price * item.quantity;
-            let itemSubtotal = itemTotalPrice;
+            let itemDescPct = item.descuento_porcentaje || 0;
+            
+            let itemSubtotalGross = 0;
             let itemTax = 0;
+            let itemDiscount = 0;
 
             if (item.type === 'product') {
-                // Desglosar IVA del precio (el precio del producto siempre incluye IVA)
-                itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
-                itemTax = itemTotalPrice - itemSubtotal;
-                subtotalProductos += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice / (1 + IVA_RATE);
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                let netSubtotal = itemSubtotalGross - itemDiscount;
+                itemTax = netSubtotal * IVA_RATE;
+                subtotalProductos += itemSubtotalGross;
             } else if (item.type === 'service') {
-                subtotalServicios += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice;
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                subtotalServicios += itemSubtotalGross;
             } else if (item.type === 'orden_trabajo') {
-                subtotalOrdenes += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice;
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                subtotalOrdenes += itemSubtotalGross;
             }
 
-            subtotalTotal += itemSubtotal;
-            tax += itemTax;
+            subtotalTotal += itemSubtotalGross;
+            discountTotal += itemDiscount;
+            taxTotal += itemTax;
         });
-        const discount = 0;
-        const total = subtotalTotal + tax - discount;
+
+        const total = subtotalTotal + taxTotal - discountTotal;
 
         const subtotalElement = document.getElementById('subtotalAmount');
         const taxElement = document.getElementById('taxAmount');
@@ -1898,9 +1940,18 @@
         const totalElement = document.getElementById('totalAmount');
 
         if (subtotalElement) subtotalElement.textContent = `S/ ${subtotalTotal.toFixed(2)}`;
-        if (taxElement) taxElement.textContent = `S/ ${tax.toFixed(2)}`;
-        if (discountElement) discountElement.textContent = `S/ ${discount.toFixed(2)}`;
+        if (taxElement) taxElement.textContent = `S/ ${taxTotal.toFixed(2)}`;
+        if (discountElement) discountElement.textContent = `S/ ${discountTotal.toFixed(2)}`;
         if (totalElement) totalElement.textContent = `S/ ${total.toFixed(2)}`;
+    }
+
+    function updateDiscount(index, value) {
+        let p = parseFloat(value);
+        if (isNaN(p) || p < 0) p = 0;
+        if (p > 100) p = 100;
+        cart[index].descuento_porcentaje = p;
+        updateCartDisplay();
+        updateTotals();
     }
 
     // ========== GESTIÓN DE COLA DE IMPRESIÓN ==========
@@ -2041,29 +2092,39 @@
         let subtotalProductos = 0;
         let subtotalServicios = 0;
         let subtotalOrdenes = 0;
-        let tax = 0;
+        let taxTotal = 0;
+        let discountTotal = 0;
 
         cart.forEach(item => {
             const itemTotalPrice = item.price * item.quantity;
-            let itemSubtotal = itemTotalPrice;
+            let itemDescPct = item.descuento_porcentaje || 0;
+            
+            let itemSubtotalGross = 0;
             let itemTax = 0;
+            let itemDiscount = 0;
 
             if (item.type === 'product') {
-                // Desglosar IVA del precio (el precio del producto siempre incluye IVA)
-                itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
-                itemTax = itemTotalPrice - itemSubtotal;
-                subtotalProductos += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice / (1 + IVA_RATE);
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                let netSubtotal = itemSubtotalGross - itemDiscount;
+                itemTax = netSubtotal * IVA_RATE;
+                subtotalProductos += itemSubtotalGross;
             } else if (item.type === 'service') {
-                subtotalServicios += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice;
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                subtotalServicios += itemSubtotalGross;
             } else if (item.type === 'orden_trabajo') {
-                subtotalOrdenes += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice;
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                subtotalOrdenes += itemSubtotalGross;
             }
 
-            subtotalTotal += itemSubtotal;
-            tax += itemTax;
+            subtotalTotal += itemSubtotalGross;
+            discountTotal += itemDiscount;
+            taxTotal += itemTax;
         });
 
-        const total = subtotalTotal + tax;
+        const total = subtotalTotal + taxTotal - discountTotal;
 
         const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
         const selectedOrderIdElement = document.getElementById('selectedOrderId');
@@ -2077,15 +2138,23 @@
                 }
 
                 const itemTotalPrice = item.price * item.quantity;
-                let itemSubtotal = itemTotalPrice;
+                let itemDescPct = item.descuento_porcentaje || 0;
+                
+                let itemSubtotalGross = 0;
                 let itemIva = 0;
+                let itemDiscount = 0;
 
                 if (item.type === 'product') {
-                    itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
-                    itemIva = itemTotalPrice - itemSubtotal;
+                    itemSubtotalGross = itemTotalPrice / (1 + IVA_RATE);
+                    itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                    let netSubtotal = itemSubtotalGross - itemDiscount;
+                    itemIva = netSubtotal * IVA_RATE;
+                } else if (item.type === 'service') {
+                    itemSubtotalGross = itemTotalPrice;
+                    itemDiscount = itemSubtotalGross * (itemDescPct / 100);
                 }
 
-                const itemTotal = itemSubtotal + itemIva;
+                const itemTotal = itemSubtotalGross + itemIva - itemDiscount;
 
                 return {
                     tipo: item.type === 'product' ? 'producto' : 'servicio',
@@ -2093,16 +2162,17 @@
                     name: item.name,
                     cantidad: item.quantity,
                     precio_unitario: item.type === 'product' ? (item.price / (1 + IVA_RATE)) : item.price,
-                    subtotal: itemSubtotal,
+                    subtotal: itemSubtotalGross,
                     iva: itemIva,
-                    descuento: 0,
+                    descuento_porcentaje: itemDescPct,
+                    descuento: itemDiscount,
                     total: itemTotal,
                     tecnico_id: item.technician_id || null
                 };
             }).filter(item => item !== null),
             subtotal: subtotalTotal,
-            iva: tax,
-            descuento: 0,
+            iva: taxTotal,
+            descuento: discountTotal,
             total: total,
             orden_trabajo_id: selectedOrderIdElement ? selectedOrderIdElement.value || null : null,
             imprimir: selectedPrintType !== 'none',
@@ -3104,29 +3174,39 @@
         let subtotalProductos = 0;
         let subtotalServicios = 0;
         let subtotalOrdenes = 0;
-        let tax = 0;
+        let taxTotal = 0;
+        let discountTotal = 0;
 
         cart.forEach(item => {
             const itemTotalPrice = item.price * item.quantity;
-            let itemSubtotal = itemTotalPrice;
+            let itemDescPct = item.descuento_porcentaje || 0;
+            
+            let itemSubtotalGross = 0;
             let itemTax = 0;
+            let itemDiscount = 0;
 
             if (item.type === 'product') {
-                // Desglosar IVA del precio (el precio del producto siempre incluye IVA)
-                itemSubtotal = itemTotalPrice / (1 + IVA_RATE);
-                itemTax = itemTotalPrice - itemSubtotal;
-                subtotalProductos += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice / (1 + IVA_RATE);
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                let netSubtotal = itemSubtotalGross - itemDiscount;
+                itemTax = netSubtotal * IVA_RATE;
+                subtotalProductos += itemSubtotalGross;
             } else if (item.type === 'service') {
-                subtotalServicios += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice;
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                subtotalServicios += itemSubtotalGross;
             } else if (item.type === 'orden_trabajo') {
-                subtotalOrdenes += itemSubtotal;
+                itemSubtotalGross = itemTotalPrice;
+                itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                subtotalOrdenes += itemSubtotalGross;
             }
 
-            subtotalTotal += itemSubtotal;
-            tax += itemTax;
+            subtotalTotal += itemSubtotalGross;
+            discountTotal += itemDiscount;
+            taxTotal += itemTax;
         });
 
-        const total = subtotalTotal + tax;
+        const total = subtotalTotal + taxTotal - discountTotal;
 
         const confirmationTotal = document.getElementById('confirmationTotal');
         if (confirmationTotal) {

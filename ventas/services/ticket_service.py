@@ -225,9 +225,14 @@ class TicketThermalService:
                     chunk = remaining[:width-4]
                     remaining = remaining[width-4:]
                     lines.append(f"    {chunk}")
+                    
+            # Mostrar descuento por item si aplica
+            if getattr(detalle, 'descuento_porcentaje', 0) > 0:
+                desc_str = f"Desc. ({detalle.descuento_porcentaje:g}%): -${detalle.descuento:.2f}"
+                lines.append(center_text(desc_str, width))
             
             # Información adicional si es servicio - TECNICO RESALTADO
-            if (detalle.tipo_servicio or detalle.es_servicio) and detalle.tecnico:
+            if (detalle.tipo_servicio or detalle.es_servicio) and hasattr(detalle, 'tecnico') and detalle.tecnico:
                 tecnico_nombre = detalle.tecnico.get_nombre_completo().upper()
                 lines.append(center_text("TECNICO ASIGNADO:", width))
                 lines.append(center_text(tecnico_nombre, width))

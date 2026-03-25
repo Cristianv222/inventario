@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Detalle de Devolución #{{ devolucion.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom p-4 text-center">
+                    <img src="{% static 'images/logo.png' %}" alt="Logo" class="mb-3" style="max-height: 60px;">
+                    <h4 class="mb-0">Recibo de Devolución / Cambio</h4>
+                    <p class="text-muted mb-0">ID: DEV-{{ devolucion.id|stringformat:"06d" }}</p>
+                </div>
+                
+                <div class="card-body p-4">
+                    <div class="row mb-4">
+                        <div class="col-sm-6">
+                            <h6 class="text-muted mb-1">Fecha y Hora</h6>
+                            <p class="mb-0">{{ devolucion.fecha_hora|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <div class="col-sm-6 text-sm-end">
+                            <h6 class="text-muted mb-1">Venta Original</h6>
+                            <p class="mb-0"><a href="{% url 'ventas:detalle_venta' devolucion.venta.id %}">{{ devolucion.venta.numero_factura }}</a></p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-1">Atendido por</h6>
+                            <p class="mb-0">{{ devolucion.usuario.get_full_name|default:devolucion.usuario.username }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Productos Devueltos -->
+                    <h6 class="text-danger fw-bold border-bottom pb-2 mb-3"><i class="fas fa-undo me-2"></i>Artículos Devueltos (Entrada a Stock)</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-borderless table-sm">
+                            <thead>
+                                <tr class="text-muted border-bottom">
+                                    <th>Cant</th>
+                                    <th>Descripción</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in devolucion.detalles.all %}
+                                    {% if item.tipo == 'DEVUELTO' %}
+                                    <tr>
+                                        <td>{{ item.cantidad|floatformat:0 }}</td>
+                                        <td>{{ item.producto.nombre }}</td>
+                                        <td class="text-end">${{ item.subtotal|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endif %}
+                                {% empty %}
+                                    <tr><td colspan="3" class="text-center text-muted">Ningún artículo devuelto</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-top">
+                                    <td colspan="2" class="text-end text-muted">Total Devuelto:</td>
+                                    <td class="text-end text-danger fw-bold">${{ devolucion.total_devuelto|floatformat:2 }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Productos Nuevos -->
+                    <h6 class="text-success fw-bold border-bottom pb-2 mb-3"><i class="fas fa-cart-arrow-down me-2"></i>Artículos Nuevos (Salida de Stock)</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-borderless table-sm">
+                            <thead>
+                                <tr class="text-muted border-bottom">
+                                    <th>Cant</th>
+                                    <th>Descripción</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in devolucion.detalles.all %}
+                                    {% if item.tipo == 'NUEVO' %}
+                                    <tr>
+                                        <td>{{ item.cantidad|floatformat:0 }}</td>
+                                        <td>{{ item.producto.nombre }}</td>
+                                        <td class="text-end">${{ item.subtotal|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endif %}
+                                {% empty %}
+                                    <tr><td colspan="3" class="text-center text-muted">Ningún artículo nuevo entregado</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-top">
+                                    <td colspan="2" class="text-end text-muted">Total Nuevos:</td>
+                                    <td class="text-end text-success fw-bold">${{ devolucion.total_nuevo|floatformat:2 }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Resumen -->
+                    <div class="bg-light p-3 rounded-3 mt-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Monto a favor del cliente:</span>
+                            <span>${{ devolucion.total_devuelto|floatformat:2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Monto cobrado en nuevos artículos:</span>
+                            <span>${{ devolucion.total_nuevo|floatformat:2 }}</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong class="fs-5">Diferencia:</strong>
+                            <strong class="fs-4 {% if devolucion.diferencia > 0 %}text-success{% elif devolucion.diferencia < 0 %}text-danger{% endif %}">
+                                {% if devolucion.diferencia > 0 %}
+                                    CLIENTE PAGA: ${{ devolucion.diferencia|floatformat:2 }}
+                                {% elif devolucion.diferencia < 0 %}
+                                    REEMBOLSAR: ${{ devolucion.diferencia|stringformat:"f"|cut:"-"|floatformat:2 }}
+                                {% else %}
+                                    CAMBIO EXACTO: $0.00
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                    
+                    {% if devolucion.observaciones %}
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-1">Observaciones</h6>
+                        <p class="mb-0 text-break">{{ devolucion.observaciones }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-footer bg-white p-4 d-print-none text-center">
+                    <button class="btn btn-secondary me-2" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i>Imprimir
+                    </button>
+                    <a href="{% url 'ventas:detalle_venta' devolucion.venta.id %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Volver a la venta
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        body { background: white; }
+        .container { padding: 0 !important; width: 100% !important; max-width: 100% !important; }
+        .card { box-shadow: none !important; border: none !important; }
+        .navbar, .sidebar { display: none !important; }
+    }
+</style>
+{% endblock %}

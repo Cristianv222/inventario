@@ -27,6 +27,7 @@ from clientes.models import Cliente, PedidoOnline, DetallePedidoOnline
 from inventario.models import Producto
 from inventario.views import requiere_token_api
 from taller.models import TipoServicio, OrdenTrabajo, Tecnico
+from .models import Devolucion, DetalleDevolucion
 
 logger = logging.getLogger(__name__)
 # ========== FUNCIONES AUXILIARES ==========
@@ -475,6 +476,7 @@ def punto_venta(request):
                             subtotal=Decimal(str(item['subtotal'])),
                             iva_porcentaje=Decimal('15.00'),
                             iva=Decimal(str(item['iva'])),
+                            descuento_porcentaje=Decimal(str(item.get('descuento_porcentaje', '0.00'))),
                             descuento=Decimal(str(item.get('descuento', '0.00'))),
                             total=Decimal(str(item['total']))
                         )
@@ -505,6 +507,7 @@ def punto_venta(request):
                         cantidad = Decimal(str(item['cantidad']))
                         precio_unitario = Decimal(str(item['precio_unitario']))
                         subtotal = cantidad * precio_unitario
+                        descuento_porcentaje = Decimal(str(item.get('descuento_porcentaje', '0.00')))
                         descuento = Decimal(str(item.get('descuento', '0.00')))
                         
                         detalle = DetalleVenta.objects.create(
@@ -517,6 +520,7 @@ def punto_venta(request):
                             subtotal=subtotal,
                             iva_porcentaje=Decimal('0.00'),  # ✅ Servicios SIN IVA
                             iva=Decimal('0.00'),              # ✅ Servicios SIN IVA
+                            descuento_porcentaje=descuento_porcentaje,
                             descuento=descuento,
                             total=subtotal - descuento,       # ✅ Total = Subtotal - Descuento
                             es_servicio=True
@@ -639,6 +643,157 @@ def pos_con_orden(request, orden_id):
     except Exception as e:
         messages.error(request, f'Error al cargar la orden: {str(e)}')
         return redirect('ventas:punto_venta')
+
+# ========== DEVOLUCIONES Y CAMBIOS ==========
+
+@login_required
+def devolucion_create(request, venta_id):
+    """Muestra el formulario asistido para realizar una devolución/cambio"""
+    venta = get_object_or_404(Venta, pk=venta_id)
+    
+    if venta.estado != 'COMPLETADA':
+        messages.error(request, "Solo se pueden hacer devoluciones de ventas completadas.")
+        return redirect('ventas:detalle_venta', venta_id=venta_id)
+        
+    # Obtener devoluciones anteriores para esta venta (si existen) y las cantidades ya devueltas
+    detalles_venta = venta.detalleventa_set.select_related('producto', 'tipo_servicio').all()
+    
+    # Pre-cargar datos
+    items_disponibles = []
+    for d in detalles_venta:
+        if d.producto:
+            # Calcular cuánto se ha devuelto ya de este producto
+            cant_devuelta = DetalleDevolucion.objects.filter(
+                devolucion__venta=venta,
+                devolucion__estado='COMPLETADA',
+                tipo='DEVUELTO',
+                producto=d.producto
+            ).aggregate(total=Sum('cantidad'))['total'] or Decimal('0.00')
+            
+            disponible = d.cantidad - cant_devuelta
+            
+            if disponible > 0:
+                items_disponibles.append({
+                    'id': d.id,
+                    'producto_id': d.producto.id,
+                    'codigo': d.producto.codigo_unico,
+                    'nombre': d.producto.nombre,
+                    'precio_unitario': float(d.precio_unitario),
+                    'cantidad_comprada': float(d.cantidad),
+                    'cantidad_disponible': float(disponible)
+                })
+                
+    context = {
+        'active_page': 'ventas',
+        'venta': venta,
+        'items_disponibles_json': json.dumps(items_disponibles)
+    }
+    return render(request, 'ventas/devolucion_form.html', context)
+
+@login_required
+@require_POST
+@transaction.atomic
+def api_procesar_devolucion(request):
+    """Procesa una transacción de devolución o cambio por API"""
+    try:
+        data = json.loads(request.body)
+        venta_id = data.get('venta_id')
+        venta = get_object_or_404(Venta, pk=venta_id)
+        
+        items_devueltos = data.get('items_devueltos', [])
+        items_nuevos = data.get('items_nuevos', [])
+        
+        if not items_devueltos and not items_nuevos:
+             return JsonResponse({'success': False, 'mensaje': 'Debe ingresar ítems devueltos o nuevos'})
+             
+        # Validar cantidades devueltas vs compradas
+        for item in items_devueltos:
+            producto = Producto.objects.get(id=item['producto_id'])
+            cantidad = Decimal(str(item['cantidad']))
+            # Comprobar límite
+            detalle = DetalleVenta.objects.filter(venta=venta, producto=producto).first()
+            if not detalle:
+                return JsonResponse({'success': False, 'mensaje': f'El producto {producto.nombre} no pertenece a la venta original.'})
+                
+            cant_ya_devuelta = DetalleDevolucion.objects.filter(
+                devolucion__venta=venta,
+                devolucion__estado='COMPLETADA',
+                tipo='DEVUELTO',
+                producto=producto
+            ).aggregate(total=Sum('cantidad'))['total'] or Decimal('0.00')
+            
+            disponible = detalle.cantidad - cant_ya_devuelta
+            if cantidad > disponible:
+                return JsonResponse({
+                    'success': False, 
+                    'mensaje': f'No puede devolver más cantidad de {producto.nombre} que la disponible ({disponible}).'
+                })
+                
+        # Crear Devolución
+        total_devuelto = sum(Decimal(str(i['precio_unitario'])) * Decimal(str(i['cantidad'])) for i in items_devueltos)
+        total_nuevo = sum(Decimal(str(i['precio_unitario'])) * Decimal(str(i['cantidad'])) for i in items_nuevos)
+        observaciones = data.get('observaciones', '')
+        
+        devolucion = Devolucion.objects.create(
+            venta=venta,
+            usuario=request.user,
+            total_devuelto=total_devuelto,
+            total_nuevo=total_nuevo,
+            observaciones=observaciones
+        )
+        
+        # Registrar y actualizar stock items devueltos
+        for item in items_devueltos:
+            producto = Producto.objects.get(id=item['producto_id'])
+            cantidad = Decimal(str(item['cantidad']))
+            precio = Decimal(str(item['precio_unitario']))
+            
+            DetalleDevolucion.objects.create(
+                devolucion=devolucion,
+                tipo='DEVUELTO',
+                producto=producto,
+                cantidad=cantidad,
+                precio_unitario=precio
+            )
+            
+        # Registrar y actualizar stock items nuevos
+        for item in items_nuevos:
+            producto = Producto.objects.get(id=item['producto_id'])
+            cantidad = Decimal(str(item['cantidad']))
+            precio = Decimal(str(item['precio_unitario']))
+            
+            if producto.stock_actual < cantidad:
+                raise Exception(f"Stock insuficiente para {producto.nombre}. Disponible: {producto.stock_actual}")
+                
+            DetalleDevolucion.objects.create(
+                devolucion=devolucion,
+                tipo='NUEVO',
+                producto=producto,
+                cantidad=cantidad,
+                precio_unitario=precio
+            )
+            
+        # Aplicar los cambios de inventario
+        devolucion.aplicar_inventario()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Devolución/Cambio procesado exitosamente',
+            'devolucion_id': devolucion.id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error procesando devolución: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'mensaje': f'Error interno: {str(e)}'})
+
+@login_required
+def devolucion_detail(request, devolucion_id):
+    """Vista de recibo resumen de la devolución"""
+    devolucion = get_object_or_404(Devolucion, pk=devolucion_id)
+    return render(request, 'ventas/devolucion_detail.html', {
+        'active_page': 'ventas',
+        'devolucion': devolucion
+    })
 
 # ========== APIs PARA EL POS ==========
 

@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Devolución / Cambio - {{ venta.numero_factura }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pos-layout {
+        display: flex;
+        gap: 1.5rem;
+        height: calc(100vh - 120px);
+        min-height: 600px;
+    }
+    
+    .panel-devueltos, .panel-nuevos {
+        flex: 1;
+        background: var(--gray-100);
+        border-radius: 12px;
+        border: 1px solid var(--gray-300);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .panel-header {
+        padding: 1rem 1.5rem;
+        background: #ffffff;
+        border-bottom: 1px solid var(--gray-300);
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .panel-body {
+        padding: 1.5rem;
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+
+    .item-card {
+        background: #ffffff;
+        border: 1px solid var(--gray-300);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s;
+    }
+
+    .item-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    
+    .quantity-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--gray-100);
+        padding: 0.25rem;
+        border-radius: 4px;
+        border: 1px solid var(--gray-300);
+    }
+    
+    .btn-qty {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--dark);
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .btn-qty:hover {
+        background: #ffffff;
+    }
+
+    .summary-panel {
+        width: 350px;
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid var(--gray-300);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-size: 0.95rem;
+        color: var(--gray-600);
+    }
+
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px dashed var(--gray-300);
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--dark);
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.5rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 8px;
+        background: var(--gray-100);
+        color: var(--dark);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" x-data="devolucionApp()">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Devolución / Cambio</h1>
+            <p class="text-muted">Venta Original: <strong>{{ venta.numero_factura }}</strong></p>
+        </div>
+        <div>
+            <a href="{% url 'ventas:detalle_venta' venta.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la venta
+            </a>
+        </div>
+    </div>
+
+    <div class="pos-layout">
+        <!-- Panel 1: Productos a Devolver (Lo que entra) -->
+        <div class="panel-devueltos">
+            <div class="panel-header">
+                <h5 class="mb-0 text-primary"><i class="fas fa-undo-alt me-2"></i>Productos a Devolver</h5>
+            </div>
+            <div class="panel-body p-0">
+                <div class="list-group list-group-flush">
+                    <template x-for="item in itemsOriginales" :key="item.id">
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <h6 class="mb-1" x-text="item.nombre"></h6>
+                                <small class="text-muted" x-text="'$'+item.precio_unitario.toFixed(2) + ' c/u (Disp: ' + item.cantidad_disponible + ')'"></small>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="btn-qty" @click="decrementarDevolucion(item)" :disabled="item.cantidad_aseleccionar <= 0">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span class="fw-bold px-2" x-text="item.cantidad_aseleccionar" style="min-width: 30px; text-align: center;"></span>
+                                <button class="btn-qty" @click="incrementarDevolucion(item)" :disabled="item.cantidad_aseleccionar >= item.cantidad_disponible">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="itemsOriginales.length === 0" class="p-4 text-center text-muted">
+                        No hay más productos disponibles para devolver en esta venta.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 2: Productos Nuevos (Lo que sale) -->
+        <div class="panel-nuevos">
+            <div class="panel-header" style="background: rgba(40, 167, 69, 0.1);">
+                <h5 class="mb-0 text-success"><i class="fas fa-cart-plus me-2"></i>Nuevos Productos (Cambio)</h5>
+                
+                <div class="position-relative" style="width: 250px;">
+                    <i class="fas fa-barcode position-absolute" style="top: 10px; left: 10px; color: var(--text-muted);"></i>
+                    <input type="text" class="search-input py-1" placeholder="Código producto..."
+                           x-model="searchQuery" @keyup.enter="buscarProducto()">
+                </div>
+            </div>
+            <div class="panel-body p-0">
+                <div class="p-3 bg-light border-bottom text-center" x-show="buscando">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div> Buscando...
+                </div>
+                
+                <div class="list-group list-group-flush">
+                    <template x-for="(item, index) in itemsNuevos" :key="index">
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-sm btn-outline-danger me-3" @click="quitarNuevo(index)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <div>
+                                    <h6 class="mb-1" x-text="item.nombre"></h6>
+                                    <small class="text-muted" x-text="'$'+item.precio_unitario.toFixed(2) + ' c/u'"></small>
+                                </div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="btn-qty" @click="item.cantidad = Math.max(1, item.cantidad - 1)">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span class="fw-bold px-2" x-text="item.cantidad" style="min-width: 30px; text-align: center;"></span>
+                                <button class="btn-qty" @click="item.cantidad += 1">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="itemsNuevos.length === 0" class="p-4 text-center text-muted">
+                        Escanea un código o usa el buscador para añadir productos de cambio.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 3: Resumen -->
+        <div class="summary-panel shadow-sm">
+            <h5 class="mb-4 text-center border-bottom pb-3">Resumen del Cambio</h5>
+            
+            <div class="summary-row">
+                <span>Total a Devolver:</span>
+                <span class="text-danger">-$<span x-text="totalDevuelto.toFixed(2)"></span></span>
+            </div>
+            <div class="summary-row">
+                <span>Total Nuevos:</span>
+                <span class="text-success">+$<span x-text="totalNuevo.toFixed(2)"></span></span>
+            </div>
+            
+            <div class="summary-total" :class="diferencia > 0 ? 'text-success' : 'text-danger'">
+                <span>Diferencia:</span>
+                <span>
+                    <span x-text="diferencia > 0 ? '+$' : '-$'"></span>
+                    <span x-text="Math.abs(diferencia).toFixed(2)"></span>
+                </span>
+            </div>
+            
+            <div class="alert mt-3 p-2 text-center" style="font-size: 0.9rem;" :class="diferencia > 0 ? 'alert-warning' : 'alert-info'">
+                <template x-if="diferencia > 0">
+                    <span><i class="fas fa-info-circle me-1"></i> El cliente debe pagar <strong>$<span x-text="diferencia.toFixed(2)"></span></strong> extra.</span>
+                </template>
+                <template x-if="diferencia < 0">
+                    <span><i class="fas fa-info-circle me-1"></i> Hay que reembolsar <strong>$<span x-text="Math.abs(diferencia).toFixed(2)"></span></strong> al cliente.</span>
+                </template>
+                <template x-if="diferencia === 0">
+                    <span><i class="fas fa-check-circle me-1"></i> Cambio equitativo, sin saldo a favor.</span>
+                </template>
+            </div>
+            
+            <div class="mt-4">
+                <label class="form-label form-label-sm">Observaciones</label>
+                <textarea class="form-control" rows="2" x-model="observaciones" placeholder="Motivo de la devolución..."></textarea>
+            </div>
+            
+            <button class="btn btn-primary btn-lg w-100 mt-auto" 
+                    @click="procesarDevolucion()"
+                    :disabled="procesando || (totalDevuelto === 0 && totalNuevo === 0)">
+                <span x-show="!procesando"><i class="fas fa-check-circle me-2"></i> Procesar Cambios</span>
+                <span x-show="procesando"><i class="fas fa-spinner fa-spin me-2"></i> Procesando...</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Agregar SweetAlert2 para notificaciones -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('devolucionApp', () => ({
+        // Inicializar con los datos de Django parseados a JS
+        itemsOriginales: JSON.parse('{{ items_disponibles_json|escapejs }}').map(i => ({...i, cantidad_aseleccionar: 0})),
+        itemsNuevos: [],
+        searchQuery: '',
+        buscando: false,
+        procesando: false,
+        observaciones: '',
+        ventaId: {{ venta.id }},
+        
+        get totalDevuelto() {
+            return this.itemsOriginales.reduce((acc, item) => acc + (item.cantidad_aseleccionar * item.precio_unitario), 0);
+        },
+        
+        get totalNuevo() {
+            return this.itemsNuevos.reduce((acc, item) => acc + (item.cantidad * item.precio_unitario), 0);
+        },
+        
+        get diferencia() {
+            return this.totalNuevo - this.totalDevuelto;
+        },
+        
+        incrementarDevolucion(item) {
+            if (item.cantidad_aseleccionar < item.cantidad_disponible) {
+                item.cantidad_aseleccionar++;
+            }
+        },
+        
+        decrementarDevolucion(item) {
+            if (item.cantidad_aseleccionar > 0) {
+                item.cantidad_aseleccionar--;
+            }
+        },
+        
+        quitarNuevo(index) {
+            this.itemsNuevos.splice(index, 1);
+        },
+        
+        async buscarProducto() {
+            if (!this.searchQuery.trim()) return;
+            
+            this.buscando = true;
+            try {
+                const response = await fetch(`/ventas/api/buscar-producto/?codigo=${encodeURIComponent(this.searchQuery)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const p = data.producto;
+                    // Check if already in list
+                    const existing = this.itemsNuevos.find(i => i.producto_id === p.id);
+                    if (existing) {
+                         existing.cantidad++;
+                    } else {
+                         this.itemsNuevos.push({
+                             producto_id: p.id,
+                             nombre: p.nombre,
+                             precio_unitario: p.precio,
+                             cantidad: 1
+                         });
+                    }
+                    this.searchQuery = '';
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No encontrado',
+                        text: 'El producto no existe o no tiene stock.'
+                    });
+                }
+            } catch (error) {
+                console.error("Error buscando producto:", error);
+            } finally {
+                this.buscando = false;
+            }
+        },
+        
+        async procesarDevolucion() {
+            if (this.totalDevuelto === 0 && this.totalNuevo === 0) return;
+            
+            const payload = {
+                venta_id: this.ventaId,
+                observaciones: this.observaciones,
+                items_devueltos: this.itemsOriginales.filter(i => i.cantidad_aseleccionar > 0).map(i => ({
+                    producto_id: i.producto_id,
+                    cantidad: i.cantidad_aseleccionar,
+                    precio_unitario: i.precio_unitario
+                })),
+                items_nuevos: this.itemsNuevos.map(i => ({
+                    producto_id: i.producto_id,
+                    cantidad: i.cantidad,
+                    precio_unitario: i.precio_unitario
+                }))
+            };
+            
+            this.procesando = true;
+            try {
+                const response = await fetch('/ventas/api/devolucion/procesar/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: data.mensaje,
+                    }).then(() => {
+                        window.location.href = `/ventas/devolucion/${data.devolucion_id}/`;
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.mensaje || 'Error al procesar la devolución'
+                    });
+                    this.procesando = false;
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                Swal.fire('Error', 'Error de conexión', 'error');
+                this.procesando = false;
+            }
+        }
+    }));
+});
+</script>
+{% endblock %}
