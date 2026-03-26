@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, F
 from decimal import Decimal
 import datetime
 
@@ -261,13 +261,17 @@ class CierreDiario(models.Model):
             venta__fecha_hora__date=self.fecha,
             venta__estado='COMPLETADA',
             es_servicio=False
-        ).aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00')
+        ).aggregate(
+            total=Sum(F('subtotal') - F('descuento'), output_field=models.DecimalField())
+        )['total'] or Decimal('0.00')
 
         detalles_servicios = DetalleVenta.objects.filter(
             venta__fecha_hora__date=self.fecha,
             venta__estado='COMPLETADA',
             es_servicio=True
-        ).aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00')
+        ).aggregate(
+            total=Sum(F('subtotal') - F('descuento'), output_field=models.DecimalField())
+        )['total'] or Decimal('0.00')
 
         self.total_ventas_productos = detalles_productos
         self.total_ventas_servicios = detalles_servicios
