@@ -30,6 +30,49 @@ from taller.models import TipoServicio, OrdenTrabajo, Tecnico
 from .models import Devolucion, DetalleDevolucion
 
 logger = logging.getLogger(__name__)
+
+# ========== PIN SERVICIO MANUAL ==========
+
+@login_required
+@require_POST
+def verificar_pin_servicio_manual(request):
+    """
+    Verifica el PIN requerido para usar el Servicio Manual o servicios editables.
+    Implementa rate-limiting por sesión: máx 5 intentos.
+    """
+    MAX_INTENTOS = 5
+    SESSION_KEY_INTENTOS = '_pin_sm_intentos'
+    SESSION_KEY_BLOQUEADO = '_pin_sm_bloqueado'
+
+    # ¿Está bloqueado?
+    if request.session.get(SESSION_KEY_BLOQUEADO, False):
+        return JsonResponse({'ok': False, 'bloqueado': True,
+                             'mensaje': 'Demasiados intentos incorrectos. Recarga la página.'})
+
+    try:
+        data = json.loads(request.body)
+        pin_ingresado = str(data.get('pin', '')).strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'ok': False, 'mensaje': 'Solicitud inválida'}, status=400)
+
+    pin_correcto = str(settings.VPMOTOS_SETTINGS.get('MANUAL_SERVICE_PIN', '1234')).strip()
+
+    if pin_ingresado == pin_correcto:
+        # Reiniciar conteo al acertar
+        request.session[SESSION_KEY_INTENTOS] = 0
+        return JsonResponse({'ok': True})
+    else:
+        intentos = request.session.get(SESSION_KEY_INTENTOS, 0) + 1
+        request.session[SESSION_KEY_INTENTOS] = intentos
+        if intentos >= MAX_INTENTOS:
+            request.session[SESSION_KEY_BLOQUEADO] = True
+            return JsonResponse({'ok': False, 'bloqueado': True,
+                                 'mensaje': 'Demasiados intentos. Recarga la página.'})
+        restantes = MAX_INTENTOS - intentos
+        return JsonResponse({'ok': False, 'bloqueado': False,
+                             'intentos_restantes': restantes,
+                             'mensaje': f'PIN incorrecto. Intentos restantes: {restantes}'})
+
 # ========== FUNCIONES AUXILIARES ==========
 
 def obtener_venta_por_id_o_numero(identificador):

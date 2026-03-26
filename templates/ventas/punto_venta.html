@@ -1499,6 +1499,59 @@
 <input type="hidden" id="selectedCustomerId" value="">
 <input type="hidden" id="selectedOrderId" value="">
 
+<!-- ====== MODAL PIN SERVICIO MANUAL ====== -->
+<div class="modal fade" id="pinModal" tabindex="-1" aria-labelledby="pinModalLabel" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:340px">
+    <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff;border:none;padding:1.25rem 1.5rem;">
+        <div>
+          <h5 class="modal-title mb-0" id="pinModalLabel"><i class="bi bi-shield-lock me-2"></i>Servicio Restringido</h5>
+          <small style="opacity:.8;font-size:.8rem">Ingresa el PIN de autorización</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem;">
+        <!-- Display PIN -->
+        <div id="pinDisplay" style="display:flex;justify-content:center;gap:10px;margin-bottom:1.25rem">
+          <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #2563eb;background:#fff;transition:.2s"></div>
+          <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #2563eb;background:#fff;transition:.2s"></div>
+          <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #2563eb;background:#fff;transition:.2s"></div>
+          <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #2563eb;background:#fff;transition:.2s"></div>
+        </div>
+        <!-- Error msg -->
+        <div id="pinError" style="display:none;text-align:center;color:#dc2626;font-size:.85rem;margin-bottom:.75rem;"></div>
+        <!-- Keypad -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <button class="pin-key" onclick="pinKey('1')">1</button>
+          <button class="pin-key" onclick="pinKey('2')">2</button>
+          <button class="pin-key" onclick="pinKey('3')">3</button>
+          <button class="pin-key" onclick="pinKey('4')">4</button>
+          <button class="pin-key" onclick="pinKey('5')">5</button>
+          <button class="pin-key" onclick="pinKey('6')">6</button>
+          <button class="pin-key" onclick="pinKey('7')">7</button>
+          <button class="pin-key" onclick="pinKey('8')">8</button>
+          <button class="pin-key" onclick="pinKey('9')">9</button>
+          <button class="pin-key pin-clear" onclick="pinClear()" style="font-size:.85rem;">✕ Borrar</button>
+          <button class="pin-key" onclick="pinKey('0')">0</button>
+          <button class="pin-key pin-ok" onclick="pinSubmit()" style="background:#2563eb;color:#fff;">✓ OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+.pin-key {
+  padding:.75rem;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;
+  font-size:1.2rem;font-weight:600;color:#1e293b;cursor:pointer;transition:.15s;
+  width:100%;
+}
+.pin-key:hover { background:#eff6ff;border-color:#2563eb; }
+.pin-key:active { transform:scale(.93); }
+.pin-clear { border-color:#fca5a5!important;color:#dc2626!important; }
+.pin-clear:hover { background:#fef2f2!important; }
+</style>
+<!-- ====== /MODAL PIN ====== -->
+
 {% csrf_token %}
 {% endblock %}
 
@@ -1528,6 +1581,74 @@
     let lastSaleData = null;
     const IVA_RATE = 0.15;
     let validationTimeout = null;
+
+    // ── PIN SERVICIO MANUAL ──
+    let _pinBuffer = '';
+    let _pinCallback = null;  // función a ejecutar si PIN OK
+    let _pinModal = null;
+
+    function requestPin(callback) {
+        _pinCallback = callback;
+        _pinBuffer = '';
+        _updatePinDots();
+        document.getElementById('pinError').style.display = 'none';
+        if (!_pinModal) {
+            _pinModal = new bootstrap.Modal(document.getElementById('pinModal'));
+        }
+        _pinModal.show();
+    }
+
+    function pinKey(digit) {
+        if (_pinBuffer.length >= 4) return;
+        _pinBuffer += digit;
+        _updatePinDots();
+        if (_pinBuffer.length === 4) { pinSubmit(); }
+    }
+
+    function pinClear() {
+        _pinBuffer = _pinBuffer.slice(0, -1);
+        _updatePinDots();
+    }
+
+    function _updatePinDots() {
+        const dots = document.querySelectorAll('#pinDisplay .pin-dot');
+        dots.forEach((d, i) => {
+            d.style.background = i < _pinBuffer.length ? '#2563eb' : '#fff';
+        });
+    }
+
+    function pinSubmit() {
+        if (_pinBuffer.length === 0) return;
+        fetch('/ventas/api/verificar-pin/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ pin: _pinBuffer })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                _pinModal.hide();
+                if (_pinCallback) { _pinCallback(); _pinCallback = null; }
+            } else {
+                _pinBuffer = '';
+                _updatePinDots();
+                const errEl = document.getElementById('pinError');
+                errEl.textContent = data.mensaje || 'PIN incorrecto';
+                errEl.style.display = 'block';
+                if (data.bloqueado) {
+                    document.querySelectorAll('.pin-key').forEach(b => b.disabled = true);
+                }
+            }
+        })
+        .catch(() => {
+            _pinBuffer = '';
+            _updatePinDots();
+            const errEl = document.getElementById('pinError');
+            errEl.textContent = 'Error de conexión';
+            errEl.style.display = 'block';
+        });
+    }
+    // ── /PIN ──
 
     // Variables de usuario
     let USER_ID = window.POS_CONFIG ? window.POS_CONFIG.USER_ID : 1;
@@ -1684,22 +1805,25 @@
     }
 
     function addManualService() {
-        const manualItem = {
-            id: Date.now(), // ID temporal único
-            code: 'MANUAL',
-            name: 'Servicio Manual',
-            type: 'manual',
-            price: 0,
-            quantity: 1,
-            descuento_porcentaje: 0,
-            technician_id: null,
-            technician_name: null
-        };
-        cart.push(manualItem);
-        updateCartDisplay();
-        updateCartCount();
-        updateTotals();
-        enableCheckoutIfReady();
+        requestPin(function() {
+            const manualItem = {
+                id: Date.now(),
+                code: 'MANUAL',
+                name: 'Servicio Manual',
+                type: 'manual',
+                price: 0,
+                quantity: 1,
+                descuento_porcentaje: 0,
+                technician_id: null,
+                technician_name: null
+            };
+            cart.push(manualItem);
+            updateCartDisplay();
+            updateCartCount();
+            updateTotals();
+            enableCheckoutIfReady();
+            showToast('✅ Servicio manual agregado', 'success');
+        });
     }
 
     function updateManualItem(index, field, value) {
@@ -2811,28 +2935,36 @@
         if (!selectedService) return;
 
         const technician = technicians.find(t => t.id == technicianId);
+        const svc = selectedService;
 
-        addToCart({
-            id: selectedService.id,
-            code: selectedService.codigo,
-            name: selectedService.nombre,
-            type: 'service',
-            price: selectedService.precio_total,
-            es_personalizable: selectedService.es_personalizable,
-            technician_id: technicianId,
-            technician_name: technician ? technician.nombre : null
-        });
-
+        // Cerrar modal de técnicos primero
         const technicianModal = document.getElementById('technicianModal');
         if (technicianModal) {
-            const modalInstance = bootstrap.Modal.getInstance(technicianModal);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
+            const mi = bootstrap.Modal.getInstance(technicianModal);
+            if (mi) mi.hide();
         }
 
-        selectedService = null;
-        showToast('Servicio agregado al carrito', 'success');
+        function _doAddService() {
+            addToCart({
+                id: svc.id,
+                code: svc.codigo,
+                name: svc.nombre,
+                type: 'service',
+                price: svc.precio_total,
+                es_personalizable: svc.es_personalizable,
+                technician_id: technicianId,
+                technician_name: technician ? technician.nombre : null
+            });
+            selectedService = null;
+            showToast('Servicio agregado al carrito', 'success');
+        }
+
+        if (svc.es_personalizable) {
+            // Requiere PIN para servicios editables del catálogo
+            requestPin(_doAddService);
+        } else {
+            _doAddService();
+        }
     }
 
     // ========== MODALES - PRODUCTOS ==========

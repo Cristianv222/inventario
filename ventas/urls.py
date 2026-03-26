@@ -53,6 +53,7 @@ urlpatterns = [
     path('api/servicios/', views.api_servicios, name='api_servicios'),
     path('api/ordenes-completadas/', views.api_ordenes_completadas, name='api_ordenes_completadas'),
     path('api/orden/<int:orden_id>/datos-pos/', views.api_orden_datos_pos, name='api_orden_datos_pos'),
+    path('api/verificar-pin/', views.verificar_pin_servicio_manual, name='verificar_pin'),
 
     # ========== IMPRESIÓN TÉRMICA ==========
     path('api/impresoras-disponibles/', views.api_impresoras_disponibles, name='api_impresoras_disponibles'),

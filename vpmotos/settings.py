@@ -244,6 +244,7 @@ VPMOTOS_SETTINGS = {
     'COMPANY_TAX_ID': os.environ.get('COMPANY_TAX_ID', '0401234567001'),
     'IVA_PERCENTAGE': float(os.environ.get('IVA_PERCENTAGE', '15.0')),
     'DEFAULT_CURRENCY': os.environ.get('DEFAULT_CURRENCY', 'USD'),
+    'MANUAL_SERVICE_PIN': os.environ.get('MANUAL_SERVICE_PIN', '1234'),
 }
 
 # ============================================================
