@@ -245,6 +245,8 @@ class CierreDiario(models.Model):
         - Ventas POS (ventas_venta estado=COMPLETADA)
         - Pedidos online (clientes_pedidoonline estado=ENTREGADO)
         - Órdenes de taller (taller_ordentrabajo estado=COMPLETADO o ENTREGADO)
+        NOTA: total_ingresos usa Sum(Venta.total) para garantizar que coincida
+        exactamente con el dinero real cobrado a los clientes.
         """
         from ventas.models import Venta, DetalleVenta
         from clientes.models import PedidoOnline
@@ -257,12 +259,17 @@ class CierreDiario(models.Model):
         )
         self.cantidad_ventas = ventas_pos.count()
 
+        # Total real cobrado = Venta.total (subtotal + iva - descuento)
+        total_pos_real = ventas_pos.aggregate(
+            total=Sum('total'))['total'] or Decimal('0.00')
+
+        # Desglose informativo por tipo (para mostrar en tarjetas)
         detalles_productos = DetalleVenta.objects.filter(
             venta__fecha_hora__date=self.fecha,
             venta__estado='COMPLETADA',
             es_servicio=False
         ).aggregate(
-            total=Sum(F('subtotal') - F('descuento'), output_field=models.DecimalField())
+            total=Sum(F('subtotal') + F('iva') - F('descuento'), output_field=models.DecimalField())
         )['total'] or Decimal('0.00')
 
         detalles_servicios = DetalleVenta.objects.filter(
@@ -307,15 +314,13 @@ class CierreDiario(models.Model):
         # ── Gastos (eliminados del alcance de la caja física) ─────
 
         # ── Totales finales ───────────────────────────────────────
+        # total_ingresos = suma de Venta.total (dinero real cobrado)
         self.total_ingresos = (
-            self.total_ventas_productos
-            + self.total_ventas_servicios
-            + self.total_iva_cobrado
+            total_pos_real
             + self.total_ventas_online
             + self.total_ordenes_taller
         )
-        self.total_egresos = Decimal('0.00') # Placeholder por si en el futuro hay retiros de caja
-        # El saldo final del día se asume igual a saldo inicial + ingresos (ya no restamos gastos de este flujo de efectivo)
+        self.total_egresos = Decimal('0.00')
         self.saldo_final = self.saldo_inicial + self.total_ingresos - self.total_egresos
 
         # ── Diferencia efectivo (si ya hay conteo físico) ─────────
