@@ -449,6 +449,7 @@ def reporte_tecnicos(request):
         detalles_pos = DetalleVenta.objects.filter(
             tecnico=tec,
             es_servicio=True,
+            venta__estado='COMPLETADA',
             venta__fecha_hora__date__range=[fecha_inicio, fecha_fin]
         )
 
@@ -503,6 +504,7 @@ def reporte_tecnicos(request):
             servicios_agrupados = DetalleVenta.objects.filter(
                 tecnico=tec_sel,
                 es_servicio=True,
+                venta__estado='COMPLETADA',
                 venta__fecha_hora__date__range=[fecha_inicio, fecha_fin]
             ).values(
                 'tipo_servicio__nombre',
@@ -517,6 +519,7 @@ def reporte_tecnicos(request):
             ventas_pos_tec = VentaM.objects.filter(
                 detalleventa__tecnico=tec_sel,
                 detalleventa__es_servicio=True,
+                estado='COMPLETADA',
                 fecha_hora__date__range=[fecha_inicio, fecha_fin]
             ).distinct().select_related('cliente').order_by('-fecha_hora')
 
@@ -542,6 +545,7 @@ def reporte_tecnicos(request):
     top_servicios_global = DV.objects.filter(
         tecnico__isnull=False,
         es_servicio=True,
+        venta__estado='COMPLETADA',
         venta__fecha_hora__date__range=[fecha_inicio, fecha_fin]
     ).values(
         'tipo_servicio__nombre',
