@@ -349,7 +349,7 @@ class CierreDiario(models.Model):
     def get_o_crear_hoy(cls, usuario=None):
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         cierre, created = cls.objects.get_or_create(
             fecha=hoy,
             defaults={'usuario_cierre': usuario or User.objects.first()}

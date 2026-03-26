@@ -123,7 +123,7 @@ class Venta(models.Model):
     def get_ventas_por_dia(fecha=None):
         """Obtiene el total de ventas por día, incluyendo impacto de devoluciones"""
         if fecha is None:
-            fecha = timezone.now().date()
+            fecha = timezone.localdate()
             
         # Filtrar ventas por fecha y estado
         ventas = Venta.objects.filter(

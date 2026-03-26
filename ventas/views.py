@@ -55,7 +55,7 @@ def obtener_venta_por_id_o_numero(identificador):
 @login_required
 def lista_ventas(request):
     """Dashboard principal de ventas con métricas en tiempo real"""
-    today = timezone.now().date()
+    today = timezone.localdate()
     yesterday = today - timedelta(days=1)
     week_ago = today - timedelta(days=7)
     
@@ -1779,7 +1779,7 @@ def crear_cierre(request):
             messages.success(request, "Cierre de caja registrado correctamente")
             return redirect('ventas:lista_cierres')
     else:
-        form = CierreCajaForm(initial={'fecha': timezone.now().date()})
+        form = CierreCajaForm(initial={'fecha': timezone.localdate()})
     
     ventas_dia = Venta.get_ventas_por_dia()
     
@@ -1792,7 +1792,7 @@ def crear_cierre(request):
 @login_required
 def api_dashboard_stats(request):
     """API para obtener estadísticas actualizadas del dashboard"""
-    today = timezone.now().date()
+    today = timezone.localdate()
     yesterday = today - timedelta(days=1)
     
     try:
@@ -1921,7 +1921,7 @@ def api_grafico_ventas(request):
     """API para obtener datos del gráfico de ventas por período"""
     try:
         periodo = request.GET.get('periodo', '7d')
-        today = timezone.now().date()
+        today = timezone.localdate()
         
         if periodo == '7d':
             dias = 7
@@ -2016,7 +2016,7 @@ def api_productos_top(request):
     """API para obtener productos más vendidos"""
     try:
         periodo_dias = int(request.GET.get('dias', 7))
-        fecha_inicio = timezone.now().date() - timedelta(days=periodo_dias)
+        fecha_inicio = timezone.localdate() - timedelta(days=periodo_dias)
         
         productos = DetalleVenta.objects.filter(
             venta__fecha_hora__date__gte=fecha_inicio,
@@ -2058,7 +2058,7 @@ def api_productos_top(request):
 def api_resumen_mensual(request):
     """API para obtener resumen mensual de ventas"""
     try:
-        today = timezone.now().date()
+        today = timezone.localdate()
         primer_dia_mes = today.replace(day=1)
         
         # Ventas del mes actual
@@ -2133,7 +2133,7 @@ def api_productos_populares(request):
         
         # Obtener productos más vendidos en los últimos 30 días
         from datetime import timedelta
-        fecha_limite = timezone.now().date() - timedelta(days=30)
+        fecha_limite = timezone.localdate() - timedelta(days=30)
         
         productos_populares = DetalleVenta.objects.filter(
             venta__fecha_hora__date__gte=fecha_limite,
@@ -2469,11 +2469,11 @@ def lista_pedidos_online(request):
         'despachados': PedidoOnline.objects.filter(estado='DESPACHADO').count(),
         'entregados_hoy': PedidoOnline.objects.filter(
             estado='ENTREGADO',
-            fecha_entrega__date=timezone.now().date()
+            fecha_entrega__date=timezone.localdate()
         ).count(),
         'ingresos_hoy': PedidoOnline.objects.filter(
             estado__in=['CONFIRMADO', 'PREPARANDO', 'DESPACHADO', 'ENTREGADO'],
-            fecha_pedido__date=timezone.now().date()
+            fecha_pedido__date=timezone.localdate()
         ).aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
     }
 

@@ -42,7 +42,7 @@ except ImportError:
 
 def _rango_periodo(tipo, fecha_ref=None):
     """Devuelve (fecha_inicio, fecha_fin) para dia/semana/mes/año"""
-    hoy = fecha_ref or timezone.now().date()
+    hoy = fecha_ref or timezone.localdate()
     if tipo == 'dia':
         return hoy, hoy
     elif tipo == 'semana':
@@ -88,7 +88,7 @@ def _ordenes_taller(fecha_inicio, fecha_fin):
 
 @login_required
 def dashboard_reportes(request):
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     cierre_hoy = CierreDiario.get_o_crear_hoy(request.user)
 
     # ── Hoy ───────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ def reporte_ventas_completo(request):
     Reporte unificado: ventas POS + pedidos online + órdenes taller.
     Filtros: periodo (dia/semana/mes/año) o fechas personalizadas.
     """
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     periodo = request.GET.get('periodo', 'mes')
     fecha_desde_str = request.GET.get('fecha_desde')
     fecha_hasta_str = request.GET.get('fecha_hasta')
@@ -331,7 +331,7 @@ def reporte_ventas_productos(request):
     form = FiltroReporteProductosForm(request.GET or None)
     
     # Valores por defecto para fechas si no hay query
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     fecha_inicio = form.fields['fecha_desde'].initial
     fecha_fin = form.fields['fecha_hasta'].initial
     
@@ -411,7 +411,7 @@ def reporte_tecnicos(request):
         messages.warning(request, 'El módulo de taller no está disponible.')
         return redirect('reportes:dashboard')
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     periodo = request.GET.get('periodo', 'mes')
     tecnico_id = request.GET.get('tecnico_id')
     fecha_desde_str = request.GET.get('fecha_desde')
@@ -579,7 +579,7 @@ def reporte_vendedores(request):
     Rendimiento de cada usuario que realiza ventas.
     Filtros: dia/semana/mes/año.
     """
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     periodo = request.GET.get('periodo', 'mes')
     fecha_desde_str = request.GET.get('fecha_desde')
     fecha_hasta_str = request.GET.get('fecha_hasta')
@@ -666,9 +666,9 @@ def caja_diaria(request):
         try:
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         except ValueError:
-            fecha = timezone.now().date()
+            fecha = timezone.localdate()
     else:
-        fecha = timezone.now().date()
+        fecha = timezone.localdate()
 
     cierre, created = CierreDiario.objects.get_or_create(
         fecha=fecha,
@@ -742,8 +742,8 @@ def caja_diaria(request):
         'comparativo': comparativo,
         'denominaciones_billetes': denominaciones_billetes,
         'denominaciones_monedas': denominaciones_monedas,
-        'puede_cerrar': fecha <= timezone.now().date() and cierre.estado == 'ABIERTO',
-        'hoy': timezone.now().date(),
+        'puede_cerrar': fecha <= timezone.localdate() and cierre.estado == 'ABIERTO',
+        'hoy': timezone.localdate(),
         'taller_disponible': TALLER_DISPONIBLE,
         'online_disponible': ONLINE_DISPONIBLE,
     }
@@ -813,7 +813,7 @@ def cerrar_caja(request):
 
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-        if fecha > timezone.now().date():
+        if fecha > timezone.localdate():
             messages.error(request, 'No se puede cerrar caja de fechas futuras.')
             return redirect('reportes:caja_diaria')
 
@@ -1036,7 +1036,7 @@ def rechazar_gasto(request, pk):
 
 @login_required
 def estadisticas_ventas(request):
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     fecha_inicio, fecha_fin = _rango_periodo('mes', hoy)
 
     fecha_desde_str = request.GET.get('fecha_desde')
@@ -1195,7 +1195,7 @@ def api_crear_categoria_gasto(request):
 
 @login_required
 def api_dashboard_data(request):
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     ventas_7_dias = []
     for i in range(6, -1, -1):
         fecha = hoy - timedelta(days=i)
@@ -1226,7 +1226,7 @@ def api_dashboard_data(request):
 
 @login_required
 def api_caja_status(request):
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     try:
         cierre = CierreDiario.objects.get(fecha=hoy)
         return JsonResponse({

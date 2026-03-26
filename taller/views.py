@@ -108,7 +108,7 @@ def dashboard_taller(request):
     if settings.DEBUG:
         check_database_fields()
     
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     inicio_mes = hoy.replace(day=1)
     
     # Estadísticas generales
@@ -207,7 +207,7 @@ class TecnicoDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         tecnico = self.object
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         inicio_mes = hoy.replace(day=1)
         
         # Estadísticas del técnico
@@ -867,12 +867,12 @@ def reporte_tecnicos(request):
     fecha_hasta = request.GET.get('fecha_hasta')
     
     if not fecha_desde:
-        fecha_desde = timezone.now().date().replace(day=1)
+        fecha_desde = timezone.localdate().replace(day=1)
     else:
         fecha_desde = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
     
     if not fecha_hasta:
-        fecha_hasta = timezone.now().date()
+        fecha_hasta = timezone.localdate()
     else:
         fecha_hasta = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
     
@@ -970,12 +970,12 @@ def reporte_servicios(request):
     categoria_id = request.GET.get('categoria')
     
     if not fecha_desde:
-        fecha_desde = timezone.now().date().replace(day=1)
+        fecha_desde = timezone.localdate().replace(day=1)
     else:
         fecha_desde = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
     
     if not fecha_hasta:
-        fecha_hasta = timezone.now().date()
+        fecha_hasta = timezone.localdate()
     else:
         fecha_hasta = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
     
@@ -1188,12 +1188,12 @@ def historial_ventas_servicio(request, pk):
     fecha_hasta = request.GET.get('fecha_hasta')
     
     if not fecha_desde:
-        fecha_desde = timezone.now().date() - timedelta(days=90)  # Últimos 3 meses
+        fecha_desde = timezone.localdate() - timedelta(days=90)  # Últimos 3 meses
     else:
         fecha_desde = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
     
     if not fecha_hasta:
-        fecha_hasta = timezone.now().date()
+        fecha_hasta = timezone.localdate()
     else:
         fecha_hasta = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
     
