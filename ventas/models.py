@@ -122,12 +122,16 @@ class Venta(models.Model):
     @staticmethod
     def get_ventas_por_dia(fecha=None):
         """Obtiene el total de ventas por día, incluyendo impacto de devoluciones"""
+        from datetime import datetime, time
         if fecha is None:
             fecha = timezone.localdate()
             
-        # Filtrar ventas por fecha y estado
+        # Filtrar ventas por fecha (usando rangos para evitar problemas de tz locales en DB)
+        start_dt = timezone.make_aware(datetime.combine(fecha, time.min))
+        end_dt = timezone.make_aware(datetime.combine(fecha, time.max))
+        
         ventas = Venta.objects.filter(
-            fecha_hora__date=fecha,
+            fecha_hora__range=(start_dt, end_dt),
             estado='COMPLETADA'
         )
         
@@ -155,7 +159,7 @@ class Venta(models.Model):
         from django.apps import apps
         Devolucion = apps.get_model('ventas', 'Devolucion')
         devoluciones = Devolucion.objects.filter(
-            fecha_hora__date=fecha,
+            fecha_hora__range=(start_dt, end_dt),
             estado='COMPLETADA'
         )
         

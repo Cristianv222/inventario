@@ -16,8 +16,8 @@ import os
 import base64
 import imghdr
 import logging
-import datetime
-from datetime import datetime, timedelta
+import datetime as dt_module
+from datetime import datetime, timedelta, time
 from decimal import Decimal
 from .services.ticket_service import TicketThermalService
 from .models import Venta, DetalleVenta, CierreCaja
@@ -104,15 +104,20 @@ def lista_ventas(request):
     
     # ========== ESTADÍSTICAS PRINCIPALES ==========
     
+    hoy_start = timezone.make_aware(datetime.combine(today, time.min))
+    hoy_end = timezone.make_aware(datetime.combine(today, time.max))
+    ayer_start = timezone.make_aware(datetime.combine(yesterday, time.min))
+    ayer_end = timezone.make_aware(datetime.combine(yesterday, time.max))
+    
     # Ventas de hoy
     ventas_hoy = Venta.objects.filter(
-        fecha_hora__date=today,
+        fecha_hora__range=(hoy_start, hoy_end),
         estado='COMPLETADA'
     )
     
     # Ventas de ayer para comparación
     ventas_ayer = Venta.objects.filter(
-        fecha_hora__date=yesterday,
+        fecha_hora__range=(ayer_start, ayer_end),
         estado='COMPLETADA'
     )
     
@@ -662,7 +667,7 @@ def punto_venta(request):
     return render(request, 'ventas/punto_venta.html', {
         'active_page': 'ventas',
         'productos': productos,
-        'fecha_actual': timezone.now().strftime('%d/%m/%Y')
+        'fecha_actual': timezone.localdate().strftime('%d/%m/%Y')
     })
 
 @login_required
@@ -1042,7 +1047,7 @@ def api_ordenes_completadas(request):
             cliente_nombre = f"{orden.cliente.nombres} {orden.cliente.apellidos}".strip()
             vehiculo = f"{orden.moto_marca} {orden.moto_modelo}".strip()
             tecnico_principal = orden.tecnico_principal.get_nombre_completo() if orden.tecnico_principal else 'Sin técnico'
-            fecha_ingreso = orden.fecha_ingreso.strftime('%d/%m/%Y %H:%M')
+            fecha_ingreso = timezone.localtime(orden.fecha_ingreso).strftime('%d/%m/%Y %H:%M')
             
             ordenes_data.append({
                 'id': orden.id,
@@ -1839,14 +1844,19 @@ def api_dashboard_stats(request):
     yesterday = today - timedelta(days=1)
     
     try:
+        hoy_start = timezone.make_aware(datetime.combine(today, time.min))
+        hoy_end = timezone.make_aware(datetime.combine(today, time.max))
+        ayer_start = timezone.make_aware(datetime.combine(yesterday, time.min))
+        ayer_end = timezone.make_aware(datetime.combine(yesterday, time.max))
+        
         # Ventas de hoy
         ventas_hoy = Venta.objects.filter(
-            fecha_hora__date=today,
+            fecha_hora__range=(hoy_start, hoy_end),
             estado='COMPLETADA'
         )
         
         ventas_ayer = Venta.objects.filter(
-            fecha_hora__date=yesterday,
+            fecha_hora__range=(ayer_start, ayer_end),
             estado='COMPLETADA'
         )
         
@@ -1914,15 +1924,17 @@ def api_todas_ventas(request):
         
         if fecha_inicio:
             try:
-                fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
-                ventas = ventas.filter(fecha_hora__date__gte=fecha_inicio)
+                fecha_inicio_date = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+                inicio_dt = timezone.make_aware(datetime.combine(fecha_inicio_date, time.min))
+                ventas = ventas.filter(fecha_hora__gte=inicio_dt)
             except (ValueError, TypeError):
                 pass
         
         if fecha_fin:
             try:
-                fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
-                ventas = ventas.filter(fecha_hora__date__lte=fecha_fin)
+                fecha_fin_date = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+                fin_dt = timezone.make_aware(datetime.combine(fecha_fin_date, time.max))
+                ventas = ventas.filter(fecha_hora__lte=fin_dt)
             except (ValueError, TypeError):
                 pass
         
@@ -1942,7 +1954,7 @@ def api_todas_ventas(request):
                 'id': venta.id,
                 'numero_factura': venta.numero_factura,
                 'cliente_nombre': cliente_nombre,
-                'fecha_hora': venta.fecha_hora.strftime('%d/%m/%Y %H:%M'),
+                'fecha_hora': timezone.localtime(venta.fecha_hora).strftime('%d/%m/%Y %H:%M'),
                 'total': float(venta.total),
                 'estado': venta.estado,
                 'tipo_pago': venta.get_tipo_pago_display()
@@ -2469,7 +2481,7 @@ def api_estado_pedido(request, numero_orden):
             'estado_display': pedido.get_estado_display(),
             'estado_pago': pedido.estado_pago,
             'numero_guia': pedido.numero_guia or '',
-            'fecha_pedido': pedido.fecha_pedido.strftime('%d/%m/%Y %H:%M'),
+            'fecha_pedido': timezone.localtime(pedido.fecha_pedido).strftime('%d/%m/%Y %H:%M'),
         })
     except PedidoOnline.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Pedido no encontrado'}, status=404)
