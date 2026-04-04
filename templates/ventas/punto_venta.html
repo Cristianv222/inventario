@@ -2874,16 +2874,54 @@
     `).join('');
     }
 
-    function searchServices() {
+    const searchServicesAjax = debounce(function () {
         const serviceSearch = document.getElementById('serviceSearch');
         if (!serviceSearch) return;
 
-        const search = serviceSearch.value.trim().toLowerCase();
-        const filteredServices = services.filter(service =>
-            service.nombre.toLowerCase().includes(search) ||
-            service.codigo.toLowerCase().includes(search)
-        );
-        displayServices(filteredServices);
+        const search = serviceSearch.value.trim();
+        const resultsContainer = document.getElementById('serviceResults');
+
+        if (search.length === 0) {
+            displayServices(services);
+            return;
+        }
+
+        if (resultsContainer) {
+            resultsContainer.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <div class="loading-spinner"></div>
+                    <p style="margin-top: 1rem;">Buscando servicios...</p>
+                </div>
+            `;
+        }
+
+        fetch(`/ventas/api/servicios/?q=${encodeURIComponent(search)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.servicios.length > 0) {
+                    // Actualizar array global para asegurar que selectServiceFromModal los encuentre
+                    data.servicios.forEach(newService => {
+                        if (!services.some(s => s.id === newService.id)) {
+                            services.push(newService);
+                        }
+                    });
+                    displayServices(data.servicios);
+                } else {
+                    if (resultsContainer) {
+                        resultsContainer.innerHTML = '<p style="text-align: center;">No se encontraron servicios</p>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error searching services:', error);
+                if (resultsContainer) {
+                    resultsContainer.innerHTML = '<p style="text-align: center;">Error al buscar servicios</p>';
+                }
+            });
+    }, 300);
+
+    function searchServices() {
+        searchServicesAjax();
     }
 
     function selectServiceFromModal(serviceId) {
