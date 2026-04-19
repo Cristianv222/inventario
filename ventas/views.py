@@ -463,8 +463,6 @@ def punto_venta(request):
     if request.method == 'POST':
         return api_procesar_venta_pos_mejorado(request)
 
-            return JsonResponse({'success': False, 'mensaje': f'Error interno: {str(e)}'})
-        
     # GET request - mostrar la página del POS
     return render(request, 'ventas/punto_venta.html', {
         'active_page': 'ventas',
@@ -1131,12 +1129,15 @@ def api_procesar_venta_pos_mejorado(request):
             iva=Decimal(str(data.get('tax_amount', '0.00'))),
             descuento=Decimal(str(data.get('discount_amount', '0.00'))),
             total=Decimal(str(data.get('total_amount', '0.00'))),
-            tipo_pago=data.get('payment_method', 'EFECTIVO'),
-            observaciones=data.get('observaciones', '')
+            tipo_pago=data.get('payment_method') or 'EFECTIVO',
+            observaciones=data.get('observaciones') or ''
+
         )
         
         # Procesar items de la venta
         for item in data['items']:
+            discount_item = Decimal(str(item.get('discount', '0.00')))
+            
             if item['type'] == 'product':
                 try:
                     producto = Producto.objects.get(id=item['id'])
@@ -1146,8 +1147,8 @@ def api_procesar_venta_pos_mejorado(request):
                         raise Exception(f'Stock insuficiente para {producto.nombre}. Disponible: {producto.stock_actual}')
                     
                     subtotal_item = Decimal(str(item['subtotal']))
-                    iva_item = subtotal_item * Decimal('0.15')
-                    total_item = subtotal_item + iva_item
+                    iva_item = Decimal(str(item.get('iva', subtotal_item * Decimal('0.15'))))
+                    total_item = subtotal_item + iva_item - discount_item
                     
                     nombre_item = item.get('name', producto.nombre)
                     nombre_personalizado = item.get('name') if producto.es_editable else None
@@ -1161,7 +1162,7 @@ def api_procesar_venta_pos_mejorado(request):
                         subtotal=subtotal_item,
                         iva_porcentaje=Decimal('15.00'),
                         iva=iva_item,
-                        descuento=Decimal('0.00'),
+                        descuento=discount_item,
                         total=total_item
                     )
                     
@@ -1180,8 +1181,8 @@ def api_procesar_venta_pos_mejorado(request):
                         tecnico = Tecnico.objects.get(id=item['technician_id'])
                     
                     subtotal_item = Decimal(str(item['subtotal']))
-                    iva_item = subtotal_item * Decimal('0.15')
-                    total_item = subtotal_item + iva_item
+                    iva_item = Decimal(str(item.get('iva', '0.00')))
+                    total_item = subtotal_item + iva_item - discount_item
                     
                     DetalleVenta.objects.create(
                         venta=venta,
@@ -1191,9 +1192,9 @@ def api_procesar_venta_pos_mejorado(request):
                         cantidad=Decimal(str(item['quantity'])),
                         precio_unitario=Decimal(str(item['unit_price'])),
                         subtotal=subtotal_item,
-                        iva_porcentaje=Decimal('15.00'),
+                        iva_porcentaje=Decimal('15.00' if iva_item > 0 else '0.00'),
                         iva=iva_item,
-                        descuento=Decimal('0.00'),
+                        descuento=discount_item,
                         total=total_item,
                         es_servicio=True
                     )
@@ -1204,8 +1205,8 @@ def api_procesar_venta_pos_mejorado(request):
             elif item['type'] == 'manual':
                 # Item personalizado/genérico sin catálogo
                 subtotal_item = Decimal(str(item['subtotal']))
-                iva_item = subtotal_item * Decimal('0.15')
-                total_item = subtotal_item + iva_item
+                iva_item = Decimal(str(item.get('iva', '0.00')))
+                total_item = subtotal_item + iva_item - discount_item
                 
                 DetalleVenta.objects.create(
                     venta=venta,
@@ -1213,9 +1214,9 @@ def api_procesar_venta_pos_mejorado(request):
                     cantidad=Decimal(str(item['quantity'])),
                     precio_unitario=Decimal(str(item['unit_price'])),
                     subtotal=subtotal_item,
-                    iva_porcentaje=Decimal('15.00'),
+                    iva_porcentaje=Decimal('15.00' if iva_item > 0 else '0.00'),
                     iva=iva_item,
-                    descuento=Decimal('0.00'),
+                    descuento=discount_item,
                     total=total_item,
                     es_servicio=True
                 )
@@ -1232,6 +1233,7 @@ def api_procesar_venta_pos_mejorado(request):
                 orden.save()
             except OrdenTrabajo.DoesNotExist:
                 pass
+
         
         # ⭐ INTEGRACIÓN: Facturación Electrónica SRI (Selective)
         if data.get('facturar_electronica', False):
@@ -1324,7 +1326,11 @@ def api_procesar_venta_pos_mejorado(request):
         })
         
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        import traceback
+        logger.error(f"Error procesando venta POS: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JsonResponse({'success': False, 'message': f'Error en el servidor: {str(e)}'})
+
 
 @login_required
 @transaction.atomic

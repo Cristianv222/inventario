@@ -2229,6 +2229,10 @@
 
     function processSale() {
         console.log('🚀 Iniciando procesamiento de venta...');
+        
+        const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
+        const selectedOrderIdElement = document.getElementById('selectedOrderId');
+
 
         let subtotalTotal = 0;
         let subtotalProductos = 0;
