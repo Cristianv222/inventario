@@ -197,7 +197,10 @@ class TicketThermalService:
         # Detalles de la venta
         for detalle in venta.detalleventa_set.all():
             # Línea con cantidad y precio
-            if detalle.producto:
+            if detalle.nombre_personalizado:
+                descripcion = detalle.nombre_personalizado
+                tipo_item = "EDIT"
+            elif detalle.producto:
                 descripcion = detalle.producto.nombre
                 tipo_item = "PROD"
             elif detalle.tipo_servicio:

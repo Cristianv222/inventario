@@ -867,15 +867,20 @@
                     <h2 class="step-title">Información del Cliente</h2>
                     <p class="step-subtitle">Busque y seleccione el cliente para esta orden</p>
                     
-                    <div class="search-box" id="clienteSearchBox">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" 
-                               class="search-input" 
-                               id="clienteSearchInput"
-                               placeholder="Buscar por cédula o nombre del cliente..."
-                               autocomplete="off">
-                        <div class="search-loading"></div>
-                        <div class="search-results" id="clienteSearchResults"></div>
+                    <div class="search-container" style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 20px;">
+                        <div class="search-box" id="clienteSearchBox" style="flex: 1; margin-bottom: 0;">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="clienteSearchInput"
+                                   placeholder="Buscar por cédula o nombre del cliente..."
+                                   autocomplete="off">
+                            <div class="search-loading"></div>
+                            <div class="search-results" id="clienteSearchResults"></div>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="showCreateCustomerModal()" style="height: 52px; white-space: nowrap;">
+                            <i class="fas fa-plus"></i> <span class="d-none d-md-inline">Nuevo Cliente</span>
+                        </button>
                     </div>
 
                     <input type="hidden" name="cliente" id="clienteId" value="{{ form.cliente.value|default:'' }}">
@@ -1188,6 +1193,139 @@
     </form>
 </div>
 
+<!-- Modal Nuevo Cliente -->
+<div class="modal fade" id="createCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createCustomerForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Identificación (Cédula/RUC) *</label>
+                            <input type="text" name="identificacion" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo de Identificación *</label>
+                            <select name="tipo_identificacion" class="form-select" required>
+                                <option value="CEDULA">Cédula</option>
+                                <option value="RUC">RUC</option>
+                                <option value="PASAPORTE">Pasaporte</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombres *</label>
+                            <input type="text" name="nombres" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Apellidos *</label>
+                            <input type="text" name="apellidos" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" name="telefono" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dirección</label>
+                        <textarea name="direccion" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCustomer" onclick="handleCreateCustomer()">Guardar Cliente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========================================
+// GESTIÓN DE CLIENTES DE FORMA RÁPIDA
+// ========================================
+function showCreateCustomerModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createCustomerModal'));
+    document.getElementById('createCustomerForm').reset();
+    modal.show();
+}
+
+async function handleCreateCustomer() {
+    const form = document.getElementById('createCustomerForm');
+    const btn = document.getElementById('btnSaveCustomer');
+    const formData = new FormData(form);
+    
+    // Validar identificación
+    const id = formData.get('identificacion');
+    const tipo = formData.get('tipo_identificacion');
+    if (!validateIdentification(id, tipo)) {
+        alert('Identificación inválida');
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
+    
+    try {
+        const response = await fetch('/clientes/api/crear-rapido/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Seleccionar el cliente creado
+            selectCliente({
+                id: data.cliente.id,
+                nombres: data.cliente.nombres,
+                apellidos: data.cliente.apellidos,
+                identificacion: data.cliente.identificacion,
+                telefono: data.cliente.telefono,
+                email: data.cliente.email,
+                direccion: data.cliente.direccion
+            });
+            
+            // Cerrar modal
+            bootstrap.Modal.getInstance(document.getElementById('createCustomerModal')).hide();
+            showToast('Cliente creado y seleccionado', 'success');
+        } else {
+            alert('Error: ' + data.mensaje);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al conectar con el servidor');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Guardar Cliente';
+    }
+}
+
+function validateIdentification(id, tipo) {
+    if (!id || id.length < 5) return false;
+    // Si es cédula y tiene 10 dígitos, podrías aplicar algoritmo aquí
+    return true;
+}
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+</script>
+
 <!-- ========== MODAL DE SERVICIOS ========== -->
 <div class="modal fade" id="servicesModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -1257,6 +1395,86 @@
     </div>
 </div>
 
+<!-- ✅ MODAL PARA CREAR CLIENTE RÁPIDO -->
+<div class="modal fade" id="createCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #3f51b5 0%, #2c387e 100%); color: white;">
+                <h5 class="modal-title fw-bold fs-5 px-2 py-2">
+                    <i class="fas fa-user-plus me-2 opacity-75"></i>
+                    Crear Nuevo Cliente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form id="createCustomerForm" onsubmit="handleCreateCustomer(event)">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-muted small"><i class="fas fa-user text-primary"></i> Nombres *</label>
+                                <input type="text" class="form-control" id="newCustomerNombres" placeholder="Nombres" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-muted small"><i class="fas fa-user text-primary"></i> Apellidos *</label>
+                                <input type="text" class="form-control" id="newCustomerApellidos" placeholder="Apellidos" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-muted small"><i class="fas fa-id-card text-primary"></i> Tipo Doc. *</label>
+                                <select class="form-select" id="newCustomerTipoId" required>
+                                    <option value="CEDULA" selected>Cédula</option>
+                                    <option value="RUC">RUC</option>
+                                    <option value="PASAPORTE">Pasaporte</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-muted small"><i class="fas fa-fingerprint text-primary"></i> Número de Identificación *</label>
+                                <input type="text" class="form-control" id="newCustomerIdentificacion" placeholder="Identificación" required oninput="validateIdentification()">
+                                <div class="validation-message small mt-1 text-danger px-2" id="identificationValidation"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-muted small"><i class="fas fa-phone text-primary"></i> Teléfono</label>
+                                <input type="tel" class="form-control" id="newCustomerTelefono" placeholder="Teléfono">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-muted small"><i class="fas fa-envelope text-primary"></i> Correo Electrónico</label>
+                                <input type="email" class="form-control" id="newCustomerEmail" placeholder="Email">
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-muted small"><i class="fas fa-map-marker-alt text-primary"></i> Dirección Completa</label>
+                                <textarea class="form-control" id="newCustomerDireccion" placeholder="Dirección" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 justify-content-end mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4 border" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary px-4 shadow text-white" id="btnCreateCustomer" style="background: linear-gradient(135deg, #3f51b5 0%, #2c387e 100%); border: none;">
+                            <i class="fas fa-check-circle me-1"></i> Confirmar y Crear
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -1278,6 +1496,96 @@ const CONFIG = {
         productos: '/inventario/api/productos/'
     }
 };
+
+// ========================================
+// GESTIÓN DE CLIENTES (NUEVO)
+// ========================================
+
+function showCreateCustomerModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createCustomerModal'));
+    modal.show();
+}
+
+function handleCreateCustomer(event) {
+    event.preventDefault();
+
+    const btnCreate = document.getElementById('btnCreateCustomer');
+    const originalText = btnCreate.innerHTML;
+
+    btnCreate.disabled = true;
+    btnCreate.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creando...';
+
+    const customerData = {
+        nombres: document.getElementById('newCustomerNombres').value.trim(),
+        apellidos: document.getElementById('newCustomerApellidos').value.trim(),
+        identificacion: document.getElementById('newCustomerIdentificacion').value.trim(),
+        tipo_identificacion: document.getElementById('newCustomerTipoId').value,
+        telefono: document.getElementById('newCustomerTelefono').value.trim(),
+        email: document.getElementById('newCustomerEmail').value.trim(),
+        direccion: document.getElementById('newCustomerDireccion').value.trim()
+    };
+
+    fetch('/clientes/api/crear-rapido/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify(customerData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Cliente creado exitosamente', 'success');
+
+            const createModal = bootstrap.Modal.getInstance(document.getElementById('createCustomerModal'));
+            if (createModal) {
+                createModal.hide();
+            }
+
+            // Seleccionar el nuevo cliente automáticamente
+            setTimeout(() => {
+                const nuevoCliente = {
+                    id: data.cliente.id,
+                    nombres: data.cliente.nombres || data.cliente.nombre_completo.split(' ')[0],
+                    apellidos: data.cliente.apellidos || '',
+                    identificacion: data.cliente.identificacion,
+                    telefono: data.cliente.telefono || '',
+                    email: data.cliente.email || '',
+                    direccion: data.cliente.direccion || ''
+                };
+                selectCliente(nuevoCliente);
+            }, 300);
+        } else {
+            alert(data.mensaje || 'Error al crear cliente');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating customer:', error);
+        alert('Error de conexión: ' + error.message);
+    })
+    .finally(() => {
+        btnCreate.disabled = false;
+        btnCreate.innerHTML = originalText;
+    });
+}
+
+function validateIdentification() {
+    const idInput = document.getElementById('newCustomerIdentificacion');
+    const validationMessage = document.getElementById('identificationValidation');
+    const value = idInput.value.trim();
+    
+    // Validación básica simple (se puede mejorar según país)
+    if (value.length > 0 && value.length < 10) {
+        validationMessage.textContent = 'La identificación debe tener al menos 10 caracteres';
+    } else {
+        validationMessage.textContent = '';
+    }
+}
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+}
 
 // ========================================
 // VARIABLES GLOBALES
@@ -1933,10 +2241,11 @@ function addProductToFormset(product) {
             id: product.id,
             code: product.codigo,
             name: product.nombre,
-            price: product.precio || 0,
+            price: product.precio || product.price || 0,
             stock: product.stock,
             quantity: 1,
-            isExisting: false
+            isExisting: false,
+            es_editable: product.es_editable === true || product.es_editable === 1 || product.es_editable === "true"
         });
     }
     
@@ -1965,9 +2274,23 @@ function updateRepuestosDisplay() {
         return `
             <div class="item-row">
                 <div class="item-info">
-                    <div class="item-name">${escapeHtml(item.name)}</div>
+                    ${item.es_editable ? 
+                        `<input type="text" class="form-control form-control-sm mb-1 fw-bold" 
+                                value="${escapeHtml(item.name)}" 
+                                onchange="updateRepuestoField(${index}, 'name', this.value)"
+                                placeholder="Nombre personalizado">` :
+                        `<div class="item-name">${escapeHtml(item.name)}</div>`
+                    }
                     <div class="item-code">${escapeHtml(item.code || '')}</div>
-                    <div class="item-price">$${item.price.toFixed(2)} c/u | Stock: ${item.stock || 0}</div>
+                    ${item.es_editable ?
+                        `<div class="input-group input-group-sm mt-1" style="max-width: 150px;">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" 
+                                   value="${item.price}" step="0.01" 
+                                   onchange="updateRepuestoField(${index}, 'price', this.value)">
+                        </div>` :
+                        `<div class="item-price">$${item.price.toFixed(2)} c/u | Stock: ${item.stock || 0}</div>`
+                    }
                 </div>
                 <div class="quantity-controls">
                     <button type="button" class="qty-btn" onclick="updateRepuestoQuantity(${index}, ${item.quantity - 1})">
@@ -1985,6 +2308,16 @@ function updateRepuestosDisplay() {
             </div>
         `;
     }).join('');
+}
+
+function updateRepuestoField(index, field, value) {
+    if (field === 'price') {
+        repuestosFormset[index].price = parseFloat(value) || 0;
+    } else if (field === 'name') {
+        repuestosFormset[index].name = value;
+    }
+    
+    calculateTotals();
 }
 
 function updateRepuestoQuantity(index, newQuantity) {
@@ -2168,6 +2501,7 @@ function syncRepuestosFormset() {
         
         html += `
             <input type="hidden" name="repuestos-${index}-producto" value="${item.id}">
+            <input type="hidden" name="repuestos-${index}-nombre_personalizado" value="${item.es_editable ? item.name : ''}">
             <input type="hidden" name="repuestos-${index}-cantidad" value="${item.quantity}">
             <input type="hidden" name="repuestos-${index}-precio_unitario" value="${item.price}">
             <input type="hidden" name="repuestos-${index}-observaciones" value="">

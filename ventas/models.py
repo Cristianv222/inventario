@@ -99,6 +99,30 @@ class Venta(models.Model):
         ).aggregate(
             total=models.Sum('total')
         )['total'] or Decimal('0.00')
+
+    def get_base_iva_standard(self):
+        """Retorna la base imponible del IVA 15%"""
+        return self.detalleventa_set.filter(
+            iva_porcentaje__gt=0
+        ).aggregate(
+            res=models.Sum('subtotal')
+        )['res'] or Decimal('0.00')
+
+    def get_total_iva_standard(self):
+        """Retorna el monto total del IVA 15%"""
+        return self.detalleventa_set.filter(
+            iva_porcentaje__gt=0
+        ).aggregate(
+            res=models.Sum('iva')
+        )['res'] or Decimal('0.00')
+
+    def get_base_iva_0(self):
+        """Retorna la base imponible del IVA 0%"""
+        return self.detalleventa_set.filter(
+            iva_porcentaje=0
+        ).aggregate(
+            res=models.Sum('subtotal')
+        )['res'] or Decimal('0.00')
     
     @staticmethod
     def generar_numero_factura():

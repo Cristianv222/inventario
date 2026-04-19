@@ -172,6 +172,12 @@
     </div>
     {% endif %}
 
+    {% if orden.diagnostico_inicial %}
+    <div class="obs-box" style="margin-top: 10px; border-left: 4px solid #f44336;">
+        <strong style="color: #f44336;">Diagnóstico inicial:</strong> {{ orden.diagnostico_inicial }}
+    </div>
+    {% endif %}
+
     <!-- SERVICIOS -->
     {% if servicios %}
     <div class="section-title">Servicios de mano de obra</div>
@@ -224,7 +230,7 @@
         <tr>
             <td>{{ repuesto.producto.codigo_unico }}</td>
             <td class="td-name">
-                <strong>{{ repuesto.producto.nombre }}</strong>
+                <strong>{{ repuesto.nombre_personalizado|default:repuesto.producto.nombre }}</strong>
                 {% if repuesto.producto.descripcion %}
                 <small>{{ repuesto.producto.descripcion }}</small>
                 {% endif %}

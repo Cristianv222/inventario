@@ -9,7 +9,7 @@ class ProductoForm(forms.ModelForm):
         fields = [
             'categoria', 'marca', 'codigo_unico', 'nombre', 'descripcion',
             'precio_compra', 'precio_venta', 'stock_actual', 'stock_minimo',
-            'incluye_iva', 'activo', 'ubicacion_almacen', 
+            'incluye_iva', 'es_editable', 'activo', 'ubicacion_almacen', 
             'imagen', 'imagen_2', 'imagen_3'
         ]
         widgets = {
@@ -23,6 +23,7 @@ class ProductoForm(forms.ModelForm):
             'stock_actual': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'stock_minimo': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'incluye_iva': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'es_editable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'ubicacion_almacen': forms.TextInput(attrs={'class': 'form-control'}),
             'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),

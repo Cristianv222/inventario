@@ -64,6 +64,7 @@ class Producto(models.Model):
     
     # Metadata
     activo = models.BooleanField(default=True, verbose_name=_('Activo'))
+    es_editable = models.BooleanField(default=False, verbose_name=_('Es Editable (Nombre/Precio)'))
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
     ubicacion_almacen = models.CharField(max_length=100, blank=True, null=True, verbose_name=_('UbicaciÃ³n en AlmacÃ©n'))

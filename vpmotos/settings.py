@@ -55,10 +55,11 @@ USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
 # ============================================================
-# DJANGO-TENANTS
+# APPS DEFINITION
 # ============================================================
 INSTALLED_APPS = [
-    'django_tenants',
+    'daphne',
+    'channels',
     'django.contrib.contenttypes',
     'django.contrib.humanize',
     'django.contrib.admin',
@@ -78,46 +79,15 @@ INSTALLED_APPS = [
     'hardware_integration.apps.HardwareIntegrationConfig',
     'crispy_forms',
     'crispy_bootstrap5',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'electronic_invoicing.apps.ElectronicInvoicingConfig',
 ]
-
-SHARED_APPS = [
-    'django_tenants',
-    'django.contrib.contenttypes',
-    'django.contrib.auth',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.admin',
-    'django.contrib.humanize',
-    'widget_tweaks',
-    'core.apps.CoreConfig',
-    'usuarios.apps.UsuariosConfig',
-    'crispy_forms',
-    'crispy_bootstrap5',
-]
-
-TENANT_APPS = [
-    'django.contrib.contenttypes',
-    'inventario.apps.InventarioConfig',
-    'clientes.apps.ClientesConfig',
-    'ventas.apps.VentasConfig',
-    'taller.apps.TallerConfig',
-    'compras.apps.ComprasConfig',
-    'reportes.apps.ReportesConfig',
-    'hardware_integration.apps.HardwareIntegrationConfig',
-    'crispy_forms',
-    'crispy_bootstrap5',
-]
-
-TENANT_MODEL = "core.Sucursal"
-TENANT_DOMAIN_MODEL = "core.DominioSucursal"
-PUBLIC_SCHEMA_NAME = 'public'
-PUBLIC_SCHEMA_URLCONF = 'vpmotos.urls'
 
 # ============================================================
 # MIDDLEWARE
 # ============================================================
 MIDDLEWARE = [
-    'django_tenants.middleware.main.TenantMainMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -167,11 +137,11 @@ if 'DATABASE_URL' in os.environ:
             conn_health_checks=True,
         )
     }
-    DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
+    DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django_tenants.postgresql_backend',
+            'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.environ.get('DB_NAME'),
             'USER': os.environ.get('DB_USER'),
             'PASSWORD': os.environ.get('DB_PASSWORD'),
@@ -180,9 +150,6 @@ else:
         }
     }
 
-DATABASE_ROUTERS = (
-    'django_tenants.routers.TenantSyncRouter',
-)
 
 # ============================================================
 # PASSWORD VALIDATION
@@ -278,6 +245,8 @@ if DEBUG:
 # ============================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'hardware_integration.auth.CustomTokenAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_RENDERER_CLASSES': [
@@ -288,3 +257,28 @@ REST_FRAMEWORK = {
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# ============================================================
+# CHANNELS & WS CONFIGURATION
+# ============================================================
+ASGI_APPLICATION = 'vpmotos.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(os.environ.get('REDIS_HOST', 'localhost'), 6379)],
+        },
+    },
+}
+
+# CACHES CONFIGURATION (EL ESCUDO DE RAM)
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f"redis://{os.environ.get('REDIS_HOST', 'localhost')}:6379/1",
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}

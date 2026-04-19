@@ -52,6 +52,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=db
       - DB_PORT=5432
+      - REDIS_HOST=redis
       - VPMOTOS_API_TOKEN=${VPMOTOS_API_TOKEN}
     volumes:
       - .:/app

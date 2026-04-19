@@ -76,7 +76,11 @@ class RoleMiddleware:
             if request.path.startswith(path):
                 return self.get_response(request)
         
-        # Verificar si el usuario está autenticado
+        # 1. APIs generalmente permitidas (se controlan en la vista)
+        if '/api/' in request.path:
+            return self.get_response(request)
+            
+        # 2. Verificar si el usuario está autenticado
         if not request.user.is_authenticated:
             if not request.path.startswith('/usuarios/login/'):
                 return redirect(reverse('usuarios:login'))

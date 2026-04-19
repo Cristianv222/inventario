@@ -23,9 +23,9 @@ class CotizacionService:
             # Generar PDF (necesitarás instalar weasyprint o similar)
             try:
                 from weasyprint import HTML, CSS
-                from weasyprint.fonts import FontConfiguration
                 
-                font_config = FontConfiguration()
+                # En WeasyPrint 65+, FontConfiguration es opcional para uso básico
+                # Si se necesita específicamente, está en weasyprint.text.fonts
                 
                 # CSS para el PDF
                 css = CSS(string='''
@@ -151,11 +151,11 @@ class CotizacionService:
                         margin: 15px 0;
                         font-size: 11px;
                     }
-                ''', font_config=font_config)
+                ''')
                 
                 # Generar PDF
                 html_doc = HTML(string=html_content)
-                pdf = html_doc.write_pdf(stylesheets=[css], font_config=font_config)
+                pdf = html_doc.write_pdf(stylesheets=[css])
                 
                 return pdf
                 

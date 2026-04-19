@@ -336,6 +336,7 @@ class RepuestoOrdenForm(forms.ModelForm):
         model = RepuestoOrden
         fields = [
             'producto',
+            'nombre_personalizado',
             'cantidad',
             'precio_unitario',
             'observaciones'
@@ -343,6 +344,7 @@ class RepuestoOrdenForm(forms.ModelForm):
         
         labels = {
             'producto': 'Producto/Repuesto',
+            'nombre_personalizado': 'Nombre Personalizado',
             'cantidad': 'Cantidad',
             'precio_unitario': 'Precio Unitario',
             'observaciones': 'Observaciones'
@@ -353,6 +355,10 @@ class RepuestoOrdenForm(forms.ModelForm):
                 'class': 'form-select producto-select',
                 'data-precio-url': '/taller/ajax/precio-producto/'
             }),
+            'nombre_personalizado': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Solo si el repuesto es editable/genérico'
+            }),
             'cantidad': forms.NumberInput(attrs={
                 'class': 'form-control cantidad-input',
                 'min': '0.01',
@@ -362,8 +368,7 @@ class RepuestoOrdenForm(forms.ModelForm):
             'precio_unitario': forms.NumberInput(attrs={
                 'class': 'form-control precio-unitario',
                 'step': '0.01',
-                'min': '0',
-                'readonly': 'readonly'
+                'min': '0'
             }),
             'observaciones': forms.TextInput(attrs={
                 'class': 'form-control',

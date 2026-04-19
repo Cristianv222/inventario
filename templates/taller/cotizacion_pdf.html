@@ -224,7 +224,7 @@
         <tr>
             <td>{{ repuesto.producto.codigo_unico }}</td>
             <td class="td-name">
-                <strong>{{ repuesto.producto.nombre }}</strong>
+                <strong>{{ repuesto.nombre_personalizado|default:repuesto.producto.nombre }}</strong>
                 {% if repuesto.producto.descripcion %}
                 <small>{{ repuesto.producto.descripcion }}</small>
                 {% endif %}

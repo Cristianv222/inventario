@@ -801,6 +801,7 @@ class RepuestoOrden(models.Model):
         'inventario.Producto', 
         on_delete=models.PROTECT
     )
+    nombre_personalizado = models.CharField(max_length=200, blank=True, null=True)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
@@ -822,7 +823,8 @@ class RepuestoOrden(models.Model):
         ordering = ['producto__nombre']
     
     def __str__(self):
-        return f"{self.orden.numero_orden} - {self.producto.nombre} x{self.cantidad}"
+        nombre = self.nombre_personalizado or self.producto.nombre
+        return f"{self.orden.numero_orden} - {nombre} x{self.cantidad}"
     
     def save(self, *args, **kwargs):
         # Calcular subtotal

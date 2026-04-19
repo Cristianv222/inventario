@@ -343,10 +343,14 @@
                         </td>
                         <td>
                             <strong>
-                                {% if detalle.producto %}
+                                {% if detalle.nombre_personalizado %}
+                                    {{ detalle.nombre_personalizado }}
+                                {% elif detalle.producto %}
                                     {{ detalle.producto.nombre }}
+                                {% elif detalle.tipo_servicio %}
+                                    {{ detalle.tipo_servicio.nombre }}
                                 {% else %}
-                                    {{ detalle.nombre_personalizado|default:detalle.tipo_servicio.nombre }}
+                                    Item
                                 {% endif %}
                             </strong>
                             {% if detalle.producto %}

@@ -367,6 +367,21 @@
         color: #dc3545;
     }
 
+    /* SRI Status Badges */
+    .sri-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 4px;
+        display: inline-block;
+    }
+    .sri-autorizado { background: #e8f5e9; color: #2e7d32; }
+    .sri-rechazado { background: #ffebee; color: #c62828; }
+    .sri-error { background: #fff3e0; color: #ef6c00; }
+    .sri-pendiente { background: #e3f2fd; color: #1565c0; }
+
     /* Modales limpios */
     .modal-content {
         border-radius: 8px;
@@ -720,6 +735,11 @@
                     <div class="activity-value">
                         <div class="activity-amount">S/ {{ venta.total|floatformat:2 }}</div>
                         <div class="activity-badge badge-success">{{ venta.get_tipo_pago_display }}</div>
+                        {% if venta.comprobante_electronico %}
+                        <div class="sri-badge sri-{{ venta.comprobante_electronico.estado|lower }}" title="{{ venta.comprobante_electronico.mensajes_error|default:'' }}">
+                            SRI: {{ venta.comprobante_electronico.estado }}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% empty %}
@@ -805,8 +825,15 @@
                         </div>
                         <div style="text-align: right;">
                             <div class="sale-amount">S/ {{ venta.total|floatformat:2 }}</div>
-                            <div class="activity-badge {% if venta.estado == 'COMPLETADA' %}badge-success{% else %}badge-danger{% endif %}">
-                                {{ venta.get_estado_display }}
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                                <div class="activity-badge {% if venta.estado == 'COMPLETADA' %}badge-success{% else %}badge-danger{% endif %}">
+                                    {{ venta.get_estado_display }}
+                                </div>
+                                {% if venta.comprobante_electronico %}
+                                <div class="sri-badge sri-{{ venta.comprobante_electronico.estado|lower }}" title="{{ venta.comprobante_electronico.mensajes_error|default:'' }}">
+                                    SRI: {{ venta.comprobante_electronico.estado }}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

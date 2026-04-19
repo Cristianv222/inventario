@@ -8,8 +8,64 @@ while ! pg_isready -h db -p 5432 -U ${DB_USER} -d ${DB_NAME}; do
 done
 echo "Base de datos lista!"
 
-echo "Aplicando migraciones..."
-python manage.py migrate_schemas --noinput
+# ============================================================
+# SCRIPT DE MIGRACIÓN AUTOMÁTICA DE ESQUEMAS (PRODUCCIÓN)
+# ============================================================
+echo "Verificando si existen datos pendientes en esquema 'principal'..."
+python manage.py shell << EOF
+import os
+import psycopg2
+from django.db import connection
+
+def migrate_schema():
+    with connection.cursor() as cursor:
+        # 1. Verificar si existe el esquema principal
+        cursor.execute("SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'principal'")
+        if not cursor.fetchone():
+            print("INFO: No se detectó esquema 'principal'. Saltando migración de datos.")
+            return
+
+        print("⚠️ DETECTADO ESQUEMA 'PRINCIPAL'. Iniciando migración de tablas a 'public'...")
+        
+        # 2. Mover tablas
+        cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'principal'")
+        tables = cursor.fetchall()
+        for (table,) in tables:
+            try:
+                # Evitar mover tablas que ya existen en public y que son compartidas
+                cursor.execute(f"SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = '{table}'")
+                if cursor.fetchone():
+                    print(f"ℹ️ Tabla {table} ya existe en public. Omitiendo.")
+                    continue
+                    
+                cursor.execute(f"ALTER TABLE principal.{table} SET SCHEMA public")
+                print(f"✅ Movida tabla: {table}")
+            except Exception as e:
+                print(f"❌ Error al mover tabla {table}: {e}")
+        
+        # 3. Mover secuencias
+        cursor.execute("SELECT relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'principal' AND c.relkind = 'S'")
+        sequences = cursor.fetchall()
+        for (seq,) in sequences:
+            try:
+                # Evitar mover secuencias que ya existen
+                cursor.execute(f"SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = '{seq}'")
+                if cursor.fetchone():
+                    continue
+                    
+                cursor.execute(f"ALTER SEQUENCE principal.{seq} SET SCHEMA public")
+                print(f"✅ Movida secuencia: {seq}")
+            except Exception as e:
+                print(f"ℹ️ Secuencia {seq} saltada: {e}")
+
+        print("🚀 Migración de datos completada satisfactoriamente.")
+
+migrate_schema()
+EOF
+
+echo "Aplicando migraciones estándar..."
+python manage.py migrate --noinput
+
 
 echo "Recopilando archivos estáticos..."
 python manage.py collectstatic --noinput --clear
@@ -26,7 +82,6 @@ import os
 if not Sucursal.objects.exists():
     print("Creando sucursal principal...")
     sucursal = Sucursal(
-        schema_name='principal',
         codigo='PRINCIPAL',
         nombre='VPMOTOS Matriz',
         nombre_corto='Matriz',
@@ -65,32 +120,31 @@ EOF
 # ============================================================
 echo "Verificando superusuario..."
 python manage.py shell << EOF
-from django_tenants.utils import schema_context
 from django.contrib.auth import get_user_model
 import os
 
-with schema_context('principal'):
-    User = get_user_model()
-    admin_user = os.environ.get('DJANGO_SUPERUSER_USERNAME', 'admin')
-    admin_email = os.environ.get('DJANGO_SUPERUSER_EMAIL', 'admin@vp-motos.com')
-    admin_pass = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+User = get_user_model()
+admin_user = os.environ.get('DJANGO_SUPERUSER_USERNAME', 'admin')
+admin_email = os.environ.get('DJANGO_SUPERUSER_EMAIL', 'admin@vp-motos.com')
+admin_pass = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
 
-    if not admin_pass:
-        print('ERROR: DJANGO_SUPERUSER_PASSWORD no está definida')
-        exit(1)
+if not admin_pass:
+    print('ERROR: DJANGO_SUPERUSER_PASSWORD no está definida')
+    exit(1)
 
-    if not User.objects.filter(usuario=admin_user).exists():
-        User.objects.create_superuser(
-            usuario=admin_user,
-            email=admin_email,
-            password=admin_pass,
-            nombre='Administrador',
-            apellido='Sistema'
-        )
-        print(f'Superusuario creado: {admin_user}')
-    else:
-        print(f'Superusuario ya existe: {admin_user}')
+if not User.objects.filter(usuario=admin_user).exists():
+    User.objects.create_superuser(
+        usuario=admin_user,
+        email=admin_email,
+        password=admin_pass,
+        nombre='Administrador',
+        apellido='Sistema'
+    )
+    print(f'Superusuario creado: {admin_user}')
+else:
+    print(f'Superusuario ya existe: {admin_user}')
 EOF
+
 
 # Cargar datos iniciales si existen
 if [ -f "/app/ventas/fixtures/initial_data.json" ]; then
@@ -98,13 +152,5 @@ if [ -f "/app/ventas/fixtures/initial_data.json" ]; then
     python manage.py loaddata /app/ventas/fixtures/initial_data.json || echo "Datos iniciales ya cargados o error al cargar"
 fi
 
-echo "Iniciando servidor en modo producción con Gunicorn..."
-exec gunicorn vpmotos.wsgi:application \
-    --bind 0.0.0.0:8000 \
-    --workers 2 \
-    --threads 2 \
-    --timeout 60 \
-    --keep-alive 2 \
-    --log-level warning \
-    --access-logfile - \
-    --error-logfile -
+echo "Iniciando servidor en modo producción con Daphne (ASGI)..."
+exec daphne -b 0.0.0.0 -p 8000 vpmotos.asgi:application

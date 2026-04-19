@@ -195,6 +195,18 @@ def obtener_trabajos_pendientes(request):
     - Usuario normal → Solo ve sus propios trabajos
     """
     try:
+        # 🔥 ESCUDO DE RAM: Comprobar en Redis si hay trabajos para este usuario
+        # Si la caché dice que no hay nada, respondemos en <1ms sin tocar la DB
+        cache_key_vacio = f"print_queue_empty_{request.user.id}"
+        if cache.get(cache_key_vacio) is True:
+            return Response({
+                'trabajos': [],
+                'count': 0,
+                'es_sistema': es_usuario_sistema(request.user),
+                'timestamp': timezone.now().isoformat(),
+                'cache_hit': True
+            }, status=status.HTTP_200_OK)
+
         # 🔥 DETECTAR TIPO DE USUARIO
         es_sistema = es_usuario_sistema(request.user)
         
@@ -205,9 +217,9 @@ def obtener_trabajos_pendientes(request):
             ).select_related('impresora', 'venta', 'producto', 'usuario').order_by(
                 'prioridad',
                 'fecha_creacion'
-            )[:10]  # Máximo 10 por petición
+            )[:10]
             
-            logger.debug(f"🔓 Usuario SISTEMA '{request.user.username}' consultando TODOS los trabajos")
+            # logger.debug(f"🔓 Usuario SISTEMA '{request.user.username}' consultando TODOS los trabajos")
         else:
             # ✅ Usuario normal → Solo sus propios trabajos
             trabajos_query = TrabajoImpresion.objects.filter(
@@ -269,12 +281,15 @@ def obtener_trabajos_pendientes(request):
             tipo_busqueda = "TODOS" if es_sistema else f"usuario {request.user.username}"
             logger.info(f"📋 Enviados {len(trabajos_list)} trabajo(s) [{tipo_busqueda}]")
         else:
-            logger.debug(f"📋 Sin trabajos pendientes para {request.user.username}")
+            # 🔥 MARCAR VACÍO: Si no hay nada, guardar en Redis por 60s
+            # Esto evitará que 1000 preguntas por segundo toquen la DB
+            cache.set(cache_key_vacio, True, 60)
+            logger.debug(f"📋 Sin trabajos pendientes para {request.user.username} (Marcado en caché)")
         
         return Response({
             'trabajos': trabajos_list,
             'count': len(trabajos_list),
-            'es_sistema': es_sistema,  # 🔥 NUEVO
+            'es_sistema': es_sistema,
             'timestamp': timezone.now().isoformat()
         }, status=status.HTTP_200_OK)
         
@@ -561,6 +576,13 @@ def crear_trabajo_impresion(usuario, impresora_nombre, comandos_hex, tipo='ticke
             abrir_gaveta=abrir_gaveta,
             max_intentos=3
         )
+        
+        # 4. INVALIDAR ESCUDO DE RAM: Avisar que ya no está vacío
+        cache_key_vacio = f"print_queue_empty_{usuario.id}"
+        cache.delete(cache_key_vacio)
+        
+        # También invalidar para el usuario de sistema que escucha todo
+        cache.delete("print_queue_empty_agente_impresion") # Por si acaso se usa alias
         
         logger.info(f"📄 Trabajo de impresión creado: {trabajo.id}")
         logger.info(f"   Usuario: {usuario.username} (ID:{usuario.id})")

@@ -29,6 +29,7 @@ urlpatterns = [
     path('reportes/', include('reportes.urls', namespace='reportes')),
     path('hardware/', include('hardware_integration.urls', namespace='hardware_integration')),
     path('api/hardware/', include('hardware_integration.api.urls', namespace='hardware_api')),
+    path('electronic-invoicing/', include(('electronic_invoicing.urls', 'electronic_invoicing'), namespace='electronic_invoicing')),
 ]
 
 if settings.DEBUG:

@@ -704,6 +704,11 @@
                         <i class="fas fa-print"></i>
                         <span>Impresoras</span>
                     </a>
+                    <div class="navbar-divider"></div>
+                    <a href="{% url 'electronic_invoicing:gestion' %}" class="navbar-dropdown-link">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Facturación SRI</span>
+                    </a>
                 </div>
             </li>
             {% endif %}
@@ -847,6 +852,15 @@
                     onclick="handleMobileSidebarClick(event)">
                     <i class="fas fa-tools"></i>
                     <span>Taller</span>
+                </a>
+            </li>
+
+            <li class="mobile-sidebar-item">
+                <a href="{% url 'electronic_invoicing:gestion' %}"
+                    class="mobile-sidebar-link {% if active_page == 'sri' %}active{% endif %}"
+                    onclick="handleMobileSidebarClick(event)">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Facturación SRI</span>
                 </a>
             </li>
 

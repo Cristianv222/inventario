@@ -707,12 +707,13 @@ class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
             repuestos_data.append({
                 'repuestoOrdenId': repuesto_orden.id,  # ✅ CORREGIDO: era 'repuestosOrdenId'
                 'id': repuesto_orden.producto.id,
-                'name': repuesto_orden.producto.nombre,
+                'name': repuesto_orden.nombre_personalizado or repuesto_orden.producto.nombre,
                 'code': producto_codigo,
                 'price': float(repuesto_orden.precio_unitario),
                 'quantity': float(repuesto_orden.cantidad),
                 'stock': float(repuesto_orden.producto.stock_actual),
-                'isExisting': True
+                'isExisting': True,
+                'es_editable': repuesto_orden.producto.es_editable
             })
         
         return json.dumps(repuestos_data)
@@ -1312,19 +1313,24 @@ def exportar_orden_a_pos(request, pk):
 @login_required
 def generar_cotizacion_pdf(request, pk):
     """Generar cotización en PDF utilizando el servicio de cotización"""
+    from django.template.loader import render_to_string
+    import logging
+    
+    logger = logging.getLogger(__name__)
     orden = get_object_or_404(OrdenTrabajo, pk=pk)
+    filename = f"cotizacion_{orden.numero_orden or orden.id}.pdf"
     
     try:
         # Usar el servicio para generar el PDF real
         pdf_content = CotizacionService.generar_cotizacion_pdf(orden)
         
         response = HttpResponse(pdf_content, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="cotizacion_{orden.numero_orden or orden.id}.pdf"'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
         
     except Exception as e:
-        logger.exception(f"Error generando PDF para la orden {pk}")
-        # Si falla WeasyPrint o el servicio, intentamos renderizar HTML como fallback
+        logger.warning(f"Error generando PDF de cotización para la orden {pk} ({str(e)}), enviando HTML descargable")
+        # Si falla el servicio, intentamos renderizar HTML como fallback pero forzando descarga
         context = {
             'orden': orden,
             'servicios': orden.servicios.all(),
@@ -1337,7 +1343,10 @@ def generar_cotizacion_pdf(request, pk):
                 'email': 'email@vpmotos.com'
             }
         }
-        return render(request, 'taller/cotizacion_pdf.html', context)
+        html_content = render_to_string('taller/cotizacion_pdf.html', context)
+        response = HttpResponse(html_content, content_type='text/html')
+        response['Content-Disposition'] = f'attachment; filename="{filename.replace(".pdf", ".html")}"'
+        return response
         
     except Exception as e:
         messages.error(request, f'Error al generar cotización: {str(e)}')
@@ -1351,8 +1360,11 @@ def generar_orden_pdf(request, pk):
     from django.conf import settings
     from django.template.loader import render_to_string
     from django.http import HttpResponse
-    
+    import logging
+
+    logger = logging.getLogger(__name__)
     orden = get_object_or_404(OrdenTrabajo, pk=pk)
+    filename = f"orden_trabajo_{orden.numero_orden or orden.id}.pdf"
     
     try:
         # Cargar logo de forma segura en Base64 para WeasyPrint/HTML
@@ -1382,12 +1394,11 @@ def generar_orden_pdf(request, pk):
         
         html_content = render_to_string('taller/orden_pdf.html', context)
         
-        # Renderizar a PDF directamente con WeasyPrint
         try:
             from weasyprint import HTML, CSS
-            from weasyprint.fonts import FontConfiguration
             
-            font_config = FontConfiguration()
+            # En WeasyPrint 65+, FontConfiguration es opcional para uso básico
+            # Si se necesita específicamente, está en weasyprint.text.fonts
             css = CSS(string='''
                 @page {
                     size: A4;
@@ -1395,27 +1406,26 @@ def generar_orden_pdf(request, pk):
                     @top-center { content: "ORDEN DE TRABAJO - VPMOTOS"; font-size: 10px; color: #666; }
                     @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 10px; color: #666; }
                 }
-            ''', font_config=font_config)
+            ''')
             
             html_doc = HTML(string=html_content, base_url=request.build_absolute_uri('/'))
-            pdf = html_doc.write_pdf(stylesheets=[css], font_config=font_config)
+            pdf = html_doc.write_pdf(stylesheets=[css])
             
             response = HttpResponse(pdf, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="orden_trabajo_{orden.numero_orden or orden.id}.pdf"'
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
             
-        except ImportError:
-            # Fallback a HTML para imprimir nativamente desde navegador
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning("WeasyPrint no instalado, devolviendo HTML imprimible como fallback")
-            return HttpResponse(html_content)
+        except (ImportError, Exception) as e:
+            logger.warning(f"WeasyPrint falló o no está instalado ({str(e)}), enviando HTML descargable")
+            # Fallback: Enviar el HTML pero forzando la descarga para que no se pierda la utilidad
+            response = HttpResponse(html_content, content_type='text/html')
+            # Usamos extensión .html para que el usuario pueda abrirlo en el navegador tras descargar
+            response['Content-Disposition'] = f'attachment; filename="{filename.replace(".pdf", ".html")}"'
+            return response
             
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.exception(f"Error generando PDF para la orden {pk}")
-        messages.error(request, f'Error al generar PDF: {str(e)}')
+        logger.exception(f"Error crítico generando documento para la orden {pk}")
+        messages.error(request, f'No se pudo generar el documento: {str(e)}')
         return redirect('taller:orden_detail', pk=pk)
 
 @login_required

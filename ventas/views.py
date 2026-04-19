@@ -14,7 +14,7 @@ from django.db.models.functions import TruncDate
 import json
 import os
 import base64
-import imghdr
+import logging
 import logging
 import datetime as dt_module
 from datetime import datetime, timedelta, time
@@ -28,6 +28,10 @@ from inventario.models import Producto
 from inventario.views import requiere_token_api
 from taller.models import TipoServicio, OrdenTrabajo, Tecnico
 from .models import Devolucion, DetalleDevolucion
+
+# Electronic Invoicing
+from electronic_invoicing.models import ComprobanteElectronico, PuntoEmision
+from electronic_invoicing.tasks import procesar_factura_electronica
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +217,7 @@ def lista_ventas(request):
     ventas_recientes = Venta.objects.filter(
         fecha_hora__date=today,
         estado='COMPLETADA'
-    ).select_related('cliente').order_by('-fecha_hora')[:5]
+    ).select_related('cliente', 'comprobante_electronico').order_by('-fecha_hora')[:5]
     
     # ========== PRODUCTOS MÁS VENDIDOS ==========
     
@@ -239,7 +243,7 @@ def lista_ventas(request):
     
     ventas_modal = Venta.objects.filter(
         fecha_hora__date__gte=week_ago
-    ).select_related('cliente').order_by('-fecha_hora')[:20]
+    ).select_related('cliente', 'comprobante_electronico').order_by('-fecha_hora')[:20]
     
     # ========== COMPILAR ESTADÍSTICAS ==========
     
@@ -519,6 +523,7 @@ def punto_venta(request):
                         detalle = DetalleVenta.objects.create(
                             venta=venta,
                             producto=producto,
+                            nombre_personalizado=item.get('name') if producto.es_editable else None,
                             cantidad=cantidad,
                             precio_unitario=Decimal(str(item['precio_unitario'])),
                             subtotal=Decimal(str(item['subtotal'])),
@@ -870,7 +875,8 @@ def api_buscar_producto(request):
                     'stock': float(producto.stock_actual),
                     'categoria': producto.categoria.nombre if producto.categoria else None,
                     'activo': producto.activo,
-                    'incluye_iva': producto.incluye_iva  # ✅ NUEVO
+                    'incluye_iva': producto.incluye_iva,
+                    'es_editable': producto.es_editable
                 }
             })
         else:
@@ -907,7 +913,8 @@ def api_productos(request):
             'categoria': producto.categoria.nombre if producto.categoria else None,
             'activo': producto.activo,
             'descripcion': producto.descripcion or '',
-            'incluye_iva': producto.incluye_iva  # ✅ NUEVO
+            'incluye_iva': producto.incluye_iva,
+            'es_editable': producto.es_editable
         })
     
     return JsonResponse({
@@ -1345,9 +1352,13 @@ def api_procesar_venta_pos_mejorado(request):
                     iva_item = subtotal_item * Decimal('0.15')
                     total_item = subtotal_item + iva_item
                     
+                    nombre_item = item.get('name', producto.nombre)
+                    nombre_personalizado = item.get('name') if producto.es_editable else None
+                    
                     DetalleVenta.objects.create(
                         venta=venta,
                         producto=producto,
+                        nombre_personalizado=nombre_personalizado,
                         cantidad=cantidad,
                         precio_unitario=Decimal(str(item['unit_price'])),
                         subtotal=subtotal_item,
@@ -1425,6 +1436,27 @@ def api_procesar_venta_pos_mejorado(request):
             except OrdenTrabajo.DoesNotExist:
                 pass
         
+        # ⭐ INTEGRACIÓN: Facturación Electrónica SRI (Selective)
+        if data.get('facturar_electronica', False):
+            try:
+                # Buscar punto de emisión activo
+                punto = PuntoEmision.objects.filter(activo=True).first()
+                if not punto:
+                    # Si no hay punto activo, registramos el error pero no bloqueamos la venta
+                    logger.error("No hay punto de emisión activo para facturación electrónica")
+                else:
+                    comprobante = ComprobanteElectronico.objects.create(
+                        venta=venta,
+                        punto_emision=punto,
+                        ambiente=punto.configuracion.ambiente if (punto.configuracion) else 1,
+                        estado='GENERADO'
+                    )
+                    # Disparar tarea asíncrona
+                    procesar_factura_electronica.delay(comprobante.id)
+                    logger.info(f"Tarea de facturación electrónica programada para venta {venta.id}")
+            except Exception as e:
+                logger.error(f"Error al iniciar facturación electrónica: {str(e)}")
+
         # Procesar opciones de impresión
         print_result = None
         email_sent = False

@@ -59,9 +59,22 @@
 
                     <!-- ===================== PASO 1: INFORMACIÓN BÁSICA ===================== -->
                     <div class="wizard-pane active" data-step="1">
-                        <h5 class="mb-3">
-                            <i class="fas fa-info-circle text-primary me-2"></i>
-                            Paso 1: Información Básica
+                        <h5 class="mb-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-info-circle text-primary me-2"></i>
+                                Paso 1: Información Básica
+                            </div>
+                            <div class="form-check form-switch bg-light p-2 rounded border px-3">
+                                <input type="checkbox" class="form-check-input"
+                                    id="{{ form.es_editable.id_for_label }}"
+                                    name="{{ form.es_editable.name }}"
+                                    value="True"
+                                    {% if form.es_editable.value %}checked{% endif %}
+                                    onchange="handleEditableToggle(this)">
+                                <label for="{{ form.es_editable.id_for_label }}" class="form-check-label fw-bold text-primary small">
+                                    <i class="fas fa-magic me-1"></i> PRODUCTO EDITABLE (GENÉRICO)
+                                </label>
+                            </div>
                         </h5>
                         <div class="row g-3">
 
@@ -372,6 +385,7 @@
                                     </div>
                                 </div>
                             </div>
+                            </div>
                         </div>
                     </div>
 
@@ -488,6 +502,37 @@ $(document).ready(function () {
     const totalSteps = 4;
     let formSubmitting = false;
     const stockOriginal = parseInt($('#id_stock_actual').val()) || 0;
+
+    // ==================== VARIABLE PARA EDITABLE ====================
+    window.handleEditableToggle = function(checkbox) {
+        if (checkbox.checked) {
+            // Auto-completar nombre si está vacío o es genérico
+            const $nombre = $('#id_nombre');
+            if (!$nombre.val() || $nombre.val() === 'Filtro de aceite para motor') {
+                $nombre.val('PRODUCTO GENÉRICO EDITABLE').addClass('campo-generado');
+            }
+
+            // Auto-seleccionar GENÉRICO en Categoría y Marca
+            $("#id_categoria option").filter(function() {
+                return $(this).text().toUpperCase().includes('GENÉRICO') || $(this).text().toUpperCase().includes('GENERICO');
+            }).prop('selected', true);
+
+            $("#id_marca option").filter(function() {
+                return $(this).text().toUpperCase().includes('GENÉRICO') || $(this).text().toUpperCase().includes('GENERICO');
+            }).prop('selected', true);
+
+            // Precios en 0 por defecto
+            $('#id_precio_compra').val('0.00');
+            $('#id_precio_venta').val('0.00');
+
+            // Generar código si no tiene
+            if (!$('#id_codigo_unico').val()) {
+                $('#id_codigo_unico').val(generarCodigoUnico());
+            }
+
+            mostrarNotificacion('✨ Modo Genérico: Se han auto-configurado los campos básicos.', 'info');
+        }
+    };
 
     // ==================== PREVENIR ENTER ====================
     $('#producto-form').on('keypress', function (e) {

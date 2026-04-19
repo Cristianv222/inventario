@@ -42,10 +42,14 @@ urllib3==2.4.0
 weasyprint==65.1
 webencodings==0.5.1
 zopfli==0.2.3.post1
-django-tenants==3.9.0
+# django-tenants removed (moving to single tenant)
 
 # Dependencias adicionales para Docker
-gunicorn==21.2.0
+# Servidor de alto rendimiento (ASGI) y WebSockets
+granian==1.6.0
+channels==4.0.0
+daphne==4.0.0
+channels-redis==4.2.0
 redis==5.0.1
 django-redis==5.4.0
 celery==5.3.4
@@ -57,3 +61,5 @@ python-escpos
 django-crispy-forms
 crispy-bootstrap5
 pyusb
+zeep==4.3.2
+cryptography

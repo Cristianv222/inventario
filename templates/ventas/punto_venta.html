@@ -1067,6 +1067,17 @@
 
             <!-- Botón de checkout -->
             <div class="checkout-section">
+                <!-- ⭐ NUEVO: Toggle para Facturación Electrónica Premium -->
+                <div class="sri-toggle-container mb-3 p-3 rounded-3 border bg-light">
+                    <div class="form-check form-switch d-flex justify-content-between align-items-center p-0">
+                        <label class="form-check-label fw-bold d-flex align-items-center gap-2" for="electronicInvoicingToggle">
+                            <i class="bi bi-file-earmark-check fs-5 text-primary"></i> 
+                            <span>Factura Electrónica</span>
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" id="electronicInvoicingToggle" style="width: 3em; height: 1.5em; cursor: pointer;">
+                    </div>
+                </div>
+                
                 <button id="checkoutBtn" class="checkout-btn" onclick="processCheckout()" disabled>
                     <i class="bi bi-credit-card"></i>
                     <span>Completar Venta</span>
@@ -1787,7 +1798,8 @@
                     quantity: item.quantity || 1,
                     descuento_porcentaje: 0,
                     technician_id: null,
-                    technician_name: null
+                    technician_name: null,
+                    es_editable: item.es_editable === true || item.es_editable === 1 || item.es_editable === "true"
                 });
             }
         } else {
@@ -1833,6 +1845,7 @@
             cart[index].name = value;
         }
         updateTotals();
+        // Nota: no redibujamos el carrito inmediatamente para no perder el foco
     }
 
     function updateCartDisplay() {
@@ -1909,14 +1922,19 @@
             `;
             }
 
-            if (item.type === 'manual' || item.es_personalizable) {
+            if (item.type === 'manual' || item.es_personalizable || (item.type === 'product' && item.es_editable)) {
+                const isProduct = item.type === 'product';
+                const color = isProduct ? '#28a745' : '#ffc107';
+                const badgeClass = isProduct ? 'bg-success' : 'bg-warning text-dark';
+                const badgeText = isProduct ? 'PRODUCTO EDITABLE' : (item.type === 'manual' ? 'MANUAL' : 'SERVICIO EDITABLE');
+                
                 return `
-                <div class="cart-item" style="border-left: 4px solid #ffc107;">
+                <div class="cart-item" style="border-left: 4px solid ${color};">
                     <div class="item-info">
-                        <input type="text" class="form-control form-control-sm mb-1" value="${escapeHtml(item.name)}" 
-                               onchange="updateManualItem(${index}, 'name', this.value)" placeholder="Nombre del servicio"
-                               ${item.type === 'manual' ? '' : 'title="Editando servicio del catálogo"'}>
-                        <div class="item-code"><span class="badge bg-warning text-dark">${item.type === 'manual' ? 'MANUAL' : 'EDITABLE'}</span></div>
+                        <input type="text" class="form-control form-control-sm mb-1 fw-bold" value="${escapeHtml(item.name)}" 
+                               onchange="updateManualItem(${index}, 'name', this.value)" placeholder="Nombre personalizado"
+                               title="Puede editar el nombre de este item">
+                        <div class="item-code"><span class="badge ${badgeClass}">${badgeText}</span> ${escapeHtml(item.code || '')}</div>
                         <div class="input-group input-group-sm mt-1" style="max-width: 150px;">
                             <span class="input-group-text">S/</span>
                             <input type="number" class="form-control" value="${item.price}" step="0.01"
@@ -2250,12 +2268,13 @@
 
         const total = subtotalTotal + taxTotal - discountTotal;
 
-        const selectedCustomerIdElement = document.getElementById('selectedCustomerId');
-        const selectedOrderIdElement = document.getElementById('selectedOrderId');
+        const electronicInvoicingToggle = document.getElementById('electronicInvoicingToggle');
+        const facturarElectronica = electronicInvoicingToggle ? electronicInvoicingToggle.checked : false;
 
         const saleData = {
-            cliente_id: selectedCustomerIdElement ? selectedCustomerIdElement.value || null : null,
-            tipo_pago: currentPaymentMethod,
+            customer_id: selectedCustomerIdElement ? selectedCustomerIdElement.value || null : null,
+            payment_method: currentPaymentMethod,
+            facturar_electronica: facturarElectronica,
             items: cart.map(item => {
                 if (item.type === 'orden_trabajo') {
                     return null;
@@ -2281,24 +2300,23 @@
                 const itemTotal = itemSubtotalGross + itemIva - itemDiscount;
 
                 return {
-                    tipo: item.type === 'product' ? 'producto' : 'servicio',
+                    type: item.type === 'product' ? 'product' : 'service',
                     id: item.id,
                     name: item.name,
-                    cantidad: item.quantity,
-                    precio_unitario: item.type === 'product' ? (item.price / (1 + IVA_RATE)) : item.price,
+                    quantity: item.quantity,
+                    unit_price: item.type === 'product' ? (item.price / (1 + IVA_RATE)) : item.price,
                     subtotal: itemSubtotalGross,
                     iva: itemIva,
-                    descuento_porcentaje: itemDescPct,
-                    descuento: itemDiscount,
+                    discount: itemDiscount,
                     total: itemTotal,
-                    tecnico_id: item.technician_id || null
+                    technician_id: item.technician_id || null
                 };
             }).filter(item => item !== null),
             subtotal: subtotalTotal,
-            iva: taxTotal,
-            descuento: discountTotal,
-            total: total,
-            orden_trabajo_id: selectedOrderIdElement ? selectedOrderIdElement.value || null : null,
+            tax_amount: taxTotal,
+            discount_amount: discountTotal,
+            total_amount: total,
+            order_id: selectedOrderIdElement ? selectedOrderIdElement.value || null : null,
             imprimir: selectedPrintType !== 'none',
             tipo_impresion: selectedPrintType === 'ticket' ? 'ticket' : 'factura',
             observaciones: ''
@@ -3111,7 +3129,8 @@
                 price: product.precio,
                 stock: product.stock,
                 category: product.categoria || 'Sin categoría',
-                incluye_iva: product.incluye_iva // ✅ Pasar estado de IVA
+                incluye_iva: product.incluye_iva, // ✅ Pasar estado de IVA
+                es_editable: product.es_editable || false
             });
 
             const productsModal = document.getElementById('productsModal');

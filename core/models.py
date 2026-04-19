@@ -1,17 +1,14 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
-from django_tenants.models import TenantMixin, DomainMixin
 
 
-class Sucursal(TenantMixin):
+class Sucursal(models.Model):
     """
     Sucursales de VPMOTOS
-    Cada sucursal tiene su propio schema PostgreSQL con datos aislados
+    Modelo estándar (simplificado de multitenant)
     """
-    # TenantMixin agrega automáticamente:
-    # - schema_name: Nombre del schema en PostgreSQL
-    # - created_on: Fecha de creación
+    schema_name = models.CharField(max_length=63, unique=True, default='public')
     
     # Información básica
     codigo = models.CharField(
@@ -77,10 +74,6 @@ class Sucursal(TenantMixin):
     observaciones = models.TextField(blank=True, null=True)
     actualizado_en = models.DateTimeField(auto_now=True)
     
-    # ✅ Configuración de django-tenants
-    auto_create_schema = True  # Crear schema automáticamente
-    auto_drop_schema = False   # NO borrar schema al eliminar registro
-    
     class Meta:
         verbose_name = _('Sucursal')
         verbose_name_plural = _('Sucursales')
@@ -97,10 +90,6 @@ class Sucursal(TenantMixin):
         return self.nombre
     
     def save(self, *args, **kwargs):
-        # Generar schema_name automáticamente del código
-        if not self.schema_name:
-            self.schema_name = self.codigo.lower().replace('-', '_').replace(' ', '_')
-        
         # Validar que solo haya una sucursal principal
         if self.es_principal:
             Sucursal.objects.filter(es_principal=True).exclude(pk=self.pk).update(es_principal=False)
@@ -125,13 +114,6 @@ class Sucursal(TenantMixin):
             raise ValidationError({
                 'activa': 'La sucursal principal no puede ser desactivada'
             })
-        
-        # Validar que schema_name no sea una palabra reservada
-        palabras_reservadas = ['public', 'postgres', 'template0', 'template1']
-        if self.schema_name and self.schema_name.lower() in palabras_reservadas:
-            raise ValidationError({
-                'codigo': f'No puede usar "{self.codigo}" como código (palabra reservada)'
-            })
     
     def get_usuarios_count(self):
         """Cuenta usuarios asignados a esta sucursal"""
@@ -152,13 +134,13 @@ class Sucursal(TenantMixin):
         return cls.objects.filter(activa=True)
 
 
-class DominioSucursal(DomainMixin):
+class DominioSucursal(models.Model):
     """
-    Dominios/subdominios para acceder a cada sucursal
-    Ejemplo: cayambe.vpmotos.com, quito.vpmotos.com
-    
-    Para desarrollo local se usa: cayambe.localhost, quito.localhost
+    Dominios/subdominios (Mantenido por compatibilidad estructural)
     """
+    domain = models.CharField(max_length=253, unique=True)
+    tenant = models.ForeignKey(Sucursal, on_delete=models.CASCADE, related_name='dominios')
+    is_primary = models.BooleanField(default=True)
     
     class Meta:
         verbose_name = _('Dominio de Sucursal')
@@ -166,6 +148,7 @@ class DominioSucursal(DomainMixin):
     
     def __str__(self):
         return f"{self.domain} → {self.tenant.nombre}"
+
 
 
 class ParametroSistema(models.Model):

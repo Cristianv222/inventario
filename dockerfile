@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y \
     libpangoft2-1.0-0 \
     libglib2.0-0 \
     libcairo2 \
+    libjpeg-dev \
+    libopenjp2-7-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
