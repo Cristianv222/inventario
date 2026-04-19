@@ -103,7 +103,7 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Comando por defecto para producción
 CMD ["gunicorn", \
-     "core.wsgi:application", \
+     "vpmotos.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "5", \
      "--threads", "2", \

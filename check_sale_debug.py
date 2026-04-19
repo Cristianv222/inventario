@@ -5,7 +5,7 @@ import sys
 # Añadir el directorio actual al path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'inventario.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'vpmotos.settings')
 django.setup()
 
 from ventas.models import Venta, DetalleVenta
