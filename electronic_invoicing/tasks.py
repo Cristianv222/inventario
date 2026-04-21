@@ -32,6 +32,8 @@ def notificar_monitor(comprobante, mensaje=None):
             "numero_autorizacion": comprobante.numero_autorizacion,
             "mensaje": mensaje,
             "mensajes_error": comprobante.mensajes_error,
+            "email_enviado": comprobante.email_enviado,
+            "email_mensaje": comprobante.email_mensaje,
         }
     )
 
@@ -93,6 +95,7 @@ def procesar_factura_electronica(comprobante_id):
             
             generator = XMLGeneratorSRI(config, punto_emision)
             xml_bruto, clave_acceso = generator.generar_xml_factura(venta)
+            notificar_monitor(comprobante, "XML Generado OK")
             
             # Incrementar secuencial SOLO si es la primera vez que generamos para esta factura
             if not comprobante.clave_acceso:
@@ -105,6 +108,7 @@ def procesar_factura_electronica(comprobante_id):
             comprobante.xml_generado = xml_bruto.decode('utf-8')
             
             # 2. FIRMAR XML
+            notificar_monitor(comprobante, "Firmando XML...")
             certificado = CertificadoDigital.objects.filter(activo=True).first()
             if not certificado:
                 raise ValueError("No hay certificado digital (firma) activo.")
@@ -117,13 +121,14 @@ def procesar_factura_electronica(comprobante_id):
             comprobante.xml_firmado = xml_firmado_str
             comprobante.estado = 'FIRMADO'
             comprobante.save()
-            notificar_monitor(comprobante, "XML Firmado")
+            notificar_monitor(comprobante, "XML Firmado Exitosamente")
         else:
             xml_firmado_str = comprobante.xml_firmado
             clave_acceso = comprobante.clave_acceso
 
         # 3. ENVIAR AL SRI (RECEPCIÓN)
         if comprobante.estado != 'RECIBIDO' and comprobante.estado != 'AUTORIZADO':
+            notificar_monitor(comprobante, "Enviando al SRI (Recepción)...")
             ambiente = config.ambiente
             url_recepcion = config.wsdl_recepcion_pruebas if ambiente == 1 else config.wsdl_recepcion_produccion
             client_recepcion = Client(url_recepcion)
@@ -132,6 +137,7 @@ def procesar_factura_electronica(comprobante_id):
             
             try:
                 respuesta_recepcion = client_recepcion.service.validarComprobante(xml_raw_bytes)
+                notificar_monitor(comprobante, "Respuesta SRI recibida")
             except Exception as e:
                 logger.error(f"Error de conexión con SRI (Recepción): {e}")
                 comprobante.estado = 'ERROR'
@@ -192,12 +198,17 @@ def procesar_factura_electronica(comprobante_id):
 
                             # ENVIAR POR EMAIL
                             try:
+                                notificar_monitor(comprobante, "Enviando email al cliente...")
                                 from .services.resend_service import ResendInvoicingService
-                                ResendInvoicingService.enviar_comprobante(comprobante)
+                                if ResendInvoicingService.enviar_comprobante(comprobante):
+                                    notificar_monitor(comprobante, "Email enviado con éxito")
+                                else:
+                                    notificar_monitor(comprobante, "Fallo al enviar email (Verificar Resend)")
                             except Exception as e:
                                 logger.error(f"Error al disparar envío por Resend: {e}")
+                                notificar_monitor(comprobante, "Error técnico en envío de email")
 
-                            notificar_monitor(comprobante, "¡Autorizado!")
+                            notificar_monitor(comprobante, "¡Proceso finalizado!")
                             return True
                         
                         elif estado_sri in ['EN PROCESO', 'PENDIENTE'] or not estado_sri:

@@ -70,9 +70,9 @@ class XMLGeneratorSRI:
         # Datos del Comprador
         if venta.cliente:
             # En este sistema, Cliente tiene identificacion directo
-            tipo_ident = obtener_codigo_sri_identificacion(venta.cliente.tipo_documento if hasattr(venta.cliente, 'tipo_documento') else 'CEDULA', venta.cliente.identificacion)
+            tipo_ident = obtener_codigo_sri_identificacion(venta.cliente.tipo_identificacion, venta.cliente.identificacion)
             identificacion = venta.cliente.identificacion
-            razon_social_comprador = f"{venta.cliente.nombre} {venta.cliente.apellido}"
+            razon_social_comprador = f"{venta.cliente.nombres} {venta.cliente.apellidos}"
         else:
             # Consumidor Final
             tipo_ident = "07"
@@ -80,7 +80,7 @@ class XMLGeneratorSRI:
             razon_social_comprador = "CONSUMIDOR FINAL"
 
         etree.SubElement(info_factura, "tipoIdentificacionComprador").text = tipo_ident
-        etree.SubElement(info_factura, "razonSocialComprador").text = razon_social_comprador[:300]
+        etree.SubElement(info_factura, "razonSocialComprador").text = razon_social_comprador[:300].strip()
         etree.SubElement(info_factura, "identificacionComprador").text = identificacion
         etree.SubElement(info_factura, "totalSinImpuestos").text = f"{venta.subtotal:.2f}"
         etree.SubElement(info_factura, "totalDescuento").text = f"{venta.descuento:.2f}"
@@ -88,14 +88,15 @@ class XMLGeneratorSRI:
         # Totales Impuestos
         total_con_impuestos = etree.SubElement(info_factura, "totalConImpuestos")
         
-        # Tarifa Estándar (15%)
-        base_iva_15 = venta.get_base_iva_standard()
-        if base_iva_15 > 0:
-            total_impuesto_15 = etree.SubElement(total_con_impuestos, "totalImpuesto")
-            etree.SubElement(total_impuesto_15, "codigo").text = "2" # 2 = IVA
-            etree.SubElement(total_impuesto_15, "codigoPorcentaje").text = "4" # 4 = 15%
-            etree.SubElement(total_impuesto_15, "baseImponible").text = f"{base_iva_15:.2f}"
-            etree.SubElement(total_impuesto_15, "valor").text = f"{venta.get_total_iva_standard():.2f}"
+        # Tarifa Estándar (15% u otro según item)
+        base_iva_any = venta.get_base_iva_standard()
+        if base_iva_any > 0:
+            total_impuesto_standard = etree.SubElement(total_con_impuestos, "totalImpuesto")
+            total_impuesto_standard.find("codigo") # Just to check structure if needed, but SubElement is direct
+            etree.SubElement(total_impuesto_standard, "codigo").text = "2" # 2 = IVA
+            etree.SubElement(total_impuesto_standard, "codigoPorcentaje").text = "4" # 4 = 15% (SRI Code) 
+            etree.SubElement(total_impuesto_standard, "baseImponible").text = f"{base_iva_any:.2f}"
+            etree.SubElement(total_impuesto_standard, "valor").text = f"{venta.get_total_iva_standard():.2f}"
             
         # Tarifa 0%
         base_iva_0 = venta.get_base_iva_0()
@@ -114,7 +115,7 @@ class XMLGeneratorSRI:
         pagos = etree.SubElement(info_factura, "pagos")
         pago = etree.SubElement(pagos, "pago")
         
-        # Mapeo de métodos de pago (simplificado)
+        # Mapeo de métodos de pago (simplificado para el SRI)
         forma_pago = "01" # Default efectivo
         if venta.tipo_pago == 'TRANSFERENCIA' or venta.tipo_pago == 'TARJETA':
             forma_pago = "20" # Otros con utilización sistema financiero
@@ -144,16 +145,9 @@ class XMLGeneratorSRI:
             cantidad = detalle.cantidad
             etree.SubElement(det_xml, "cantidad").text = f"{cantidad:.2f}"
             
-            # El precio unitario debe ser el desglosado (sin IVA)
-            tarifa_item = 15 if detalle.iva_porcentaje > 0 else 0
-            codigo_punto_item = "4" if detalle.iva_porcentaje > 0 else "0"
-            
-            factor_iva = Decimal('1.15') if detalle.iva_porcentaje > 0 else Decimal('1.00')
-            # precio_unitario en DetalleVenta ya es sin IVA o con IVA? 
-            # Revisando DetalleVenta.save: self.subtotal = self.cantidad * self.precio_unitario
-            # En este sistema, precio_unitario suele ser CON IVA si no se especifica.
-            # Pero el SRI pide SIN IVA.
-            precio_unitario_sin_iva = detalle.precio_unitario / factor_iva
+            # El precio unitario en DetalleVenta.precio_unitario ya está desglosado (SIN IVA)
+            # si el producto incluía IVA originalmente. Ver logic en DetalleVenta.save.
+            precio_unitario_sin_iva = detalle.precio_unitario
             
             etree.SubElement(det_xml, "precioUnitario").text = f"{precio_unitario_sin_iva:.6f}"
             etree.SubElement(det_xml, "descuento").text = f"{detalle.descuento:.2f}"
@@ -163,6 +157,12 @@ class XMLGeneratorSRI:
             impuestos_xml = etree.SubElement(det_xml, "impuestos")
             impuesto_xml = etree.SubElement(impuestos_xml, "impuesto")
             etree.SubElement(impuesto_xml, "codigo").text = "2"
+            
+            # Tarifa e IVA dinámico
+            tarifa_item = int(detalle.iva_porcentaje)
+            codigo_punto_item = "4" if tarifa_item > 0 else "0" # 4 es para 15% (actual) o 12% anterior
+            # Nota: En Ecuador el código '4' es para porcentajes de IVA vigentes distintos de 0, 10 o 5.
+            
             etree.SubElement(impuesto_xml, "codigoPorcentaje").text = codigo_punto_item
             etree.SubElement(impuesto_xml, "tarifa").text = str(tarifa_item)
             etree.SubElement(impuesto_xml, "baseImponible").text = f"{detalle.subtotal:.2f}"

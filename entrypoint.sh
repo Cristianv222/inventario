@@ -152,5 +152,11 @@ if [ -f "/app/ventas/fixtures/initial_data.json" ]; then
     python manage.py loaddata /app/ventas/fixtures/initial_data.json || echo "Datos iniciales ya cargados o error al cargar"
 fi
 
-echo "Iniciando servidor en modo producción con Daphne (ASGI)..."
-exec daphne -b 0.0.0.0 -p 8000 vpmotos.asgi:application
+# Determinar qué servicio ejecutar
+if [ "$#" -gt 0 ]; then
+    echo "Ejecutando comando personalizado: $@"
+    exec "$@"
+else
+    echo "Iniciando servidor en modo producción con Daphne (ASGI)..."
+    exec daphne -b 0.0.0.0 -p 8000 vpmotos.asgi:application
+fi

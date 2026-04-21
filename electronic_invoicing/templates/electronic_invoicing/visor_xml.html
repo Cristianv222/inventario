@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .xml-container {
+        background: #1e1e1e;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    pre {
+        margin-bottom: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    code {
+        font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+        font-size: 0.9rem;
+        color: #d4d4d4;
+    }
+    .xml-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .badge-xml {
+        font-size: 0.75rem;
+        padding: 5px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+<!-- Highlight.js for beautiful XML display -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="xml-header">
+                        <div>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-1">
+                                    <li class="breadcrumb-item"><a href="{% url 'electronic_invoicing:gestion' %}">Gestión SRI</a></li>
+                                    <li class="breadcrumb-item active">Visor XML</li>
+                                </ol>
+                            </nav>
+                            <h4 class="fw-bold mb-0">Comprobante {{ comprobante.venta.numero_factura }}</h4>
+                            <p class="text-muted small mb-0">ID: {{ comprobante.id }}</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge badge-xml bg-info mb-2">{{ comprobante.estado }}</span>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm" onclick="copyXml()">
+                                    <i class="bi bi-clipboard me-1"></i> Copiar
+                                </button>
+                                <a href="{% url 'electronic_invoicing:gestion' %}" class="btn btn-secondary btn-sm">
+                                    <i class="bi bi-arrow-left me-1"></i> Regresar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-dark border-0 mb-3 small d-flex align-items-center">
+                        <i class="bi bi-info-circle me-3 fs-4 text-info"></i>
+                        <div>
+                            <strong>Nota Técnica:</strong> Este es el contenido del archivo XML firmado y procesado ante el SRI. 
+                            Contiene la <strong>Clave de Acceso</strong> única de 49 dígitos necesaria para cualquier consulta oficial.
+                        </div>
+                    </div>
+
+                    <div class="xml-container">
+                        <pre><code class="language-xml" id="xmlCodeContent">{{ xml_content }}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        hljs.highlightAll();
+    });
+
+    function copyXml() {
+        const code = document.getElementById('xmlCodeContent').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            alert('XML copiado al portapapeles');
+        });
+    }
+</script>
+{% endblock %}

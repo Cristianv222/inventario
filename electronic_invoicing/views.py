@@ -204,19 +204,143 @@ def subir_certificado_sri(request):
             CertificadoDigital.objects.update(activo=False)
             
             # Crear y guardar el nuevo certificado
+            from .services.certificate_reader import CertificateReaderSRI
+            
+            # Leer contenido para extracción de metadata
+            p12_content = archivo.read()
+            archivo.seek(0)
+            
+            metadata = CertificateReaderSRI.extraer_metadata(p12_content, password)
+            
             cert = CertificadoDigital()
             cert.archivo = archivo
             cert.set_password(password)
-            cert.activo = True
             
-            # TODO: Idealmente extraer metadata aquí usando cryptography (PKCS12)
-            # Para este demo, simplemente guardamos
+            # Guardar metadata extraída
+            cert.nombre_titular = metadata.get('nombre_titular')
+            cert.ruc_titular = metadata.get('ruc_titular')
+            cert.emisor = metadata.get('emisor')
+            cert.fecha_vencimiento = metadata.get('fecha_vencimiento')
+            
+            cert.activo = True
             cert.save()
             
-            return JsonResponse({'status': 'success', 'message': 'Certificado subido correctamente'})
+            return JsonResponse({
+                'status': 'success', 
+                'message': f'Certificado de {cert.nombre_titular} subido y activado correctamente. Expira el {cert.fecha_vencimiento}.'
+            })
         except Exception as e:
             logger.error(f"Error subiendo certificado: {e}")
             return JsonResponse({'status': 'error', 'message': f'Error al procesar el certificado: {str(e)}'}, status=400)
             
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 
+@login_required
+def crear_punto_emision(request):
+    """API para crear un nuevo punto de emisión"""
+    if request.method == 'POST':
+        import json
+        try:
+            data = json.loads(request.body)
+            est = str(data.get('establecimiento', '')).zfill(3)
+            punto = str(data.get('punto_emision', '')).zfill(3)
+            dir_est = data.get('direccion_establecimiento', '')
+            seq = int(data.get('ultimo_secuencial', 0))
+            
+            if not est or not punto or not dir_est:
+                return JsonResponse({'status': 'error', 'message': 'Faltan campos obligatorios'}, status=400)
+            
+            # Verificar si ya existe
+            if PuntoEmision.objects.filter(establecimiento=est, punto_emision=punto).exists():
+                return JsonResponse({'status': 'error', 'message': f'El punto {est}-{punto} ya existe'}, status=400)
+
+            # Si es el primero, lo ponemos activo
+            count = PuntoEmision.objects.count()
+            
+            p = PuntoEmision.objects.create(
+                establecimiento=est,
+                punto_emision=punto,
+                direccion_establecimiento=dir_est,
+                ultimo_secuencial=seq,
+                activo=(count == 0)
+            )
+            
+            return JsonResponse({'status': 'success', 'message': f'Punto de emisión {est}-{punto} creado correctamente'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+@login_required
+def toggle_punto_emision(request):
+    """API para activar/desactivar un punto de emisión"""
+    if request.method == 'POST':
+        import json
+        try:
+            data = json.loads(request.body)
+            punto_id = data.get('id')
+            p = get_object_or_404(PuntoEmision, pk=punto_id)
+            
+            if not p.activo:
+                # Solo permitimos un punto activo a la vez para evitar confusiones de secuenciales
+                PuntoEmision.objects.exclude(id=p.id).update(activo=False)
+                p.activo = True
+            else:
+                p.activo = False
+            
+            p.save()
+            estado_str = "Activado y se usará para facturación" if p.activo else "Desactivado"
+            return JsonResponse({'status': 'success', 'message': f'Punto {p.establecimiento}-{p.punto_emision} {estado_str}'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+@login_required
+def reintentar_factura(request, pk):
+    """Reinicia el proceso de facturación para un comprobante fallido o estancado."""
+    comprobante = get_object_or_404(ComprobanteElectronico, pk=pk)
+    
+    # Solo permitimos reintentar si no está autorizado
+    if comprobante.estado == 'AUTORIZADO':
+        return JsonResponse({'status': 'error', 'message': 'Este comprobante ya está AUTORIZADO'}, status=400)
+    
+    try:
+        # Resetear estado y errores
+        from .tasks import procesar_factura_electronica, notificar_monitor
+        
+        comprobante.estado = 'GENERADO'
+        comprobante.mensajes_error = "Reintento manual iniciado..."
+        comprobante.save()
+        
+        # Notificar al monitor
+        notificar_monitor(comprobante, "Reintento iniciado")
+        
+        # Disparar tarea nuevamente (Usar ID del comprobante, no de la venta)
+        procesar_factura_electronica.delay(comprobante.id)
+        
+        return JsonResponse({'status': 'success', 'message': 'Factura enviada a procesamiento nuevamente'})
+    except Exception as e:
+        logger.error(f"Error al reintentar factura {pk}: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+def editar_punto_emision(request):
+    """API para editar un punto de emisión existente"""
+    if request.method == 'POST':
+        import json
+        try:
+            data = json.loads(request.body)
+            punto_id = data.get('id')
+            p = get_object_or_404(PuntoEmision, pk=punto_id)
+            
+            p.establecimiento = str(data.get('establecimiento', p.establecimiento or '')).zfill(3)
+            p.punto_emision = str(data.get('punto_emision', p.punto_emision or '')).zfill(3)
+            p.direccion_establecimiento = data.get('direccion_establecimiento', p.direccion_establecimiento)
+            p.ultimo_secuencial = int(data.get('ultimo_secuencial', p.ultimo_secuencial))
+            
+            if not p.establecimiento or not p.punto_emision:
+                return JsonResponse({'status': 'error', 'message': 'Establecimiento y Punto son obligatorios'}, status=400)
+                
+            p.save()
+            return JsonResponse({'status': 'success', 'message': f'Punto {p.establecimiento}-{p.punto_emision} actualizado correctamente'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)

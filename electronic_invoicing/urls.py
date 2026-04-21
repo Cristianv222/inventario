@@ -11,5 +11,9 @@ urlpatterns = [
     path('ver/xml/<uuid:pk>/', views.ver_xml_sri, name='ver_xml'),
     path('api/xml/<uuid:pk>/', views.api_xml_sri, name='api_xml'),
     path('api/punto/actualizar-secuencial/', views.actualizar_secuencial_sri, name='actualizar_secuencial'),
+    path('api/punto/crear/', views.crear_punto_emision, name='crear_punto'),
+    path('api/punto/toggle/', views.toggle_punto_emision, name='toggle_punto'),
     path('api/certificado/subir/', views.subir_certificado_sri, name='subir_certificado'),
+    path('reintentar/factura/<uuid:pk>/', views.reintentar_factura, name='reintentar_factura'),
+    path('api/punto/editar/', views.editar_punto_emision, name='editar_punto'),
 ]

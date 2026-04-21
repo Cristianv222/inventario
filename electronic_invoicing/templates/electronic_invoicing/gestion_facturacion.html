@@ -180,6 +180,7 @@
                                     <th>Venta #</th>
                                     <th>Cliente</th>
                                     <th>Estado SRI</th>
+                                    <th>Email</th>
                                     <th>Detalles / XML</th>
                                     <th class="text-end pe-4">Acciones</th>
                                 </tr>
@@ -198,21 +199,55 @@
                                         <div class="fw-medium">{{ c.venta.cliente.get_nombre_completo }}</div>
                                         <div class="text-muted small">{{ c.venta.cliente.identificacion }}</div>
                                     </td>
-                                    <td>
-                                        <span class="status-badge status-{{ c.estado|lower }}" id="status-{{ c.id }}">
-                                            {{ c.estado }}
-                                        </span>
+                                    <td id="col-estado-{{ c.id }}">
+                                        <div class="progress-wrapper" style="min-width: 120px;">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="status-badge status-{{ c.estado|lower }}" id="status-{{ c.id }}" style="font-size: 0.65rem; padding: 2px 6px;">
+                                                    {{ c.estado }}
+                                                </span>
+                                                <small id="percent-{{ c.id }}" class="text-muted fw-bold" style="font-size: 0.7rem;">
+                                                    {% if c.estado == 'AUTORIZADO' %}100%{% elif c.estado == 'RECIBIDO' %}75%{% elif c.estado == 'FIRMADO' %}50%{% elif c.estado == 'GENERADO' %}25%{% else %}0%{% endif %}
+                                                </small>
+                                            </div>
+                                            <div class="progress" style="height: 5px;">
+                                                <div id="progress-{{ c.id }}" 
+                                                     class="progress-bar progress-bar-striped progress-bar-animated {% if c.estado == 'AUTORIZADO' %}bg-success{% elif c.estado == 'RECHAZADO' or c.estado == 'ERROR' or c.estado == 'DEVUELTO' %}bg-danger{% else %}bg-primary{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {% if c.estado == 'AUTORIZADO' %}100%{% elif c.estado == 'RECIBIDO' %}75%{% elif c.estado == 'FIRMADO' %}50%{% elif c.estado == 'GENERADO' %}25%{% else %}0%{% endif %};">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td id="col-email-{{ c.id }}">
+                                        {% if c.email_enviado %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2" style="font-size: 0.65rem;" title="{{ c.email_mensaje }}">
+                                                <i class="bi bi-envelope-check-fill me-1"></i> Enviado
+                                            </span>
+                                        {% elif c.email_mensaje %}
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2" style="font-size: 0.65rem;" title="{{ c.email_mensaje }}">
+                                                <i class="bi bi-envelope-exclamation-fill me-1"></i> Error
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2" style="font-size: 0.65rem;">
+                                                <i class="bi bi-envelope me-1"></i> Pendiente
+                                            </span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <div class="small text-truncate" style="max-width: 200px;" title="{{ c.mensajes_error|default:'' }}">
-                                            <span id="msg-{{ c.id }}">{{ c.mensajes_error|default:"Sin observaciones" }}</span>
+                                            <span id="msg-{{ c.id }}" class="fw-medium text-dark">{{ c.mensajes_error|default:"Sin observaciones" }}</span>
                                         </div>
-                                        <div class="text-muted ps-0" style="font-size: 0.7rem;" id="clave-{{ c.id }}">
+                                        <div class="text-muted ps-0 fw-mono" style="font-size: 0.65rem;" id="clave-{{ c.id }}">
                                             {{ c.clave_acceso|default:"Esperando clave..." }}
                                         </div>
                                     </td>
                                     <td class="text-end pe-4">
                                         <div class="btn-group">
+                                            {% if c.estado != 'AUTORIZADO' %}
+                                            <button onclick="reintentarFactura('{{ c.id }}')" class="btn btn-sm btn-outline-primary" title="Reintentar Procesamiento" id="btn-retry-{{ c.id }}">
+                                                <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                            {% endif %}
                                             <a href="{% url 'electronic_invoicing:ver_xml' c.id %}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Ver XML">
                                                 <i class="bi bi-code-slash"></i>
                                             </a>
@@ -326,13 +361,40 @@
 
         <!-- 3. PUNTOS DE EMISION TAB -->
         <div class="tab-pane fade" id="puntos" role="tabpanel">
-            <div class="row">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">Establecimientos y Puntos de Emisión</h5>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPunto">
+                    <i class="bi bi-plus-circle me-1"></i> Nuevo Punto de Emisión
+                </button>
+            </div>
+            <div class="row g-4">
                 {% for p in puntos %}
                 <div class="col-md-4">
-                    <div class="card sri-card">
-                        <div class="card-body text-center p-4">
-                            <div class="display-6 fw-bold text-primary mb-1">{{ p.establecimiento }}-{{ p.punto }}</div>
-                            <div class="text-muted small mb-3">{{ p.nombre }}</div>
+                    <div class="card sri-card {% if p.activo %}border-primary{% endif %}">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="display-6 fw-bold text-primary">{{ p.establecimiento }}-{{ p.punto_emision }}</div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary border-0" 
+                                            onclick="openEditPunto({
+                                                id: '{{ p.id }}', 
+                                                est: '{{ p.establecimiento }}', 
+                                                punto: '{{ p.punto_emision }}', 
+                                                dir: '{{ p.direccion_establecimiento|escapejs }}', 
+                                                seq: '{{ p.ultimo_secuencial }}'
+                                            })" title="Editar Configuración">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" 
+                                               id="switch-{{ p.id }}" {% if p.activo %}checked{% endif %}
+                                               onchange="togglePunto({{ p.id }})">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-muted small mb-3">
+                                <i class="bi bi-geo-alt me-1"></i> {{ p.direccion_establecimiento|default:"Sin dirección registrada" }}
+                            </div>
                             <hr>
                             <div class="mb-3">
                                 <label class="small fw-bold text-muted d-block mb-1">PRÓXIMO SECUENCIAL</label>
@@ -342,17 +404,20 @@
                                         <i class="bi bi-arrow-repeat"></i>
                                     </button>
                                 </div>
-                                <small class="text-muted">Actual: {{ p.full_punto }}</small>
+                                <small class="text-muted">Formato SRI: {{ p.establecimiento }}-{{ p.punto_emision }}-{{ p.ultimo_secuencial|add:1|stringformat:"09d" }}</small>
                             </div>
-                            <div class="badge {% if p.activo %}bg-success{% else %}bg-danger{% endif %} w-100 p-2">
-                                {% if p.activo %}ACTIVO{% else %}INACTIVO{% endif %}
+                            <div id="badge-{{ p.id }}" class="badge {% if p.activo %}bg-success{% else %}bg-danger{% endif %} w-100 p-2">
+                                {% if p.activo %}ACTIVO PARA FACTURACIÓN{% else %}INACTIVO{% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
                 {% empty %}
                 <div class="col-12 text-center py-5">
-                    <p class="text-muted">No hay puntos de emisión configurados.</p>
+                    <div class="empty-state">
+                        <i class="bi bi-shop"></i>
+                        <p>No hay puntos de emisión configurados. Cree uno para empezar a facturar.</p>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -373,8 +438,8 @@
                                     <i class="bi bi-patch-check-fill fs-2"></i>
                                 </div>
                                 <div>
-                                    <h6 class="fw-bold mb-0">{{ cert.propietario|default:"Firma Empresa" }}</h6>
-                                    <p class="small text-muted mb-0">Expira: {{ cert.fecha_expiracion }}</p>
+                                    <h6 class="fw-bold mb-0">{{ cert.nombre_titular|default:"Firma Empresa" }}</h6>
+                                    <p class="small text-muted mb-0">Expira: {{ cert.fecha_vencimiento|date:"d/m/Y" }}</p>
                                     <span class="badge {% if cert.activo %}bg-success{% else %}bg-secondary{% endif %}">
                                         {% if cert.activo %}Activo{% else %}Inactivo{% endif %}
                                     </span>
@@ -439,6 +504,89 @@
     </div>
 </div>
 
+<!-- MODAL NUEVO PUNTO -->
+<div class="modal fade" id="modalPunto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header bg-primary text-white border-0" style="border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title fw-bold"><i class="bi bi-shop me-2"></i>Nuevo Punto de Emisión</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formPunto">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Establecimiento (ej: 001)</label>
+                            <input type="text" class="form-control" name="establecimiento" placeholder="001" maxlength="3" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Punto Emisión (ej: 001)</label>
+                            <input type="text" class="form-control" name="punto_emision" placeholder="001" maxlength="3" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Dirección del Punto</label>
+                        <input type="text" class="form-control" name="direccion_establecimiento" placeholder="Av. Amazonas y Colón..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Próximo Secuencial (Inicio)</label>
+                        <input type="number" class="form-control" name="ultimo_secuencial" value="0">
+                        <div class="form-text">Si pone 0, la primera factura será la 000000001.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" onclick="crearPunto()" class="btn btn-primary px-4">
+                    <i class="bi bi-check-circle me-1"></i> Crear y Activar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR PUNTO -->
+<div class="modal fade" id="modalEditPunto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 p-4 pb-0">
+                <h5 class="modal-title fw-bold">Editar Punto de Emisión</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formEditPunto">
+                    <input type="hidden" id="edit_punto_id" name="id">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Establecimiento (3 dígitos)</label>
+                            <input type="text" class="form-control" id="edit_establecimiento" name="establecimiento" maxlength="3" required placeholder="001">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Punto (3 dígitos)</label>
+                            <input type="text" class="form-control" id="edit_punto_emision" name="punto_emision" maxlength="3" required placeholder="001">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Dirección del Punto</label>
+                        <input type="text" class="form-control" id="edit_direccion" name="direccion_establecimiento" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Próximo Secuencial</label>
+                        <input type="number" class="form-control" id="edit_ultimo_secuencial" name="ultimo_secuencial">
+                        <div class="form-text">Si pone 49, el siguiente número será el 50.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" onclick="guardarEdicionPunto()" class="btn btn-primary px-4">
+                    <i class="bi bi-save me-1"></i> Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -475,7 +623,6 @@
     function updateRow(data) {
         let row = document.getElementById('row-' + data.comprobante_id);
         
-        // Si no existe, es nuevo, refrescamos (o insertamos arriba, pero por simpleza hoy refrescamos)
         if (!row) {
             window.location.reload();
             return;
@@ -485,7 +632,35 @@
         row.classList.add('row-updating');
         setTimeout(() => row.classList.remove('row-updating'), 2000);
 
-        // Actualizar Estado
+        // Actualizar barra de progreso y porcentaje
+        const progressBar = document.getElementById('progress-' + data.comprobante_id);
+        const percentLabel = document.getElementById('percent-' + data.comprobante_id);
+        
+        let percent = "0%";
+        let colorClass = "bg-primary";
+        
+        const est = data.estado.toUpperCase();
+        if (est === 'AUTORIZADO' || est === 'AUTORIZADA') {
+            percent = "100%";
+            colorClass = "bg-success";
+        } else if (est === 'RECIBIDO') {
+            percent = "75%";
+        } else if (est === 'FIRMADO') {
+            percent = "50%";
+        } else if (est === 'GENERADO') {
+            percent = "25%";
+        } else if (['ERROR', 'RECHAZADO', 'DEVUELTO', 'NEGADO'].includes(est)) {
+            percent = "100%";
+            colorClass = "bg-danger";
+        }
+
+        if (progressBar) {
+            progressBar.style.width = percent;
+            progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated ' + colorClass;
+        }
+        if (percentLabel) percentLabel.textContent = percent;
+
+        // Actualizar Estado (Badge)
         const statusBadge = document.getElementById('status-' + data.comprobante_id);
         if (statusBadge) {
             statusBadge.className = 'status-badge status-' + data.estado.toLowerCase();
@@ -504,9 +679,29 @@
             if (claveEl) claveEl.textContent = data.numero_autorizacion || data.clave_acceso;
         }
 
-        // Si se autorizó, recargar para mostrar botones de descarga
-        if (data.estado === 'AUTORIZADO') {
-            setTimeout(() => window.location.reload(), 1500);
+        // Actualizar Estado Email
+        if (data.email_enviado !== undefined) {
+            const emailCol = document.getElementById('col-email-' + data.comprobante_id);
+            if (emailCol) {
+                if (data.email_enviado) {
+                    emailCol.innerHTML = `
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2" style="font-size: 0.65rem;" title="${data.email_mensaje || ''}">
+                            <i class="bi bi-envelope-check-fill me-1"></i> Enviado
+                        </span>
+                    `;
+                } else if (data.email_mensaje) {
+                    emailCol.innerHTML = `
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2" style="font-size: 0.65rem;" title="${data.email_mensaje}">
+                            <i class="bi bi-envelope-exclamation-fill me-1"></i> Error
+                        </span>
+                    `;
+                }
+            }
+        }
+
+        // Si se autorizó, recargar brevemente para mostrar botones de descarga (XML/PDF)
+        if (est === 'AUTORIZADO' || est === 'AUTORIZADA') {
+            setTimeout(() => window.location.reload(), 3000);
         }
     }
 
@@ -563,6 +758,62 @@
         }
     }
 
+    async function crearPunto() {
+        const form = document.getElementById('formPunto');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const resp = await fetch("{% url 'electronic_invoicing:crear_punto' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                alert('✅ ' + res.message);
+                window.location.reload();
+            } else {
+                alert('❌ Error: ' + res.message);
+            }
+        } catch (e) {
+            alert('❌ Error de comunicación');
+        }
+    }
+
+    async function togglePunto(id) {
+        try {
+            const resp = await fetch("{% url 'electronic_invoicing:toggle_punto' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({id: id})
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                // El reload es lo más seguro para actualizar visualmente todos los switches
+                window.location.reload();
+            } else {
+                alert('❌ Error: ' + res.message);
+                // Si falla, volvemos el switch a su estado original (solo visualmente hasta el refresh)
+                const sw = document.getElementById('switch-' + id);
+                sw.checked = !sw.checked;
+            }
+        } catch (e) {
+            alert('❌ Error de comunicación');
+        }
+    }
+
     // ========== UPLOAD CERTIFICADO ==========
     async function uploadCertificado() {
         const form = document.getElementById('uploadCertForm');
@@ -598,6 +849,83 @@
             alert('❌ Error de comunicación con el servidor');
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-cloud-arrow-up me-1"></i> Subir y Activar Certificado';
+        }
+    }
+
+    async function reintentarFactura(id) {
+        const btn = document.getElementById('btn-retry-' + id);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+        }
+
+        try {
+            const resp = await fetch(`/electronic-invoicing/reintentar/factura/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                console.log('✅ Reintento exitoso:', res.message);
+                // El monitor WebSocket se encargará de actualizar el progreso visualmente
+            } else {
+                alert('❌ Error: ' + res.message);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+                }
+            }
+        } catch (e) {
+            console.error('Error en reintento:', e);
+            alert('❌ Error de comunicación');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+            }
+        }
+    }
+
+    function openEditPunto(data) {
+        document.getElementById('edit_punto_id').value = data.id;
+        document.getElementById('edit_establecimiento').value = data.est;
+        document.getElementById('edit_punto_emision').value = data.punto;
+        document.getElementById('edit_direccion').value = data.dir;
+        document.getElementById('edit_ultimo_secuencial').value = data.seq;
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalEditPunto'));
+        modal.show();
+    }
+
+    async function guardarEdicionPunto() {
+        const form = document.getElementById('formEditPunto');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const resp = await fetch("{% url 'electronic_invoicing:editar_punto' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                alert('✅ ' + res.message);
+                window.location.reload();
+            } else {
+                alert('❌ Error: ' + res.message);
+            }
+        } catch (e) {
+            alert('❌ Error de comunicación');
         }
     }
 

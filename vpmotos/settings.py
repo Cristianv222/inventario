@@ -282,3 +282,28 @@ CACHES = {
         }
     }
 }
+
+# ============================================================
+# CELERY CONFIGURATION
+# ============================================================
+CELERY_BROKER_URL = os.environ.get('REDIS_URL', f"redis://{os.environ.get('REDIS_HOST', 'localhost')}:6379/0")
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutos
+
+# ============================================================
+# EMAIL CONFIGURATION (RESEND)
+# ============================================================
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+
+ANYMAIL = {
+    "RESEND_API_KEY": RESEND_API_KEY,
+}
+
+EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+DEFAULT_FROM_EMAIL = "VPMotos <david.vasquez@vp-motos.com>"
+SERVER_EMAIL = "david.vasquez@vp-motos.com"

@@ -158,6 +158,10 @@ class ComprobanteElectronico(models.Model):
     # Tracking
     mensajes_error = models.TextField(null=True, blank=True)
     
+    # Tracking Email
+    email_enviado = models.BooleanField(default=False)
+    email_mensaje = models.TextField(null=True, blank=True)
+    
     fecha_registro = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 

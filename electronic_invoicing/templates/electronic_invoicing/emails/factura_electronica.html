@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura Electrónica VPMotos</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; }
+        .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .header { background-color: #1a1a1a; padding: 30px 20px; text-align: center; }
+        .header img { max-height: 60px; }
+        .content { padding: 40px 30px; }
+        .title { color: #1a1a1a; font-size: 24px; font-weight: 700; margin-top: 0; margin-bottom: 20px; text-align: center;}
+        .greeting { font-size: 16px; color: #555; margin-bottom: 25px; line-height: 1.5; }
+        .invoice-card { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 20px; margin-bottom: 30px; }
+        .invoice-card table { width: 100%; border-collapse: collapse; }
+        .invoice-card td { padding: 8px 0; font-size: 15px; }
+        .invoice-card td:first-child { color: #6c757d; font-weight: 600; width: 40%; }
+        .invoice-card td:last-child { color: #212529; font-weight: 700; text-align: right; }
+        .total-row td { border-top: 2px solid #dee2e6; padding-top: 12px !important; font-size: 18px !important; color: #d32f2f !important; }
+        .message { font-size: 15px; color: #555; line-height: 1.6; margin-bottom: 30px; text-align: center; }
+        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef; }
+        .footer p { margin: 0; color: #888; font-size: 12px; line-height: 1.5; }
+        .docs-badges { text-align: center; margin-bottom: 20px; }
+        .badge { display: inline-block; padding: 6px 12px; background: #e3f2fd; color: #1565c0; font-size: 12px; font-weight: bold; border-radius: 4px; border: 1px solid #bbdefb; margin: 0 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <!-- Ensure PUBLIC_BASE_URL is passed in context -->
+            <img src="{{ public_base_url }}/static/logo_vp.png" alt="VPMotos Logo">
+        </div>
+        <div class="content">
+            <h1 class="title">Tu Factura Electrónica está lista</h1>
+            <div class="greeting">
+                Hola <strong>{{ cliente_nombre }}</strong>,<br><br>
+                Gracias por confiar en <strong>VPMotos</strong>. Adjunto a este correo oficial encontrarás el documento electrónico correspondiente a tu compra.
+            </div>
+            
+            <div class="invoice-card">
+                <table>
+                    <tr>
+                        <td>Nro. Comprobante</td>
+                        <td>{{ numero_factura }}</td>
+                    </tr>
+                    <tr>
+                        <td>Fecha de Emisión</td>
+                        <td>{{ fecha_emision }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>Total Pagado</td>
+                        <td>${{ total }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="docs-badges">
+                <span class="badge">📄 PDF (RIDE)</span>
+                <span class="badge">💻 XML Autorizado SRI</span>
+            </div>
+            
+            <div class="message">
+                Los archivos oficiales y con validez tributaria se encuentran adjuntos de forma segura a este correo.<br><br>
+                <strong>¡Esperamos verte pronto!</strong>
+            </div>
+        </div>
+        <div class="footer">
+            <p>VPMotos &copy; {{ year }}</p>
+            <p>Este es un correo generado corporativamente. Por favor no responder a esta dirección.</p>
+        </div>
+    </div>
+</body>
+</html>

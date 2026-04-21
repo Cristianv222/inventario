@@ -1244,10 +1244,14 @@ def api_procesar_venta_pos_mejorado(request):
                     # Si no hay punto activo, registramos el error pero no bloqueamos la venta
                     logger.error("No hay punto de emisión activo para facturación electrónica")
                 else:
+                    from electronic_invoicing.models import SRIConfig
+                    config = SRIConfig.objects.first()
+                    ambiente_final = config.ambiente if config else 1
+                    
                     comprobante = ComprobanteElectronico.objects.create(
                         venta=venta,
                         punto_emision=punto,
-                        ambiente=punto.configuracion.ambiente if (punto.configuracion) else 1,
+                        ambiente=ambiente_final,
                         estado='GENERADO'
                     )
                     # Disparar tarea asíncrona

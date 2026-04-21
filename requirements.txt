@@ -63,3 +63,5 @@ crispy-bootstrap5
 pyusb
 zeep==4.3.2
 cryptography
+resend
+django-anymail[resend]
