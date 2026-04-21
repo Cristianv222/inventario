@@ -68,7 +68,8 @@ class RoleMiddleware:
             '/manifest.json',
             '/sw.js',
             '/inventario/api/publica/',
-            '/ventas/api/publica/',       # ✅ API Pública ventas  # ✅ API Pública
+            '/ventas/api/publica/',
+            '/api/hardware/agente/',
         ]
         
         # Verificar si está en una ruta exenta

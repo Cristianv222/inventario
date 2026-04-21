@@ -52,8 +52,8 @@ fi
 echo "🔒 Iniciando Gunicorn..."
 exec gunicorn vpmotos.wsgi:application \
     --bind 0.0.0.0:8000 \
-    --workers 3 \
-    --threads 2 \
+    --workers 2 \
+    --threads 1 \
     --max-requests 1000 \
     --max-requests-jitter 100 \
     --timeout 120 \
