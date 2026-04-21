@@ -131,18 +131,18 @@ def actualizar_secuencial_sri(request):
     
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+
 @login_required
-def gestion_facturacion(request):
-    """Panel principal de gestión y monitoreo SRI"""
+@xframe_options_sameorigin
+def monitor_sri(request):
+    """Monitor en tiempo real de facturación electrónica"""
     from django.utils import timezone
     from django.db.models import Count
     from django.db import models
     
     hoy = timezone.now().date()
-    config = SRIConfig.objects.first()
-    puntos = PuntoEmision.objects.all()
     comprobantes_recientes = ComprobanteElectronico.objects.select_related('venta', 'venta__cliente').order_by('-fecha_registro')[:50]
-    certificados = CertificadoDigital.objects.all()
     
     # Estadísticas del día
     stats_dia = ComprobanteElectronico.objects.filter(fecha_registro__date=hoy).aggregate(
@@ -152,12 +152,26 @@ def gestion_facturacion(request):
         recibidos=Count('id', filter=models.Q(estado='RECIBIDO')),
     )
     
+    template_name = 'electronic_invoicing/monitor_facturacion.html'
+    if request.GET.get('embed') == 'true':
+        template_name = 'electronic_invoicing/monitor_facturacion_embed.html'
+
+    return render(request, template_name, {
+        'comprobantes': comprobantes_recientes,
+        'stats': stats_dia,
+    })
+
+@login_required
+def gestion_facturacion(request):
+    """Panel de configuración SRI"""
+    config = SRIConfig.objects.first()
+    puntos = PuntoEmision.objects.all()
+    certificados = CertificadoDigital.objects.all()
+    
     return render(request, 'electronic_invoicing/gestion_facturacion.html', {
         'config': config,
         'puntos': puntos,
-        'comprobantes': comprobantes_recientes,
         'certificados': certificados,
-        'stats': stats_dia,
     })
 
 @login_required

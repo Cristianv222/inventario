@@ -1481,6 +1481,25 @@
     </div>
 </div>
 
+<!-- Modal: Monitor SRI -->
+<div class="modal fade" id="sriMonitorModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-activity"></i>
+                    Monitor SRI Integrado
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" style="height: 75vh; overflow: hidden;">
+                <!-- Usamos el iframe con parametro embed para que no se duplique el navbar global -->
+                <iframe id="sriMonitorIframe" src="about:blank" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Menú Flotante de Accesos Rápidos -->
 <div class="quick-access-overlay" id="quickAccessOverlay" onclick="toggleQuickAccess()"></div>
 
@@ -1489,6 +1508,11 @@
         <a href="#" class="quick-access-btn" onclick="showAllSalesModal(event)">
             <i class="bi bi-receipt-cutoff"></i>
             <span>Listar Ventas</span>
+        </a>
+
+        <a href="#" class="quick-access-btn" onclick="showSriMonitorModal(event)">
+            <i class="bi bi-activity text-primary"></i>
+            <span>Monitor SRI</span>
         </a>
 
         <a href="#" class="quick-access-btn" onclick="showPendingOrdersModal(event)">
@@ -3150,6 +3174,16 @@
     }
 
     // ========== MENÚ FLOTANTE DE ACCESOS RÁPIDOS ==========
+
+    function showSriMonitorModal(e) {
+        if(e) e.preventDefault();
+        toggleQuickAccess();
+        let iframe = document.getElementById('sriMonitorIframe');
+        if (iframe.src === 'about:blank' || iframe.src.includes('about:blank')) {
+            iframe.src = `{% url 'electronic_invoicing:monitor' %}?embed=true`;
+        }
+        new bootstrap.Modal(document.getElementById('sriMonitorModal')).show();
+    }
 
     function toggleQuickAccess() {
         const options = document.getElementById('quickAccessOptions');

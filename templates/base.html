@@ -705,9 +705,17 @@
                         <span>Impresoras</span>
                     </a>
                     <div class="navbar-divider"></div>
-                    <a href="{% url 'electronic_invoicing:gestion' %}" class="navbar-dropdown-link">
+                    <span class="navbar-dropdown-link" style="pointer-events:none; font-weight:600; padding-bottom:5px;">
                         <i class="fas fa-file-invoice-dollar"></i>
                         <span>Facturación SRI</span>
+                    </span>
+                    <a href="{% url 'electronic_invoicing:monitor' %}" class="navbar-dropdown-link" style="padding-top:5px; padding-bottom:5px; padding-left:45px;">
+                        <i class="fas fa-tv" style="font-size: 0.9rem;"></i>
+                        <span>Monitor SRI</span>
+                    </a>
+                    <a href="{% url 'electronic_invoicing:gestion' %}" class="navbar-dropdown-link" style="padding-top:5px; padding-bottom:12px; padding-left:45px;">
+                        <i class="fas fa-cogs" style="font-size: 0.9rem;"></i>
+                        <span>Configuración</span>
                     </a>
                 </div>
             </li>
@@ -856,11 +864,21 @@
             </li>
 
             <li class="mobile-sidebar-item">
-                <a href="{% url 'electronic_invoicing:gestion' %}"
-                    class="mobile-sidebar-link {% if active_page == 'sri' %}active{% endif %}"
-                    onclick="handleMobileSidebarClick(event)">
+                <span class="mobile-sidebar-link text-muted" style="pointer-events:none; font-weight:600;">
                     <i class="fas fa-file-invoice-dollar"></i>
                     <span>Facturación SRI</span>
+                </span>
+                <a href="{% url 'electronic_invoicing:monitor' %}"
+                    class="mobile-sidebar-link {% if active_page == 'sri_monitor' %}active{% endif %}"
+                    onclick="handleMobileSidebarClick(event)" style="padding-left: 50px; font-size: 0.9rem; padding-top:5px; padding-bottom:5px;">
+                    <i class="fas fa-tv"></i>
+                    <span>Monitor SRI</span>
+                </a>
+                <a href="{% url 'electronic_invoicing:gestion' %}"
+                    class="mobile-sidebar-link {% if active_page == 'sri' %}active{% endif %}"
+                    onclick="handleMobileSidebarClick(event)" style="padding-left: 50px; font-size: 0.9rem; padding-top:5px; padding-bottom:15px;">
+                    <i class="fas fa-cogs"></i>
+                    <span>Configuración</span>
                 </a>
             </li>
 

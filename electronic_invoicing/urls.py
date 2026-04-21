@@ -4,6 +4,7 @@ from . import views
 app_name = 'electronic_invoicing'
 
 urlpatterns = [
+    path('monitor/', views.monitor_sri, name='monitor'),
     path('gestion/', views.gestion_facturacion, name='gestion'),
     path('api/config/guardar/', views.guardar_config_sri, name='guardar_config'),
     path('descargar/xml/<uuid:pk>/', views.descargar_xml_sri, name='descargar_xml'),
