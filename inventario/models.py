@@ -97,7 +97,7 @@ class Producto(models.Model):
             return False
             
         try:
-            EAN = barcode.get_kind('code128')
+            EAN = barcode.get('code128')
             barcode_instance = EAN(self.codigo_unico, writer=ImageWriter())
             
             # Ajustar opciones del escritor para un diseÃ±o mÃ¡s limpio
