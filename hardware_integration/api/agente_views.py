@@ -43,14 +43,20 @@ class NoThrottle(BaseThrottle):
 
 def es_usuario_sistema(user):
     """
-    🔥 NUEVO: Verifica si el usuario autenticado es el usuario de sistema
+    🆕 NUEVO: Verifica si el usuario autenticado es el usuario de sistema
     
     El usuario de sistema puede ver TODOS los trabajos de impresión,
     mientras que los usuarios normales solo ven los suyos.
     """
-    if not user or not hasattr(user, 'username'):
+    if not user:
         return False
-    return user.username == USUARIO_SISTEMA
+        
+    # En este proyecto el campo es 'usuario', no 'username'
+    nombre_user = getattr(user, 'usuario', None)
+    if not nombre_user:
+        nombre_user = getattr(user, 'username', '')
+        
+    return nombre_user == USUARIO_SISTEMA
 
 
 def normalizar_nombre_impresora(nombre_solicitado):
