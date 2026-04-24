@@ -174,7 +174,11 @@ class TicketThermalService:
         lines.append(center_text("TICKET DE VENTA", width))
         lines.append(separator_line(width))
         
-        fecha_hora = venta.fecha_hora.strftime("%d/%m/%Y %H:%M:%S")
+        from django.utils import timezone
+        
+        # Convertir a hora local (Ecuador)
+        local_time = timezone.localtime(venta.fecha_hora) if venta.fecha_hora else timezone.now()
+        fecha_hora = local_time.strftime("%d/%m/%Y %H:%M:%S")
         lines.append(f"Fecha: {fecha_hora}")
         lines.append(f"Ticket: {venta.numero_factura}")
         lines.append(f"Cliente: {venta.cliente.get_nombre_completo()[:width-9]}")
@@ -484,7 +488,7 @@ class TicketThermalService:
                 # Texto de prueba
                 test_text = f"TICKET DE PRUEBA\n"
                 test_text += f"Impresora: {db_printer.nombre}\n"
-                test_text += f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n"
+                test_text += f"Fecha: {timezone.localtime().strftime('%d/%m/%Y %H:%M')}\n"
                 test_text += "--------------------------------\n"
                 test_text += "Prueba exitosa desde el punto de venta\n\n\n\n"
                 
@@ -516,7 +520,7 @@ class TicketThermalService:
             lines.append(' ' * ((width - 16) // 2) + 'TICKET DE PRUEBA')
             lines.append('=' * width)
             lines.append('')
-            lines.append(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+            lines.append(f"Fecha: {timezone.localtime().strftime('%d/%m/%Y %H:%M:%S')}")
             lines.append(f"Impresora: {printer_name}")
             lines.append(f"Tipo: {config['name']}")
             lines.append(f"Ancho: {width} caracteres")
