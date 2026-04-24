@@ -48,7 +48,9 @@ def es_usuario_sistema(user):
     El usuario de sistema puede ver TODOS los trabajos de impresión,
     mientras que los usuarios normales solo ven los suyos.
     """
-    return user.usuario == USUARIO_SISTEMA
+    if not user or not hasattr(user, 'username'):
+        return False
+    return user.username == USUARIO_SISTEMA
 
 
 def normalizar_nombre_impresora(nombre_solicitado):
