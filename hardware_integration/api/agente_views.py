@@ -195,20 +195,20 @@ def obtener_trabajos_pendientes(request):
     - Usuario normal → Solo ve sus propios trabajos
     """
     try:
-        # 🔥 ESCUDO DE RAM: Comprobar en Redis si hay trabajos para este usuario
+        # 🔑 DETECTAR TIPO DE USUARIO
+        es_sistema = es_usuario_sistema(request.user)
+
+        # 🛡️ ESCUDO DE RAM: Comprobar en Redis si hay trabajos para este usuario
         # Si la caché dice que no hay nada, respondemos en <1ms sin tocar la DB
-        cache_key_vacio = f"print_queue_empty_{request.user.id}"
+        cache_key_vacio = "print_queue_empty_agente_impresion" if es_sistema else f"print_queue_empty_{request.user.id}"
         if cache.get(cache_key_vacio) is True:
             return Response({
                 'trabajos': [],
                 'count': 0,
-                'es_sistema': es_usuario_sistema(request.user),
+                'es_sistema': es_sistema,
                 'timestamp': timezone.now().isoformat(),
                 'cache_hit': True
             }, status=status.HTTP_200_OK)
-
-        # 🔥 DETECTAR TIPO DE USUARIO
-        es_sistema = es_usuario_sistema(request.user)
         
         if es_sistema:
             # ✅ Usuario de sistema → Ve TODOS los trabajos pendientes
