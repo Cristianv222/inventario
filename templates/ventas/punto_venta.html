@@ -2189,6 +2189,7 @@
         const printerContainer = document.getElementById('printer-selection-container');
         
         if (availablePrinters.length > 0) {
+            fillPrinterSelect($select);
             handlePrinterAutoSelection(printType);
             return;
         }

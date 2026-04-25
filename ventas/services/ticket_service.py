@@ -187,7 +187,7 @@ class TicketThermalService:
         
         # VENDEDOR RESALTADO
         lines.append(separator_line(width))
-        vendedor_nombre = (venta.usuario.get_full_name() or venta.usuario.username).upper()
+        vendedor_nombre = (venta.usuario.get_full_name() or getattr(venta.usuario, "usuario", None) or getattr(venta.usuario, "nombre", None) or "VENDEDOR").upper()
         lines.append(center_text("VENDEDOR:", width))
         lines.append(center_text(vendedor_nombre, width))
         lines.append(separator_line(width))
