@@ -193,11 +193,6 @@ class TicketPrinter:
                 impresora_nombre=impresora_obj.nombre_driver or impresora_obj.nombre,
                 comandos_hex=hex_data, tipo="ticket", prioridad=1
             )
-            crear_trabajo_impresion(
-                usuario=venta.usuario,
-                impresora_nombre=impresora_obj.nombre_driver or impresora_obj.nombre,
-                comandos_hex=hex_data, tipo="ticket", prioridad=1
-            )
             return True
         except Exception as e:
             logger.error("Error imprimir ticket: " + str(e), exc_info=True)

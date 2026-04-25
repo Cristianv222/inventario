@@ -1,8 +1,12 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.db import connection
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .models import TrabajoImpresion, Impresora
+import logging
+
+logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Impresora)
 def notify_printer_status_update(sender, instance, created, **kwargs):
@@ -10,7 +14,7 @@ def notify_printer_status_update(sender, instance, created, **kwargs):
     Notifica cuando el estado de una impresora cambia.
     """
     channel_layer = get_channel_layer()
-    schema_name = connection.schema_name
+    schema_name = getattr(connection, 'schema_name', 'public')
     group_name = f"ventas_{schema_name}"
     
     data = {
@@ -37,15 +41,18 @@ def notify_print_job_update(sender, instance, created, **kwargs):
     Y limpia el Escudo de RAM (Redis) para que el agente vea el cambio instantáneo.
     """
     channel_layer = get_channel_layer()
-    schema_name = connection.schema_name
+    schema_name = getattr(connection, 'schema_name', 'public')
     
-    # 0. Limpiar el Escudo de RAM (Redis) para el usuario del trabajo
+    # 0. Limpiar el Escudo de RAM (Redis) para que el agente vea el cambio instantáneo
+    # Limpiamos tanto la llave del usuario como la del agente de sistema global
+    cache_keys_to_delete = ["print_queue_empty_agente_impresion"]
     if instance.usuario_id:
-        cache_key = f"printer_jobs_{instance.usuario_id}"
-        cache.delete(cache_key)
-        # logger.debug(f"RAM Shield cleared for user {instance.usuario_id}")
+        cache_keys_to_delete.append(f"print_queue_empty_{instance.usuario_id}")
     
-    # Nombre del grupo igual al definido en el Consumer
+    for key in cache_keys_to_delete:
+        cache.delete(key)
+    
+    # Nombre del grupo para el frontend (Navegador)
     group_name = f"ventas_{schema_name}"
     
     # Datos a enviar al frontend
