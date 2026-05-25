@@ -32,5 +32,5 @@ urlpatterns = [
     path('electronic-invoicing/', include(('electronic_invoicing.urls', 'electronic_invoicing'), namespace='electronic_invoicing')),
 ]
 
-if settings.DEBUG:
+if True:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
