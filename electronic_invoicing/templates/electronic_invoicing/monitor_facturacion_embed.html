@@ -126,6 +126,46 @@
         </div>
     </div>
 
+    <!-- Filters Card -->
+    <div class="card sri-card mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="row g-3 align-items-end">
+                {% if request.GET.embed == 'true' %}
+                    <input type="hidden" name="embed" value="true">
+                {% endif %}
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Fecha Inicio</label>
+                    <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ request.GET.fecha_inicio|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Fecha Fin</label>
+                    <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ request.GET.fecha_fin|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Estado SRI</label>
+                    <select name="estado" class="form-select form-select-sm">
+                        <option value="" {% if not request.GET.estado %}selected{% endif %}>Todos los Estados</option>
+                        <option value="AUTORIZADO" {% if request.GET.estado == 'AUTORIZADO' %}selected{% endif %}>Autorizados</option>
+                        <option value="NO_AUTORIZADO" {% if request.GET.estado == 'NO_AUTORIZADO' %}selected{% endif %}>No Autorizados</option>
+                        <option value="FIRMADO" {% if request.GET.estado == 'FIRMADO' %}selected{% endif %}>Firmados</option>
+                        <option value="RECIBIDO" {% if request.GET.estado == 'RECIBIDO' %}selected{% endif %}>Recibidos</option>
+                        <option value="DEVUELTO" {% if request.GET.estado == 'DEVUELTO' %}selected{% endif %}>Devueltos (Con Error)</option>
+                        <option value="RECHAZADO" {% if request.GET.estado == 'RECHAZADO' %}selected{% endif %}>Rechazados</option>
+                        <option value="ERROR" {% if request.GET.estado == 'ERROR' %}selected{% endif %}>Error Interno</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="bi bi-filter"></i> Filtrar
+                    </button>
+                    <a href="?{% if request.GET.embed == 'true' %}embed=true{% endif %}" class="btn btn-sm btn-outline-secondary">
+                        Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card sri-card">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -204,12 +244,14 @@
                                         <i class="bi bi-arrow-clockwise"></i>
                                     </button>
                                     {% endif %}
-                                    <a href="{% url 'electronic_invoicing:ver_xml' c.id %}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Ver XML">
-                                        <i class="bi bi-code-slash"></i>
+                                    {% if c.xml_autorizado or c.xml_firmado or c.xml_generado %}
+                                    <a href="{% url 'electronic_invoicing:descargar_xml' c.id %}" class="btn btn-sm btn-outline-primary" title="Descargar XML" download>
+                                        <i class="bi bi-filetype-xml fs-5"></i>
                                     </a>
-                                    {% if c.pdf_ride %}
-                                    <a href="{% url 'electronic_invoicing:descargar_pdf' c.id %}" target="_blank" class="btn btn-sm btn-outline-danger" title="Ver RIDE PDF">
-                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    {% endif %}
+                                    {% if c.estado == 'AUTORIZADO' or c.pdf_ride %}
+                                    <a href="{% url 'electronic_invoicing:descargar_pdf' c.id %}" target="_blank" class="btn btn-sm btn-outline-danger" title="Descargar PDF">
+                                        <i class="bi bi-filetype-pdf fs-5"></i>
                                     </a>
                                     {% endif %}
                                 </div>

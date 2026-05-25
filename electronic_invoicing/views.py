@@ -136,13 +136,33 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 @login_required
 @xframe_options_sameorigin
 def monitor_sri(request):
-    """Monitor en tiempo real de facturación electrónica"""
+    """Monitor en tiempo real de facturación electrónica con filtros por fechas y estado"""
     from django.utils import timezone
     from django.db.models import Count
     from django.db import models
     
     hoy = timezone.now().date()
-    comprobantes_recientes = ComprobanteElectronico.objects.select_related('venta', 'venta__cliente').order_by('-fecha_registro')[:50]
+    
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    estado = request.GET.get('estado')
+    
+    queryset = ComprobanteElectronico.objects.select_related('venta', 'venta__cliente')
+    
+    if fecha_inicio:
+        queryset = queryset.filter(fecha_registro__date__gte=fecha_inicio)
+    if fecha_fin:
+        queryset = queryset.filter(fecha_registro__date__lte=fecha_fin)
+        
+    if estado:
+        if estado == 'AUTORIZADO':
+            queryset = queryset.filter(estado='AUTORIZADO')
+        elif estado == 'NO_AUTORIZADO':
+            queryset = queryset.exclude(estado='AUTORIZADO')
+        elif estado in ['FIRMADO', 'RECIBIDO', 'DEVUELTO', 'RECHAZADO', 'ERROR', 'CREADO']:
+            queryset = queryset.filter(estado=estado)
+            
+    comprobantes_recientes = queryset.order_by('-fecha_registro')[:100]
     
     # Estadísticas del día
     stats_dia = ComprobanteElectronico.objects.filter(fecha_registro__date=hoy).aggregate(
@@ -239,9 +259,17 @@ def subir_certificado_sri(request):
             cert.activo = True
             cert.save()
             
+            # Actualizar automáticamente la configuración global de SRI con los datos extraídos
+            config, created = SRIConfig.objects.get_or_create(id=1)
+            if cert.ruc_titular:
+                config.ruc = cert.ruc_titular
+            if cert.nombre_titular:
+                config.razon_social = cert.nombre_titular
+            config.save()
+            
             return JsonResponse({
                 'status': 'success', 
-                'message': f'Certificado de {cert.nombre_titular} subido y activado correctamente. Expira el {cert.fecha_vencimiento}.'
+                'message': f'Certificado de {cert.nombre_titular} subido y activado correctamente (Expira: {cert.fecha_vencimiento}). Los datos de Razón Social y RUC han sido actualizados automáticamente en la configuración global del SRI.'
             })
         except Exception as e:
             logger.error(f"Error subiendo certificado: {e}")
@@ -355,6 +383,28 @@ def editar_punto_emision(request):
                 
             p.save()
             return JsonResponse({'status': 'success', 'message': f'Punto {p.establecimiento}-{p.punto_emision} actualizado correctamente'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+@login_required
+def eliminar_punto_emision(request):
+    """API para eliminar un punto de emisión"""
+    if request.method == 'POST':
+        import json
+        from django.db import models
+        try:
+            data = json.loads(request.body)
+            punto_id = data.get('id')
+            p = get_object_or_404(PuntoEmision, pk=punto_id)
+            
+            p.delete()
+            return JsonResponse({'status': 'success', 'message': 'Punto de emisión eliminado correctamente'})
+        except models.ProtectedError:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'No se puede eliminar este punto de emisión porque ya tiene comprobantes electrónicos asociados.'
+            }, status=400)
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
