@@ -233,6 +233,11 @@
                                             })" title="Editar Configuración">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    <button class="btn btn-sm btn-outline-danger border-0" 
+                                            onclick="eliminarPunto({{ p.id }}, '{{ p.establecimiento }}-{{ p.punto_emision }}')" 
+                                            title="Eliminar Punto de Emisión">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" role="switch" 
                                                id="switch-{{ p.id }}" {% if p.activo %}checked{% endif %}
@@ -661,6 +666,64 @@
         } catch (e) {
             alert('❌ Error de comunicación');
         }
+    }
+
+    async function eliminarPunto(id, codigo) {
+        if (!confirm(`¿Está seguro de que desea eliminar el punto de emisión ${codigo}?`)) {
+            return;
+        }
+        try {
+            const resp = await fetch("{% url 'electronic_invoicing:eliminar_punto' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({id: id})
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                alert('✅ ' + res.message);
+                window.location.reload();
+            } else {
+                alert('❌ Error: ' + res.message);
+            }
+        } catch (e) {
+            alert('❌ Error de comunicación');
+        }
+    }
+
+    // ========== WEBSOCKETS MONITOR ==========
+    let monitorSocket = null;
+
+    function connectMonitor() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const wsUrl = wsProtocol + window.location.host + '/ws/sri/monitor/';
+        
+        console.log('📡 Conectando a monitor SRI:', wsUrl);
+        monitorSocket = new WebSocket(wsUrl);
+
+        monitorSocket.onopen = function() {
+            const statusEl = document.getElementById('wsStatus');
+            if(statusEl) {
+                statusEl.className = 'badge bg-success p-2';
+                statusEl.textContent = 'Monitor: Conectado';
+            }
+        };
+
+        monitorSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log('🔔 Update Recibido:', data);
+        };
+
+        monitorSocket.onclose = function() {
+            const statusEl = document.getElementById('wsStatus');
+            if(statusEl){
+                statusEl.className = 'badge bg-danger p-2';
+                statusEl.textContent = 'Monitor: Desconectado - Reintentando...';
+            }
+            setTimeout(connectMonitor, 3000);
+        };
     }
 
     // Init

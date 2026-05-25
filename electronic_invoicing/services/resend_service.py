@@ -10,6 +10,20 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+def _get_ngrok_url():
+    """Tries to fetch the public ngrok URL from the local ngrok API in development"""
+    try:
+        import requests
+        r = requests.get('http://ngrok:4040/api/tunnels', timeout=1)
+        if r.status_code == 200:
+            data = r.json()
+            for t in data.get('tunnels', []):
+                if t.get('proto') == 'https':
+                    return t.get('public_url')
+    except Exception:
+        pass
+    return None
+
 class ResendInvoicingService:
     """
     Servicio para el envío de comprobantes electrónicos a través de la API de Resend
@@ -76,7 +90,12 @@ class ResendInvoicingService:
             resend.api_key = api_key
 
             # Renderizar HTML interactivo
-            public_base_url = getattr(settings, 'PUBLIC_BASE_URL', os.getenv('PUBLIC_BASE_URL', 'http://localhost:8001'))
+            public_base_url = None
+            if settings.DEBUG:
+                public_base_url = _get_ngrok_url()
+            if not public_base_url:
+                public_base_url = getattr(settings, 'PUBLIC_BASE_URL', os.getenv('PUBLIC_BASE_URL', 'http://localhost:8001'))
+
             context = {
                 'public_base_url': public_base_url.rstrip('/'),
                 'cliente_nombre': cliente.get_nombre_completo(),
