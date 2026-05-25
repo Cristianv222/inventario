@@ -238,7 +238,7 @@ def editar_producto(request, producto_id):
     producto = get_object_or_404(Producto, pk=producto_id)
     
     if request.method == 'POST':
-        form = ProductoForm(request.POST, instance=producto)
+        form = ProductoForm(request.POST, request.FILES, instance=producto)
         if form.is_valid():
             producto = form.save()
             messages.success(request, f"Producto '{producto.nombre}' actualizado correctamente")
