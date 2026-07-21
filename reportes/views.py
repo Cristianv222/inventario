@@ -1301,3 +1301,59 @@ def eliminar_categoria_gasto(request, categoria_id):
     except Exception as e:
         messages.error(request, 'No se pudo eliminar, posiblemente esté en uso.')
     return redirect('reportes:lista_categorias_gastos')
+
+
+@login_required
+def api_config_gomotos(request):
+    from core.models import ParametroSistema
+    import os
+    
+    if request.method == 'GET':
+        url_param = ParametroSistema.objects.filter(nombre='GOMOTOS_API_URL').first()
+        token_param = ParametroSistema.objects.filter(nombre='GOMOTOS_API_TOKEN').first()
+        
+        url = url_param.valor if url_param else 'http://localhost:8002'
+        token = token_param.valor if token_param else os.environ.get('VPMOTOS_API_TOKEN', '')
+        
+        return JsonResponse({
+            'success': True,
+            'url': url,
+            'token': token
+        })
+        
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            url = data.get('url', '').strip()
+            token = data.get('token', '').strip()
+            
+            if not url:
+                return JsonResponse({'success': False, 'error': 'La URL es requerida'}, status=400)
+                
+            if not (url.startswith('http://') or url.startswith('https://')):
+                return JsonResponse({'success': False, 'error': 'La URL debe comenzar con http:// o https://'}, status=400)
+                
+            if url.endswith('/'):
+                url = url[:-1]
+                
+            url_param, _ = ParametroSistema.objects.get_or_create(
+                nombre='GOMOTOS_API_URL',
+                defaults={'descripcion': 'URL base de la API de reportes de Gomotos'}
+            )
+            url_param.valor = url
+            url_param.save()
+            
+            token_param, _ = ParametroSistema.objects.get_or_create(
+                nombre='GOMOTOS_API_TOKEN',
+                defaults={'descripcion': 'Token de autenticación para la API de Gomotos'}
+            )
+            token_param.valor = token
+            token_param.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Configuración guardada correctamente'
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
