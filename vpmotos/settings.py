@@ -305,3 +305,9 @@ ANYMAIL = {
 EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
 DEFAULT_FROM_EMAIL = "VPMotos <david.vasquez@vp-motos.com>"
 SERVER_EMAIL = "david.vasquez@vp-motos.com"
+
+# ============================================================
+# GROQ AI CONFIGURATION
+# ============================================================
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
+
