@@ -1913,3 +1913,164 @@ def api_publica_productos(request):
         })
     
     return JsonResponse({'success': True, 'productos': data})
+
+
+# ========================================
+# DIGITALIZACIÓN E IMPORTACIÓN DESDE PDF
+# ========================================
+
+@login_required
+def importar_pdf_view(request):
+    """
+    Vista principal para cargar y analizar archivos PDF con productos.
+    """
+    marcas = Marca.objects.filter(activa=True).order_by('nombre')
+    categorias = CategoriaProducto.objects.filter(activa=True).order_by('nombre')
+    
+    if request.method == 'POST' and request.FILES.get('pdf_file'):
+        try:
+            pdf_file = request.FILES['pdf_file']
+            use_ai = request.POST.get('use_ai') == 'true'
+            ai_api_key = request.POST.get('ai_api_key', '').strip()
+            ai_provider = request.POST.get('ai_provider', 'openai').strip()
+            
+            from .services.pdf_parser import parse_pdf_productos
+            from .services.product_matcher import match_pdf_items_with_db
+            
+            # 1. Extraer ítems del PDF (Heurístico o con IA)
+            extracted_raw = parse_pdf_productos(
+                pdf_file, 
+                use_ai=use_ai, 
+                ai_api_key=ai_api_key, 
+                ai_provider=ai_provider
+            )
+            
+            if not extracted_raw:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'No se encontraron tablas ni ítems de productos legibles en el PDF subido.'
+                }, status=400)
+                
+            # 2. Motor de comparación con DB
+            matched_items = match_pdf_items_with_db(extracted_raw)
+            
+            marcas_list = [{'id': m.id, 'nombre': m.nombre} for m in marcas]
+            cat_list = [{'id': c.id, 'nombre': c.nombre} for c in categorias]
+            
+            return JsonResponse({
+                'success': True,
+                'filename': pdf_file.name,
+                'count': len(matched_items),
+                'items': matched_items,
+                'marcas': marcas_list,
+                'categorias': cat_list
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error procesando el PDF: {str(e)}'}, status=500)
+
+    return render(request, 'inventario/importar_pdf.html', {
+        'active_page': 'inventario',
+        'marcas': marcas,
+        'categorias': categorias
+    })
+
+
+@login_required
+@require_POST
+def procesar_importacion_pdf(request):
+    """
+    API final para procesar e insertar en base de datos la lista confirmada de ítems del PDF.
+    """
+    try:
+        data = json.loads(request.body)
+        items = data.get('items', [])
+        filename = data.get('filename', 'Archivo PDF')
+        
+        if not items:
+            return JsonResponse({'success': False, 'message': 'No se recibieron productos a procesar.'}, status=400)
+            
+        procesados = 0
+        nuevos_creados = 0
+        actualizados = 0
+        
+        with transaction.atomic():
+            default_cat = CategoriaProducto.objects.filter(activa=True).first()
+            default_marca = Marca.objects.filter(activa=True).first()
+            
+            for item in items:
+                action = item.get('action') # 'EXISTING' o 'NEW'
+                pdf_qty = Decimal(str(item.get('cantidad', 1)))
+                pdf_cost = Decimal(str(item.get('precio_compra', 0)))
+                pdf_price = Decimal(str(item.get('precio_venta', 0)))
+                
+                if action == 'EXISTING' and item.get('product_id'):
+                    prod = Producto.objects.select_for_update().get(id=item['product_id'])
+                    stock_previo = prod.stock_actual
+                    
+                    prod.stock_actual += pdf_qty
+                    if pdf_cost > 0:
+                        prod.precio_compra = pdf_cost
+                    if pdf_price > 0:
+                        prod.precio_venta = pdf_price
+                    prod.save()
+                    
+                    MovimientoInventario.objects.create(
+                        producto=prod,
+                        usuario=request.user,
+                        tipo_movimiento='ENTRADA',
+                        cantidad=pdf_qty,
+                        stock_anterior=stock_previo,
+                        stock_nuevo=prod.stock_actual,
+                        precio_unitario=pdf_cost,
+                        motivo=f"Entrada por importación PDF: {filename}"
+                    )
+                    actualizados += 1
+                    procesados += 1
+                    
+                elif action == 'NEW':
+                    codigo = item.get('codigo', '').strip()
+                    nombre = item.get('nombre', '').strip().upper()
+                    cat_id = item.get('categoria_id') or (default_cat.id if default_cat else None)
+                    marca_id = item.get('marca_id') or (default_marca.id if default_marca else None)
+                    
+                    if not codigo:
+                        import uuid
+                        codigo = f"PROD-{uuid.uuid4().hex[:6].upper()}"
+                        
+                    # Asegurar código único
+                    if Producto.objects.filter(codigo_unico=codigo).exists():
+                        codigo = f"{codigo}-{uuid.uuid4().hex[:4].upper()}"
+                        
+                    prod = Producto.objects.create(
+                        codigo_unico=codigo,
+                        nombre=nombre,
+                        precio_compra=pdf_cost,
+                        precio_venta=pdf_price if pdf_price > 0 else round(pdf_cost * Decimal('1.30'), 2),
+                        stock_actual=pdf_qty,
+                        categoria_id=cat_id,
+                        marca_id=marca_id,
+                        activo=True
+                    )
+                    
+                    MovimientoInventario.objects.create(
+                        producto=prod,
+                        usuario=request.user,
+                        tipo_movimiento='ENTRADA',
+                        cantidad=pdf_qty,
+                        stock_anterior=0,
+                        stock_nuevo=pdf_qty,
+                        precio_unitario=pdf_cost,
+                        motivo=f"Creación e ingreso inicial desde PDF: {filename}"
+                    )
+                    nuevos_creados += 1
+                    procesados += 1
+                    
+        return JsonResponse({
+            'success': True,
+            'message': f'Importación exitosa. {actualizados} productos actualizados y {nuevos_creados} productos nuevos creados.',
+            'procesados': procesados
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error al guardar en base de datos: {str(e)}'}, status=500)

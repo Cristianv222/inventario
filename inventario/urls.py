@@ -94,4 +94,10 @@ urlpatterns = [
     # API PÚBLICA (E-COMMERCE) ✅ NUEVO
     # ========================================
     path('api/publica/productos/', views.api_publica_productos, name='api_publica_productos'),
-]
+    
+    # ========================================
+    # DIGITALIZACIÓN E IMPORTACIÓN PDF ✅ NUEVO
+    # ========================================
+    path('importar-pdf/', views.importar_pdf_view, name='importar_pdf'),
+    path('api/procesar-importacion-pdf/', views.procesar_importacion_pdf, name='procesar_importacion_pdf'),
+]
