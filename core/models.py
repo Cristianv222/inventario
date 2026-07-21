@@ -154,7 +154,7 @@ class DominioSucursal(models.Model):
 class ParametroSistema(models.Model):
     """Parámetros de configuración del sistema"""
     nombre = models.CharField(max_length=50, unique=True)
-    valor = models.CharField(max_length=255)
+    valor = models.TextField()
     descripcion = models.TextField(blank=True, null=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     
