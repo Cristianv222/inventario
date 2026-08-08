@@ -126,11 +126,7 @@ import os
 User = get_user_model()
 admin_user = os.environ.get('DJANGO_SUPERUSER_USERNAME', 'admin')
 admin_email = os.environ.get('DJANGO_SUPERUSER_EMAIL', 'admin@vp-motos.com')
-admin_pass = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
-
-if not admin_pass:
-    print('ERROR: DJANGO_SUPERUSER_PASSWORD no está definida')
-    exit(1)
+admin_pass = os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'admin12345')
 
 if not User.objects.filter(usuario=admin_user).exists():
     User.objects.create_superuser(

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Producto, CategoriaProducto, Marca, InventarioAjuste
+from .models import Producto, CategoriaProducto, Marca, InventarioAjuste, ConfiguracionTienda, CodigoPromocional
 
 class ProductoForm(forms.ModelForm):
     """Formulario para crear y editar productos"""
@@ -8,8 +8,8 @@ class ProductoForm(forms.ModelForm):
         model = Producto
         fields = [
             'categoria', 'marca', 'codigo_unico', 'nombre', 'descripcion',
-            'precio_compra', 'precio_venta', 'stock_actual', 'stock_minimo',
-            'incluye_iva', 'es_editable', 'activo', 'ubicacion_almacen', 
+            'precio_compra', 'precio_venta', 'descuento_especial_porcentaje', 'stock_actual', 'stock_minimo',
+            'incluye_iva', 'es_editable', 'activo', 'es_destacado', 'ubicacion_almacen', 
             'imagen', 'imagen_2', 'imagen_3'
         ]
         widgets = {
@@ -20,11 +20,13 @@ class ProductoForm(forms.ModelForm):
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'precio_compra': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'precio_venta': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'descuento_especial_porcentaje': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100', 'placeholder': '0.00'}),
             'stock_actual': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'stock_minimo': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'incluye_iva': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'es_editable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'es_destacado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'ubicacion_almacen': forms.TextInput(attrs={'class': 'form-control'}),
             'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'imagen_2': forms.ClearableFileInput(attrs={'class': 'form-control'}),
@@ -47,6 +49,24 @@ class ProductoForm(forms.ModelForm):
             raise forms.ValidationError("Ya existe un producto con este código")
         return codigo
     
+    def _validar_peso_imagen(self, field_name):
+        imagen = self.cleaned_data.get(field_name)
+        if imagen and hasattr(imagen, 'size'):
+            # Límite máximo de 10 MB antes de compresión
+            max_size_bytes = 10 * 1024 * 1024
+            if imagen.size > max_size_bytes:
+                raise forms.ValidationError(f"La imagen no puede superar los 10 MB. El archivo actual pesa {round(imagen.size / (1024 * 1024), 2)} MB.")
+        return imagen
+
+    def clean_imagen(self):
+        return self._validar_peso_imagen('imagen')
+
+    def clean_imagen_2(self):
+        return self._validar_peso_imagen('imagen_2')
+
+    def clean_imagen_3(self):
+        return self._validar_peso_imagen('imagen_3')
+
     def clean(self):
         cleaned_data = super().clean()
         precio_compra = cleaned_data.get('precio_compra')
@@ -180,3 +200,34 @@ class ProductoSearchForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+
+
+class ConfiguracionTiendaForm(forms.ModelForm):
+    """Formulario para gestionar el descuento global, precio mínimo y clave de API de la tienda virtual"""
+    
+    class Meta:
+        model = ConfiguracionTienda
+        fields = ['porcentaje_descuento_global', 'precio_minimo_descuento', 'descuento_activo', 'api_key_secret']
+        widgets = {
+            'porcentaje_descuento_global': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100'}),
+            'precio_minimo_descuento': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'descuento_activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'api_key_secret': forms.TextInput(attrs={'class': 'form-control font-monospace', 'placeholder': 'Clave Secreta de API'}),
+        }
+
+
+class CodigoPromocionalForm(forms.ModelForm):
+    """Formulario para crear y editar cupones promocionales"""
+    
+    class Meta:
+        model = CodigoPromocional
+        fields = ['codigo', 'descripcion', 'porcentaje_descuento', 'precio_minimo_aplicable', 'activo', 'fecha_inicio', 'fecha_fin']
+        widgets = {
+            'codigo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: TALLER5 o presiona Generar'}),
+            'descripcion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Descuento especial para talleres'}),
+            'porcentaje_descuento': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100'}),
+            'precio_minimo_aplicable': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'fecha_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'fecha_fin': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+        }

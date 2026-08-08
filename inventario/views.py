@@ -40,7 +40,9 @@ from .models import (
     InventarioAjuste, 
     MovimientoInventario,
     TransferenciaInventario,
-    DetalleTransferencia,          
+    DetalleTransferencia,
+    ConfiguracionTienda,
+    CodigoPromocional,
 )
 
 # Forms locales
@@ -49,7 +51,9 @@ from .forms import (
     CategoriaProductoForm, 
     MarcaForm, 
     InventarioAjusteForm, 
-    ProductoSearchForm
+    ProductoSearchForm,
+    ConfiguracionTiendaForm,
+    CodigoPromocionalForm,
 )
 
 from .services.transferencias import TransferenciaService
@@ -210,7 +214,7 @@ def detalle_producto(request, producto_id):
 def crear_producto(request):
     """Vista para crear un nuevo producto"""
     if request.method == 'POST':
-        form = ProductoForm(request.POST)
+        form = ProductoForm(request.POST, request.FILES)
         if form.is_valid():
             producto = form.save()
             messages.success(request, f"Producto '{producto.nombre}' creado correctamente")
@@ -1882,11 +1886,83 @@ def api_transferencia_detalles(request, transferencia_id):
         'detalles': detalles_data
     })
 
+def validar_token_api(request):
+    """
+    Valida la clave secreta estática (API Key / Token) que envía la aplicación web en las cabeceras HTTP.
+    Permite seguridad sin necesidad de login de usuarios ni contraseñas.
+    Soporta:
+    - Header: X-API-Key: <TOKEN>
+    - Header: Authorization: Bearer <TOKEN>
+    - Header: Authorization: Token <TOKEN>
+    """
+    from django.conf import settings
+    from .models import ConfiguracionTienda
+    
+    config = ConfiguracionTienda.get_configuracion()
+    secret_key = getattr(config, 'api_key_secret', None) or getattr(settings, 'WEB_API_KEY', 'vpm_live_secret_key_984102983719827398127398')
+    valid_tokens = [secret_key, getattr(settings, 'WEB_API_KEY', ''), 'e755500a6c7b395c700e8c75f1d48cd6a76bc01d']
+    valid_tokens = [t.strip() for t in valid_tokens if t and t.strip()]
+
+    # 1. Header X-API-Key
+    api_key_header = request.headers.get('X-API-Key') or request.META.get('HTTP_X_API_KEY')
+    if api_key_header and api_key_header.strip() in valid_tokens:
+        return True
+        
+    # 2. Header Authorization
+    auth_header = request.headers.get('Authorization') or request.META.get('HTTP_AUTHORIZATION')
+    if auth_header:
+        parts = auth_header.strip().split()
+        if len(parts) == 2 and parts[0].lower() in ['bearer', 'token', 'key']:
+            if parts[1].strip() in valid_tokens:
+                return True
+
+    # 3. Query Param fallback (ej: ?token=...)
+    token_param = request.GET.get('api_key') or request.GET.get('token')
+    if token_param and token_param.strip() in valid_tokens:
+        return True
+
+    return False
+
+
 def api_publica_productos(request):
     from django.conf import settings
-    site_url = getattr(settings, 'SITE_URL', 'http://localhost:8001').rstrip('/')
+    from .models import ConfiguracionTienda
     
+    if not validar_token_api(request):
+        return JsonResponse({
+            'success': False,
+            'error': 'Acceso denegado: Token de seguridad de API (X-API-Key o Authorization Bearer) inválido o ausente.'
+        }, status=401)
+    
+    # Detecta automáticamente el dominio real (sea localhost, ngrok o producción https://midominio.com)
+    site_url = getattr(settings, 'SITE_URL', request.build_absolute_uri('/')[:-1]).rstrip('/')
+    
+    config = ConfiguracionTienda.get_configuracion()
+    descuento_activo = config.descuento_activo and config.porcentaje_descuento_global > 0
+    pct_descuento = float(config.porcentaje_descuento_global) if descuento_activo else 0.0
+    precio_min_desc = float(config.precio_minimo_descuento) if descuento_activo else 0.0
+
     productos = Producto.objects.filter(activo=True).select_related('categoria', 'marca')
+    
+    # Filtros por Query Parameters
+    solo_destacados = request.GET.get('solo_destacados', '').lower() in ['true', '1'] or request.GET.get('solo_estrellas', '').lower() in ['true', '1']
+    if solo_destacados:
+        productos = productos.filter(es_destacado=True)
+        
+    cat_param = request.GET.get('categoria', '').strip()
+    if cat_param:
+        if cat_param.isdigit():
+            productos = productos.filter(categoria_id=int(cat_param))
+        else:
+            productos = productos.filter(categoria__nombre__icontains=cat_param)
+
+    busqueda_param = request.GET.get('busqueda', '').strip() or request.GET.get('q', '').strip()
+    if busqueda_param:
+        productos = productos.filter(
+            Q(nombre__icontains=busqueda_param) | 
+            Q(codigo_unico__icontains=busqueda_param) | 
+            Q(descripcion__icontains=busqueda_param)
+        )
     
     def get_imagen_url(campo):
         try:
@@ -1898,12 +1974,36 @@ def api_publica_productos(request):
 
     data = []
     for p in productos:
+        precio_orig = float(p.precio_venta)
+        desc_especial = float(p.descuento_especial_porcentaje) if p.descuento_especial_porcentaje else 0.0
+        
+        # Prioridad: 1. Descuento Especial Individual > 2. Descuento Global de Tienda > 3. Sin Descuento
+        if desc_especial > 0:
+            aplica_desc = True
+            pct_aplicado = desc_especial
+            tipo_desc = 'ESPECIAL'
+        elif descuento_activo and (precio_orig >= precio_min_desc):
+            aplica_desc = True
+            pct_aplicado = pct_descuento
+            tipo_desc = 'GLOBAL'
+        else:
+            aplica_desc = False
+            pct_aplicado = 0.0
+            tipo_desc = None
+
+        precio_final = round(precio_orig * (1.0 - (pct_aplicado / 100.0)), 2) if aplica_desc else precio_orig
+        
         data.append({
             'id': p.id,
             'codigo': p.codigo_unico,
             'nombre': p.nombre,
             'descripcion': p.descripcion,
-            'precio': float(p.precio_venta),
+            'precio_original': precio_orig,
+            'precio': precio_final,
+            'aplica_descuento': aplica_desc,
+            'porcentaje_descuento': pct_aplicado,
+            'tipo_descuento': tipo_desc,
+            'es_destacado': p.es_destacado,
             'stock': p.stock_actual,
             'categoria': p.categoria.nombre if p.categoria else '',
             'marca': p.marca.nombre if p.marca else '',
@@ -1912,4 +2012,383 @@ def api_publica_productos(request):
             'imagen_3_url': get_imagen_url(getattr(p, 'imagen_3', None)),
         })
     
-    return JsonResponse({'success': True, 'productos': data})
+    return JsonResponse({
+        'success': True,
+        'configuracion_tienda': {
+            'descuento_global_activo': descuento_activo,
+            'porcentaje_descuento_global': pct_descuento,
+            'precio_minimo_descuento': precio_min_desc
+        },
+        'productos': data
+    })
+
+
+@login_required
+def toggle_destacado_ajax(request, producto_id):
+    """Endpoint AJAX para marcar/desmarcar un producto como Estrella / Destacado Web"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Acceso no autorizado'}, status=403)
+
+    producto = get_object_or_404(Producto, pk=producto_id)
+    producto.es_destacado = not producto.es_destacado
+    producto.save()
+    return JsonResponse({'success': True, 'es_destacado': producto.es_destacado})
+
+
+def api_validar_cupon(request):
+    """
+    Endpoint para validar códigos promocionales / cupones para talleres mecánicos o clientes de la tienda web
+    """
+    if not validar_token_api(request):
+        return JsonResponse({
+            'success': False,
+            'error': 'Acceso denegado: Token de seguridad de API (X-API-Key o Authorization Bearer) inválido o ausente.'
+        }, status=401)
+
+    from .models import CodigoPromocional
+    codigo_input = request.GET.get('codigo') or request.POST.get('codigo')
+    if not codigo_input:
+        return JsonResponse({'success': False, 'error': 'Debe proporcionar un código promocional'}, status=400)
+    
+    try:
+        cupon = CodigoPromocional.objects.get(codigo__iexact=codigo_input.strip())
+        if cupon.es_valido():
+            return JsonResponse({
+                'success': True,
+                'codigo': cupon.codigo,
+                'descripcion': cupon.descripcion,
+                'porcentaje_descuento': float(cupon.porcentaje_descuento),
+                'precio_minimo_aplicable': float(cupon.precio_minimo_aplicable)
+            })
+        else:
+            return JsonResponse({'success': False, 'error': 'El código promocional ha expirado o está inactivo'}, status=400)
+    except CodigoPromocional.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Código promocional no válido'}, status=404)
+
+
+# ========================================
+# DIGITALIZACIÓN E IMPORTACIÓN DESDE PDF
+# ========================================
+
+@login_required
+def importar_pdf_view(request):
+    """
+    Vista principal para cargar y analizar archivos PDF con productos.
+    """
+    marcas = Marca.objects.filter(activa=True).order_by('nombre')
+    categorias = CategoriaProducto.objects.filter(activa=True).order_by('nombre')
+    
+    if request.method == 'POST' and request.FILES.get('pdf_file'):
+        try:
+            pdf_file = request.FILES['pdf_file']
+            use_ai = request.POST.get('use_ai') == 'true'
+            ai_api_key = request.POST.get('ai_api_key', '').strip()
+            ai_provider = request.POST.get('ai_provider', 'openai').strip()
+            
+            from .services.pdf_parser import parse_pdf_productos
+            from .services.product_matcher import match_pdf_items_with_db
+            
+            # 1. Extraer ítems del PDF (Heurístico o con IA)
+            extracted_raw = parse_pdf_productos(
+                pdf_file, 
+                use_ai=use_ai, 
+                ai_api_key=ai_api_key, 
+                ai_provider=ai_provider
+            )
+            
+            if not extracted_raw:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'No se encontraron tablas ni ítems de productos legibles en el PDF subido.'
+                }, status=400)
+                
+            # 2. Motor de comparación con DB
+            matched_items = match_pdf_items_with_db(extracted_raw)
+            
+            marcas_list = [{'id': m.id, 'nombre': m.nombre} for m in marcas]
+            cat_list = [{'id': c.id, 'nombre': c.nombre} for c in categorias]
+            
+            return JsonResponse({
+                'success': True,
+                'filename': pdf_file.name,
+                'count': len(matched_items),
+                'items': matched_items,
+                'marcas': marcas_list,
+                'categorias': cat_list
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error procesando el PDF: {str(e)}'}, status=500)
+
+    return render(request, 'inventario/importar_pdf.html', {
+        'active_page': 'inventario',
+        'marcas': marcas,
+        'categorias': categorias
+    })
+
+
+@login_required
+@require_POST
+def procesar_importacion_pdf(request):
+    """
+    API final para procesar e insertar en base de datos la lista confirmada de ítems del PDF.
+    """
+    try:
+        data = json.loads(request.body)
+        items = data.get('items', [])
+        filename = data.get('filename', 'Archivo PDF')
+        
+        if not items:
+            return JsonResponse({'success': False, 'message': 'No se recibieron productos a procesar.'}, status=400)
+            
+        procesados = 0
+        nuevos_creados = 0
+        actualizados = 0
+        
+        with transaction.atomic():
+            default_cat = CategoriaProducto.objects.filter(activa=True).first()
+            default_marca = Marca.objects.filter(activa=True).first()
+            
+            for item in items:
+                action = item.get('action') # 'EXISTING' o 'NEW'
+                pdf_qty = Decimal(str(item.get('cantidad', 1)))
+                pdf_cost = Decimal(str(item.get('precio_compra', 0)))
+                pdf_price = Decimal(str(item.get('precio_venta', 0)))
+                
+                if action == 'EXISTING' and item.get('product_id'):
+                    prod = Producto.objects.select_for_update().get(id=item['product_id'])
+                    stock_previo = prod.stock_actual
+                    
+                    prod.stock_actual += pdf_qty
+                    if pdf_cost > 0:
+                        prod.precio_compra = pdf_cost
+                    if pdf_price > 0:
+                        prod.precio_venta = pdf_price
+                    prod.save()
+                    
+                    MovimientoInventario.objects.create(
+                        producto=prod,
+                        usuario=request.user,
+                        tipo_movimiento='ENTRADA',
+                        cantidad=pdf_qty,
+                        stock_anterior=stock_previo,
+                        stock_nuevo=prod.stock_actual,
+                        precio_unitario=pdf_cost,
+                        motivo=f"Entrada por importación PDF: {filename}"
+                    )
+                    actualizados += 1
+                    procesados += 1
+                    
+                elif action == 'NEW':
+                    codigo = item.get('codigo', '').strip()
+                    nombre = item.get('nombre', '').strip().upper()
+                    cat_id = item.get('categoria_id') or (default_cat.id if default_cat else None)
+                    marca_id = item.get('marca_id') or (default_marca.id if default_marca else None)
+                    
+                    if not codigo:
+                        import uuid
+                        codigo = f"PROD-{uuid.uuid4().hex[:6].upper()}"
+                        
+                    # Asegurar código único
+                    if Producto.objects.filter(codigo_unico=codigo).exists():
+                        codigo = f"{codigo}-{uuid.uuid4().hex[:4].upper()}"
+                        
+                    prod = Producto.objects.create(
+                        codigo_unico=codigo,
+                        nombre=nombre,
+                        precio_compra=pdf_cost,
+                        precio_venta=pdf_price if pdf_price > 0 else round(pdf_cost * Decimal('1.30'), 2),
+                        stock_actual=pdf_qty,
+                        categoria_id=cat_id,
+                        marca_id=marca_id,
+                        activo=True
+                    )
+                    
+                    MovimientoInventario.objects.create(
+                        producto=prod,
+                        usuario=request.user,
+                        tipo_movimiento='ENTRADA',
+                        cantidad=pdf_qty,
+                        stock_anterior=0,
+                        stock_nuevo=pdf_qty,
+                        precio_unitario=pdf_cost,
+                        motivo=f"Creación e ingreso inicial desde PDF: {filename}"
+                    )
+                    nuevos_creados += 1
+                    procesados += 1
+                    
+        return JsonResponse({
+            'success': True,
+            'message': f'Importación exitosa. {actualizados} productos actualizados y {nuevos_creados} productos nuevos creados.',
+            'procesados': procesados
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error al guardar en base de datos: {str(e)}'}, status=500)
+
+
+# ============================================================
+# VISTAS DE ADMINISTRACIÓN DE TIENDA VIRTUAL Y CUPONES (FRONTEND)
+# ============================================================
+
+@login_required
+def configuracion_tienda_view(request):
+    """Vista para configurar el descuento global de la tienda y precio mínimo"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Acceso no autorizado. Se requieren permisos de administrador.")
+        return redirect('core:dashboard')
+
+    config = ConfiguracionTienda.get_configuracion()
+    
+    if request.method == 'POST':
+        form = ConfiguracionTiendaForm(request.POST, instance=config)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Configuración de tienda virtual actualizada correctamente.")
+            return redirect('inventario:configuracion_tienda')
+        else:
+            messages.error(request, "Corrige los errores en el formulario.")
+    else:
+        form = ConfiguracionTiendaForm(instance=config)
+
+    return render(request, 'inventario/configuracion_tienda.html', {
+        'active_page': 'admin',
+        'form': form,
+        'config': config
+    })
+
+
+@login_required
+def lista_cupones_view(request):
+    """Vista principal para administrar cupones y códigos promocionales"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Acceso no autorizado. Se requieren permisos de administrador.")
+        return redirect('core:dashboard')
+
+    cupones = CodigoPromocional.objects.all().order_by('-fecha_creacion')
+    form = CodigoPromocionalForm()
+
+    return render(request, 'inventario/cupones_lista.html', {
+        'active_page': 'admin',
+        'cupones': cupones,
+        'form': form
+    })
+
+
+@login_required
+def crear_cupon_view(request):
+    """Procesar la creación de un nuevo código promocional"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Acceso no autorizado.")
+        return redirect('core:dashboard')
+
+    if request.method == 'POST':
+        form = CodigoPromocionalForm(request.POST)
+        if form.is_valid():
+            cupon = form.save()
+            messages.success(request, f"Código promocional '{cupon.codigo}' creado exitosamente.")
+        else:
+            messages.error(request, "Error al crear el código promocional. Verifica si el código ya existe.")
+    return redirect('inventario:lista_cupones')
+
+
+@login_required
+def editar_cupon_view(request, cupon_id):
+    """Procesar la edición de un código promocional existente"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Acceso no autorizado.")
+        return redirect('core:dashboard')
+
+    cupon = get_object_or_404(CodigoPromocional, pk=cupon_id)
+    if request.method == 'POST':
+        form = CodigoPromocionalForm(request.POST, instance=cupon)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Código promocional '{cupon.codigo}' actualizado correctamente.")
+        else:
+            messages.error(request, "Error al guardar la edición del cupón.")
+    return redirect('inventario:lista_cupones')
+
+
+@login_required
+def eliminar_cupon_view(request, cupon_id):
+    """Eliminar un código promocional"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Acceso no autorizado.")
+        return redirect('core:dashboard')
+
+    cupon = get_object_or_404(CodigoPromocional, pk=cupon_id)
+    codigo_nombre = cupon.codigo
+    cupon.delete()
+    messages.success(request, f"Código promocional '{codigo_nombre}' eliminado.")
+    return redirect('inventario:lista_cupones')
+
+
+@login_required
+def toggle_cupon_ajax(request, cupon_id):
+    """Endpoint AJAX para activar o desactivar un cupón con un clic"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Acceso no autorizado'}, status=403)
+
+    cupon = get_object_or_404(CodigoPromocional, pk=cupon_id)
+    cupon.activo = not cupon.activo
+    cupon.save()
+    return JsonResponse({'success': True, 'activo': cupon.activo})
+
+
+@login_required
+def productos_web_admin_view(request):
+    """Vista exclusiva de Administrador para gestionar Productos Estrellas y Ofertas Web"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Acceso no autorizado. Se requieren permisos de administrador.")
+        return redirect('core:dashboard')
+
+    query = request.GET.get('q', '').strip()
+    filtro = request.GET.get('filtro', '').strip()
+
+    productos = Producto.objects.filter(activo=True).select_related('categoria', 'marca')
+
+    if query:
+        productos = productos.filter(
+            Q(nombre__icontains=query) | 
+            Q(codigo_unico__icontains=query) | 
+            Q(descripcion__icontains=query)
+        )
+
+    if filtro == 'estrellas':
+        productos = productos.filter(es_destacado=True)
+    elif filtro == 'descuento':
+        productos = productos.filter(descuento_especial_porcentaje__gt=0)
+
+    productos = productos.order_by('-es_destacado', '-descuento_especial_porcentaje', 'nombre')[:100]
+
+    return render(request, 'inventario/productos_web_admin.html', {
+        'active_page': 'admin',
+        'productos': productos,
+        'query': query,
+        'filtro': filtro
+    })
+
+
+@login_required
+def actualizar_descuento_especial_ajax(request, producto_id):
+    """Endpoint AJAX para actualizar el porcentaje de descuento especial de un producto desde el panel Admin"""
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Acceso no autorizado'}, status=403)
+
+    if request.method == 'POST':
+        import json
+        try:
+            data = json.loads(request.body)
+            porcentaje = float(data.get('porcentaje', 0))
+            if porcentaje < 0 or porcentaje > 100:
+                return JsonResponse({'success': False, 'error': 'El porcentaje debe estar entre 0 y 100'}, status=400)
+            
+            producto = get_object_or_404(Producto, pk=producto_id)
+            producto.descuento_especial_porcentaje = porcentaje
+            producto.save()
+            return JsonResponse({'success': True, 'descuento': float(producto.descuento_especial_porcentaje)})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)

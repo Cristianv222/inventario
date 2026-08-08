@@ -13,6 +13,7 @@ urlpatterns = [
     path('producto/form/', views.crear_producto, name='producto_form'),  # Alias para crear_producto
     path('producto/<int:producto_id>/editar/', views.editar_producto, name='editar_producto'),
     path('producto/<int:producto_id>/activar/', views.activar_desactivar_producto, name='activar_desactivar_producto'),
+    path('producto/<int:producto_id>/toggle-destacado/', views.toggle_destacado_ajax, name='toggle_destacado_ajax'),
     path('producto/<int:producto_id>/regenerar-codigo/', views.regenerar_codigo_barras, name='regenerar_codigo_barras'),
     
     # ========================================
@@ -94,4 +95,25 @@ urlpatterns = [
     # API PÚBLICA (E-COMMERCE) ✅ NUEVO
     # ========================================
     path('api/publica/productos/', views.api_publica_productos, name='api_publica_productos'),
-]
+    path('api/v1/productos/', views.api_publica_productos, name='api_v1_productos'),
+    path('api/publica/validar-cupon/', views.api_validar_cupon, name='api_publica_validar_cupon'),
+    path('api/v1/validar-cupon/', views.api_validar_cupon, name='api_v1_validar_cupon'),
+    
+    # ========================================
+    # DIGITALIZACIÓN E IMPORTACIÓN PDF ✅ NUEVO
+    # ========================================
+    path('importar-pdf/', views.importar_pdf_view, name='importar_pdf'),
+    path('api/procesar-importacion-pdf/', views.procesar_importacion_pdf, name='procesar_importacion_pdf'),
+    
+    # ========================================
+    # MÓDULO ADMIN FRONTEND - TIENDA VIRTUAL ✅ NUEVO
+    # ========================================
+    path('admin/configuracion-tienda/', views.configuracion_tienda_view, name='configuracion_tienda'),
+    path('admin/productos-web/', views.productos_web_admin_view, name='productos_web_admin'),
+    path('admin/productos-web/<int:producto_id>/descuento/', views.actualizar_descuento_especial_ajax, name='actualizar_descuento_especial_ajax'),
+    path('admin/cupones/', views.lista_cupones_view, name='lista_cupones'),
+    path('admin/cupones/crear/', views.crear_cupon_view, name='crear_cupon'),
+    path('admin/cupones/<int:cupon_id>/editar/', views.editar_cupon_view, name='editar_cupon'),
+    path('admin/cupones/<int:cupon_id>/eliminar/', views.eliminar_cupon_view, name='eliminar_cupon'),
+    path('admin/cupones/<int:cupon_id>/toggle/', views.toggle_cupon_ajax, name='toggle_cupon_ajax'),
+]

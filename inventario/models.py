@@ -56,6 +56,7 @@ class Producto(models.Model):
     # Precios
     precio_compra = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_('Precio de Compra'))
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_('Precio de Venta'))
+    descuento_especial_porcentaje = models.DecimalField(default=0.00, max_digits=5, decimal_places=2, verbose_name=_('Descuento Especial Web (%)'), help_text=_('Descuento personalizado individual para este producto (ej: 20.00)'))
     incluye_iva = models.BooleanField(default=True, verbose_name=_('Incluye IVA'))
     
     # Stock
@@ -64,6 +65,7 @@ class Producto(models.Model):
     
     # Metadata
     activo = models.BooleanField(default=True, verbose_name=_('Activo'))
+    es_destacado = models.BooleanField(default=False, verbose_name=_('Producto Estrella / Destacado Web'))
     es_editable = models.BooleanField(default=False, verbose_name=_('Es Editable (Nombre/Precio)'))
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
@@ -86,7 +88,20 @@ class Producto(models.Model):
         return f"{self.nombre} ({self.codigo_unico})"
     
     def save(self, *args, **kwargs):
-        # Generar cÃ³digo de barras si no existe o si el cÃ³digo Ãºnico cambiÃ³
+        # Convertir imágenes a WebP ultra-liviano si se han subido nuevas o no son .webp
+        from .utils import convertir_a_webp
+        for field_name in ['imagen', 'imagen_2', 'imagen_3']:
+            campo = getattr(self, field_name)
+            if campo:
+                if getattr(campo, '_file', None) is not None or not campo.name.endswith('.webp'):
+                    try:
+                        nuevo_webp = convertir_a_webp(campo)
+                        if nuevo_webp:
+                            setattr(self, field_name, nuevo_webp)
+                    except Exception as e:
+                        print(f"Error al optimizar {field_name}: {e}")
+
+        # Generar código de barras si no existe o si el código único cambió
         if not self.codigo_barras or (self.pk and Producto.objects.get(pk=self.pk).codigo_unico != self.codigo_unico):
             self.generar_codigo_barras()
         super().save(*args, **kwargs)
@@ -393,6 +408,104 @@ class DetalleTransferencia(models.Model):
         if self.cantidad_recibida is None:
             return 0
         return self.cantidad_recibida - self.cantidad_enviada
+
+
+# ============================================================================
+# CONFIGURACIÓN Y DESCUENTOS PARA TIENDA VIRTUAL / API PÚBLICA
+# ============================================================================
+
+class ConfiguracionTienda(models.Model):
+    """
+    Configuración parametrizable de la tienda virtual (Solo editable por Administrador).
+    Permite activar un descuento global y definir desde qué precio aplica (para evitar descontar pernos o ítems menores).
+    """
+    porcentaje_descuento_global = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name=_('Porcentaje Descuento Global (%)'),
+        help_text=_('Ejemplo: 5.00 para aplicar 5% de descuento en la tienda')
+    )
+    precio_minimo_descuento = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name=_('Precio Mínimo de Producto para Descuento ($)'),
+        help_text=_('Precio a partir del cual aplica el descuento (ej: 2.00 para no descontar ítems como pernos)')
+    )
+    descuento_activo = models.BooleanField(
+        default=False,
+        verbose_name=_('Descuento Global Activo en Tienda')
+    )
+    api_key_secret = models.CharField(
+        max_length=120,
+        default='vpm_live_secret_key_984102983719827398127398',
+        verbose_name=_('Clave Secreta de API Web (Token)'),
+        help_text=_('Token de seguridad para autorizar a la tienda web')
+    )
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('Configuración de Tienda Virtual')
+        verbose_name_plural = _('Configuración de Tienda Virtual')
+
+    def __str__(self):
+        estado = "Activo" if self.descuento_activo else "Inactivo"
+        return f"Descuento Global Tienda: {self.porcentaje_descuento_global}% ({estado}) - Mínimo: ${self.precio_minimo_descuento}"
+
+    @classmethod
+    def get_configuracion(cls):
+        """Retorna el registro único de configuración de tienda"""
+        config, created = cls.objects.get_or_create(id=1)
+        return config
+
+
+class CodigoPromocional(models.Model):
+    """
+    Códigos promocionales / Cupones para talleres mecánicos o clientes especiales.
+    """
+    codigo = models.CharField(
+        max_length=50, 
+        unique=True, 
+        verbose_name=_('Código Promocional'),
+        help_text=_('Código que ingresará el taller o cliente (ej: TALLER5, MECANICO10)')
+    )
+    descripcion = models.CharField(max_length=200, verbose_name=_('Descripción'))
+    porcentaje_descuento = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        verbose_name=_('Porcentaje Descuento (%)')
+    )
+    precio_minimo_aplicable = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name=_('Precio Mínimo de Producto ($)')
+    )
+    activo = models.BooleanField(default=True, verbose_name=_('Activo'))
+    fecha_inicio = models.DateTimeField(blank=True, null=True, verbose_name=_('Fecha Inicio'))
+    fecha_fin = models.DateTimeField(blank=True, null=True, verbose_name=_('Fecha Fin'))
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Código Promocional')
+        verbose_name_plural = _('Códigos Promocionales')
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        return f"{self.codigo} - {self.porcentaje_descuento}% ({self.descripcion})"
+
+    def es_valido(self):
+        """Valida si el código promocional está activo y dentro del rango de fechas"""
+        from django.utils import timezone
+        if not self.activo:
+            return False
+        ahora = timezone.now()
+        if self.fecha_inicio and ahora < self.fecha_inicio:
+            return False
+        if self.fecha_fin and ahora > self.fecha_fin:
+            return False
+        return True
 
 
 # ============================================================================

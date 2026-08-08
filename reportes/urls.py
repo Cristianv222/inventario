@@ -47,6 +47,7 @@ urlpatterns = [
     # ── APIs JSON ─────────────────────────────────────────────────
     path('api/dashboard-data/', views.api_dashboard_data, name='api_dashboard_data'),
     path('api/caja-status/', views.api_caja_status, name='api_caja_status'),
+    path('api/config/gomotos/', views.api_config_gomotos, name='api_config_gomotos'),
 
     # ── Exportar ──────────────────────────────────────────────────
     path('exportar/', views.exportar_reporte, name='exportar_reporte'),

@@ -4,10 +4,10 @@ URL configuration for vpmotos project.
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
+from rest_framework.authtoken import views as authtoken_views
 from django.conf.urls.static import static
 from django.views.static import serve
 from django.urls import re_path
-from django.views.static import serve
 from django.urls import re_path
 from django.http import FileResponse, HttpResponse
 import os
@@ -19,6 +19,12 @@ def serve_sw(request):
 def serve_manifest(request):
     path_manifest = os.path.join(settings.BASE_DIR, 'manifest.json')
     return FileResponse(open(path_manifest, 'rb'), content_type='application/manifest+json')
+
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -34,6 +40,12 @@ urlpatterns = [
     path('hardware/', include('hardware_integration.urls', namespace='hardware_integration')),
     path('api/hardware/', include('hardware_integration.api.urls', namespace='hardware_api')),
     path('electronic-invoicing/', include(('electronic_invoicing.urls', 'electronic_invoicing'), namespace='electronic_invoicing')),
+    path('api/v1/token-auth/', authtoken_views.obtain_auth_token, name='api_token_auth'),
+    
+    # Endpoints JWT (JSON Web Token) ✅ NUEVO
+    path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/v1/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 ]
 
 urlpatterns += [re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT})]
