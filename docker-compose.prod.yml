@@ -74,6 +74,30 @@ services:
           cpus: '0.40'
           memory: 384M
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventario-worker
+    restart: unless-stopped
+    command: celery -A vpmotos worker --loglevel=info
+    env_file:
+      - .env.prod
+    volumes:
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 512M
+
 networks:
   inventario_network:
     driver: bridge
