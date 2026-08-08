@@ -806,4 +806,42 @@
         transform: scale(1.002);
     }
 </style>
+
+<script>
+function toggleEstrella(productoId, btnElem) {
+    const icon = btnElem.querySelector('i');
+    fetch(`/inventario/producto/${productoId}/toggle-destacado/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            if (data.es_destacado) {
+                icon.className = 'fas text-warning fa-star fa-lg';
+            } else {
+                icon.className = 'far text-muted fa-star fa-lg';
+            }
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: data.es_destacado ? 'Producto marcado como Estrella Web' : 'Producto removido de Estrellas Web',
+                    showConfirmButton: false,
+                    timer: 1800
+                });
+            }
+        } else {
+            alert('No se pudo cambiar el estado del producto estrella.');
+        }
+    })
+    .catch(() => {
+        alert('Error al comunicarse con el servidor.');
+    });
+}
+</script>
 {% endblock %}

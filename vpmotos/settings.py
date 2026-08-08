@@ -238,11 +238,12 @@ if not DEBUG:
 
 if DEBUG:
     print("SETTINGS RELOADED! DEBUG IS", DEBUG, flush=True)
-# ============================================================
-# REST FRAMEWORK
-# ============================================================
+# Clave secreta estática para la API de la Tienda Web (sin necesidad de login)
+WEB_API_KEY = os.getenv('WEB_API_KEY', 'vpm_live_secret_key_984102983719827398127398')
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'hardware_integration.auth.CustomTokenAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
@@ -250,6 +251,15 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+}
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    'ROTATE_REFRESH_TOKENS': True,
+    'AUTH_HEADER_TYPES': ('Bearer', 'JWT'),
 }
 
 AUTHENTICATION_BACKENDS = [

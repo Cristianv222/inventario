@@ -65,79 +65,118 @@
                                 Paso 1: Información Básica
                             </div>
                             <div class="form-check form-switch bg-light p-2 rounded border px-3">
-                                <input type="checkbox" class="form-check-input"
-                                    id="{{ form.es_editable.id_for_label }}"
-                                    name="{{ form.es_editable.name }}"
-                                    value="True"
-                                    {% if form.es_editable.value %}checked{% endif %}
-                                    onchange="handleEditableToggle(this)">
-                                <label for="{{ form.es_editable.id_for_label }}" class="form-check-label fw-bold text-primary small">
-                                    <i class="fas fa-magic me-1"></i> PRODUCTO EDITABLE (GENÉRICO)
-                                </label>
+                                    <input type="checkbox" class="form-check-input"
+                                        id="{{ form.es_editable.id_for_label }}"
+                                        name="{{ form.es_editable.name }}"
+                                        value="True"
+                                        {% if form.es_editable.value %}checked{% endif %}
+                                        onchange="handleEditableToggle(this)">
+                                    <label for="{{ form.es_editable.id_for_label }}" class="form-check-label fw-bold text-primary small">
+                                        <i class="fas fa-magic me-1"></i> PRODUCTO EDITABLE
+                                    </label>
+                                </div>
                             </div>
                         </h5>
                         <div class="row g-3">
 
-                            <!-- IMÁGENES -->
+                            <!-- IMÁGENES CON SOPORTE DRAG & DROP Y PASTE (CTRL+V) -->
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Imágenes del Producto</label>
-                                <div class="row">
+                                <div class="alert alert-info py-2 px-3 small border-0 mb-3" style="background-color: #e0f2fe; color: #0369a1;">
+                                    <i class="fas fa-paste me-2"></i><strong>Tip de velocidad:</strong> Puedes <strong>copiar una imagen de internet o captura</strong> y presionar <kbd class="bg-primary text-white">Ctrl+V</kbd> o <kbd class="bg-primary text-white">Cmd+V</kbd> en esta página para pegarla directamente. Se convertirá automáticamente a formato <strong>WebP ultra-liviano</strong>.
+                                </div>
+
+                                <div class="row g-3">
+                                    <!-- Imagen 1 -->
                                     <div class="col-md-4">
-                                        <label for="{{ form.imagen.id_for_label }}" class="form-label small">Imagen Principal</label>
-                                        {% if form.instance.imagen %}
-                                        <div class="mb-2">
-                                            <img src="{{ form.instance.imagen.url }}" alt="Imagen Principal"
-                                                class="img-thumbnail" style="max-height: 150px; display:block;">
-                                            <span class="badge bg-success mt-1 d-inline-block">
-                                                <i class="fas fa-check me-1"></i>Imagen actual
-                                            </span>
-                                            <div class="form-text text-warning">
-                                                <i class="fas fa-info-circle me-1"></i>Sube una nueva para reemplazarla
+                                        <label for="{{ form.imagen.id_for_label }}" class="form-label small fw-bold">Imagen Principal</label>
+                                        <div class="image-drop-zone p-3 text-center rounded-3 border-2 border-dashed bg-light position-relative" data-target-input="{{ form.imagen.id_for_label }}">
+                                            <input type="file" id="{{ form.imagen.id_for_label }}" name="{{ form.imagen.name }}" accept="image/*" class="d-none image-file-input">
+                                            
+                                            <!-- Preview de la nueva imagen pegada/seleccionada -->
+                                            <div class="preview-container d-none mb-2 position-relative">
+                                                <img src="" class="img-thumbnail preview-img" style="max-height: 140px; object-fit: contain;">
+                                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle remove-preview-btn" title="Quitar imagen">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+
+                                            <!-- Imagen actual si existe -->
+                                            {% if form.instance.imagen %}
+                                            <div class="current-img-container mb-2">
+                                                <img src="{{ form.instance.imagen.url }}" alt="Imagen Principal" class="img-thumbnail" style="max-height: 120px;">
+                                                <div class="small text-success fw-semibold mt-1"><i class="fas fa-check-circle me-1"></i>Imagen actual</div>
+                                            </div>
+                                            {% endif %}
+
+                                            <!-- Placeholder / Instrucciones -->
+                                            <div class="drop-zone-instructions">
+                                                <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                                                <div class="small fw-semibold text-dark">Haz clic, arrastra aquí o presiona <kbd>Ctrl+V</kbd></div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">JPG, PNG, WEBP (Máx 10MB)</div>
                                             </div>
                                         </div>
-                                        {% endif %}
-                                        <input type="file" class="form-control mt-1"
-                                            id="{{ form.imagen.id_for_label }}"
-                                            name="{{ form.imagen.name }}" accept="image/*">
                                     </div>
+
+                                    <!-- Imagen 2 -->
                                     <div class="col-md-4">
-                                        <label for="{{ form.imagen_2.id_for_label }}" class="form-label small">Imagen 2</label>
-                                        {% if form.instance.imagen_2 %}
-                                        <div class="mb-2">
-                                            <img src="{{ form.instance.imagen_2.url }}" alt="Imagen 2"
-                                                class="img-thumbnail" style="max-height: 150px; display:block;">
-                                            <span class="badge bg-success mt-1 d-inline-block">
-                                                <i class="fas fa-check me-1"></i>Imagen actual
-                                            </span>
-                                            <div class="form-text text-warning">
-                                                <i class="fas fa-info-circle me-1"></i>Sube una nueva para reemplazarla
+                                        <label for="{{ form.imagen_2.id_for_label }}" class="form-label small fw-bold">Imagen 2</label>
+                                        <div class="image-drop-zone p-3 text-center rounded-3 border-2 border-dashed bg-light position-relative" data-target-input="{{ form.imagen_2.id_for_label }}">
+                                            <input type="file" id="{{ form.imagen_2.id_for_label }}" name="{{ form.imagen_2.name }}" accept="image/*" class="d-none image-file-input">
+                                            
+                                            <div class="preview-container d-none mb-2 position-relative">
+                                                <img src="" class="img-thumbnail preview-img" style="max-height: 140px; object-fit: contain;">
+                                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle remove-preview-btn" title="Quitar imagen">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+
+                                            {% if form.instance.imagen_2 %}
+                                            <div class="current-img-container mb-2">
+                                                <img src="{{ form.instance.imagen_2.url }}" alt="Imagen 2" class="img-thumbnail" style="max-height: 120px;">
+                                                <div class="small text-success fw-semibold mt-1"><i class="fas fa-check-circle me-1"></i>Imagen actual</div>
+                                            </div>
+                                            {% endif %}
+
+                                            <div class="drop-zone-instructions">
+                                                <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                                                <div class="small fw-semibold text-dark">Haz clic, arrastra aquí o presiona <kbd>Ctrl+V</kbd></div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">JPG, PNG, WEBP (Máx 10MB)</div>
                                             </div>
                                         </div>
-                                        {% endif %}
-                                        <input type="file" class="form-control mt-1"
-                                            id="{{ form.imagen_2.id_for_label }}"
-                                            name="{{ form.imagen_2.name }}" accept="image/*">
                                     </div>
+
+                                    <!-- Imagen 3 -->
                                     <div class="col-md-4">
-                                        <label for="{{ form.imagen_3.id_for_label }}" class="form-label small">Imagen 3</label>
-                                        {% if form.instance.imagen_3 %}
-                                        <div class="mb-2">
-                                            <img src="{{ form.instance.imagen_3.url }}" alt="Imagen 3"
-                                                class="img-thumbnail" style="max-height: 150px; display:block;">
-                                            <span class="badge bg-success mt-1 d-inline-block">
-                                                <i class="fas fa-check me-1"></i>Imagen actual
-                                            </span>
-                                            <div class="form-text text-warning">
-                                                <i class="fas fa-info-circle me-1"></i>Sube una nueva para reemplazarla
+                                        <label for="{{ form.imagen_3.id_for_label }}" class="form-label small fw-bold">Imagen 3</label>
+                                        <div class="image-drop-zone p-3 text-center rounded-3 border-2 border-dashed bg-light position-relative" data-target-input="{{ form.imagen_3.id_for_label }}">
+                                            <input type="file" id="{{ form.imagen_3.id_for_label }}" name="{{ form.imagen_3.name }}" accept="image/*" class="d-none image-file-input">
+                                            
+                                            <div class="preview-container d-none mb-2 position-relative">
+                                                <img src="" class="img-thumbnail preview-img" style="max-height: 140px; object-fit: contain;">
+                                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle remove-preview-btn" title="Quitar imagen">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+
+                                            {% if form.instance.imagen_3 %}
+                                            <div class="current-img-container mb-2">
+                                                <img src="{{ form.instance.imagen_3.url }}" alt="Imagen 3" class="img-thumbnail" style="max-height: 120px;">
+                                                <div class="small text-success fw-semibold mt-1"><i class="fas fa-check-circle me-1"></i>Imagen actual</div>
+                                            </div>
+                                            {% endif %}
+
+                                            <div class="drop-zone-instructions">
+                                                <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                                                <div class="small fw-semibold text-dark">Haz clic, arrastra aquí o presiona <kbd>Ctrl+V</kbd></div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">JPG, PNG, WEBP (Máx 10MB)</div>
                                             </div>
                                         </div>
-                                        {% endif %}
-                                        <input type="file" class="form-control mt-1"
-                                            id="{{ form.imagen_3.id_for_label }}"
-                                            name="{{ form.imagen_3.name }}" accept="image/*">
                                     </div>
                                 </div>
-                                <div class="form-text">Sube hasta 3 imágenes para mostrar en el e-commerce externo.</div>
+                                <div class="form-text text-muted mt-2">
+                                    <i class="fas fa-magic text-primary me-1"></i>Sube o pega hasta 3 imágenes. El sistema las optimizará y convertirá automáticamente a formato <strong>WebP ultra-liviano</strong> para la web.
+                                </div>
                             </div>
 
                             <!-- NOMBRE -->
@@ -985,10 +1024,166 @@ $(document).ready(function () {
     #stock_actual_display {
         transition: color 0.4s ease;
     }
-    @media (max-width: 768px) {
-        .wizard-progress { padding: 0.5rem; }
-        .wizard-step-circle { width: 35px; height: 35px; }
-        .wizard-step-label { font-size: 0.65rem; }
+    .image-drop-zone {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-style: dashed !important;
+    }
+    .image-drop-zone:hover, .image-drop-zone.border-primary {
+        border-color: #0d6efd !important;
+        background-color: #f1f5f9 !important;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.1);
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZones = document.querySelectorAll('.image-drop-zone');
+    let lastFocusedZone = dropZones[0];
+
+    dropZones.forEach(zone => {
+        const inputId = zone.getAttribute('data-target-input');
+        const input = document.getElementById(inputId);
+        if (!input) return;
+
+        const previewContainer = zone.querySelector('.preview-container');
+        const previewImg = zone.querySelector('.preview-img');
+        const removeBtn = zone.querySelector('.remove-preview-btn');
+        const currentImgContainer = zone.querySelector('.current-img-container');
+        const instructions = zone.querySelector('.drop-zone-instructions');
+
+        // Al hacer clic en la casilla se activa la selección
+        zone.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-preview-btn')) return;
+            lastFocusedZone = zone;
+            input.click();
+        });
+
+        // Cambio manual en el input
+        input.addEventListener('change', function() {
+            if (input.files && input.files[0]) {
+                mostrarPreview(input.files[0], previewContainer, previewImg, currentImgContainer, instructions);
+            }
+        });
+
+        // Botón para quitar la vista previa
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                input.value = '';
+                previewContainer.classList.add('d-none');
+                previewImg.src = '';
+                if (currentImgContainer) currentImgContainer.classList.remove('d-none');
+                if (instructions) instructions.classList.remove('d-none');
+            });
+        }
+
+        // Drag and Drop
+        ['dragenter', 'dragover'].forEach(eventName => {
+            zone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.add('border-primary', 'bg-white');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            zone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.remove('border-primary', 'bg-white');
+            }, false);
+        });
+
+        zone.addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(files[0]);
+                input.files = dataTransfer.files;
+                mostrarPreview(files[0], previewContainer, previewImg, currentImgContainer, instructions);
+                lastFocusedZone = zone;
+            }
+        });
+    });
+
+    // EVENTO GLOBAL PASTE (Ctrl+V / Cmd+V)
+    document.addEventListener('paste', function(e) {
+        const clipboardData = e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData);
+        if (!clipboardData || !clipboardData.items) return;
+
+        const items = clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file' && item.type.startsWith('image/')) {
+                const blob = item.getAsFile();
+                if (!blob) continue;
+                
+                // Buscar casilla objetivo (la enfocada o la primera vacía)
+                let targetZone = lastFocusedZone;
+                if (!targetZone) {
+                    targetZone = Array.from(dropZones).find(z => {
+                        const inp = document.getElementById(z.getAttribute('data-target-input'));
+                        return !inp.files || inp.files.length === 0;
+                    }) || dropZones[0];
+                }
+
+                const inputId = targetZone.getAttribute('data-target-input');
+                const input = document.getElementById(inputId);
+                const previewContainer = targetZone.querySelector('.preview-container');
+                const previewImg = targetZone.querySelector('.preview-img');
+                const currentImgContainer = targetZone.querySelector('.current-img-container');
+                const instructions = targetZone.querySelector('.drop-zone-instructions');
+
+                // Asignar archivo al input mediante DataTransfer
+                const dataTransfer = new DataTransfer();
+                const ext = blob.type.split('/')[1] || 'png';
+                const file = new File([blob], `imagen_pegada_${Date.now()}.${ext}`, { type: blob.type });
+                dataTransfer.items.add(file);
+                input.files = dataTransfer.files;
+
+                mostrarPreview(file, previewContainer, previewImg, currentImgContainer, instructions);
+
+                // Notificación emergente si SweetAlert está disponible
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Imagen pegada desde el portapapeles',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+
+                // Rotar foco a la siguiente casilla vacía
+                const nextEmpty = Array.from(dropZones).find(z => {
+                    const inp = document.getElementById(z.getAttribute('data-target-input'));
+                    return !inp.files || inp.files.length === 0;
+                });
+                if (nextEmpty) lastFocusedZone = nextEmpty;
+
+                break;
+            }
+        }
+    });
+
+    function mostrarPreview(file, previewContainer, previewImg, currentImgContainer, instructions) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            previewContainer.classList.remove('d-none');
+            if (currentImgContainer) currentImgContainer.classList.add('d-none');
+            if (instructions) instructions.classList.add('d-none');
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
 {% endblock %}

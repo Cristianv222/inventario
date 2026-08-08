@@ -710,6 +710,23 @@
                     </a>
                     <div class="navbar-divider"></div>
                     <span class="navbar-dropdown-link" style="pointer-events:none; font-weight:600; padding-bottom:5px;">
+                        <i class="fas fa-store text-primary"></i>
+                        <span>Tienda Virtual Web</span>
+                    </span>
+                    <a href="{% url 'inventario:configuracion_tienda' %}" class="navbar-dropdown-link" style="padding-top:5px; padding-bottom:5px; padding-left:45px;">
+                        <i class="fas fa-percent text-warning" style="font-size: 0.9rem;"></i>
+                        <span>Descuento Global</span>
+                    </a>
+                    <a href="{% url 'inventario:productos_web_admin' %}" class="navbar-dropdown-link" style="padding-top:5px; padding-bottom:5px; padding-left:45px;">
+                        <i class="fas fa-star text-warning" style="font-size: 0.9rem;"></i>
+                        <span>Productos Estrellas / Remates</span>
+                    </a>
+                    <a href="{% url 'inventario:lista_cupones' %}" class="navbar-dropdown-link" style="padding-top:5px; padding-bottom:12px; padding-left:45px;">
+                        <i class="fas fa-ticket-alt text-success" style="font-size: 0.9rem;"></i>
+                        <span>Cupones Promocionales</span>
+                    </a>
+                    <div class="navbar-divider"></div>
+                    <span class="navbar-dropdown-link" style="pointer-events:none; font-weight:600; padding-bottom:5px;">
                         <i class="fas fa-file-invoice-dollar"></i>
                         <span>Facturación SRI</span>
                     </span>

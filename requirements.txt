@@ -45,8 +45,11 @@ zopfli==0.2.3.post1
 # django-tenants removed (moving to single tenant)
 
 # Dependencias adicionales para Docker
+djangorestframework-simplejwt==5.3.1
+PyJWT==2.8.0
+
 # Servidor de alto rendimiento (ASGI) y WebSockets
-granian==1.6.0
+granian==1.6.4
 channels==4.0.0
 daphne==4.0.0
 channels-redis==4.2.0
