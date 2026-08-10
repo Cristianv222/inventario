@@ -135,12 +135,13 @@
                                     onclick="probarConexionGroq()" title="Probar conexión con Groq AI">
                                     <i class="fas fa-plug me-1"></i>Probar Conexión
                                 </button>
-                            </div>
-                            <div id="resultado-conexion-groq" class="mt-2"></div>
+                                           <div id="resultado-conexion-groq" class="mt-2"></div>
                             <div class="form-text mt-1">Consigue tu clave gratis registrándote en <a
                                     href="https://console.groq.com/keys" target="_blank"
                                     class="fw-bold text-decoration-none text-primary"><i
                                         class="fas fa-external-link-alt me-1"></i>console.groq.com/keys</a>.</div>
+                        </div>
+
                         <!-- CONFIGURACIÓN DE API DE RESEND PARA ENVÍO DE EMAILS -->
                         <div class="mt-4 pt-4 border-top">
                             <h6 class="fw-bold text-dark mb-2">
@@ -230,6 +231,7 @@
 <script>
     function copiarTokenAPI() {
         const input = document.getElementById('{{ form.api_key_secret.id_for_label }}');
+        if (!input) return;
         navigator.clipboard.writeText(input.value).then(() => {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
@@ -250,21 +252,93 @@
         const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
             .map(b => b.toString(16).padStart(2, '0')).join('');
         const nuevoToken = `vpm_live_secret_${randomHex}`;
-        document.getElementById('{{ form.api_key_secret.id_for_label }}').value = nuevoToken;
+        const input = document.getElementById('{{ form.api_key_secret.id_for_label }}');
+        if (input) input.value = nuevoToken;
     }
 
-    function probarConexionResend() {
-        const apiKey = document.getElementById('{{ form.resend_api_key.id_for_label }}').value.trim();
-        const $res = $('#resultado-conexion-resend');
-        const $btn = $('#btn-probar-resend');
+    function toggleMostrarPassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn ? btn.querySelector('i') : null;
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type = 'password';
+            if (icon) icon.className = 'fas fa-eye';
+        }
+    }
+
+    function probarConexionGroq() {
+        const input = document.getElementById('{{ form.groq_api_key.id_for_label }}');
+        const apiKey = input ? input.value.trim() : '';
+        const res = document.getElementById('resultado-conexion-groq');
+        const btn = document.getElementById('btn-probar-groq');
 
         if (!apiKey) {
-            $res.html('<div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-exclamation-triangle me-1"></i>Ingresa la clave de API Resend (ej: re_...) antes de probar la conexión.</div>');
+            if (res) res.innerHTML = '<div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-exclamation-triangle me-1"></i>Ingresa la clave de API Groq (ej: gsk_...) antes de probar la conexión.</div>';
             return;
         }
 
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Probando...');
-        $res.html('<div class="small text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Conectando con servidores de Resend API...</div>');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Probando...';
+        }
+        if (res) {
+            res.innerHTML = '<div class="small text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Conectando con servidores de Groq AI...</div>';
+        }
+
+        fetch("{% url 'inventario:probar_conexion_groq_ajax' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ groq_api_key: apiKey })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plug me-1"></i>Probar Conexión';
+            }
+            if (res) {
+                if (data.success) {
+                    res.innerHTML = `<div class="alert alert-success py-2 mb-0 small"><i class="fas fa-check-circle me-1"></i>${data.message}</div>`;
+                } else {
+                    res.innerHTML = `<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-times-circle me-1"></i>${data.error}</div>`;
+                }
+            }
+        })
+        .catch(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plug me-1"></i>Probar Conexión';
+            }
+            if (res) {
+                res.innerHTML = `<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-times-circle me-1"></i>Error de conexión: ${err}</div>`;
+            }
+        });
+    }
+
+    function probarConexionResend() {
+        const input = document.getElementById('{{ form.resend_api_key.id_for_label }}');
+        const apiKey = input ? input.value.trim() : '';
+        const res = document.getElementById('resultado-conexion-resend');
+        const btn = document.getElementById('btn-probar-resend');
+
+        if (!apiKey) {
+            if (res) res.innerHTML = '<div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-exclamation-triangle me-1"></i>Ingresa la clave de API Resend (ej: re_...) antes de probar la conexión.</div>';
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Probando...';
+        }
+        if (res) {
+            res.innerHTML = '<div class="small text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Conectando con servidores de Resend API...</div>';
+        }
 
         fetch("{% url 'inventario:probar_conexion_resend_ajax' %}", {
             method: 'POST',
@@ -274,18 +348,31 @@
             },
             body: JSON.stringify({ resend_api_key: apiKey })
         })
-        .then(res => res.json())
+        .then(r => r.json())
         .then(data => {
-            $btn.prop('disabled', false).html('<i class="fas fa-plug me-1"></i>Probar Conexión');
-            if (data.success) {
-                $res.html(`<div class="alert alert-success py-2 mb-0 small"><i class="fas fa-check-circle me-1"></i>${data.message}</div>`);
-            } else {
-                $res.html(`<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-times-circle me-1"></i>${data.error}</div>`);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plug me-1"></i>Probar Conexión';
+            }
+            if (res) {
+                if (data.success) {
+                    res.innerHTML = `<div class="alert alert-success py-2 mb-0 small"><i class="fas fa-check-circle me-1"></i>${data.message}</div>`;
+                } else {
+                    res.innerHTML = `<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-times-circle me-1"></i>${data.error}</div>`;
+                }
             }
         })
         .catch(err => {
-            $btn.prop('disabled', false).html('<i class="fas fa-plug me-1"></i>Probar Conexión');
-            $res.html(`<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-times-circle me-1"></i>Error al probar conexión: ${err}</div>`);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plug me-1"></i>Probar Conexión';
+            }
+            if (res) {
+                res.innerHTML = `<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-times-circle me-1"></i>Error de conexión: ${err}</div>`;
+            }
+        });
+    }
+</script></div>`);
         });
     }
 </script>
