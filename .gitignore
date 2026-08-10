@@ -28,6 +28,13 @@ db.sqlite3-journal
 
 # Environment variables
 .env
+.env*
+*.env
+.env_desarrollo
+.env.prod
+.env.local
+.env.development
+.env.production
 .venv
 env/
 venv/
