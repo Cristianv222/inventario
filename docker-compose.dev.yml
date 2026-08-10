@@ -53,8 +53,6 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_HOST=redis
-      - VPMOTOS_API_TOKEN=${VPMOTOS_API_TOKEN}
-      - GROQ_API_KEY=${GROQ_API_KEY}
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
@@ -80,7 +78,7 @@ services:
     ports:
       - "4040:4040"
     environment:
-      NGROK_AUTHTOKEN: "36LhCQsJ8V7GultYSKTmrAxvy6S_7hF2MwUNpkHenKoDYzxqo"
+      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:-}"
     depends_on:
       - web
     networks:

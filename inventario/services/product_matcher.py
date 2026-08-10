@@ -47,7 +47,7 @@ def match_pdf_items_with_db(extracted_items):
                 elif pdf_numbers and not pdf_numbers.intersection(prod_numbers):
                     score = max(0, score - 15)
                     
-                if score >= 50:
+                if score >= 20:
                     scored_candidates.append({
                         'id': p.id,
                         'codigo_unico': p.codigo_unico,
@@ -62,22 +62,22 @@ def match_pdf_items_with_db(extracted_items):
             
             # Ordenar candidatos de mayor a menor puntuación
             scored_candidates.sort(key=lambda x: x['score'], reverse=True)
-            candidates = scored_candidates[:5]
+            candidates = scored_candidates[:7]
             
             if candidates:
                 best = candidates[0]
                 match_score = best['score']
                 
-                if match_score >= 88:
-                    matched_prod = next(p for p in all_products if p.id == best['id'])
+                if match_score >= 80:
+                    matched_prod = next((p for p in all_products if p.id == best['id']), None)
                     match_status = 'EXACT'
-                    match_reason = f"Alta coincidencia ({match_score}%) con producto existente '{best['nombre']}'"
-                elif match_score >= 55:
+                    match_reason = f"Coincidencia directa ({match_score}%) con producto existente '{best['nombre']}'"
+                elif match_score >= 40:
                     match_status = 'SIMILAR'
-                    match_reason = f"Se encontraron {len(candidates)} sugerencias posibles. Principal candidato ({match_score}%): '{best['nombre']}'"
+                    match_reason = f"Se encontraron {len(candidates)} coincidencias similares. Candidato principal ({match_score}%): '{best['nombre']}'"
                 else:
                     match_status = 'NEW'
-                    match_reason = "Baja coincidencia. Se sugiere registrar como producto nuevo."
+                    match_reason = "No hay coincidencia directa. Puedes asociarlo a un producto existente o registrarlo como nuevo."
         
         # Detectar Marca / Categoría sugerida a partir del nombre
         sug_marca_id = None

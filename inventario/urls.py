@@ -109,6 +109,8 @@ urlpatterns = [
     # MÓDULO ADMIN FRONTEND - TIENDA VIRTUAL ✅ NUEVO
     # ========================================
     path('admin/configuracion-tienda/', views.configuracion_tienda_view, name='configuracion_tienda'),
+    path('admin/probar-conexion-groq/', views.probar_conexion_groq_ajax, name='probar_conexion_groq_ajax'),
+    path('admin/probar-conexion-resend/', views.probar_conexion_resend_ajax, name='probar_conexion_resend_ajax'),
     path('admin/productos-web/', views.productos_web_admin_view, name='productos_web_admin'),
     path('admin/productos-web/<int:producto_id>/descuento/', views.actualizar_descuento_especial_ajax, name='actualizar_descuento_especial_ajax'),
     path('admin/cupones/', views.lista_cupones_view, name='lista_cupones'),

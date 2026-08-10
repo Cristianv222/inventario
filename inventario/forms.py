@@ -33,6 +33,17 @@ class ProductoForm(forms.ModelForm):
             'imagen_3': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'descuento_especial_porcentaje' in self.fields:
+            self.fields['descuento_especial_porcentaje'].required = False
+        if 'es_destacado' in self.fields:
+            self.fields['es_destacado'].required = False
+        if 'descripcion' in self.fields:
+            self.fields['descripcion'].required = False
+        if 'ubicacion_almacen' in self.fields:
+            self.fields['ubicacion_almacen'].required = False
+
     def clean_codigo_unico(self):
         codigo = self.cleaned_data.get('codigo_unico')
         if not codigo:
@@ -203,17 +214,26 @@ class ProductoSearchForm(forms.Form):
 
 
 class ConfiguracionTiendaForm(forms.ModelForm):
-    """Formulario para gestionar el descuento global, precio mínimo y clave de API de la tienda virtual"""
+    """Formulario para gestionar descuento global, precio mínimo y claves de API (Tienda, Groq AI, Resend Email)"""
     
     class Meta:
         model = ConfiguracionTienda
-        fields = ['porcentaje_descuento_global', 'precio_minimo_descuento', 'descuento_activo', 'api_key_secret']
+        fields = ['porcentaje_descuento_global', 'precio_minimo_descuento', 'descuento_activo', 'api_key_secret', 'groq_api_key', 'resend_api_key']
         widgets = {
             'porcentaje_descuento_global': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100'}),
             'precio_minimo_descuento': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'descuento_activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'api_key_secret': forms.TextInput(attrs={'class': 'form-control font-monospace', 'placeholder': 'Clave Secreta de API'}),
+            'groq_api_key': forms.TextInput(attrs={'class': 'form-control font-monospace', 'placeholder': 'Ej: gsk_...'}),
+            'resend_api_key': forms.TextInput(attrs={'class': 'form-control font-monospace', 'placeholder': 'Ej: re_...'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'groq_api_key' in self.fields:
+            self.fields['groq_api_key'].required = False
+        if 'resend_api_key' in self.fields:
+            self.fields['resend_api_key'].required = False
 
 
 class CodigoPromocionalForm(forms.ModelForm):

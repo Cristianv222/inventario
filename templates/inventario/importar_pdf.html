@@ -96,13 +96,17 @@
             </div>
 
             <div class="pdf-dropzone" id="dropzone" onclick="document.getElementById('pdf-file-input').click();">
-                <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event)">
+                <input type="file" id="pdf-file-input" accept="application/pdf, image/png, image/jpeg, image/webp" style="display: none;" onchange="handleFileSelect(event)">
                 <i class="fas fa-file-invoice-dollar pdf-dropzone-icon"></i>
-                <h4 class="fw-bold text-dark mb-2">Arrastra tu archivo PDF aquí o haz clic para examinar</h4>
-                <p class="text-muted mb-3">Compatible con facturas electrónicas, proformas y listas de precios en PDF.</p>
+                <h4 class="fw-bold text-dark mb-2">Arrastra tu archivo PDF o Foto de Factura aquí o haz clic</h4>
+                <p class="text-muted mb-3">Compatible con facturas electrónicas en <strong>PDF</strong> y <strong>fotos/imágenes (JPG, PNG, WEBP)</strong> de facturas físicas.</p>
                 <button type="button" class="btn btn-primary px-4 py-2 rounded-pill shadow-sm">
-                    <i class="fas fa-folder-open me-2"></i>Seleccionar Archivo PDF
+                    <i class="fas fa-camera me-2"></i>Seleccionar PDF o Foto de Factura
                 </button>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small border-0 mt-3 mb-0 shadow-sm" style="background-color: #e0f2fe; color: #0369a1; border-radius: 12px;">
+                <i class="fas fa-paste me-2"></i><strong>Tip de velocidad:</strong> Puedes copiar una foto o captura de factura y presionar <kbd class="bg-primary text-white">Ctrl+V</kbd> o <kbd class="bg-primary text-white">Cmd+V</kbd> en cualquier lugar de esta página para procesarla de inmediato.
             </div>
 
             <!-- Loading Spinner -->
@@ -185,6 +189,7 @@ let parsedItemsData = [];
 let currentFilename = '';
 let marcasOptions = [];
 let categoriasOptions = [];
+let productosExistentesOptions = [];
 
 // Drag and drop handling
 const dropzone = document.getElementById('dropzone');
@@ -206,21 +211,54 @@ function preventDefaults(e) {
     dropzone.addEventListener(eventName, () => dropzone.classList.remove('dragover'), false);
 });
 
+function isAllowedFile(file) {
+    if (!file) return false;
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+    const allowedExts = ['.pdf', '.png', '.jpg', '.jpeg', '.webp'];
+    const name = file.name || '';
+    const ext = name.includes('.') ? '.' + name.split('.').pop().toLowerCase() : '';
+    return allowedTypes.includes(file.type) || allowedExts.includes(ext) || file.type.startsWith('image/');
+}
+
 dropzone.addEventListener('drop', (e) => {
     const dt = e.dataTransfer;
     const files = dt.files;
-    if (files.length > 0 && files[0].type === 'application/pdf') {
+    if (files.length > 0 && isAllowedFile(files[0])) {
         uploadPDFFile(files[0]);
     } else {
-        alert('Por favor selecciona un archivo en formato PDF.');
+        alert('Por favor selecciona o arrastra un archivo en formato PDF o Imagen (JPG, PNG, WEBP).');
     }
 });
 
 function handleFileSelect(e) {
     if (e.target.files.length > 0) {
-        uploadPDFFile(e.target.files[0]);
+        const file = e.target.files[0];
+        if (isAllowedFile(file)) {
+            uploadPDFFile(file);
+        } else {
+            alert('Por favor selecciona un archivo PDF o Imagen (JPG, PNG, WEBP).');
+        }
     }
 }
+
+// Soporte para PEGAR IMÁGENES (Ctrl+V / Cmd+V)
+document.addEventListener('paste', function (e) {
+    const items = (e.clipboardData || window.clipboardData)?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            if (file) {
+                e.preventDefault();
+                const timestamp = new Date().getTime();
+                const renamedFile = new File([file], `factura_pegada_${timestamp}.webp`, { type: file.type || 'image/webp' });
+                uploadPDFFile(renamedFile);
+                break;
+            }
+        }
+    }
+});
 
 function uploadPDFFile(file) {
     currentFilename = file.name;
@@ -247,15 +285,16 @@ function uploadPDFFile(file) {
             parsedItemsData = data.items;
             marcasOptions = data.marcas;
             categoriasOptions = data.categorias;
+            productosExistentesOptions = data.productos_existentes || [];
             renderReviewTable();
         } else {
-            alert(data.message || 'Error al procesar el archivo PDF.');
+            alert(data.message || 'Error al procesar el archivo.');
             resetUpload();
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error de conexión o procesamiento del PDF.');
+        alert('Error de conexión o procesamiento.');
         resetUpload();
     });
 }
@@ -288,35 +327,44 @@ function renderReviewTable() {
             statusBadge = `<span class="badge badge-new px-2 py-1"><i class="fas fa-plus-circle me-1"></i>Producto Nuevo</span>`;
         }
 
-        let actionHTML = '';
-        if (item.match_status === 'EXACT' && item.selected_product_id) {
-            actionHTML = `
-                <input type="hidden" id="action-${idx}" value="EXISTING">
-                <input type="hidden" id="prod-id-${idx}" value="${item.selected_product_id}">
-                <div class="fw-bold text-success"><i class="fas fa-link me-1"></i>Asociado a producto #${item.selected_product_id}</div>
-                <small class="text-muted">Se aumentará stock y actualizará costo.</small>
-            `;
-        } else if (item.match_status === 'SIMILAR' && item.candidates && item.candidates.length > 0) {
-            let optionsHTML = item.candidates.map(c => `
-                <option value="${c.id}" ${c.id === item.selected_product_id ? 'selected' : ''}>
-                    [${c.score}% Match] ${c.nombre} (${c.codigo_unico})
-                </option>
-            `).join('');
-            
-            actionHTML = `
-                <select class="form-select form-select-sm mb-1" id="select-candidate-${idx}" onchange="updateRowAction(${idx})">
-                    ${optionsHTML}
-                    <option value="NEW_PROD">+ Crear como Producto Nuevo</option>
-                </select>
-                <input type="hidden" id="action-${idx}" value="EXISTING">
-                <input type="hidden" id="prod-id-${idx}" value="${item.selected_product_id}">
-            `;
-        } else {
-            let catOptions = categoriasOptions.map(c => `<option value="${c.id}" ${c.id === item.sug_cat_id ? 'selected' : ''}>${c.nombre}</option>`).join('');
-            let marcaOptions = marcasOptions.map(m => `<option value="${m.id}" ${m.id === item.sug_marca_id ? 'selected' : ''}>${m.nombre}</option>`).join('');
+        // Opciones de candidatos sugeridos
+        let candidatesOptHTML = '';
+        if (item.candidates && item.candidates.length > 0) {
+            candidatesOptHTML += `<optgroup label="⭐ Sugerencias Principales (${item.candidates.length})">`;
+            item.candidates.forEach(c => {
+                const isSelected = c.id === item.selected_product_id ? 'selected' : '';
+                candidatesOptHTML += `<option value="${c.id}" ${isSelected}>[${c.score}% Coincidencia] ${c.nombre} (${c.codigo_unico}) - Stock: ${c.stock_actual}</option>`;
+            });
+            candidatesOptHTML += `</optgroup>`;
+        }
 
-            actionHTML = `
-                <input type="hidden" id="action-${idx}" value="NEW">
+        // Todos los productos de la BD
+        let allProdsOptHTML = '';
+        if (productosExistentesOptions && productosExistentesOptions.length > 0) {
+            allProdsOptHTML += `<optgroup label="📦 Todos los Productos del Inventario (${productosExistentesOptions.length})">`;
+            productosExistentesOptions.forEach(p => {
+                const isSelected = (!item.candidates || item.candidates.length === 0) && p.id === item.selected_product_id ? 'selected' : '';
+                allProdsOptHTML += `<option value="${p.id}" ${isSelected}>${p.nombre} (${p.codigo}) - Stock: ${p.stock}</option>`;
+            });
+            allProdsOptHTML += `</optgroup>`;
+        }
+
+        let catOptions = categoriasOptions.map(c => `<option value="${c.id}" ${c.id === item.sug_cat_id ? 'selected' : ''}>${c.nombre}</option>`).join('');
+        let marcaOptions = marcasOptions.map(m => `<option value="${m.id}" ${m.id === item.sug_marca_id ? 'selected' : ''}>${m.nombre}</option>`).join('');
+
+        const isNewDefault = item.match_status === 'NEW';
+
+        const actionHTML = `
+            <input type="hidden" id="action-${idx}" value="${isNewDefault ? 'NEW' : 'EXISTING'}">
+            <div class="mb-1">
+                <select class="form-select form-select-sm fw-bold border-secondary" id="mode-${idx}" onchange="toggleItemMode(${idx})">
+                    <option value="NEW" ${isNewDefault ? 'selected' : ''}>✨ Crear como Producto Nuevo</option>
+                    <option value="EXISTING" ${!isNewDefault ? 'selected' : ''}>🔗 Vincular a Producto Existente (Aumentar Stock)</option>
+                </select>
+            </div>
+
+            <!-- Panel Producto Nuevo -->
+            <div id="panel-new-${idx}" class="${!isNewDefault ? 'd-none' : ''}">
                 <div class="row g-1">
                     <div class="col-6">
                         <select class="form-select form-select-sm" id="cat-${idx}" title="Categoría">
@@ -329,8 +377,17 @@ function renderReviewTable() {
                         </select>
                     </div>
                 </div>
-            `;
-        }
+            </div>
+
+            <!-- Panel Producto Existente -->
+            <div id="panel-existing-${idx}" class="${isNewDefault ? 'd-none' : ''}">
+                <select class="form-select form-select-sm font-monospace" id="select-product-${idx}">
+                    ${candidatesOptHTML}
+                    ${allProdsOptHTML}
+                </select>
+                <small class="text-muted d-block mt-1"><i class="fas fa-boxes me-1 text-primary"></i>Se sumará stock y actualizará costo.</small>
+            </div>
+        `;
 
         const tr = document.createElement('tr');
         tr.className = rowClass;
@@ -354,7 +411,7 @@ function renderReviewTable() {
                 ${statusBadge}
                 <div class="small text-muted mt-1">${item.match_reason || ''}</div>
             </td>
-            <td>
+            <td style="min-width: 280px;">
                 ${actionHTML}
             </td>
             <td class="pe-4 text-center">
@@ -366,10 +423,26 @@ function renderReviewTable() {
         tbody.appendChild(tr);
     });
 
-    document.getElementById('summary-title').innerText = `Resumen de PDF (${parsedItemsData.length} ítems procesados)`;
+    document.getElementById('summary-title').innerText = `Resumen de Importación (${parsedItemsData.length} ítems procesados)`;
     document.getElementById('badge-count-exact').innerText = `${exactCount} Coincidencias Exactas`;
     document.getElementById('badge-count-similar').innerText = `${similarCount} Sugerencias Similares`;
     document.getElementById('badge-count-new').innerText = `${newCount} Productos Nuevos`;
+}
+
+function toggleItemMode(idx) {
+    const mode = document.getElementById(`mode-${idx}`).value;
+    const actionInput = document.getElementById(`action-${idx}`);
+    const panelNew = document.getElementById(`panel-new-${idx}`);
+    const panelExisting = document.getElementById(`panel-existing-${idx}`);
+
+    actionInput.value = mode;
+    if (mode === 'NEW') {
+        panelNew.classList.remove('d-none');
+        panelExisting.classList.add('d-none');
+    } else {
+        panelNew.classList.add('d-none');
+        panelExisting.classList.remove('d-none');
+    }
 }
 
 function updateSuggestedSalePrice(idx) {
@@ -378,20 +451,6 @@ function updateSuggestedSalePrice(idx) {
     const cost = parseFloat(costInput.value) || 0;
     if (cost > 0 && (parseFloat(priceInput.value) === 0 || !priceInput.value)) {
         priceInput.value = (cost * 1.30).toFixed(2);
-    }
-}
-
-function updateRowAction(idx) {
-    const sel = document.getElementById(`select-candidate-${idx}`);
-    const actionInput = document.getElementById(`action-${idx}`);
-    const prodIdInput = document.getElementById(`prod-id-${idx}`);
-
-    if (sel.value === 'NEW_PROD') {
-        actionInput.value = 'NEW';
-        prodIdInput.value = '';
-    } else {
-        actionInput.value = 'EXISTING';
-        prodIdInput.value = sel.value;
     }
 }
 
@@ -438,12 +497,15 @@ function submitImport() {
         const idxStr = tr.id.replace('tr-item-', '');
         const idx = parseInt(idxStr);
 
-        const actionEl = document.getElementById(`action-${idx}`);
-        if (!actionEl) return;
+        const modeEl = document.getElementById(`mode-${idx}`);
+        if (!modeEl) return;
 
-        const action = actionEl.value;
-        const prodIdEl = document.getElementById(`prod-id-${idx}`);
-        const prodId = prodIdEl ? prodIdEl.value : null;
+        const action = modeEl.value; // 'NEW' o 'EXISTING'
+        let prodId = null;
+        if (action === 'EXISTING') {
+            const selectProd = document.getElementById(`select-product-${idx}`);
+            prodId = selectProd ? selectProd.value : null;
+        }
 
         const nombre = document.getElementById(`name-${idx}`).value;
         const codigo = document.getElementById(`code-${idx}`).value;

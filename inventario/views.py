@@ -1895,13 +1895,16 @@ def validar_token_api(request):
     - Header: Authorization: Bearer <TOKEN>
     - Header: Authorization: Token <TOKEN>
     """
-    from django.conf import settings
     from .models import ConfiguracionTienda
     
     config = ConfiguracionTienda.get_configuracion()
-    secret_key = getattr(config, 'api_key_secret', None) or getattr(settings, 'WEB_API_KEY', 'vpm_live_secret_key_984102983719827398127398')
-    valid_tokens = [secret_key, getattr(settings, 'WEB_API_KEY', ''), 'e755500a6c7b395c700e8c75f1d48cd6a76bc01d']
-    valid_tokens = [t.strip() for t in valid_tokens if t and t.strip()]
+    valid_tokens = []
+    
+    if config and config.api_key_secret and config.api_key_secret.strip():
+        valid_tokens.append(config.api_key_secret.strip())
+
+    if not valid_tokens:
+        return False
 
     # 1. Header X-API-Key
     api_key_header = request.headers.get('X-API-Key') or request.META.get('HTTP_X_API_KEY')
@@ -2099,7 +2102,7 @@ def importar_pdf_view(request):
             if not extracted_raw:
                 return JsonResponse({
                     'success': False, 
-                    'message': 'No se encontraron tablas ni ítems de productos legibles en el PDF subido.'
+                    'message': 'No se encontraron ítems de productos legibles en el archivo PDF o Imagen subido. Asegúrate de que la foto tenga buena iluminación y legibilidad.'
                 }, status=400)
                 
             # 2. Motor de comparación con DB
@@ -2107,6 +2110,15 @@ def importar_pdf_view(request):
             
             marcas_list = [{'id': m.id, 'nombre': m.nombre} for m in marcas]
             cat_list = [{'id': c.id, 'nombre': c.nombre} for c in categorias]
+            prods_list = [
+                {
+                    'id': p.id,
+                    'codigo': p.codigo_unico,
+                    'nombre': p.nombre,
+                    'stock': float(p.stock_actual),
+                    'precio': float(p.precio_compra)
+                } for p in Producto.objects.filter(activo=True).select_related('categoria', 'marca').order_by('nombre')
+            ]
             
             return JsonResponse({
                 'success': True,
@@ -2114,7 +2126,8 @@ def importar_pdf_view(request):
                 'count': len(matched_items),
                 'items': matched_items,
                 'marcas': marcas_list,
-                'categorias': cat_list
+                'categorias': cat_list,
+                'productos_existentes': prods_list
             })
             
         except Exception as e:
@@ -2391,4 +2404,98 @@ def actualizar_descuento_especial_ajax(request, producto_id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+
+@login_required
+@require_POST
+def probar_conexion_groq_ajax(request):
+    """
+    Endpoint AJAX para verificar en tiempo real si la clave de API Groq (gsk_...) ingresada funciona.
+    """
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Acceso no autorizado'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        api_key = data.get('groq_api_key', '').strip()
+    except Exception:
+        api_key = request.POST.get('groq_api_key', '').strip()
+
+    if not api_key:
+        return JsonResponse({'success': False, 'error': 'Debe ingresar una clave de API Groq (ej: gsk_...)'}, status=400)
+
+    try:
+        import requests
+        r = requests.get(
+            'https://api.groq.com/openai/v1/models',
+            headers={'Authorization': f'Bearer {api_key}'},
+            timeout=10
+        )
+        if r.status_code == 200:
+            return JsonResponse({
+                'success': True,
+                'message': '✅ ¡Conexión Exitosa con Groq AI! La clave es válida y está lista para digitalizar facturas y fotos.'
+            })
+        elif r.status_code == 401:
+            return JsonResponse({
+                'success': False,
+                'error': '❌ Clave de API inválida (Error 401 Unauthorized). Revisa que la clave empiece con gsk_ y no tenga espacios.'
+            }, status=400)
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': f'Respuesta del servidor de Groq (HTTP {r.status_code}): {r.text[:150]}'
+            }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error de conexión con el servidor de Groq: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_POST
+def probar_conexion_resend_ajax(request):
+    """
+    Endpoint AJAX para verificar en tiempo real si la clave de API Resend (re_...) ingresada funciona.
+    """
+    if not (getattr(request.user, 'es_admin_general', False) or request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Acceso no autorizado'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        api_key = data.get('resend_api_key', '').strip()
+    except Exception:
+        api_key = request.POST.get('resend_api_key', '').strip()
+
+    if not api_key:
+        return JsonResponse({'success': False, 'error': 'Debe ingresar una clave de API Resend (ej: re_...)'}, status=400)
+
+    try:
+        import requests
+        r = requests.get(
+            'https://api.resend.com/api-keys',
+            headers={'Authorization': f'Bearer {api_key}'},
+            timeout=10
+        )
+        if r.status_code == 200:
+            return JsonResponse({
+                'success': True,
+                'message': '✅ ¡Conexión Exitosa con Resend API! La clave es válida y está lista para enviar comprobantes por correo.'
+            })
+        elif r.status_code in [401, 403]:
+            return JsonResponse({
+                'success': False,
+                'error': '❌ Clave de API inválida (Error 401 Unauthorized). Revisa que la clave empiece con re_ y no tenga espacios.'
+            }, status=400)
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': f'Respuesta del servidor de Resend (HTTP {r.status_code}): {r.text[:150]}'
+            }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error de conexión con el servidor de Resend: {str(e)}'
+        }, status=500)

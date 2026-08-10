@@ -31,14 +31,30 @@ class ResendInvoicingService:
     """
     
     @staticmethod
+    def _get_resend_api_key(provided_key=None):
+        """Obtiene la clave de Resend API exclusivamente desde la Base de Datos o el parámetro provisto"""
+        if provided_key and str(provided_key).strip():
+            return str(provided_key).strip()
+            
+        try:
+            from inventario.models import ConfiguracionTienda
+            cfg = ConfiguracionTienda.get_configuracion()
+            if cfg and cfg.resend_api_key and cfg.resend_api_key.strip():
+                return cfg.resend_api_key.strip()
+        except Exception as e:
+            logger.error(f"Error consultando resend_api_key en BD: {e}")
+            
+        return ""
+
+    @staticmethod
     def enviar_comprobante(comprobante):
         """
         Envía el XML y PDF de un comprobante autorizado al correo del cliente.
         """
-        # Configurar API Key
-        api_key = getattr(settings, 'RESEND_API_KEY', os.getenv('RESEND_API_KEY'))
+        # Configurar API Key desde la Base de Datos
+        api_key = ResendInvoicingService._get_resend_api_key()
         if not api_key:
-            logger.error("API Key no configurada en settings o env")
+            logger.error("API Key de Resend no configurada en la Base de Datos")
             return False
             
         resend.api_key = api_key

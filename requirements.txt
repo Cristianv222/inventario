@@ -70,4 +70,4 @@ resend
 django-anymail[resend]
 pdfplumber
 thefuzz
-
+pytesseract

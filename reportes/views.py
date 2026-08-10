@@ -1313,7 +1313,7 @@ def api_config_gomotos(request):
         token_param = ParametroSistema.objects.filter(nombre='GOMOTOS_API_TOKEN').first()
         
         url = url_param.valor if url_param else 'http://localhost:8002'
-        token = token_param.valor if token_param else os.environ.get('VPMOTOS_API_TOKEN', '')
+        token = token_param.valor if token_param else ''
         
         return JsonResponse({
             'success': True,

@@ -56,7 +56,7 @@ class Producto(models.Model):
     # Precios
     precio_compra = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_('Precio de Compra'))
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_('Precio de Venta'))
-    descuento_especial_porcentaje = models.DecimalField(default=0.00, max_digits=5, decimal_places=2, verbose_name=_('Descuento Especial Web (%)'), help_text=_('Descuento personalizado individual para este producto (ej: 20.00)'))
+    descuento_especial_porcentaje = models.DecimalField(default=0.00, max_digits=5, decimal_places=2, blank=True, null=True, verbose_name=_('Descuento Especial Web (%)'), help_text=_('Descuento personalizado individual para este producto (ej: 20.00)'))
     incluye_iva = models.BooleanField(default=True, verbose_name=_('Incluye IVA'))
     
     # Stock
@@ -442,6 +442,20 @@ class ConfiguracionTienda(models.Model):
         default='vpm_live_secret_key_984102983719827398127398',
         verbose_name=_('Clave Secreta de API Web (Token)'),
         help_text=_('Token de seguridad para autorizar a la tienda web')
+    )
+    groq_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_('Clave de API Groq (Visión IA)'),
+        help_text=_('Clave de API de Groq AI para digitalizar facturas y fotos con IA (ej: gsk_...)')
+    )
+    resend_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_('Clave de API Resend (Emails)'),
+        help_text=_('Clave de API de Resend para el envío de facturas por correo electrónico (ej: re_...)')
     )
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 

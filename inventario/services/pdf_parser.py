@@ -41,7 +41,12 @@ STOP_WORDS = [
     'FORMAS DE PAGO', 'GRACIAS POR SU COMPRA', 'VALOR NETO', 'NETO A PAGAR',
     'RETE.', 'DESCUENTO', 'SON:', 'INFORMACION ADICIONAL', 'INFORMACIÓN ADICIONAL',
     'EMAIL:', 'TELEFONO:', 'TELÉFONO:', 'VENDEDOR', 'VALOR TOTAL', 'IVA 15%',
-    'SIN IMPUESTOS', 'NO OBJETO IVA',
+    'SIN IMPUESTOS', 'NO OBJETO IVA', 'CONTRIBUYENTE', 'OBLIGADO A LLEVAR',
+    'AGENTE DE RETENCION', 'AGENTE DE RETENCIÓN', 'BANCO PICHINCHA', 'BANCO GUAYAQUIL',
+    'CUENTAS CORRIENTES', 'NUMERO DE AUTORIZACION', 'AUTORIZACION', 'AUTORIZACIÓN',
+    'NRO:', 'NO:', 'NO. 00', '001-020-', 'FECHA Y HORA', 'AMBIENTE:', 'EMISION:',
+    'CLAVE DE ACCESO', 'LUGAR:', 'PLAZA:', 'PROVINCIA:', 'FORMA PAGO:', 'DIRECCIÓN:',
+    'DIRECCION:', 'IMPORTADORA', 'ECOMOTOS', 'SHEYLA SOFTWARE'
 ]
 
 MARGEN_VENTA = Decimal('1.30')
@@ -52,15 +57,60 @@ LINE_TOLERANCE = 6.0  # puntos; separación típica entre filas ≈ 11 pt
 # API pública
 # --------------------------------------------------------------------------- #
 
+def _get_groq_key(provided_key=None):
+    """Retorna la clave de Groq API (exclusivamente desde la Base de Datos o el parámetro provisto)"""
+    if provided_key and str(provided_key).strip():
+        return str(provided_key).strip()
+        
+    try:
+        from inventario.models import ConfiguracionTienda
+        cfg = ConfiguracionTienda.get_configuracion()
+        if cfg and cfg.groq_api_key and cfg.groq_api_key.strip():
+            return cfg.groq_api_key.strip()
+    except Exception:
+        pass
+
+    return ""
+
+
 def parse_pdf_productos(pdf_file_path_or_buffer, use_ai=True, ai_api_key=None,
                         ai_provider='groq', decimal_sep=None, debug=False):
     """
     Devuelve una lista de dicts con codigo, nombre, cantidad, precio_compra,
     precio_venta.
-
-    decimal_sep: None = autodetectar por documento ('.' o ',').
+    Soporta archivos PDF y fotos/imágenes de facturas físicas (JPG, PNG, WEBP).
     """
     items, full_text, ruta = [], '', 'ninguna'
+    key = _get_groq_key(ai_api_key)
+
+    # Detectar si el archivo es una imagen (JPG, PNG, WEBP, etc)
+    filename = getattr(pdf_file_path_or_buffer, 'name', '') or str(pdf_file_path_or_buffer)
+    content_type = getattr(pdf_file_path_or_buffer, 'content_type', '')
+    is_image = any(filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp']) or content_type.startswith('image/')
+
+    if is_image:
+        try:
+            if hasattr(pdf_file_path_or_buffer, 'read'):
+                image_bytes = pdf_file_path_or_buffer.read()
+                if hasattr(pdf_file_path_or_buffer, 'seek'):
+                    pdf_file_path_or_buffer.seek(0)
+            else:
+                with open(pdf_file_path_or_buffer, 'rb') as f:
+                    image_bytes = f.read()
+
+            ext = filename.split('.')[-1].lower() if '.' in filename else 'png'
+            mime_type = content_type or f"image/{'jpeg' if ext in ['jpg', 'jpeg'] else ext}"
+
+            if key:
+                vision_items = _parse_image_with_groq_vision(image_bytes, mime_type, key)
+                if vision_items:
+                    return vision_items
+
+            # Fallback a OCR local (Tesseract) si no hay clave de IA o si Groq no retornó datos
+            return _parse_image_with_ocr_local(image_bytes)
+        except Exception as e:
+            print(f"[parser] Error procesando imagen: {e}")
+            return []
 
     try:
         with pdfplumber.open(pdf_file_path_or_buffer) as pdf:
@@ -90,16 +140,12 @@ def parse_pdf_productos(pdf_file_path_or_buffer, use_ai=True, ai_api_key=None,
         if _es_valido(items):
             return items
 
-    if use_ai and full_text:
-        key = (ai_api_key
-               or (getattr(settings, 'GROQ_API_KEY', None) if settings else None)
-               or os.environ.get('GROQ_API_KEY'))
-        if key:
-            ai_items = _parse_with_groq(full_text, key)
-            if ai_items:
-                if debug:
-                    print(f"[parser] ruta=groq items={len(ai_items)}")
-                return ai_items
+    if use_ai and full_text and key:
+        ai_items = _parse_with_groq(full_text, key)
+        if ai_items:
+            if debug:
+                print(f"[parser] ruta=groq items={len(ai_items)}")
+            return ai_items
 
     return items
 
@@ -286,9 +332,10 @@ def _clean_name(val):
 
 def _clean_code_from_string(val):
     for w in re.findall(r'[A-Z0-9-]{3,}', str(val).upper()):
-        if any(c.isdigit() for c in w):
+        if any(c.isdigit() for c in w) and not any(k in w for k in ['RUC', 'NIT', 'TEL', 'RES', '001-']):
             return w[:20]
-    return f"PDF-{re.sub(r'[^A-Z0-9]', '', str(val).upper())[:10]}"
+    clean_txt = re.sub(r'[^A-Z0-9]', '', str(val).upper())
+    return f"PROD-{clean_txt[:8]}" if clean_txt else "PROD-ITEM"
 
 
 def _finalizar(items, decimal_sep):
@@ -398,6 +445,61 @@ def _parse_with_groq(full_text, api_key):
     except Exception as e:
         print(f"[parser] Groq falló: {e}")
         return []
+
+
+def _parse_image_with_ocr_local(image_bytes):
+    """
+    Procesa fotos e imágenes de facturas físicas usando Tesseract OCR local.
+    Agrupa líneas consecutivas de descripción y filtra membretes/cabeceras.
+    """
+    try:
+        from PIL import Image, ImageEnhance
+        import io
+        import pytesseract
+
+        img = Image.open(io.BytesIO(image_bytes)).convert('L')
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(2.0)
+
+        ocr_text = pytesseract.image_to_string(img, lang='spa+eng')
+        if ocr_text:
+            items = _fallback_por_lineas(ocr_text)
+            if items:
+                return _finalizar(items, _detect_decimal_sep(ocr_text) or '.')
+    except Exception as e:
+        print(f"[parser ocr] Error en OCR local Tesseract: {e}")
+    return []
+
+
+def _parse_image_with_groq_vision(image_bytes, mime_type, api_key):
+    """
+    Procesa fotos e imágenes (JPG, PNG, WEBP) de facturas físicas usando la API de Groq AI (llama-3.3-70b-versatile).
+    Extrae el texto mediante OCR y utiliza la potencia de la IA de Groq para interpretar y limpiar el 100% de los productos.
+    """
+    try:
+        from PIL import Image, ImageEnhance
+        import io
+        import pytesseract
+
+        img = Image.open(io.BytesIO(image_bytes)).convert('L')
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(2.0)
+
+        ocr_text = pytesseract.image_to_string(img, lang='spa+eng')
+        if ocr_text and api_key:
+            print(f"[parser image groq] OCR local completado. Enviando texto a Groq AI (llama-3.3-70b-versatile)...")
+            groq_items = _parse_with_groq(ocr_text, api_key)
+            if groq_items:
+                print(f"[parser image groq] Groq AI retornó {len(groq_items)} productos con éxito!")
+                return groq_items
+
+            # Fallback local por líneas si Groq no retornó productos
+            items = _fallback_por_lineas(ocr_text)
+            if items:
+                return _finalizar(items, _detect_decimal_sep(ocr_text) or '.')
+    except Exception as e:
+        print(f"[parser image groq] Error procesando imagen con Groq AI: {e}")
+    return []
 
 
 if __name__ == '__main__':

@@ -11,7 +11,8 @@
             <h1 class="h3 mb-1 text-gray-800 fw-bold">
                 <i class="fas fa-store text-primary me-2"></i>Configuración de Tienda Virtual
             </h1>
-            <p class="text-muted mb-0">Administra el descuento global y las reglas de precio mínimo para la página web.</p>
+            <p class="text-muted mb-0">Administra el descuento global y las reglas de precio mínimo para la página web.
+            </p>
         </div>
         <a href="{% url 'inventario:lista_cupones' %}" class="btn btn-outline-primary rounded-pill px-3">
             <i class="fas fa-ticket-alt me-1"></i> Ir a Cupones Promocionales
@@ -33,21 +34,31 @@
 
                         <!-- Switch Activar Descuento -->
                         <div class="form-check form-switch p-3 bg-light rounded-3 mb-4 border">
-                            <input class="form-check-input ms-0 me-3" type="checkbox" id="{{ form.descuento_activo.id_for_label }}" name="{{ form.descuento_activo.name }}" value="True" {% if form.descuento_activo.value %}checked{% endif %} style="width: 2.5em; height: 1.25em;">
-                            <label class="form-check-label fw-bold text-dark" for="{{ form.descuento_activo.id_for_label }}">
+                            <input class="form-check-input ms-0 me-3" type="checkbox"
+                                id="{{ form.descuento_activo.id_for_label }}" name="{{ form.descuento_activo.name }}"
+                                value="True" {% if form.descuento_activo.value %}checked{% endif %}
+                                style="width: 2.5em; height: 1.25em;">
+                            <label class="form-check-label fw-bold text-dark"
+                                for="{{ form.descuento_activo.id_for_label }}">
                                 Activar Descuento Global en la Tienda Virtual
                             </label>
-                            <div class="form-text text-muted">Al activar esta opción, todos los productos habilitados recibirán el porcentaje de descuento especificado.</div>
+                            <div class="form-text text-muted">Al activar esta opción, todos los productos habilitados
+                                recibirán el porcentaje de descuento especificado.</div>
                         </div>
 
                         <div class="row g-3">
                             <!-- Porcentaje de Descuento -->
                             <div class="col-md-6">
-                                <label for="{{ form.porcentaje_descuento_global.id_for_label }}" class="form-label fw-semibold">
+                                <label for="{{ form.porcentaje_descuento_global.id_for_label }}"
+                                    class="form-label fw-semibold">
                                     Porcentaje de Descuento (%)
                                 </label>
                                 <div class="input-group">
-                                    <input type="number" step="0.01" min="0" max="100" class="form-control form-control-lg" id="{{ form.porcentaje_descuento_global.id_for_label }}" name="{{ form.porcentaje_descuento_global.name }}" value="{{ form.porcentaje_descuento_global.value|default:0 }}">
+                                    <input type="number" step="0.01" min="0" max="100"
+                                        class="form-control form-control-lg"
+                                        id="{{ form.porcentaje_descuento_global.id_for_label }}"
+                                        name="{{ form.porcentaje_descuento_global.name }}"
+                                        value="{{ form.porcentaje_descuento_global.value|default:0 }}">
                                     <span class="input-group-text bg-light fw-bold">%</span>
                                 </div>
                                 <div class="form-text">Ejemplo: 5 para aplicar 5% de descuento en la tienda.</div>
@@ -55,15 +66,20 @@
 
                             <!-- Precio Mínimo -->
                             <div class="col-md-6">
-                                <label for="{{ form.precio_minimo_descuento.id_for_label }}" class="form-label fw-semibold">
+                                <label for="{{ form.precio_minimo_descuento.id_for_label }}"
+                                    class="form-label fw-semibold">
                                     Precio Mínimo de Producto ($)
                                 </label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light fw-bold">$</span>
-                                    <input type="number" step="0.01" min="0" class="form-control form-control-lg" id="{{ form.precio_minimo_descuento.id_for_label }}" name="{{ form.precio_minimo_descuento.name }}" value="{{ form.precio_minimo_descuento.value|default:0 }}">
+                                    <input type="number" step="0.01" min="0" class="form-control form-control-lg"
+                                        id="{{ form.precio_minimo_descuento.id_for_label }}"
+                                        name="{{ form.precio_minimo_descuento.name }}"
+                                        value="{{ form.precio_minimo_descuento.value|default:0 }}">
                                 </div>
                                 <div class="form-text text-primary">
-                                    <i class="fas fa-shield-alt me-1"></i>Los productos con un precio menor a este valor (ej. pernos de $0.50) no recibirán descuento.
+                                    <i class="fas fa-shield-alt me-1"></i>Los productos con un precio menor a este valor
+                                    (ej. pernos de $0.50) no recibirán descuento.
                                 </div>
                             </div>
                         </div>
@@ -73,19 +89,86 @@
                             <h6 class="fw-bold text-dark mb-2">
                                 <i class="fas fa-key text-primary me-2"></i>Token / Clave Secreta de API Web
                             </h6>
-                            <p class="small text-muted mb-3">Esta clave autoriza a tu página web a conectarse de forma segura con el sistema sin requerir inicios de sesión ni contraseñas.</p>
-                            
+                            <p class="small text-muted mb-3">Esta clave autoriza a tu página web a conectarse de forma
+                                segura con el sistema sin requerir inicios de sesión ni contraseñas.</p>
+
                             <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="fas fa-shield-alt text-success"></i></span>
-                                <input type="text" class="form-control font-monospace fw-bold" id="{{ form.api_key_secret.id_for_label }}" name="{{ form.api_key_secret.name }}" value="{{ form.api_key_secret.value|default:'vpm_live_secret_key_984102983719827398127398' }}">
-                                <button type="button" class="btn btn-outline-secondary" onclick="copiarTokenAPI()" title="Copiar Token">
+                                <span class="input-group-text bg-light"><i
+                                        class="fas fa-shield-alt text-success"></i></span>
+                                <input type="text" class="form-control font-monospace fw-bold"
+                                    id="{{ form.api_key_secret.id_for_label }}" name="{{ form.api_key_secret.name }}"
+                                    value="{{ form.api_key_secret.value|default:'vpm_live_secret_key_984102983719827398127398' }}">
+                                <button type="button" class="btn btn-outline-secondary" onclick="copiarTokenAPI()"
+                                    title="Copiar Token">
                                     <i class="fas fa-copy me-1"></i>Copiar
                                 </button>
-                                <button type="button" class="btn btn-outline-primary" onclick="generarNuevoTokenAPI()" title="Generar nueva clave aleatoria">
+                                <button type="button" class="btn btn-outline-primary" onclick="generarNuevoTokenAPI()"
+                                    title="Generar nueva clave aleatoria">
                                     <i class="fas fa-magic me-1"></i>Generar Nuevo
                                 </button>
                             </div>
-                            <div class="form-text mt-2">Copia este Token y colócalo en la variable de entorno <code>PUBLIC_API_SECRET_KEY</code> de tu proyecto web.</div>
+                            <div class="form-text mt-2">Copia este Token y colócalo en la variable de entorno
+                                <code>PUBLIC_API_SECRET_KEY</code> de tu proyecto web.</div>
+                        </div>
+
+                        <!-- CONFIGURACIÓN DE IA DE GROQ PARA DIGITALIZACIÓN DE FACTURAS -->
+                        <div class="mt-4 pt-4 border-top">
+                            <h6 class="fw-bold text-dark mb-2">
+                                <i class="fas fa-brain text-success me-2"></i>Clave de API de Groq AI (Visión &
+                                Digitalización de Facturas)
+                            </h6>
+                            <p class="small text-muted mb-3">Permite procesar e interpretar fotos de facturas físicas y
+                                PDFs con Inteligencia Artificial. Se guarda 100% de forma segura en la base de datos.
+                            </p>
+
+                            <div class="input-group mb-2">
+                                <span class="input-group-text bg-light"><i class="fas fa-robot text-primary"></i></span>
+                                <input type="password" class="form-control font-monospace"
+                                    id="{{ form.groq_api_key.id_for_label }}" name="{{ form.groq_api_key.name }}"
+                                    value="{{ form.groq_api_key.value|default:'' }}" placeholder="Ej: gsk_...">
+                                <button type="button" class="btn btn-outline-secondary"
+                                    onclick="toggleMostrarPassword('{{ form.groq_api_key.id_for_label }}', this)"
+                                    title="Mostrar / Ocultar Clave">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-success" id="btn-probar-groq"
+                                    onclick="probarConexionGroq()" title="Probar conexión con Groq AI">
+                                    <i class="fas fa-plug me-1"></i>Probar Conexión
+                                </button>
+                            </div>
+                            <div id="resultado-conexion-groq" class="mt-2"></div>
+                            <div class="form-text mt-1">Consigue tu clave gratis registrándote en <a
+                                    href="https://console.groq.com/keys" target="_blank"
+                                    class="fw-bold text-decoration-none text-primary"><i
+                                        class="fas fa-external-link-alt me-1"></i>console.groq.com/keys</a>.</div>
+                        <!-- CONFIGURACIÓN DE API DE RESEND PARA ENVÍO DE EMAILS -->
+                        <div class="mt-4 pt-4 border-top">
+                            <h6 class="fw-bold text-dark mb-2">
+                                <i class="fas fa-paper-plane text-info me-2"></i>Clave de API de Resend (Envío de Facturas por Email)
+                            </h6>
+                            <p class="small text-muted mb-3">Permite enviar comprobantes electrónicos y facturas autorizadas directamente al correo del cliente. Se guarda 100% de forma segura en la base de datos.
+                            </p>
+
+                            <div class="input-group mb-2">
+                                <span class="input-group-text bg-light"><i class="fas fa-envelope text-info"></i></span>
+                                <input type="password" class="form-control font-monospace"
+                                    id="{{ form.resend_api_key.id_for_label }}" name="{{ form.resend_api_key.name }}"
+                                    value="{{ form.resend_api_key.value|default:'' }}" placeholder="Ej: re_...">
+                                <button type="button" class="btn btn-outline-secondary"
+                                    onclick="toggleMostrarPassword('{{ form.resend_api_key.id_for_label }}', this)"
+                                    title="Mostrar / Ocultar Clave">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info" id="btn-probar-resend"
+                                    onclick="probarConexionResend()" title="Probar conexión con Resend API">
+                                    <i class="fas fa-plug me-1"></i>Probar Conexión
+                                </button>
+                            </div>
+                            <div id="resultado-conexion-resend" class="mt-2"></div>
+                            <div class="form-text mt-1">Consigue tu clave registrándote en <a
+                                    href="https://resend.com/api-keys" target="_blank"
+                                    class="fw-bold text-decoration-none text-primary"><i
+                                        class="fas fa-external-link-alt me-1"></i>resend.com/api-keys</a>.</div>
                         </div>
 
                         <div class="mt-4 pt-3 border-top d-flex justify-content-end">
@@ -133,7 +216,10 @@
 
                     <div class="mt-3 p-3 rounded-3" style="background-color: rgba(255,255,255,0.15);">
                         <i class="fas fa-lightbulb me-1"></i> <strong>Ejemplo:</strong>
-                        <p class="small mb-0 mt-1">Si el precio mínimo es <strong>$2.00</strong>, un perno de <strong>$0.50</strong> mantiene su costo de <strong>$0.50</strong>, mientras que un repuesto de <strong>$10.00</strong> se venderá en la web a <strong>${{ config.porcentaje_descuento_global|default:5 }}% OFF = $9.50</strong>.</p>
+                        <p class="small mb-0 mt-1">Si el precio mínimo es <strong>$2.00</strong>, un perno de
+                            <strong>$0.50</strong> mantiene su costo de <strong>$0.50</strong>, mientras que un repuesto
+                            de <strong>$10.00</strong> se venderá en la web a <strong>${{
+                                config.porcentaje_descuento_global|default:5 }}% OFF = $9.50</strong>.</p>
                     </div>
                 </div>
             </div>
@@ -142,29 +228,65 @@
 </div>
 
 <script>
-function copiarTokenAPI() {
-    const input = document.getElementById('{{ form.api_key_secret.id_for_label }}');
-    navigator.clipboard.writeText(input.value).then(() => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Token de API copiado al portapapeles',
-                showConfirmButton: false,
-                timer: 2000
-            });
-        } else {
-            alert('Token de API copiado al portapapeles.');
-        }
-    });
-}
+    function copiarTokenAPI() {
+        const input = document.getElementById('{{ form.api_key_secret.id_for_label }}');
+        navigator.clipboard.writeText(input.value).then(() => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Token de API copiado al portapapeles',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            } else {
+                alert('Token de API copiado al portapapeles.');
+            }
+        });
+    }
 
-function generarNuevoTokenAPI() {
-    const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-    const nuevoToken = `vpm_live_secret_${randomHex}`;
-    document.getElementById('{{ form.api_key_secret.id_for_label }}').value = nuevoToken;
-}
+    function generarNuevoTokenAPI() {
+        const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+            .map(b => b.toString(16).padStart(2, '0')).join('');
+        const nuevoToken = `vpm_live_secret_${randomHex}`;
+        document.getElementById('{{ form.api_key_secret.id_for_label }}').value = nuevoToken;
+    }
+
+    function probarConexionResend() {
+        const apiKey = document.getElementById('{{ form.resend_api_key.id_for_label }}').value.trim();
+        const $res = $('#resultado-conexion-resend');
+        const $btn = $('#btn-probar-resend');
+
+        if (!apiKey) {
+            $res.html('<div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-exclamation-triangle me-1"></i>Ingresa la clave de API Resend (ej: re_...) antes de probar la conexión.</div>');
+            return;
+        }
+
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Probando...');
+        $res.html('<div class="small text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Conectando con servidores de Resend API...</div>');
+
+        fetch("{% url 'inventario:probar_conexion_resend_ajax' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ resend_api_key: apiKey })
+        })
+        .then(res => res.json())
+        .then(data => {
+            $btn.prop('disabled', false).html('<i class="fas fa-plug me-1"></i>Probar Conexión');
+            if (data.success) {
+                $res.html(`<div class="alert alert-success py-2 mb-0 small"><i class="fas fa-check-circle me-1"></i>${data.message}</div>`);
+            } else {
+                $res.html(`<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-times-circle me-1"></i>${data.error}</div>`);
+            }
+        })
+        .catch(err => {
+            $btn.prop('disabled', false).html('<i class="fas fa-plug me-1"></i>Probar Conexión');
+            $res.html(`<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-times-circle me-1"></i>Error al probar conexión: ${err}</div>`);
+        });
+    }
 </script>
 {% endblock %}
