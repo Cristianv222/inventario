@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'electronic_invoicing.apps.ElectronicInvoicingConfig',
+    'finanzas.apps.FinanzasConfig',
 ]
 
 # ============================================================
@@ -320,4 +321,18 @@ SERVER_EMAIL = "david.vasquez@vp-motos.com"
 # GROQ AI CONFIGURATION
 # ============================================================
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
+
+# ============================================================
+# FINANZAS (ERP) — MOTOR CONTABLE
+# ============================================================
+# Generación automática de asientos contables desde ventas/gastos.
+# Apagado por defecto: mientras sea False, la app finanzas NO altera el
+# comportamiento del sistema. Activar solo tras probar en un entorno de prueba.
+FINANZAS_CONTABILIDAD_AUTO = os.environ.get(
+    'FINANZAS_CONTABILIDAD_AUTO', 'False'
+).lower() == 'true'
+
+# Proveedor de IA por entorno: 'claude' en producción; 'groq'/'gemini'/'ollama'
+# en desarrollo. La capa de IA (finanzas/services/ai) lo lee de aquí.
+AI_PROVIDER = os.environ.get('AI_PROVIDER', 'groq')
 
