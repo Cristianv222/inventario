@@ -1,0 +1,40 @@
+{% load humanize %}
+{% for grupo in cuentas_data %}
+<div class="fz-card">
+  <div class="fz-card-head">
+    <span>{{ grupo.cuenta.codigo }} — {{ grupo.cuenta.nombre }}</span>
+    <span>Saldo final: {{ grupo.saldo_final|floatformat:2|intcomma }}</span>
+  </div>
+  <table class="fz-table">
+    <thead>
+      <tr>
+        <th>Fecha</th><th>Asiento</th><th>Glosa</th>
+        <th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="sub"><td colspan="5">Saldo anterior</td><td class="num">{{ grupo.saldo_anterior|floatformat:2|intcomma }}</td></tr>
+      {% for m in grupo.movimientos %}
+      <tr>
+        <td>{{ m.fecha }}</td>
+        <td>{{ m.numero }}</td>
+        <td>{{ m.glosa }}{% if m.detalle %} · {{ m.detalle }}{% endif %}</td>
+        <td class="num">{% if m.debe %}{{ m.debe|floatformat:2|intcomma }}{% endif %}</td>
+        <td class="num">{% if m.haber %}{{ m.haber|floatformat:2|intcomma }}{% endif %}</td>
+        <td class="num">{{ m.saldo|floatformat:2|intcomma }}</td>
+      </tr>
+      {% empty %}
+      <tr><td class="fz-empty" colspan="6">Sin movimientos en el período.</td></tr>
+      {% endfor %}
+      <tr class="total">
+        <td colspan="3">Totales del período</td>
+        <td class="num">{{ grupo.total_debe|floatformat:2|intcomma }}</td>
+        <td class="num">{{ grupo.total_haber|floatformat:2|intcomma }}</td>
+        <td class="num">{{ grupo.saldo_final|floatformat:2|intcomma }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% empty %}
+<div class="fz-card"><div class="fz-empty">No hay cuentas con movimiento en el período seleccionado.</div></div>
+{% endfor %}

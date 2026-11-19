@@ -49,5 +49,7 @@ gunicorn==21.2.0
 redis==5.0.1
 django-redis==5.4.0
 celery==5.3.4
+kombu==5.3.4  # pin: evita kombu>=5.4 que exige redis-py>=6.1.0 (rompe el worker)
 whitenoise==6.6.0
 dj-database-url==2.1.0
+openpyxl==3.1.5

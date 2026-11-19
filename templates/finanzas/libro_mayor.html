@@ -1,0 +1,12 @@
+{% extends 'finanzas/_reporte_base.html' %}
+{% block filtros_extra %}
+<div>
+  <label for="cta">Cuenta</label>
+  <select id="cta" name="cuenta">
+    <option value="">Todas las cuentas</option>
+    {% for c in cuentas %}
+      <option value="{{ c.codigo }}" {% if c.codigo == cuenta_sel %}selected{% endif %}>{{ c.codigo }} — {{ c.nombre }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% endblock %}

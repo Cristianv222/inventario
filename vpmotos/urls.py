@@ -40,6 +40,7 @@ urlpatterns = [
     path('hardware/', include('hardware_integration.urls', namespace='hardware_integration')),
     path('api/hardware/', include('hardware_integration.api.urls', namespace='hardware_api')),
     path('electronic-invoicing/', include(('electronic_invoicing.urls', 'electronic_invoicing'), namespace='electronic_invoicing')),
+    path('finanzas/', include('finanzas.urls', namespace='finanzas')),
     path('api/v1/token-auth/', authtoken_views.obtain_auth_token, name='api_token_auth'),
     
     # Endpoints JWT (JSON Web Token) ✅ NUEVO

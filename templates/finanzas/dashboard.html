@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}ERP Finanzas · VP Motos{% endblock %}
+
+{% block extra_css %}
+<style>
+:root { --fz-blue:#2563eb; --fz-blue-dark:#1d4ed8; --fz-blue-light:#eff6ff; --fz-ink:#0f172a; --fz-muted:#64748b; --fz-line:#e2e8f0; --fz-green:#16a34a; --fz-red:#dc2626; }
+.fz-wrap { max-width:1200px; margin:1.5rem auto; padding:0 1rem; color:var(--fz-ink); }
+.fz-wrap h1 { font-size:1.6rem; margin:.2rem 0; }
+.fz-sub { color:var(--fz-muted); font-size:.9rem; margin-bottom:1.25rem; }
+.fz-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:1.75rem; }
+.fz-kpi { background:#fff; border:1px solid var(--fz-line); border-radius:12px; padding:1.1rem 1.2rem; }
+.fz-kpi .lbl { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--fz-muted); font-weight:700; }
+.fz-kpi .val { font-size:1.5rem; font-weight:800; margin-top:.35rem; font-variant-numeric:tabular-nums; }
+.fz-kpi .val.pos { color:var(--fz-green); } .fz-kpi .val.neg { color:var(--fz-red); }
+.fz-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; }
+.fz-link { display:block; background:#fff; border:1px solid var(--fz-line); border-radius:12px; padding:1.2rem; text-decoration:none; color:var(--fz-ink); transition:all .15s; }
+.fz-link:hover { border-color:var(--fz-blue); box-shadow:0 4px 14px rgba(37,99,235,.1); transform:translateY(-2px); }
+.fz-link .ic { font-size:1.6rem; }
+.fz-link .t { font-weight:700; margin:.5rem 0 .25rem; }
+.fz-link .d { font-size:.82rem; color:var(--fz-muted); }
+.fz-flag { display:inline-block; padding:.2rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700; }
+.fz-flag.ok { background:#dcfce7; color:#15803d; } .fz-flag.bad { background:#fee2e2; color:#b91c1c; }
+.fz-filtros { display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:1.25rem; }
+.fz-filtros label { display:block; font-size:.72rem; color:var(--fz-muted); font-weight:700; text-transform:uppercase; margin-bottom:.25rem; }
+.fz-filtros input { padding:.5rem .6rem; border:1px solid var(--fz-line); border-radius:8px; }
+.fz-filtros button { padding:.55rem 1.1rem; background:var(--fz-blue); color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fz-wrap">
+  <h1>ERP Finanzas</h1>
+  <div class="fz-sub">
+    Motor contable de partida doble · {{ num_cuentas }} cuentas · {{ num_asientos }} asientos mayorizados
+    {% if balance_cuadra %}<span class="fz-flag ok">Balance cuadra ✓</span>
+    {% else %}<span class="fz-flag bad">Balance descuadrado ✗</span>{% endif %}
+  </div>
+
+  <form method="get" class="fz-filtros">
+    <div><label>Desde</label><input type="date" name="fecha_inicio" value="{{ fecha_inicio_str }}"></div>
+    <div><label>Hasta</label><input type="date" name="fecha_fin" value="{{ fecha_fin_str }}"></div>
+    <button type="submit">Aplicar período</button>
+  </form>
+
+  <div class="fz-kpis">
+    <div class="fz-kpi"><div class="lbl">Ingresos del período</div><div class="val">${{ total_ingresos|floatformat:2|intcomma }}</div></div>
+    <div class="fz-kpi"><div class="lbl">Costos + Gastos</div><div class="val">${{ total_gastos|floatformat:2|intcomma }}</div></div>
+    <div class="fz-kpi"><div class="lbl">Utilidad neta</div><div class="val {% if utilidad_neta < 0 %}neg{% else %}pos{% endif %}">${{ utilidad_neta|floatformat:2|intcomma }}</div></div>
+    <div class="fz-kpi"><div class="lbl">Saldo en caja/bancos</div><div class="val">${{ saldo_caja|floatformat:2|intcomma }}</div></div>
+    <div class="fz-kpi"><div class="lbl">Total activo</div><div class="val">${{ total_activo|floatformat:2|intcomma }}</div></div>
+  </div>
+
+  <div class="fz-grid">
+    <a class="fz-link" href="{% url 'finanzas:estado_resultados' %}?fecha_inicio={{ fecha_inicio_str }}&fecha_fin={{ fecha_fin_str }}">
+      <div class="ic">📈</div><div class="t">Estado de Resultados</div>
+      <div class="d">Ingresos, costos, gastos y utilidad del ejercicio.</div></a>
+    <a class="fz-link" href="{% url 'finanzas:balance_general' %}?fecha_inicio={{ fecha_inicio_str }}&fecha_fin={{ fecha_fin_str }}">
+      <div class="ic">⚖️</div><div class="t">Balance General</div>
+      <div class="d">Activo = Pasivo + Patrimonio a una fecha de corte.</div></a>
+    <a class="fz-link" href="{% url 'finanzas:flujo_caja' %}?fecha_inicio={{ fecha_inicio_str }}&fecha_fin={{ fecha_fin_str }}">
+      <div class="ic">💵</div><div class="t">Flujo de Caja</div>
+      <div class="d">Entradas y salidas de caja y bancos.</div></a>
+    <a class="fz-link" href="{% url 'finanzas:balance_comprobacion' %}?fecha_inicio={{ fecha_inicio_str }}&fecha_fin={{ fecha_fin_str }}">
+      <div class="ic">🧮</div><div class="t">Balance de Comprobación</div>
+      <div class="d">Sumas y saldos por cuenta; verifica el cuadre.</div></a>
+    <a class="fz-link" href="{% url 'finanzas:libro_mayor' %}?fecha_inicio={{ fecha_inicio_str }}&fecha_fin={{ fecha_fin_str }}">
+      <div class="ic">📒</div><div class="t">Libro Mayor</div>
+      <div class="d">Movimientos y saldo corriente por cuenta.</div></a>
+    <a class="fz-link" href="/admin/finanzas/asientocontable/">
+      <div class="ic">✍️</div><div class="t">Asientos contables</div>
+      <div class="d">Registro y auditoría de asientos (admin Django).</div></a>
+  </div>
+</div>
+{% endblock %}

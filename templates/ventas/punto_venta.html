@@ -93,6 +93,148 @@
         font-size: 1.1rem;
     }
 
+    /* ⌨️ BARRA DE BÚSQUEDA RÁPIDA (ESCÁNER / TECLADO) */
+    .pos-quick-search {
+        background: #fff;
+        padding: 1rem 1.5rem 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        position: relative;
+    }
+
+    .quick-search-wrapper {
+        position: relative;
+    }
+
+    .quick-search-wrapper i.search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #3f51b5;
+        font-size: 1.25rem;
+        pointer-events: none;
+    }
+
+    #quickSearchInput {
+        width: 100%;
+        padding: 0.9rem 1rem 0.9rem 2.8rem;
+        font-size: 1.1rem;
+        border: 2px solid #3f51b5;
+        border-radius: 10px;
+        outline: none;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        background: #f8f9ff;
+    }
+
+    #quickSearchInput:focus {
+        border-color: #2c387e;
+        box-shadow: 0 0 0 4px rgba(63, 81, 181, 0.15);
+        background: #fff;
+    }
+
+    #quickSearchInput::placeholder {
+        color: #9aa0b5;
+    }
+
+    /* Desplegable de sugerencias */
+    .quick-search-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        max-height: 340px;
+        overflow-y: auto;
+        z-index: 1050;
+        display: none;
+    }
+
+    .quick-search-dropdown.show {
+        display: block;
+    }
+
+    .qs-item {
+        padding: 0.65rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f1f4;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .qs-item:last-child {
+        border-bottom: none;
+    }
+
+    .qs-item.active,
+    .qs-item:hover {
+        background: #eef0ff;
+    }
+
+    .qs-item .qs-name {
+        font-weight: 500;
+        color: #2c3140;
+    }
+
+    .qs-item .qs-code {
+        font-size: 0.78rem;
+        color: #8a90a2;
+    }
+
+    .qs-item .qs-right {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .qs-item .qs-price {
+        font-weight: 600;
+        color: #3f51b5;
+    }
+
+    .qs-item .qs-stock {
+        font-size: 0.72rem;
+        padding: 1px 7px;
+        border-radius: 10px;
+        margin-left: 6px;
+    }
+
+    .qs-stock.ok { background: #d1e7dd; color: #0f5132; }
+    .qs-stock.low { background: #fff3cd; color: #664d03; }
+    .qs-stock.out { background: #f8d7da; color: #842029; }
+
+    .qs-empty {
+        padding: 1rem;
+        text-align: center;
+        color: #8a90a2;
+        font-size: 0.9rem;
+    }
+
+    /* Leyenda de atajos de teclado */
+    .pos-shortcuts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.9rem;
+        margin-top: 0.6rem;
+        font-size: 0.72rem;
+        color: #6c757d;
+        align-items: center;
+    }
+
+    .pos-shortcuts .kbd {
+        display: inline-block;
+        background: #2c3140;
+        color: #fff;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.7rem;
+        margin-right: 3px;
+    }
+
     /* ✅ NUEVOS ESTILOS PARA EL MODAL DE CREAR CLIENTE */
     .customer-header-actions {
         display: flex;
@@ -949,19 +1091,44 @@
                 </h5>
             </div>
 
+            <!-- ⌨️ Búsqueda rápida: escáner de código de barras o búsqueda por teclado -->
+            <div class="pos-quick-search">
+                <div class="quick-search-wrapper">
+                    <i class="bi bi-upc-scan search-icon"></i>
+                    <input type="text" id="quickSearchInput" autocomplete="off"
+                        placeholder="Escanea un código o escribe nombre/código y pulsa Enter…">
+                    <div class="quick-search-dropdown" id="quickSearchDropdown"></div>
+                </div>
+                <div class="pos-shortcuts">
+                    <span><span class="kbd">Enter</span>Agregar</span>
+                    <span><span class="kbd">↑</span><span class="kbd">↓</span>Elegir</span>
+                    <span><span class="kbd">F1</span>Buscar</span>
+                    <span><span class="kbd">F2</span>Productos</span>
+                    <span><span class="kbd">F3</span>Órdenes</span>
+                    <span><span class="kbd">F4</span>Servicios</span>
+                    <span><span class="kbd">F9</span>Cliente</span>
+                    <span><span class="kbd">F5</span>Efectivo</span>
+                    <span><span class="kbd">F6</span>Tarjeta</span>
+                    <span><span class="kbd">F7</span>Transfer</span>
+                    <span><span class="kbd">F8</span>Crédito</span>
+                    <span><span class="kbd">F12</span>Cobrar</span>
+                    <span><span class="kbd">Esc</span>Limpiar</span>
+                </div>
+            </div>
+
             <div class="quick-actions">
                 <div class="actions-grid">
                     <a href="#" class="action-btn" onclick="showOrdersModal()">
                         <i class="bi bi-file-text"></i>
-                        <span>Órdenes</span>
+                        <span>Órdenes <small class="text-muted">(F3)</small></span>
                     </a>
                     <a href="#" class="action-btn" onclick="showServicesModal()">
                         <i class="bi bi-tools"></i>
-                        <span>Servicios</span>
+                        <span>Servicios <small class="text-muted">(F4)</small></span>
                     </a>
                     <a href="#" class="action-btn" onclick="showProductsModal()">
                         <i class="bi bi-box-seam"></i>
-                        <span>Productos</span>
+                        <span>Productos <small class="text-muted">(F2)</small></span>
                     </a>
                     <a href="#" class="action-btn" onclick="showSriMonitorModal(event)">
                         <i class="bi bi-activity text-primary"></i>
@@ -1012,7 +1179,7 @@
 
             <!-- Cliente -->
             <div class="cart-section">
-                <div class="section-title">Cliente</div>
+                <div class="section-title">Cliente <small class="text-muted">(F9)</small></div>
                 <div class="customer-card" onclick="showCustomerModal()">
                     <div class="customer-name" id="customerName">Consumidor Final</div>
                     <div class="customer-id" id="customerID">9999999999</div>
@@ -1071,17 +1238,15 @@
 
             <!-- Botón de checkout -->
             <div class="checkout-section">
-                <!-- ⭐ NUEVO: Toggle para Facturación Electrónica Premium -->
-                <div class="sri-toggle-container mb-3 p-3 rounded-3 border bg-light">
-                    <div class="form-check form-switch d-flex justify-content-between align-items-center p-0">
-                        <label class="form-check-label fw-bold d-flex align-items-center gap-2" for="electronicInvoicingToggle">
-                            <i class="bi bi-file-earmark-check fs-5 text-primary"></i> 
-                            <span>Factura Electrónica</span>
-                        </label>
-                        <input class="form-check-input ms-0" type="checkbox" id="electronicInvoicingToggle" style="width: 3em; height: 1.5em; cursor: pointer;">
+                <!-- Facturación Electrónica: TODAS las ventas se envían al SRI -->
+                <div class="sri-toggle-container mb-3 p-2 rounded-3 border bg-light d-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-check fs-5 text-success"></i>
+                    <div class="small">
+                        <span class="fw-bold">Factura Electrónica activa</span><br>
+                        <span class="text-muted">Todas las ventas se emiten y autorizan ante el SRI automáticamente.</span>
                     </div>
                 </div>
-                
+
                 <button id="checkoutBtn" class="checkout-btn" onclick="processCheckout()" disabled>
                     <i class="bi bi-credit-card"></i>
                     <span>Completar Venta</span>
@@ -1621,6 +1786,11 @@
     const IVA_RATE = 0.15;
     let validationTimeout = null;
 
+    // ⌨️ Estado de la búsqueda rápida (escáner / teclado)
+    let qsResults = [];
+    let qsActiveIndex = -1;
+    let qsSearchTimer = null;
+
     // ── PIN SERVICIO MANUAL ──
     let _pinBuffer = '';
     let _pinCallback = null;  // función a ejecutar si PIN OK
@@ -1699,9 +1869,281 @@
         initializePOS();
         loadInitialData();
         setupEventListeners();
+        setupQuickSearch();        // ⌨️ barra de búsqueda / escáner
+        setupGlobalShortcuts();    // ⌨️ atajos F1-F12
+        setupConfirmationEnter();  // ⌨️ Enter confirma la venta
         loadPendingOrdersCount();
         startPrintQueuePolling();
+        focusQuickSearch();        // listo para escanear al abrir
     });
+
+    // ========== ⌨️ BÚSQUEDA RÁPIDA (ESCÁNER / TECLADO) ==========
+
+    function focusQuickSearch() {
+        const input = document.getElementById('quickSearchInput');
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    }
+
+    function hideQuickSearchDropdown() {
+        const dd = document.getElementById('quickSearchDropdown');
+        if (dd) {
+            dd.classList.remove('show');
+            dd.innerHTML = '';
+        }
+        qsResults = [];
+        qsActiveIndex = -1;
+    }
+
+    function renderQuickSearchDropdown() {
+        const dd = document.getElementById('quickSearchDropdown');
+        if (!dd) return;
+
+        if (qsResults.length === 0) {
+            dd.innerHTML = '<div class="qs-empty">No se encontraron productos</div>';
+            dd.classList.add('show');
+            return;
+        }
+
+        dd.innerHTML = qsResults.map((p, i) => {
+            const stockClass = p.stock > 10 ? 'ok' : (p.stock > 0 ? 'low' : 'out');
+            return `
+            <div class="qs-item ${i === qsActiveIndex ? 'active' : ''}" data-index="${i}"
+                 onclick="selectQuickSearchItem(${i})">
+                <div>
+                    <div class="qs-name">${escapeHtml(p.nombre)}</div>
+                    <div class="qs-code">Código: ${escapeHtml(p.codigo || '')}</div>
+                </div>
+                <div class="qs-right">
+                    <span class="qs-price">S/ ${Number(p.precio).toFixed(2)}</span>
+                    <span class="qs-stock ${stockClass}">Stock: ${p.stock}</span>
+                </div>
+            </div>`;
+        }).join('');
+        dd.classList.add('show');
+    }
+
+    function selectQuickSearchItem(index) {
+        const p = qsResults[index];
+        if (!p) return;
+        addProductToCartFromData(p);
+        const input = document.getElementById('quickSearchInput');
+        if (input) input.value = '';
+        hideQuickSearchDropdown();
+        focusQuickSearch();
+    }
+
+    function addProductToCartFromData(p) {
+        if (p.stock <= 0) {
+            showToast('Sin stock disponible: ' + p.nombre, 'warning');
+            return;
+        }
+        // Mantener el array global sincronizado (lo usan otros flujos)
+        if (!products.some(x => x.id === p.id)) {
+            products.push(p);
+        }
+        addToCart({
+            id: p.id,
+            code: p.codigo,
+            name: p.nombre,
+            type: 'product',
+            price: p.precio,
+            stock: p.stock,
+            category: p.categoria || 'Sin categoría',
+            incluye_iva: p.incluye_iva,
+            es_editable: p.es_editable || false
+        });
+        showToast('✅ ' + p.nombre, 'success');
+    }
+
+    // Búsqueda exacta por código (escáner) — agrega directo al carrito
+    function processScan(code) {
+        return fetch(`/ventas/api/buscar-producto/?codigo=${encodeURIComponent(code)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.producto) {
+                    addProductToCartFromData(data.producto);
+                    return true;
+                }
+                return false;
+            })
+            .catch(() => false);
+    }
+
+    // Búsqueda por nombre/código para mostrar sugerencias
+    function quickSearchLookup(term) {
+        fetch(`/ventas/api/productos/?q=${encodeURIComponent(term)}&limit=15`)
+            .then(r => r.json())
+            .then(data => {
+                qsResults = (data.success && data.productos) ? data.productos : [];
+                qsActiveIndex = qsResults.length > 0 ? 0 : -1;
+                renderQuickSearchDropdown();
+            })
+            .catch(() => {
+                qsResults = [];
+                qsActiveIndex = -1;
+                hideQuickSearchDropdown();
+            });
+    }
+
+    function handleQuickSearchKeydown(e) {
+        const input = e.target;
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const term = input.value.trim();
+            if (!term) return;
+
+            // Si hay una sugerencia resaltada, agregarla
+            if (qsResults.length > 0 && qsActiveIndex >= 0) {
+                selectQuickSearchItem(qsActiveIndex);
+                return;
+            }
+
+            // Si no hay sugerencias visibles (típico del escáner): buscar código exacto
+            processScan(term).then(found => {
+                if (found) {
+                    input.value = '';
+                    hideQuickSearchDropdown();
+                    focusQuickSearch();
+                } else {
+                    // No es un código exacto: buscar por nombre y mostrar opciones
+                    quickSearchLookup(term);
+                }
+            });
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (qsResults.length === 0) return;
+            qsActiveIndex = (qsActiveIndex + 1) % qsResults.length;
+            renderQuickSearchDropdown();
+            scrollActiveIntoView();
+            return;
+        }
+
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (qsResults.length === 0) return;
+            qsActiveIndex = (qsActiveIndex - 1 + qsResults.length) % qsResults.length;
+            renderQuickSearchDropdown();
+            scrollActiveIntoView();
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            input.value = '';
+            hideQuickSearchDropdown();
+            return;
+        }
+    }
+
+    function scrollActiveIntoView() {
+        const dd = document.getElementById('quickSearchDropdown');
+        if (!dd) return;
+        const active = dd.querySelector('.qs-item.active');
+        if (active) active.scrollIntoView({ block: 'nearest' });
+    }
+
+    function setupQuickSearch() {
+        const input = document.getElementById('quickSearchInput');
+        if (!input) return;
+
+        input.addEventListener('keydown', handleQuickSearchKeydown);
+
+        // Mientras escribe a mano: sugerencias en vivo (el escáner escribe tan
+        // rápido + Enter que normalmente dispara processScan antes del debounce)
+        input.addEventListener('input', function () {
+            const term = input.value.trim();
+            clearTimeout(qsSearchTimer);
+            if (term.length < 2) {
+                hideQuickSearchDropdown();
+                return;
+            }
+            qsSearchTimer = setTimeout(() => quickSearchLookup(term), 250);
+        });
+
+        // Cerrar el desplegable al hacer clic fuera
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.quick-search-wrapper')) {
+                hideQuickSearchDropdown();
+            }
+        });
+    }
+
+    // ========== ⌨️ ATAJOS GLOBALES DE TECLADO ==========
+
+    function anyModalOpen() {
+        return document.querySelector('.modal.show') !== null;
+    }
+
+    function setupGlobalShortcuts() {
+        document.addEventListener('keydown', function (e) {
+            // Si hay un modal abierto, no interferir (se navega dentro del modal).
+            if (anyModalOpen()) return;
+
+            // El F12 de cobrar ya se maneja aparte; aquí el resto.
+            switch (e.key) {
+                case 'F1':
+                    e.preventDefault();
+                    focusQuickSearch();
+                    break;
+                case 'F2':
+                    e.preventDefault();
+                    showProductsModal();
+                    break;
+                case 'F3':
+                    e.preventDefault();
+                    showOrdersModal();
+                    break;
+                case 'F4':
+                    e.preventDefault();
+                    showServicesModal();
+                    break;
+                case 'F9':
+                    e.preventDefault();
+                    showCustomerModal();
+                    break;
+                case 'F5':
+                    e.preventDefault();
+                    selectPaymentMethod('EFECTIVO');
+                    showToast('💵 Pago: Efectivo', 'info');
+                    break;
+                case 'F6':
+                    e.preventDefault();
+                    selectPaymentMethod('TARJETA');
+                    showToast('💳 Pago: Tarjeta', 'info');
+                    break;
+                case 'F7':
+                    e.preventDefault();
+                    selectPaymentMethod('TRANSFERENCIA');
+                    showToast('🏦 Pago: Transferencia', 'info');
+                    break;
+                case 'F8':
+                    e.preventDefault();
+                    selectPaymentMethod('CREDITO');
+                    showToast('📄 Pago: Crédito', 'info');
+                    break;
+            }
+        });
+    }
+
+    // ========== ⌨️ ENTER CONFIRMA LA VENTA EN EL MODAL ==========
+
+    function setupConfirmationEnter() {
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            const modal = document.getElementById('confirmationModal');
+            if (modal && modal.classList.contains('show')) {
+                e.preventDefault();
+                confirmSale();
+            }
+        });
+    }
 
     function initializePOS() {
         updateCartDisplay();
@@ -1713,6 +2155,10 @@
             btn.classList.remove('active');
             btn.style.transform = 'scale(1)';
         });
+
+        // ⌨️ Efectivo preseleccionado: la mayoría de ventas son en efectivo,
+        // así se ahorra un clic/tecla. Se puede cambiar con F5-F8.
+        selectPaymentMethod('EFECTIVO');
 
         console.log('POS inicializado correctamente');
     }
@@ -1741,11 +2187,23 @@
         const productSearch = document.getElementById('productSearch');
         if (productSearch) {
             productSearch.addEventListener('input', debounce(searchProducts, 300));
+            // Enter dentro del modal de Productos: agrega el primer resultado
+            productSearch.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const first = document.querySelector('#productResults .modal-item');
+                    if (first) first.click();
+                }
+            });
         }
 
         document.addEventListener('keydown', function (e) {
             if (e.key === 'F12') {
                 e.preventDefault();
+                // Si el modal de confirmación está abierto, Enter ya confirma;
+                // evitamos reabrirlo con F12.
+                const confirmModal = document.getElementById('confirmationModal');
+                if (confirmModal && confirmModal.classList.contains('show')) return;
                 processCheckout();
             }
         });
@@ -2301,8 +2759,8 @@
 
         const total = subtotalTotal + taxTotal - discountTotal;
 
-        const electronicInvoicingToggle = document.getElementById('electronicInvoicingToggle');
-        const facturarElectronica = electronicInvoicingToggle ? electronicInvoicingToggle.checked : false;
+        // Facturación electrónica: TODAS las ventas se envían al SRI.
+        const facturarElectronica = true;
 
         const saleData = {
             customer_id: selectedCustomerIdElement ? selectedCustomerIdElement.value || null : null,
@@ -2494,6 +2952,13 @@
         updateTotals();
         enableCheckoutIfReady();
         loadPendingOrdersCount();
+
+        // ⌨️ Dejar el POS listo para la siguiente venta sin tocar el mouse
+        selectPaymentMethod('EFECTIVO');
+        const qsInput = document.getElementById('quickSearchInput');
+        if (qsInput) qsInput.value = '';
+        hideQuickSearchDropdown();
+        focusQuickSearch();
     }
 
     function selectPaymentMethod(method) {

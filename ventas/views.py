@@ -1235,30 +1235,36 @@ def api_procesar_venta_pos_mejorado(request):
                 pass
 
         
-        # ⭐ INTEGRACIÓN: Facturación Electrónica SRI (Selective)
-        if data.get('facturar_electronica', False):
-            try:
-                # Buscar punto de emisión activo
-                punto = PuntoEmision.objects.filter(activo=True).first()
-                if not punto:
-                    # Si no hay punto activo, registramos el error pero no bloqueamos la venta
-                    logger.error("No hay punto de emisión activo para facturación electrónica")
-                else:
-                    from electronic_invoicing.models import SRIConfig
-                    config = SRIConfig.objects.first()
-                    ambiente_final = config.ambiente if config else 1
-                    
-                    comprobante = ComprobanteElectronico.objects.create(
-                        venta=venta,
-                        punto_emision=punto,
-                        ambiente=ambiente_final,
-                        estado='GENERADO'
-                    )
-                    # Disparar tarea asíncrona
-                    procesar_factura_electronica.delay(comprobante.id)
-                    logger.info(f"Tarea de facturación electrónica programada para venta {venta.id}")
-            except Exception as e:
-                logger.error(f"Error al iniciar facturación electrónica: {str(e)}")
+        # ⭐ INTEGRACIÓN: Facturación Electrónica SRI — TODAS las ventas se facturan.
+        try:
+            from electronic_invoicing.models import SRIConfig
+            punto = PuntoEmision.objects.filter(activo=True).first()
+            config = SRIConfig.objects.first()
+            if not punto or not config:
+                logger.error(
+                    "Facturación electrónica omitida: falta punto de emisión activo "
+                    "o configuración SRI. (La venta se completó normalmente.)"
+                )
+            elif not hasattr(venta, 'comprobante_electronico'):
+                comprobante = ComprobanteElectronico.objects.create(
+                    venta=venta,
+                    punto_emision=punto,
+                    ambiente=config.ambiente,
+                    estado='GENERADO'
+                )
+                # Generar la clave de acceso de forma SÍNCRONA (cálculo puro, sin
+                # red) para que el ticket la pueda imprimir de inmediato. Si algo
+                # falla aquí, NO se rompe la venta ni la impresión.
+                try:
+                    from electronic_invoicing.tasks import generar_xml_y_clave
+                    generar_xml_y_clave(comprobante)
+                except Exception as e:
+                    logger.error(f"No se pudo pre-generar la clave de acceso: {e}")
+                # Disparar tarea asíncrona (firma + envío + autorización SRI)
+                procesar_factura_electronica.delay(comprobante.id)
+                logger.info(f"Facturación electrónica programada para venta {venta.id}")
+        except Exception as e:
+            logger.error(f"Error al iniciar facturación electrónica: {str(e)}")
 
         # Procesar opciones de impresión
         print_result = None

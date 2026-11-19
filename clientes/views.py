@@ -841,10 +841,18 @@ def api_historial_cliente(request, cliente_id):
 @require_POST
 @transaction.atomic
 def api_crear_cliente_rapido(request):
-    """API para crear cliente rápidamente desde el POS"""
+    """API para crear cliente rápidamente desde el POS o las Órdenes de Trabajo.
+
+    Acepta tanto JSON (Content-Type: application/json) como datos de formulario
+    (FormData / multipart), porque distintos módulos llaman de ambas formas.
+    """
     try:
-        data = json.loads(request.body)
-        
+        ctype = request.content_type or ''
+        if 'application/json' in ctype:
+            data = json.loads(request.body or '{}')
+        else:
+            data = request.POST
+
         # Validar campos requeridos
         nombres = data.get('nombres', '').strip()
         apellidos = data.get('apellidos', '').strip()
@@ -918,10 +926,15 @@ def api_crear_cliente_rapido(request):
             'mensaje': 'Cliente creado exitosamente',
             'cliente': {
                 'id': cliente.id,
+                'nombres': cliente.nombres,
+                'apellidos': cliente.apellidos,
                 'nombre_completo': cliente.get_nombre_completo(),
                 'identificacion': cliente.identificacion,
+                'tipo_identificacion': cliente.tipo_identificacion,
                 'telefono': cliente.telefono or '',
-                'email': cliente.email or ''
+                'celular': cliente.celular or '',
+                'email': cliente.email or '',
+                'direccion': cliente.direccion or ''
             }
         })
         

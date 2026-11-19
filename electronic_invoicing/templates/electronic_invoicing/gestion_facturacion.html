@@ -215,6 +215,16 @@
                     <i class="bi bi-plus-circle me-1"></i> Nuevo Punto de Emisión
                 </button>
             </div>
+            <div class="alert alert-info d-flex gap-2 align-items-start" style="font-size:.85rem;">
+                <i class="bi bi-info-circle-fill mt-1"></i>
+                <div>
+                    Los puntos de emisión <strong>se configuran manualmente aquí</strong> — el certificado de firma
+                    <strong>no</strong> los contiene. El <strong>establecimiento</strong> (ej. <code>001</code>) debe estar
+                    <strong>ABIERTO</strong> en tu RUC del SRI (portal SRI → RUC → Establecimientos), y el
+                    <strong>punto de emisión</strong> (ej. <code>001</code>) es el que declaras para ese establecimiento.
+                    El formato de la clave de acceso es <code>establecimiento-puntoEmisión-secuencial</code>.
+                </div>
+            </div>
             <div class="row g-4">
                 {% for p in puntos %}
                 <div class="col-md-4">
@@ -286,16 +296,43 @@
                         </div>
                         <div class="card-body">
                             {% for cert in certificados %}
-                            <div class="d-flex align-items-center gap-3 p-3 bg-light rounded mb-3">
-                                <div class="bg-primary text-white p-3 rounded">
-                                    <i class="bi bi-patch-check-fill fs-2"></i>
-                                </div>
-                                <div>
-                                    <h6 class="fw-bold mb-0">{{ cert.nombre_titular|default:"Firma Empresa" }}</h6>
-                                    <p class="small text-muted mb-0">Expira: {{ cert.fecha_vencimiento|date:"d/m/Y" }}</p>
+                            <div class="border rounded mb-3 overflow-hidden">
+                                <div class="d-flex align-items-center justify-content-between gap-2 p-3 bg-light">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-patch-check-fill fs-4 text-primary"></i>
+                                        <div>
+                                            <h6 class="fw-bold mb-0">{{ cert.nombre_titular|default:"Firma Electrónica" }}</h6>
+                                            <small class="text-muted">Emisor: {{ cert.emisor|default:"—" }} · Expira {{ cert.fecha_vencimiento|date:"d/m/Y" }}</small>
+                                        </div>
+                                    </div>
                                     <span class="badge {% if cert.activo %}bg-success{% else %}bg-secondary{% endif %}">
                                         {% if cert.activo %}Activo{% else %}Inactivo{% endif %}
                                     </span>
+                                </div>
+                                <div class="row g-0">
+                                    <div class="col-sm-6 p-3 border-end">
+                                        <div class="text-uppercase fw-bold text-primary mb-2" style="font-size:.7rem; letter-spacing:.04em;">
+                                            <i class="bi bi-building me-1"></i>Datos de la Empresa
+                                        </div>
+                                        <div class="small"><span class="text-muted">Razón social:</span><br><strong>{{ cert.nombre_titular|default:"—" }}</strong></div>
+                                        <div class="small mt-2"><span class="text-muted">RUC:</span> <strong>{{ cert.ruc_titular|default:"—" }}</strong></div>
+                                        <div class="small mt-2"><span class="text-muted">Nombre comercial:</span> <strong>{{ config.nombre_comercial|default:"—" }}</strong></div>
+                                        <div class="small mt-2"><span class="text-muted">Ambiente:</span>
+                                            {% if config.ambiente == 2 %}<span class="badge bg-danger">Producción</span>{% else %}<span class="badge bg-warning text-dark">Pruebas</span>{% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 p-3">
+                                        <div class="text-uppercase fw-bold text-secondary mb-2" style="font-size:.7rem; letter-spacing:.04em;">
+                                            <i class="bi bi-person-badge me-1"></i>Representante Legal
+                                        </div>
+                                        {% if cert.representante %}
+                                        <div class="small"><span class="text-muted">Nombre:</span><br><strong>{{ cert.representante }}</strong></div>
+                                        <div class="small mt-2"><span class="text-muted">Cargo:</span> <strong>{{ cert.cargo|default:"—" }}</strong></div>
+                                        <div class="small mt-2"><span class="text-muted">Cédula:</span> <strong>{{ cert.cedula_representante|default:"—" }}</strong></div>
+                                        {% else %}
+                                        <div class="small text-muted">Certificado de persona natural (sin representante).</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             {% empty %}
@@ -303,6 +340,12 @@
                                 <i class="bi bi-exclamation-triangle"></i> No hay firmas electrónicas cargadas.
                             </div>
                             {% endfor %}
+
+                            <!-- Preview de datos extraídos tras subir un certificado -->
+                            <div id="certPreview" class="border rounded mb-3 d-none" style="border-color:#16a34a !important;">
+                                <div class="p-2 bg-success text-white fw-bold small"><i class="bi bi-check-circle me-1"></i>Datos extraídos del certificado</div>
+                                <div id="certPreviewBody" class="row g-0"></div>
+                            </div>
                             
                             <hr class="my-4">
                             
@@ -554,6 +597,30 @@
     }
 
     // ========== UPLOAD CERTIFICADO ==========
+    function renderCertPreview(d) {
+        if (!d) return;
+        const esc = (s) => (s == null ? '—' : String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])));
+        const persona = d.representante ? `
+            <div class="small"><span class="text-muted">Nombre:</span><br><strong>${esc(d.representante)}</strong></div>
+            <div class="small mt-2"><span class="text-muted">Cargo:</span> <strong>${esc(d.cargo)}</strong></div>
+            <div class="small mt-2"><span class="text-muted">Cédula:</span> <strong>${esc(d.cedula)}</strong></div>`
+            : `<div class="small text-muted">Certificado de persona natural (sin representante).</div>`;
+        const rucWarn = d.ruc_valido === false ? ` <span class="badge bg-danger">revisar</span>` : '';
+        document.getElementById('certPreviewBody').innerHTML = `
+            <div class="col-sm-6 p-3 border-end">
+                <div class="text-uppercase fw-bold text-primary mb-2" style="font-size:.7rem;"><i class="bi bi-building me-1"></i>Empresa</div>
+                <div class="small"><span class="text-muted">Razón social:</span><br><strong>${esc(d.razon_social)}</strong></div>
+                <div class="small mt-2"><span class="text-muted">RUC:</span> <strong>${esc(d.ruc)}</strong>${rucWarn}</div>
+                <div class="small mt-2"><span class="text-muted">Nombre comercial:</span> <strong>${esc(d.nombre_comercial)}</strong></div>
+                <div class="small mt-2"><span class="text-muted">Emisor:</span> <strong>${esc(d.emisor)}</strong> · Expira ${esc(d.fecha_vencimiento)}</div>
+            </div>
+            <div class="col-sm-6 p-3">
+                <div class="text-uppercase fw-bold text-secondary mb-2" style="font-size:.7rem;"><i class="bi bi-person-badge me-1"></i>Representante Legal</div>
+                ${persona}
+            </div>`;
+        document.getElementById('certPreview').classList.remove('d-none');
+    }
+
     async function uploadCertificado() {
         const form = document.getElementById('uploadCertForm');
         if (!form.checkValidity()) {
@@ -577,8 +644,12 @@
             });
             const res = await resp.json();
             if (res.status === 'success') {
-                alert('✅ ' + res.message);
-                window.location.reload();
+                renderCertPreview(res.data);
+                btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Certificado activado';
+                if (res.data && res.data.ruc_valido === false) {
+                    alert('⚠️ ' + res.message);
+                }
+                setTimeout(() => window.location.reload(), 4000);
             } else {
                 alert('❌ Error: ' + res.message);
                 btn.disabled = false;
