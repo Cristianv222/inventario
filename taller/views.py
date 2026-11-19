@@ -1572,26 +1572,25 @@ def buscar_producto_ajax(request):
     if len(query) < 2:
         return JsonResponse([], safe=False)
     
-    # Buscar productos por código, nombre o descripción
+    # Buscar productos por código único, nombre o descripción.
+    # (No se excluye stock 0: en una orden/cotización puede pedirse un repuesto
+    #  que esté agotado; el frontend muestra el stock disponible.)
     productos = Producto.objects.filter(
-        Q(codigo__icontains=query) |
+        Q(codigo_unico__icontains=query) |
         Q(nombre__icontains=query) |
         Q(descripcion__icontains=query)
-    ).filter(
-        activo=True,
-        stock_actual__gt=0  # Solo productos con stock
-    )[:10]
-    
+    ).filter(activo=True)[:15]
+
     data = []
     for producto in productos:
         data.append({
             'id': producto.id,
-            'codigo': producto.codigo,
+            'codigo': producto.codigo_unico,
             'nombre': producto.nombre,
             'descripcion': producto.descripcion or '',
             'precio_venta': float(producto.precio_venta),
-            'stock_actual': producto.stock_actual,
-            'text': f"{producto.codigo} - {producto.nombre} (Stock: {producto.stock_actual})"
+            'stock_actual': float(producto.stock_actual),
+            'text': f"{producto.codigo_unico} - {producto.nombre} (Stock: {producto.stock_actual})"
         })
     
     return JsonResponse(data, safe=False)

@@ -1047,7 +1047,39 @@
                 <!-- ========== STEP 4: REPUESTOS ========== -->
                 <div class="wizard-step" data-step="4">
                     <h2 class="step-title">Repuestos Necesarios</h2>
-                    <p class="step-subtitle">Busque y agregue los repuestos necesarios</p>
+                    <p class="step-subtitle">Escanee un código, o escriba código/nombre y pulse Enter para agregar</p>
+
+                    <!-- ⌨️ Barra rápida: escáner o búsqueda por teclado (Enter para agregar) -->
+                    <style>
+                        .qs-order-search { margin-bottom: 18px; }
+                        .qs-order-wrapper { position: relative; }
+                        .qs-order-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9aa0b4; font-size: 1.1rem; pointer-events: none; }
+                        #qsOrderInput { width: 100%; padding: 15px 16px 15px 46px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; transition: border-color .15s, box-shadow .15s; }
+                        #qsOrderInput:focus { border-color: var(--primary, #3f51b5); box-shadow: 0 0 0 3px rgba(63,81,181,.12); }
+                        .qs-order-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.12); max-height: 320px; overflow-y: auto; z-index: 1100; display: none; }
+                        .qs-order-dropdown.show { display: block; }
+                        .qso-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+                        .qso-item:last-child { border-bottom: none; }
+                        .qso-item.active, .qso-item:hover { background: #eef2ff; }
+                        .qso-name { font-weight: 600; color: #1e293b; font-size: .92rem; }
+                        .qso-code { font-size: .78rem; color: #64748b; margin-top: 2px; }
+                        .qso-right { text-align: right; white-space: nowrap; }
+                        .qso-price { display: block; font-weight: 700; color: #16a34a; font-size: .9rem; }
+                        .qso-stock { font-size: .72rem; font-weight: 600; padding: 1px 7px; border-radius: 999px; }
+                        .qso-stock.ok { background:#dcfce7; color:#15803d; } .qso-stock.low { background:#fef9c3; color:#854d0e; } .qso-stock.out { background:#fee2e2; color:#b91c1c; }
+                        .qso-empty { padding: 18px; text-align: center; color: #94a3b8; font-size: .9rem; }
+                        .qs-order-hint { margin-top: 8px; font-size: .78rem; color: #94a3b8; }
+                        .qs-order-hint .kbd { background:#f1f5f9; border:1px solid #cbd5e1; border-radius:5px; padding:1px 6px; font-size:.72rem; color:#475569; }
+                    </style>
+                    <div class="qs-order-search">
+                        <div class="qs-order-wrapper">
+                            <i class="fas fa-barcode qs-order-icon"></i>
+                            <input type="text" id="qsOrderInput" autocomplete="off"
+                                   placeholder="Escanea un código o escribe nombre/código y pulsa Enter…">
+                            <div class="qs-order-dropdown" id="qsOrderDropdown"></div>
+                        </div>
+                        <div class="qs-order-hint"><span class="kbd">Enter</span> agregar &middot; <span class="kbd">↑ ↓</span> navegar &middot; <span class="kbd">Esc</span> limpiar</div>
+                    </div>
 
                     <!-- ✅ FORMSET MANAGEMENT FORM -->
                     {{ repuestos_formset.management_form }}
@@ -1565,7 +1597,9 @@ function loadServices() {
 }
 
 function loadProducts() {
-    fetch(CONFIG.urls.productos)
+    // Límite alto para traer TODO el catálogo al modal (el default del API es 50,
+    // lo que hacía que no aparecieran productos más allá de los primeros 50).
+    fetch(CONFIG.urls.productos + '?limit=100000')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -1581,6 +1615,103 @@ function loadProducts() {
             products = [];
         });
 }
+
+// ========================================
+// BARRA RÁPIDA DE PRODUCTOS (Enter para agregar / escáner)
+// Busca en el servidor, así encuentra TODO el catálogo (no solo lo cargado).
+// ========================================
+let qsoResults = [];
+let qsoActiveIndex = -1;
+let qsoTimer = null;
+
+function qsOrderLookup(term) {
+    fetch(`${CONFIG.urls.productos}?q=${encodeURIComponent(term)}&limit=15`)
+        .then(r => r.json())
+        .then(data => {
+            qsoResults = (data.success && data.productos) ? data.productos : [];
+            qsoActiveIndex = qsoResults.length > 0 ? 0 : -1;
+            renderQsOrderDropdown();
+        })
+        .catch(() => { qsoResults = []; qsoActiveIndex = -1; hideQsOrderDropdown(); });
+}
+
+function hideQsOrderDropdown() {
+    const dd = document.getElementById('qsOrderDropdown');
+    if (dd) { dd.classList.remove('show'); dd.innerHTML = ''; }
+    qsoResults = []; qsoActiveIndex = -1;
+}
+
+function renderQsOrderDropdown() {
+    const dd = document.getElementById('qsOrderDropdown');
+    if (!dd) return;
+    if (qsoResults.length === 0) {
+        dd.innerHTML = '<div class="qso-empty">No se encontraron productos</div>';
+        dd.classList.add('show');
+        return;
+    }
+    dd.innerHTML = qsoResults.map((p, i) => {
+        const sc = p.stock > 10 ? 'ok' : (p.stock > 0 ? 'low' : 'out');
+        return `<div class="qso-item ${i === qsoActiveIndex ? 'active' : ''}" data-index="${i}" onclick="selectQsOrderItem(${i})">
+            <div><div class="qso-name">${escapeHtml(p.nombre)}</div><div class="qso-code">Código: ${escapeHtml(p.codigo || '')}</div></div>
+            <div class="qso-right"><span class="qso-price">$${Number(p.precio || 0).toFixed(2)}</span><span class="qso-stock ${sc}">Stock: ${p.stock}</span></div>
+        </div>`;
+    }).join('');
+    dd.classList.add('show');
+}
+
+function selectQsOrderItem(index) {
+    const p = qsoResults[index];
+    if (!p) return;
+    addProductToFormset(p);
+    if (Number(p.stock) <= 0) showToast('Agregado (sin stock): ' + p.nombre, 'warning');
+    else showToast('✅ ' + p.nombre, 'success');
+    const input = document.getElementById('qsOrderInput');
+    if (input) { input.value = ''; input.focus(); }
+    hideQsOrderDropdown();
+}
+
+function handleQsOrderKeydown(e) {
+    const input = e.target;
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const term = input.value.trim();
+        if (!term) return;
+        if (qsoResults.length > 0 && qsoActiveIndex >= 0) { selectQsOrderItem(qsoActiveIndex); return; }
+        // Sin sugerencias (típico del escáner): buscar y agregar coincidencia exacta de código
+        fetch(`${CONFIG.urls.productos}?q=${encodeURIComponent(term)}&limit=15`)
+            .then(r => r.json())
+            .then(data => {
+                const res = (data.success && data.productos) ? data.productos : [];
+                const exacto = res.find(p => (p.codigo || '').toUpperCase() === term.toUpperCase());
+                if (exacto) { qsoResults = res; selectQsOrderItem(res.indexOf(exacto)); }
+                else if (res.length === 1) { qsoResults = res; selectQsOrderItem(0); }
+                else { qsoResults = res; qsoActiveIndex = res.length ? 0 : -1; renderQsOrderDropdown(); }
+            })
+            .catch(() => {});
+        return;
+    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!qsoResults.length) return; qsoActiveIndex = (qsoActiveIndex + 1) % qsoResults.length; renderQsOrderDropdown(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); if (!qsoResults.length) return; qsoActiveIndex = (qsoActiveIndex - 1 + qsoResults.length) % qsoResults.length; renderQsOrderDropdown(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); input.value = ''; hideQsOrderDropdown(); return; }
+}
+
+function setupQsOrder() {
+    const input = document.getElementById('qsOrderInput');
+    if (!input || input.dataset.wired) return;
+    input.dataset.wired = '1';
+    input.addEventListener('keydown', handleQsOrderKeydown);
+    input.addEventListener('input', function () {
+        const term = input.value.trim();
+        clearTimeout(qsoTimer);
+        if (term.length < 2) { hideQsOrderDropdown(); return; }
+        qsoTimer = setTimeout(() => qsOrderLookup(term), 250);
+    });
+    document.addEventListener('click', function (e) {
+        const wrap = input.closest('.qs-order-wrapper');
+        if (wrap && !wrap.contains(e.target)) hideQsOrderDropdown();
+    });
+}
+document.addEventListener('DOMContentLoaded', setupQsOrder);
 
 // ========================================
 // CARGAR DATOS EXISTENTES (MODO EDICIÓN)
