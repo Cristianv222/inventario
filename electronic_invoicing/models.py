@@ -86,10 +86,16 @@ class CertificadoDigital(models.Model):
     password_encrypted = models.CharField(max_length=500, verbose_name="Password (Encriptado)")
     
     # Metadata extraída del certificado
+    # Para certificados de empresa: nombre_titular/ruc_titular son los de la EMPRESA.
     nombre_titular = models.CharField(max_length=300, null=True, blank=True)
     ruc_titular = models.CharField(max_length=13, null=True, blank=True)
     emisor = models.CharField(max_length=300, null=True, blank=True)
     fecha_vencimiento = models.DateField(null=True, blank=True)
+    # Datos del representante legal (persona) dentro del certificado de empresa
+    representante = models.CharField(max_length=300, null=True, blank=True)
+    cargo = models.CharField(max_length=150, null=True, blank=True)
+    cedula_representante = models.CharField(max_length=13, null=True, blank=True)
+    es_empresa = models.BooleanField(default=False)
     
     activo = models.BooleanField(default=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)

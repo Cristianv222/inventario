@@ -1,0 +1,46 @@
+{% load humanize %}
+<div class="fz-card">
+  <div class="fz-card-head">
+    <span>Balance de Comprobación</span>
+    <span>
+      {% if data.cuadra_sumas and data.cuadra_saldos %}
+        <span class="fz-chip ok">Cuadrado ✓</span>
+      {% else %}
+        <span class="fz-chip bad">Descuadre ✗</span>
+      {% endif %}
+    </span>
+  </div>
+  {% if data.filas %}
+  <table class="fz-table">
+    <thead>
+      <tr>
+        <th>Código</th><th>Cuenta</th><th>Tipo</th>
+        <th class="num">Debe</th><th class="num">Haber</th>
+        <th class="num">Saldo Deudor</th><th class="num">Saldo Acreedor</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in data.filas %}
+      <tr>
+        <td>{{ f.codigo }}</td>
+        <td>{{ f.nombre }}</td>
+        <td>{{ f.tipo }}</td>
+        <td class="num">{{ f.debe|floatformat:2|intcomma }}</td>
+        <td class="num">{{ f.haber|floatformat:2|intcomma }}</td>
+        <td class="num">{% if f.deudor %}{{ f.deudor|floatformat:2|intcomma }}{% endif %}</td>
+        <td class="num">{% if f.acreedor %}{{ f.acreedor|floatformat:2|intcomma }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+      <tr class="total">
+        <td colspan="3">TOTALES</td>
+        <td class="num">{{ data.total_debe|floatformat:2|intcomma }}</td>
+        <td class="num">{{ data.total_haber|floatformat:2|intcomma }}</td>
+        <td class="num">{{ data.total_deudor|floatformat:2|intcomma }}</td>
+        <td class="num">{{ data.total_acreedor|floatformat:2|intcomma }}</td>
+      </tr>
+    </tbody>
+  </table>
+  {% else %}
+  <div class="fz-empty">No hay movimientos mayorizados en el período.</div>
+  {% endif %}
+</div>

@@ -1,0 +1,37 @@
+{% load humanize %}
+<div class="fz-card">
+  <div class="fz-card-head"><span>Estado de Resultados</span></div>
+  <table class="fz-table">
+    <tbody>
+      <tr class="sub"><td colspan="2">INGRESOS</td></tr>
+      {% for f in data.ingresos %}
+      <tr><td>{{ f.codigo }} — {{ f.nombre }}</td><td class="num">{{ f.saldo|floatformat:2|intcomma }}</td></tr>
+      {% empty %}
+      <tr><td class="fz-empty" colspan="2">Sin ingresos en el período</td></tr>
+      {% endfor %}
+      <tr class="total"><td>Total Ingresos</td><td class="num">{{ data.total_ingresos|floatformat:2|intcomma }}</td></tr>
+
+      <tr class="sub"><td colspan="2">COSTOS</td></tr>
+      {% for f in data.costos %}
+      <tr><td>{{ f.codigo }} — {{ f.nombre }}</td><td class="num">{{ f.saldo|floatformat:2|intcomma }}</td></tr>
+      {% empty %}
+      <tr><td class="fz-empty" colspan="2">Sin costos en el período</td></tr>
+      {% endfor %}
+      <tr class="total"><td>Total Costos</td><td class="num">{{ data.total_costos|floatformat:2|intcomma }}</td></tr>
+      <tr class="total"><td>UTILIDAD BRUTA</td><td class="num {% if data.utilidad_bruta < 0 %}fz-neg{% else %}fz-pos{% endif %}">{{ data.utilidad_bruta|floatformat:2|intcomma }}</td></tr>
+
+      <tr class="sub"><td colspan="2">GASTOS</td></tr>
+      {% for f in data.gastos %}
+      <tr><td>{{ f.codigo }} — {{ f.nombre }}</td><td class="num">{{ f.saldo|floatformat:2|intcomma }}</td></tr>
+      {% empty %}
+      <tr><td class="fz-empty" colspan="2">Sin gastos en el período</td></tr>
+      {% endfor %}
+      <tr class="total"><td>Total Gastos</td><td class="num">{{ data.total_gastos|floatformat:2|intcomma }}</td></tr>
+
+      <tr class="total">
+        <td>UTILIDAD NETA DEL EJERCICIO</td>
+        <td class="num {% if data.utilidad_neta < 0 %}fz-neg{% else %}fz-pos{% endif %}">{{ data.utilidad_neta|floatformat:2|intcomma }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

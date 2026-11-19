@@ -150,21 +150,58 @@ class TicketThermalService:
         def separator_line(width, char='-'):
             """Genera línea separadora"""
             return char * width
+
+        def wrap_text(text, width):
+            """Ajuste de texto por palabras a un ancho dado (lista de líneas)."""
+            palabras = str(text).split()
+            lineas, actual = [], ''
+            for p in palabras:
+                if len(actual) + len(p) + (1 if actual else 0) <= width:
+                    actual = f"{actual} {p}".strip()
+                else:
+                    if actual:
+                        lineas.append(actual)
+                    actual = p[:width] if len(p) > width else p
+            if actual:
+                lineas.append(actual)
+            return lineas or ['']
+
+        def wrap_center(text, width):
+            return [center_text(l, width) for l in wrap_text(text, width)]
+
+        def chunk(text, width):
+            """Parte una cadena larga (p. ej. clave de 49 díg.) en bloques."""
+            return [text[i:i + width] for i in range(0, len(text), width)]
         
         # Construir contenido del ticket
         lines = []
         
-        # Header con nombre del negocio
-        empresa = getattr(settings, 'EMPRESA_NOMBRE', 'VPMOTOS')
-        ruc = getattr(settings, 'EMPRESA_RUC', '')
-        direccion = getattr(settings, 'EMPRESA_DIRECCION', '')
+        # Header con los datos fiscales de la empresa (desde la config SRI;
+        # con respaldo en settings si aún no hay config).
+        try:
+            from electronic_invoicing.models import SRIConfig
+            sri = SRIConfig.objects.first()
+        except Exception:
+            sri = None
+
+        empresa = (sri.razon_social if sri and sri.razon_social
+                   else getattr(settings, 'EMPRESA_NOMBRE', 'VPMOTOS'))
+        nombre_comercial = sri.nombre_comercial if sri else ''
+        ruc = (sri.ruc if sri and sri.ruc else getattr(settings, 'EMPRESA_RUC', ''))
+        direccion = (sri.direccion_matriz if sri and sri.direccion_matriz
+                     else getattr(settings, 'EMPRESA_DIRECCION', ''))
         telefono = getattr(settings, 'EMPRESA_TELEFONO', '')
-        
-        lines.append(center_text(empresa, width))
+
+        for l in wrap_center(empresa, width):
+            lines.append(l)
+        if nombre_comercial and nombre_comercial != empresa:
+            for l in wrap_center(nombre_comercial, width):
+                lines.append(l)
         if ruc:
             lines.append(center_text(f"RUC: {ruc}", width))
         if direccion:
-            lines.append(center_text(direccion, width))
+            for l in wrap_center(direccion, width):
+                lines.append(l)
         if telefono:
             lines.append(center_text(f"Tel: {telefono}", width))
         
@@ -266,7 +303,38 @@ class TicketThermalService:
             'CREDITO': 'CREDITO'
         }
         lines.append(f"Forma de pago: {tipo_pago_map.get(venta.tipo_pago, venta.tipo_pago)}")
-        
+
+        # --- Factura Electrónica (SRI) ---
+        comp = getattr(venta, 'comprobante_electronico', None)
+        if comp and comp.clave_acceso:
+            lines.append("")
+            lines.append(separator_line(width, '='))
+            lines.append(center_text("FACTURA ELECTRONICA", width))
+            if comp.estado == 'AUTORIZADO':
+                lines.append(center_text("AUTORIZADA POR EL SRI", width))
+            else:
+                lines.append(center_text("Autorizacion en proceso", width))
+            amb = 'PRODUCCION' if comp.ambiente == 2 else 'PRUEBAS'
+            lines.append(center_text(f"Ambiente: {amb}", width))
+            lines.append(separator_line(width))
+            lines.append("Clave de Acceso / No. Autorizacion:")
+            for l in chunk(comp.clave_acceso, width):
+                lines.append(l)
+            if comp.numero_autorizacion and comp.numero_autorizacion != comp.clave_acceso:
+                lines.append("No. Autorizacion:")
+                for l in chunk(comp.numero_autorizacion, width):
+                    lines.append(l)
+            if comp.fecha_autorizacion:
+                fa = timezone.localtime(comp.fecha_autorizacion).strftime("%d/%m/%Y %H:%M")
+                lines.append(f"Fecha autorizacion: {fa}")
+            lines.append(separator_line(width))
+            email_cli = getattr(venta.cliente, 'email', '') or getattr(venta.cliente, 'correo', '') or ''
+            nota = ("Este documento es una FACTURA ELECTRONICA. Una copia en PDF y XML "
+                    "sera enviada a su correo electronico")
+            nota = f"{nota} {email_cli}." if email_cli else f"{nota}."
+            for l in wrap_center(nota, width):
+                lines.append(l)
+
         lines.append("")
         lines.append(center_text("¡GRACIAS POR SU COMPRA!", width))
         lines.append(center_text("Vuelva pronto", width))

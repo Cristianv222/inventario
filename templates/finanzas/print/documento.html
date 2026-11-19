@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>{{ titulo }}</title>
+<style>
+  @page { size: A4; margin: 1.4cm; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color:#0f172a; font-size:11px; }
+  .doc-head { border-bottom:2px solid #2563eb; padding-bottom:.4rem; margin-bottom:1rem; }
+  .doc-head h1 { font-size:18px; margin:0; color:#1d4ed8; }
+  .doc-head .meta { color:#64748b; font-size:11px; margin-top:.2rem; }
+  .fz-card { border:1px solid #e2e8f0; border-radius:6px; margin-bottom:12px; overflow:hidden; }
+  .fz-card-head { background:#eff6ff; color:#1d4ed8; font-weight:700; padding:.4rem .6rem; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; }
+  .fz-table { width:100%; border-collapse:collapse; }
+  .fz-table th, .fz-table td { padding:.3rem .5rem; border-bottom:1px solid #e2e8f0; text-align:left; }
+  .fz-table th { background:#f8fafc; font-size:9px; text-transform:uppercase; color:#64748b; }
+  .fz-table td.num, .fz-table th.num { text-align:right; }
+  .fz-table tr.total td { font-weight:700; background:#f8fafc; border-top:1.5px solid #2563eb; }
+  .fz-table tr.sub td { font-weight:600; background:#fbfbfb; }
+  .fz-pos { color:#16a34a; } .fz-neg { color:#dc2626; }
+  .fz-chip { padding:.1rem .4rem; border-radius:999px; font-size:9px; font-weight:700; }
+  .fz-chip.ok { background:#dcfce7; color:#15803d; } .fz-chip.bad { background:#fee2e2; color:#b91c1c; }
+  .fz-empty { padding:1rem; text-align:center; color:#64748b; }
+  .fz-sub, .fz-exports, .fz-filtros, .fz-head .fz-back { display:none; }
+</style>
+</head>
+<body>
+  <div class="doc-head">
+    <h1>{{ titulo }}</h1>
+    <div class="meta">VP Motos — ERP Finanzas · Período {{ fecha_inicio }} — {{ fecha_fin }}</div>
+  </div>
+  {% include partial %}
+</body>
+</html>

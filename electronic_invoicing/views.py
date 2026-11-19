@@ -250,26 +250,67 @@ def subir_certificado_sri(request):
             cert.archivo = archivo
             cert.set_password(password)
             
-            # Guardar metadata extraída
-            cert.nombre_titular = metadata.get('nombre_titular')
-            cert.ruc_titular = metadata.get('ruc_titular')
+            # Guardar metadata extraída. Para certificados de EMPRESA (persona
+            # jurídica) esto es el RUC y la razón social de la EMPRESA, no del
+            # representante legal.
+            razon_social = metadata.get('razon_social') or metadata.get('nombre_titular')
+            ruc_titular = metadata.get('ruc_titular')
+            representante = metadata.get('representante')
+            cargo = metadata.get('cargo')
+            cedula = metadata.get('cedula')
+            es_empresa = metadata.get('es_empresa')
+
+            cert.nombre_titular = razon_social
+            cert.ruc_titular = ruc_titular
             cert.emisor = metadata.get('emisor')
             cert.fecha_vencimiento = metadata.get('fecha_vencimiento')
-            
+            cert.representante = representante
+            cert.cargo = cargo
+            cert.cedula_representante = cedula
+            cert.es_empresa = bool(es_empresa)
+
             cert.activo = True
             cert.save()
-            
-            # Actualizar automáticamente la configuración global de SRI con los datos extraídos
+
+            # Actualizar la configuración global de SRI con los datos del emisor.
+            # El RUC debe tener 13 dígitos; si no, no se sobreescribe para no
+            # romper la emisión (se avisa al usuario).
             config, created = SRIConfig.objects.get_or_create(id=1)
-            if cert.ruc_titular:
-                config.ruc = cert.ruc_titular
-            if cert.nombre_titular:
-                config.razon_social = cert.nombre_titular
+            ruc_valido = bool(ruc_titular and len(str(ruc_titular)) == 13)
+            if ruc_valido:
+                config.ruc = ruc_titular
+            if razon_social:
+                config.razon_social = razon_social
+            if es_empresa and not config.nombre_comercial:
+                config.nombre_comercial = razon_social
             config.save()
-            
+
+            titular_txt = razon_social
+            if es_empresa and representante:
+                titular_txt = f'{razon_social} (Rep.: {representante})'
+            aviso_ruc = '' if ruc_valido else (
+                f' ADVERTENCIA: el RUC extraído ("{ruc_titular}") no tiene 13 dígitos; '
+                f'revíselo manualmente en la Configuración SRI.'
+            )
             return JsonResponse({
-                'status': 'success', 
-                'message': f'Certificado de {cert.nombre_titular} subido y activado correctamente (Expira: {cert.fecha_vencimiento}). Los datos de Razón Social y RUC han sido actualizados automáticamente en la configuración global del SRI.'
+                'status': 'success',
+                'message': (
+                    f'Certificado de {titular_txt} subido y activado correctamente '
+                    f'(Expira: {cert.fecha_vencimiento}). RUC emisor: {config.ruc}, '
+                    f'Razón social: {config.razon_social}.{aviso_ruc}'
+                ),
+                'data': {
+                    'es_empresa': bool(es_empresa),
+                    'razon_social': razon_social,
+                    'ruc': ruc_titular,
+                    'nombre_comercial': config.nombre_comercial,
+                    'representante': representante,
+                    'cargo': cargo,
+                    'cedula': cedula,
+                    'emisor': metadata.get('emisor'),
+                    'fecha_vencimiento': str(cert.fecha_vencimiento) if cert.fecha_vencimiento else None,
+                    'ruc_valido': ruc_valido,
+                },
             })
         except Exception as e:
             logger.error(f"Error subiendo certificado: {e}")

@@ -70,6 +70,37 @@ def extraer_errores_sri(respuesta):
         
     return " | ".join(errores) if errores else ("Rechazado sin detalle (Suele ser por firma electrónica o clave no válida para RUC). " + str(respuesta))
 
+def generar_xml_y_clave(comprobante):
+    """Genera el XML y la clave de acceso de forma SÍNCRONA (cálculo puro, sin red).
+
+    Pensado para llamarse en el momento de la venta, de modo que la clave de
+    acceso (que en el esquema offline del SRI equivale al número de autorización)
+    esté disponible de inmediato para imprimirla en el ticket. Es idempotente:
+    si el comprobante ya tiene clave, no hace nada. Incrementa el secuencial una
+    sola vez. NO firma ni contacta al SRI.
+    """
+    if comprobante.clave_acceso:
+        return comprobante.clave_acceso
+
+    config = SRIConfig.objects.first()
+    punto = comprobante.punto_emision or PuntoEmision.objects.filter(activo=True).first()
+    if not config or not punto:
+        raise ValueError("Configuración SRI o Punto de Emisión no encontrados.")
+
+    generator = XMLGeneratorSRI(config, punto)
+    xml_bruto, clave_acceso = generator.generar_xml_factura(comprobante.venta)
+
+    from django.db.models import F
+    punto.ultimo_secuencial = F('ultimo_secuencial') + 1
+    punto.save(update_fields=['ultimo_secuencial'])
+
+    comprobante.clave_acceso = clave_acceso
+    comprobante.xml_generado = xml_bruto.decode('utf-8')
+    comprobante.estado = 'GENERADO'
+    comprobante.save()
+    return clave_acceso
+
+
 @shared_task
 def procesar_factura_electronica(comprobante_id):
     """
@@ -87,44 +118,34 @@ def procesar_factura_electronica(comprobante_id):
             comprobante.save()
             return
 
-        # 1. GENERAR XML (Solo si no existe clave de acceso aún)
-        if not comprobante.clave_acceso or not comprobante.xml_firmado:
-            comprobante.estado = 'GENERADO'
-            comprobante.save()
+        # 1. GENERAR XML + CLAVE (solo si aún no existe; puede venir ya generado
+        #    de forma síncrona desde el punto de venta para el ticket).
+        if not comprobante.clave_acceso:
             notificar_monitor(comprobante, "Generando XML...")
-            
-            generator = XMLGeneratorSRI(config, punto_emision)
-            xml_bruto, clave_acceso = generator.generar_xml_factura(venta)
+            generar_xml_y_clave(comprobante)
             notificar_monitor(comprobante, "XML Generado OK")
-            
-            # Incrementar secuencial SOLO si es la primera vez que generamos para esta factura
-            if not comprobante.clave_acceso:
-                from django.db.models import F
-                punto_emision.ultimo_secuencial = F('ultimo_secuencial') + 1
-                punto_emision.save(update_fields=['ultimo_secuencial'])
-                punto_emision.refresh_from_db()
 
-            comprobante.clave_acceso = clave_acceso
-            comprobante.xml_generado = xml_bruto.decode('utf-8')
-            
-            # 2. FIRMAR XML
+        clave_acceso = comprobante.clave_acceso
+
+        # 2. FIRMAR XML (solo si aún no está firmado)
+        if not comprobante.xml_firmado:
             notificar_monitor(comprobante, "Firmando XML...")
             certificado = CertificadoDigital.objects.filter(activo=True).first()
             if not certificado:
                 raise ValueError("No hay certificado digital (firma) activo.")
-                
+
+            xml_bruto = comprobante.xml_generado.encode('utf-8')
             signer = SignatureServiceSRI(certificado)
             xml_firmado_bytes = signer.firmar_xml(xml_bruto)
-            
+
             xml_firmado_str = xml_firmado_bytes.decode('utf-8') if isinstance(xml_firmado_bytes, bytes) else xml_firmado_bytes
-            
+
             comprobante.xml_firmado = xml_firmado_str
             comprobante.estado = 'FIRMADO'
             comprobante.save()
             notificar_monitor(comprobante, "XML Firmado Exitosamente")
         else:
             xml_firmado_str = comprobante.xml_firmado
-            clave_acceso = comprobante.clave_acceso
 
         # 3. ENVIAR AL SRI (RECEPCIÓN)
         if comprobante.estado != 'RECIBIDO' and comprobante.estado != 'AUTORIZADO':

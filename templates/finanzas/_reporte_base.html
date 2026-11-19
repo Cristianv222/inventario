@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ titulo }} · Finanzas{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --fz-blue: #2563eb;
+    --fz-blue-dark: #1d4ed8;
+    --fz-blue-light: #eff6ff;
+    --fz-ink: #0f172a;
+    --fz-muted: #64748b;
+    --fz-line: #e2e8f0;
+    --fz-green: #16a34a;
+    --fz-red: #dc2626;
+}
+.fz-wrap { max-width: 1200px; margin: 1.5rem auto; padding: 0 1rem; color: var(--fz-ink); }
+.fz-head { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+.fz-back { color: var(--fz-muted); text-decoration:none; font-size:.85rem; }
+.fz-back:hover { color: var(--fz-blue); }
+.fz-head h1 { font-size:1.5rem; margin:.2rem 0 0; }
+.fz-sub { color: var(--fz-muted); font-size:.9rem; }
+.fz-exports { display:flex; gap:.5rem; }
+.fz-btn { display:inline-flex; align-items:center; gap:.35rem; padding:.5rem .9rem; border-radius:8px; font-size:.85rem; font-weight:600; text-decoration:none; border:1px solid var(--fz-line); color:var(--fz-ink); background:#fff; }
+.fz-btn:hover { border-color: var(--fz-blue); color: var(--fz-blue); }
+.fz-pdf { color:#b91c1c; border-color:#fecaca; }
+.fz-xls { color:#15803d; border-color:#bbf7d0; }
+.fz-filtros { display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap; background:#fff; border:1px solid var(--fz-line); border-radius:12px; padding:1rem; margin-bottom:1.25rem; }
+.fz-filtros label { display:block; font-size:.75rem; color:var(--fz-muted); margin-bottom:.25rem; font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+.fz-filtros input, .fz-filtros select { padding:.5rem .6rem; border:1px solid var(--fz-line); border-radius:8px; font-size:.9rem; }
+.fz-filtros button { padding:.55rem 1.1rem; background:var(--fz-blue); color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer; font-size:.9rem; }
+.fz-filtros button:hover { background:var(--fz-blue-dark); }
+.fz-card { background:#fff; border:1px solid var(--fz-line); border-radius:12px; overflow:hidden; margin-bottom:1.25rem; }
+.fz-card-head { padding:.85rem 1.1rem; border-bottom:1px solid var(--fz-line); font-weight:700; background:var(--fz-blue-light); color:var(--fz-blue-dark); display:flex; justify-content:space-between; }
+.fz-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+.fz-table th, .fz-table td { padding:.55rem .85rem; border-bottom:1px solid var(--fz-line); text-align:left; }
+.fz-table th { background:#f8fafc; font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; color:var(--fz-muted); }
+.fz-table td.num, .fz-table th.num { text-align:right; font-variant-numeric: tabular-nums; }
+.fz-table tr.total td { font-weight:700; background:#f8fafc; border-top:2px solid var(--fz-blue); }
+.fz-table tr.sub td { font-weight:600; background:#fbfbfb; }
+.fz-pos { color:var(--fz-green); }
+.fz-neg { color:var(--fz-red); }
+.fz-chip { display:inline-block; padding:.2rem .6rem; border-radius:999px; font-size:.75rem; font-weight:700; }
+.fz-chip.ok { background:#dcfce7; color:#15803d; }
+.fz-chip.bad { background:#fee2e2; color:#b91c1c; }
+.fz-empty { padding:2rem; text-align:center; color:var(--fz-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fz-wrap">
+  <div class="fz-head">
+    <div>
+      <a href="{% url 'finanzas:dashboard' %}" class="fz-back">← ERP Finanzas</a>
+      <h1>{{ titulo }}</h1>
+      <div class="fz-sub">Período: {{ fecha_inicio }} — {{ fecha_fin }}</div>
+    </div>
+    <div class="fz-exports">
+      <a class="fz-btn fz-pdf" href="?{% if export_base %}{{ export_base }}&{% endif %}export=pdf">⬇ PDF</a>
+      <a class="fz-btn fz-xls" href="?{% if export_base %}{{ export_base }}&{% endif %}export=excel">⬇ Excel</a>
+    </div>
+  </div>
+
+  <form method="get" class="fz-filtros">
+    <div>
+      <label for="fi">Desde</label>
+      <input type="date" id="fi" name="fecha_inicio" value="{{ fecha_inicio_str }}">
+    </div>
+    <div>
+      <label for="ff">Hasta</label>
+      <input type="date" id="ff" name="fecha_fin" value="{{ fecha_fin_str }}">
+    </div>
+    {% block filtros_extra %}{% endblock %}
+    <button type="submit">Aplicar</button>
+  </form>
+
+  {% include partial %}
+</div>
+{% endblock %}
