@@ -1,0 +1,421 @@
+{% extends "taller/panel_tecnico/base_panel.html" %}
+{% load humanize %}
+
+{% block title %}Calculadora & Liquidación Semanal{% endblock %}
+
+{% block extra_css %}
+<style>
+  .calc-hero {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .calc-kpi {
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .calc-kpi .kpi-lbl {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .calc-kpi .kpi-num {
+    font-size: 1.6rem;
+    font-weight: 900;
+    margin: 6px 0 2px;
+    color: var(--text);
+    font-family: monospace;
+  }
+  .calc-kpi.highlight {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent-dark);
+    box-shadow: 0 4px 16px rgba(139, 197, 63, 0.35);
+  }
+  .calc-kpi.highlight .kpi-lbl { color: var(--accent-ink); opacity: 0.85; }
+  .calc-kpi.highlight .kpi-num { color: var(--accent-ink); }
+
+  .calculator-workspace {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 18px;
+    align-items: start;
+  }
+
+  .calc-box-side {
+    background: #0f172a;
+    color: #f8fafc;
+    border: 2px solid color-mix(in srgb, var(--accent) 40%, #1e293b);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 16px;
+  }
+  .calc-side-title {
+    font-size: 1rem;
+    font-weight: 900;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 10px;
+  }
+  .calc-side-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.82rem;
+    color: #94a3b8;
+  }
+  .calc-side-row strong { color: #fff; font-family: monospace; font-size: 0.95rem; }
+
+  .calc-big-payout {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: var(--accent-ink);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    margin: 14px 0;
+  }
+  .calc-big-payout-lbl {
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.85;
+  }
+  .calc-big-payout-val {
+    font-size: 2.1rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 4px 0;
+    font-family: monospace;
+  }
+
+  .calc-rate-input-box {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 10px 0;
+  }
+  .calc-rate-input-box label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    display: block;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .calc-rate-input-box input {
+    width: 80px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid #475569;
+    background: #0b1120;
+    color: #fff;
+    font-weight: 900;
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .btn-print-payout {
+    background: #fff;
+    color: #0f172a;
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    width: 100%;
+    font-size: 0.88rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    transition: transform 0.15s;
+  }
+  .btn-print-payout:hover { transform: scale(1.02); }
+
+  .badge-tag-tipo {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+  .badge-tag-tipo.orden { background: #dbeafe; color: #1e40af; }
+  .badge-tag-tipo.pos { background: #dcfce7; color: #15803d; }
+  html[data-theme="dark"] .badge-tag-tipo.orden { background: #1e3a8a; color: #bfdbfe; }
+  html[data-theme="dark"] .badge-tag-tipo.pos { background: #14532d; color: #bbf7d0; }
+
+  @media (max-width: 960px) {
+    .calculator-workspace { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block panel_content %}
+<!-- ===== HEADER DE LA PANTALLA ===== -->
+<div class="screen-toolbar">
+  <div class="screen-title-wrap">
+    <div class="screen-icon calc"><i class="bi bi-calculator"></i></div>
+    <div>
+      <h2 class="screen-heading">Calculadora & Liquidación Semanal</h2>
+      <div class="screen-sub">Suma y liquidación unificada de servicios en Órdenes de Taller y POS</div>
+    </div>
+  </div>
+  <div>
+    <button class="btn-clear-day" onclick="window.print()" style="padding:8px 14px; font-size:0.84rem;">
+      <i class="bi bi-printer-fill"></i> Imprimir Liquidación
+    </button>
+  </div>
+</div>
+
+<!-- ===== KPIS DE LA SEMANA ===== -->
+<div class="calc-hero">
+  <div class="calc-kpi">
+    <div class="kpi-lbl"><span>Total Mano de Obra Neta</span><i class="bi bi-tools text-primary"></i></div>
+    <div class="kpi-num">${{ resumen_semana.valor_neto_total|floatformat:2|intcomma }}</div>
+    <div style="font-size:0.75rem; color:var(--text-muted);">{{ resumen_semana.total_servicios }} servicios realizados</div>
+  </div>
+
+  <div class="calc-kpi">
+    <div class="kpi-lbl"><span>De Órdenes de Taller</span><span class="badge-tag-tipo orden">{{ resumen_semana.total_ordenes }} serv.</span></div>
+    <div class="kpi-num">${{ resumen_semana.base_ordenes|floatformat:2|intcomma }}</div>
+    <div style="font-size:0.75rem; color:var(--text-muted);">Comisión: <strong>${{ resumen_semana.comision_ordenes|floatformat:2|intcomma }}</strong></div>
+  </div>
+
+  <div class="calc-kpi">
+    <div class="kpi-lbl"><span>De Mecánica Rápida (POS)</span><span class="badge-tag-tipo pos">{{ resumen_semana.total_pos }} serv.</span></div>
+    <div class="kpi-num">${{ resumen_semana.base_pos|floatformat:2|intcomma }}</div>
+    <div style="font-size:0.75rem; color:var(--text-muted);">Comisión: <strong>${{ resumen_semana.comision_pos|floatformat:2|intcomma }}</strong></div>
+  </div>
+
+  <div class="calc-kpi highlight">
+    <div class="kpi-lbl"><span>Comisión Total Semana</span><i class="bi bi-trophy-fill"></i></div>
+    <div class="kpi-num">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</div>
+    <div style="font-size:0.75rem;">Tasa configurada: <strong>{{ resumen_semana.porcentaje_comision|floatformat:0 }}%</strong></div>
+  </div>
+</div>
+
+<!-- ===== ESPACIO DE TRABAJO: TABLA UNIFICADA + CALCULADORA ===== -->
+<div class="calculator-workspace">
+
+  <!-- Columna Izquierda: Tabla con Checkboxes y ID de Venta -->
+  <div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <label style="font-size:0.8rem; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="checkMaster" checked onchange="toggleAllCheckboxes(this.checked)">
+          <span>Seleccionar todos</span>
+        </label>
+        <span style="font-size:0.78rem; color:var(--text-muted);">| Desmarca servicios para simular liquidaciones parciales</span>
+      </div>
+      <div class="search-box-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" id="calcSearch" placeholder="Buscar ID venta, orden, cliente..." onkeyup="filterCalcRows(this.value)">
+      </div>
+    </div>
+
+    <div class="table-responsive" style="border:1px solid var(--border); border-radius:14px; background:var(--surface);">
+      <table class="screen-table" id="calcTable">
+        <thead>
+          <tr>
+            <th style="width:30px;"></th>
+            <th>ID Venta</th>
+            <th>Origen</th>
+            <th>Comprobante</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Servicio (Mano de obra)</th>
+            <th class="num">Neto ($)</th>
+            <th class="num">Comisión ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in trabajos_filtrados %}
+            <tr class="calc-row"
+                data-type="{{ t.tipo }}"
+                data-val="{{ t.valor|stringformat:'.2f' }}"
+                data-com="{{ t.comision|stringformat:'.2f' }}"
+                data-search="{{ t.venta_id|default:'' }} {{ t.numero|lower }} {{ t.cliente|lower }} {{ t.servicio|lower }}">
+              <td>
+                <input type="checkbox" class="calc-chk" checked onchange="recalculate()">
+              </td>
+              <td>
+                {% if t.venta_id %}
+                  <span class="badge-venta-id"><i class="bi bi-receipt"></i> Venta #{{ t.venta_id }}</span>
+                {% else %}
+                  <span class="badge-venta-pending"><i class="bi bi-clock"></i> Pendiente</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if t.tipo == 'ORDEN' %}
+                  <span class="badge-tag-tipo orden"><i class="bi bi-tools"></i> Taller</span>
+                {% else %}
+                  <span class="badge-tag-tipo pos"><i class="bi bi-lightning-charge"></i> POS</span>
+                {% endif %}
+              </td>
+              <td><strong style="font-family:monospace;">{{ t.numero }}</strong></td>
+              <td>{{ t.fecha|date:"d/m H:i" }}</td>
+              <td>{{ t.cliente }}</td>
+              <td><strong>{{ t.servicio }}</strong></td>
+              <td class="num" style="font-weight:700;">${{ t.valor|floatformat:2|intcomma }}</td>
+              <td class="num" style="font-weight:900; color:var(--accent-dark);">${{ t.comision|floatformat:2|intcomma }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" class="empty-box">
+                <i class="bi bi-calculator"></i>
+                <p><strong>Sin servicios registrados en este periodo</strong></p>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Columna Derecha: Calculadora Reactiva en Vivo -->
+  <aside class="calc-box-side">
+    <div class="calc-side-title">
+      <i class="bi bi-calculator"></i>
+      <span>Calculadora en Vivo</span>
+    </div>
+
+    <div class="calc-side-row">
+      <span>Órdenes seleccionadas:</span>
+      <strong id="sideCountOrd">0 serv. ($0.00)</strong>
+    </div>
+
+    <div class="calc-side-row">
+      <span>POS seleccionados:</span>
+      <strong id="sideCountPos">0 serv. ($0.00)</strong>
+    </div>
+
+    <div class="calc-side-row" style="border-top:1px dashed #334155; margin-top:6px; padding-top:10px;">
+      <span style="color:#fff; font-weight:800;">Total Mano de Obra Neta:</span>
+      <strong id="sideTotalNeto" style="font-size:1.15rem; color:#fff;">$0.00</strong>
+    </div>
+
+    <!-- Tasa de Comisión Configurada -->
+    <div class="calc-rate-input-box">
+      <label>% Comisión según panel de administrador</label>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="number" id="sidePct" value="{{ resumen_semana.porcentaje_comision|floatformat:0 }}" min="0" max="100" onkeyup="recalculate()" onchange="recalculate()">
+        <span style="font-size:0.75rem; color:#94a3b8;">Porcentaje del administrador asignado a tu ficha</span>
+      </div>
+    </div>
+
+    <!-- Gran Total a Pagar -->
+    <div class="calc-big-payout">
+      <div class="calc-big-payout-lbl">Comisión Calculada</div>
+      <div class="calc-big-payout-val" id="sideComisionTotal">$0.00</div>
+      <div style="font-size:0.72rem; font-weight:700;">Correspondiente a los servicios seleccionados</div>
+    </div>
+
+    {% if resumen_semana.adelantos_semana > 0 %}
+      <div class="calc-side-row" style="color:#f87171;">
+        <span>Adelantos de la semana:</span>
+        <strong style="color:#f87171;">-${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</strong>
+      </div>
+      <div class="calc-side-row" style="background:#1e293b; padding:8px 10px; border-radius:8px;">
+        <span style="color:#fff; font-weight:800;">Neto final a entregar:</span>
+        <strong id="sideNetoFinal" style="color:var(--accent); font-size:1.1rem;">$0.00</strong>
+      </div>
+    {% endif %}
+
+    <button class="btn-print-payout" onclick="window.print()">
+      <i class="bi bi-printer-fill"></i> Imprimir Liquidación
+    </button>
+  </aside>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const adelantos = parseFloat("{{ resumen_semana.adelantos_semana|default:'0' }}") || 0;
+
+  function toggleAllCheckboxes(checked) {
+    document.querySelectorAll('.calc-chk').forEach(c => {
+      const row = c.closest('tr');
+      if (!row || row.style.display !== 'none') {
+        c.checked = checked;
+      }
+    });
+    recalculate();
+  }
+
+  function filterCalcRows(query) {
+    const q = (query || '').toLowerCase().trim();
+    document.querySelectorAll('tr.calc-row').forEach(r => {
+      const s = r.getAttribute('data-search') || '';
+      r.style.display = (!q || s.includes(q)) ? '' : 'none';
+    });
+    recalculate();
+  }
+
+  function recalculate() {
+    let ordCount = 0, ordVal = 0;
+    let posCount = 0, posVal = 0;
+
+    document.querySelectorAll('tr.calc-row').forEach(r => {
+      if (r.style.display === 'none') return;
+      const chk = r.querySelector('.calc-chk');
+      if (!chk || !chk.checked) return;
+
+      const type = r.getAttribute('data-type');
+      const val = parseFloat(r.getAttribute('data-val')) || 0;
+
+      if (type === 'ORDEN') {
+        ordCount++;
+        ordVal += val;
+      } else if (type === 'POS') {
+        posCount++;
+        posVal += val;
+      }
+    });
+
+    const totalVal = ordVal + posVal;
+    let pct = parseFloat(document.getElementById('sidePct')?.value);
+    if (isNaN(pct) || pct < 0) pct = 0;
+    const factor = pct / 100.0;
+
+    const comision = totalVal * factor;
+    const neto = Math.max(0, comision - adelantos);
+
+    const fmt = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    document.getElementById('sideCountOrd').textContent = `${ordCount} serv. (${fmt(ordVal)})`;
+    document.getElementById('sideCountPos').textContent = `${posCount} serv. (${fmt(posVal)})`;
+    document.getElementById('sideTotalNeto').textContent = fmt(totalVal);
+    document.getElementById('sideComisionTotal').textContent = fmt(comision);
+
+    const netoEl = document.getElementById('sideNetoFinal');
+    if (netoEl) netoEl.textContent = fmt(neto);
+  }
+
+  document.addEventListener('DOMContentLoaded', recalculate);
+  recalculate();
+</script>
+{% endblock %}

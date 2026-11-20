@@ -1,0 +1,110 @@
+{% extends "taller/panel_tecnico/base_panel.html" %}
+
+{% block title %}Mi Perfil de Técnico{% endblock %}
+
+{% block panel_content %}
+<div class="screen-toolbar">
+  <div class="screen-title-wrap">
+    <div class="screen-icon perfil"><i class="bi bi-person-gear"></i></div>
+    <div>
+      <h2 class="screen-heading">Mi Perfil de Técnico</h2>
+      <div class="screen-sub">Actualiza tu foto de perfil y datos personales de contacto</div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:540px; margin: 0 auto; background:var(--surface-subtle); border:1px solid var(--border); border-radius:16px; padding:24px;">
+  <div style="display:flex; align-items:center; gap:20px; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid var(--border);">
+    {% if tecnico.foto %}
+      <img src="{{ tecnico.foto.url }}" id="perfilFotoPreview" style="width:84px; height:84px; border-radius:18px; object-fit:cover; border:3px solid var(--accent);" alt="Foto">
+    {% else %}
+      <span id="perfilFotoPreview" style="width:84px; height:84px; border-radius:18px; background:#334155; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:2.2rem;"><i class="bi bi-person"></i></span>
+    {% endif %}
+    <div>
+      <label class="btn-clear-day" style="cursor:pointer; display:inline-flex;">
+        <i class="bi bi-camera"></i> Subir nueva foto
+        <input type="file" id="fotoInput" accept="image/*" style="display:none;" onchange="previewFoto(this)">
+      </label>
+      <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">Recomendado: Cuadrada, formato JPG o PNG.</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <label style="display:block; font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Teléfono / WhatsApp</label>
+    <input type="text" id="pfTel" value="{{ tecnico.telefono|default:'' }}" style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font-size:0.9rem;" placeholder="Ej: 0991234567">
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <label style="display:block; font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Correo Electrónico</label>
+    <input type="email" id="pfEmail" value="{{ tecnico.email|default:'' }}" style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font-size:0.9rem;" placeholder="correo@ejemplo.com">
+  </div>
+
+  <div style="margin-bottom:24px;">
+    <label style="display:block; font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Dirección Domiciliaria</label>
+    <input type="text" id="pfDir" value="{{ tecnico.direccion|default:'' }}" style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font-size:0.9rem;" placeholder="Calle, Barrio, Ciudad">
+  </div>
+
+  <button class="btn-clear-day" style="width:100%; justify-content:center; padding:12px; font-size:0.95rem; background:var(--accent); color:var(--accent-ink); border-color:var(--accent-dark);" id="btnGuardarPerfil" onclick="guardarPerfil()">
+    <i class="bi bi-check-lg"></i> Guardar Mis Datos
+  </button>
+  <div id="pfMsg" style="text-align:center; margin-top:12px; font-size:0.88rem; font-weight:800;"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function previewFoto(input) {
+    if (input.files && input.files[0]) {
+      const url = URL.createObjectURL(input.files[0]);
+      const prev = document.getElementById('perfilFotoPreview');
+      if (prev.tagName === 'IMG') {
+        prev.src = url;
+      } else {
+        prev.outerHTML = `<img src="${url}" id="perfilFotoPreview" style="width:84px; height:84px; border-radius:18px; object-fit:cover; border:3px solid var(--accent);" alt="Foto">`;
+      }
+    }
+  }
+
+  function guardarPerfil() {
+    const btn = document.getElementById('btnGuardarPerfil');
+    const msg = document.getElementById('pfMsg');
+    const fd = new FormData();
+    fd.append('telefono', document.getElementById('pfTel').value);
+    fd.append('email', document.getElementById('pfEmail').value);
+    fd.append('direccion', document.getElementById('pfDir').value);
+    const fi = document.getElementById('fotoInput');
+    if (fi.files[0]) fd.append('foto', fi.files[0]);
+
+    btn.disabled = true;
+    msg.textContent = 'Guardando cambios...';
+    msg.style.color = 'var(--text-muted)';
+
+    fetch('/taller/mi-perfil/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body: fd
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          msg.textContent = '✅ ' + d.message;
+          msg.style.color = '#16a34a';
+          if (d.foto_url) {
+            const topA = document.getElementById('topAvatar');
+            if (topA && topA.tagName === 'IMG') topA.src = d.foto_url;
+          }
+        } else {
+          msg.textContent = '❌ ' + d.message;
+          msg.style.color = '#dc2626';
+        }
+      })
+      .catch(() => {
+        msg.textContent = '❌ Error de comunicación';
+        msg.style.color = '#dc2626';
+      })
+      .finally(() => {
+        btn.disabled = false;
+      });
+  }
+</script>
+{% endblock %}

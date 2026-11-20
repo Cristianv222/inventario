@@ -21,8 +21,12 @@ urlpatterns = [
     path('tipos-servicio/<int:pk>/duplicar/', views.duplicar_servicio, name='duplicar_servicio'),
     path('tipos-servicio/<int:pk>/historial/', views.historial_ventas_servicio, name='historial_ventas_servicio'),
     
-    # Panel del Técnico
+    # Panel del Técnico (Multi-pantalla)
     path('mi-panel/', views.panel_tecnico, name='panel_tecnico'),
+    path('mi-panel/ordenes/', views.panel_tecnico, {'seccion': 'ordenes'}, name='panel_tecnico_ordenes'),
+    path('mi-panel/pos/', views.panel_tecnico, {'seccion': 'pos'}, name='panel_tecnico_pos'),
+    path('mi-panel/cuenta/', views.panel_tecnico, {'seccion': 'cuenta'}, name='panel_tecnico_cuenta'),
+    path('mi-panel/perfil/', views.panel_tecnico, {'seccion': 'perfil'}, name='panel_tecnico_perfil'),
     path('mi-perfil/', views.perfil_tecnico, name='perfil_tecnico'),
     path('tecnicos/<int:pk>/crear-acceso/', views.crear_acceso_tecnico, name='crear_acceso_tecnico'),
 

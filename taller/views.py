@@ -1908,15 +1908,18 @@ def crear_categoria_ajax(request):
 # PANEL DEL TÉCNICO (Rendimiento semanal, liquidación, órdenes y POS)
 # ============================================================================
 @login_required
-def panel_tecnico(request):
+def panel_tecnico(request, seccion='calculadora'):
     """Panel personal del técnico: sus trabajos de la semana (Lunes a Sábado),
     servicios realizados en Órdenes de taller y en POS (mecánica rápida),
     filtros interactivos por día y panel de liquidación de comisión según
     lo configurado en el panel del administrador.
 
-    Cada técnico ve SOLO sus propios datos (se identifica por el usuario
-    logueado, vía el OneToOne Tecnico.usuario). Un administrador puede
-    previsualizar el de un técnico con ?tecnico_id=<id>.
+    Soporta múltiples pantallas/templates especializados:
+    - 'calculadora': Resumen general y calculadora interactiva unificada.
+    - 'ordenes': Detalle exclusivo de órdenes de taller con ID de venta.
+    - 'pos': Detalle exclusivo de servicios en POS con ID de venta.
+    - 'cuenta': Historial de comisiones, pagos y adelantos.
+    - 'perfil': Datos personales y foto de perfil.
     """
     tecnico = getattr(request.user, 'tecnico', None)
     if tecnico is None and (request.user.is_staff or request.user.is_superuser):
@@ -1925,7 +1928,7 @@ def panel_tecnico(request):
             tecnico = Tecnico.objects.filter(pk=tid).first()
 
     if tecnico is None:
-        return render(request, 'taller/panel_tecnico.html', {'sin_tecnico': True})
+        return render(request, 'taller/panel_tecnico/base_panel.html', {'sin_tecnico': True})
 
     from ventas.models import DetalleVenta
     from .models import AdelantoTecnico, PagoTecnico
@@ -2014,6 +2017,7 @@ def panel_tecnico(request):
                     'tipo': 'ORDEN',
                     'tipo_label': 'Orden de Taller',
                     'orden_id': orden.id,
+                    'venta_id': orden.venta_id,
                     'numero': orden.numero_orden,
                     'factura': orden.venta.numero_factura if orden.venta else None,
                     'fecha': fecha_orden,
@@ -2035,6 +2039,7 @@ def panel_tecnico(request):
                 'tipo': 'ORDEN',
                 'tipo_label': 'Orden de Taller',
                 'orden_id': orden.id,
+                'venta_id': orden.venta_id,
                 'numero': orden.numero_orden,
                 'factura': orden.venta.numero_factura if orden.venta else None,
                 'fecha': fecha_orden,
@@ -2075,6 +2080,8 @@ def panel_tecnico(request):
             'tipo': 'POS',
             'tipo_label': 'Mecánica Rápida (POS)',
             'orden_id': None,
+            'venta_id': d.venta_id,
+            'detalle_id': d.id,
             'numero': d.venta.numero_factura or f"POS #{d.venta_id}",
             'factura': d.venta.numero_factura,
             'fecha': fecha_pos,
@@ -2195,7 +2202,18 @@ def panel_tecnico(request):
 
     cuenta_historica = _resumen_cuenta_tecnico(tecnico)
 
-    return render(request, 'taller/panel_tecnico.html', {
+    seccion = request.GET.get('seccion') or seccion or 'calculadora'
+    template_map = {
+        'calculadora': 'taller/panel_tecnico/calculadora.html',
+        'ordenes': 'taller/panel_tecnico/ordenes.html',
+        'pos': 'taller/panel_tecnico/pos.html',
+        'cuenta': 'taller/panel_tecnico/cuenta.html',
+        'perfil': 'taller/panel_tecnico/perfil.html',
+    }
+    template_name = template_map.get(seccion, 'taller/panel_tecnico/calculadora.html')
+
+    return render(request, template_name, {
+        'seccion': seccion,
         'tecnico': tecnico,
         'resumen_semana': resumen_semana,
         'por_dia': por_dia,
@@ -2211,8 +2229,8 @@ def panel_tecnico(request):
         'semana_siguiente': semana_siguiente,
         'es_semana_actual': es_semana_actual,
         'cuenta': cuenta_historica,
-        'pagos_recientes': tecnico.pagos.all()[:10],
-        'adelantos_recientes': tecnico.adelantos.all()[:10],
+        'pagos_recientes': tecnico.pagos.all()[:15],
+        'adelantos_recientes': tecnico.adelantos.all()[:15],
         'es_preview_admin': getattr(request.user, 'tecnico', None) is None,
     })
 

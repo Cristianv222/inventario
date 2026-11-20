@@ -1,0 +1,748 @@
+{% load static %}{% load humanize %}
+<!doctype html>
+<html lang="es" data-theme="light" data-accent="verde">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Mi Panel{% endblock %} · VP Motos</title>
+<link rel="icon" type="image/png" href="{% static 'logo_vp.png' %}">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root {
+    --accent: #8bc53f;
+    --accent-dark: #6fa52d;
+    --accent-ink: #1b3506;
+    --accent-light: rgba(139, 197, 63, 0.15);
+    --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  html[data-accent="azul"] {
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --accent-ink: #ffffff;
+    --accent-light: rgba(37, 99, 235, 0.15);
+  }
+  html[data-accent="naranja"] {
+    --accent: #f97316;
+    --accent-dark: #ea580c;
+    --accent-ink: #ffffff;
+    --accent-light: rgba(249, 115, 22, 0.15);
+  }
+  html[data-accent="morado"] {
+    --accent: #8b5cf6;
+    --accent-dark: #7c3aed;
+    --accent-ink: #ffffff;
+    --accent-light: rgba(139, 92, 246, 0.15);
+  }
+
+  html[data-theme="light"] {
+    --bg: #f4f6fa;
+    --surface: #ffffff;
+    --surface-hover: #f8fafc;
+    --surface-subtle: #f1f5f9;
+    --card-bg: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --shadow-sm: 0 1px 3px rgba(15,23,42,0.06);
+    --shadow-md: 0 4px 14px -1px rgba(15,23,42,0.08);
+    --shadow-lg: 0 10px 25px -3px rgba(15,23,42,0.12);
+  }
+
+  html[data-theme="dark"] {
+    --bg: #0b1120;
+    --surface: #111b2e;
+    --surface-hover: #17243c;
+    --surface-subtle: #162238;
+    --card-bg: #111b2e;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: #22314a;
+    --border-strong: #334466;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.7);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  .page-wrapper {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 16px 20px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ===== HEADER BAR ===== */
+  .top-navbar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-logo {
+    height: 38px;
+    object-fit: contain;
+  }
+  .tech-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tech-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #334155;
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+  .tech-name {
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .tech-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 3px;
+  }
+  .badge-comision {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  /* Week Navigator */
+  .week-navigator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface-subtle);
+    padding: 4px 6px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .btn-week-step {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .btn-week-step:hover { background: var(--surface-hover); border-color: var(--text-muted); }
+  .btn-week-step.today {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent-dark);
+    font-weight: 800;
+  }
+  .week-label {
+    font-size: 0.84rem;
+    font-weight: 800;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  /* Header action buttons */
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-icon-tool {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.15s;
+  }
+  .btn-icon-tool:hover { background: var(--surface-hover); }
+
+  /* Admin Mode Banner */
+  .admin-preview-banner {
+    background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+    border: 1.5px solid var(--accent);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ===== SCREEN TABS NAVIGATION (PANTALLAS SEPARADAS) ===== */
+  .screens-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    padding: 6px 8px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+  }
+  .screen-tab {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+  }
+  .screen-tab i { font-size: 1.05rem; }
+  .screen-tab:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+  }
+  .screen-tab.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent-dark);
+    box-shadow: 0 4px 12px rgba(139, 197, 63, 0.3);
+  }
+  .tab-badge {
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    background: rgba(0,0,0,0.06);
+  }
+  .screen-tab.active .tab-badge {
+    background: rgba(0,0,0,0.18);
+  }
+
+  /* ===== DAYS OF WEEK SELECTOR BAR (LUNES A SÁBADO) ===== */
+  .days-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+  }
+  .day-btn {
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+    position: relative;
+    user-select: none;
+  }
+  .day-btn:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+    transform: translateY(-2px);
+  }
+  .day-btn.active {
+    background: var(--accent);
+    border-color: var(--accent-dark);
+    color: var(--accent-ink);
+    box-shadow: 0 4px 14px rgba(139, 197, 63, 0.35);
+  }
+  .day-btn-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .day-btn-title {
+    font-size: 0.84rem;
+    font-weight: 800;
+  }
+  .day-btn-date {
+    font-size: 0.72rem;
+    font-weight: 700;
+    opacity: 0.8;
+  }
+  .day-btn-foot {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .day-btn-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.06);
+  }
+  .day-btn.active .day-btn-badge {
+    background: rgba(0,0,0,0.18);
+  }
+  .day-btn-val {
+    font-size: 0.84rem;
+    font-weight: 900;
+  }
+  .tag-hoy {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  /* Active Day Alert */
+  .active-day-banner {
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  .btn-clear-day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .btn-clear-day:hover { background: var(--surface-hover); }
+
+  /* ===== SCREEN CONTENT CONTAINER ===== */
+  .screen-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    min-height: 520px;
+  }
+
+  /* Venta ID prominent badge */
+  .badge-venta-id {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+    border: 1.5px solid var(--accent);
+    color: var(--text);
+    padding: 3px 8px;
+    border-radius: 7px;
+    font-family: monospace;
+    font-weight: 800;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+  .badge-venta-pending {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 3px 8px;
+    border-radius: 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  /* Table styling */
+  .table-responsive {
+    overflow-x: auto;
+  }
+  table.screen-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    text-align: left;
+  }
+  table.screen-table th {
+    padding: 12px 14px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    background: var(--surface-subtle);
+    border-bottom: 1.5px solid var(--border);
+    white-space: nowrap;
+  }
+  table.screen-table td {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  table.screen-table tr:hover td {
+    background: var(--surface-hover);
+  }
+  td.num, th.num { text-align: right; }
+
+  /* Toolbar */
+  .screen-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .screen-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .screen-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+  }
+  .screen-icon.orden { background: #dbeafe; color: #1e40af; }
+  .screen-icon.pos { background: #dcfce7; color: #15803d; }
+  .screen-icon.calc { background: var(--accent); color: var(--accent-ink); }
+  .screen-icon.cuenta { background: #fef3c7; color: #b45309; }
+  .screen-icon.perfil { background: #f1f5f9; color: #475569; }
+
+  .screen-heading {
+    font-size: 1.15rem;
+    font-weight: 900;
+    margin: 0;
+  }
+  .screen-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .search-box-wrap {
+    position: relative;
+    max-width: 280px;
+    width: 100%;
+  }
+  .search-box-wrap input {
+    width: 100%;
+    padding: 7px 10px 7px 30px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-subtle);
+    color: var(--text);
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .search-box-wrap input:focus { border-color: var(--accent); }
+  .search-box-wrap i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  /* Empty state */
+  .empty-box {
+    padding: 45px 20px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .empty-box i { font-size: 2.8rem; opacity: 0.4; display: block; margin-bottom: 8px; }
+
+  /* Responsive */
+  @media (max-width: 992px) {
+    .days-bar { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 680px) {
+    .days-bar { grid-template-columns: repeat(2, 1fr); }
+    .top-navbar { flex-direction: column; align-items: stretch; }
+    .week-navigator { justify-content: space-between; }
+  }
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if sin_tecnico %}
+  <div style="max-width:480px; margin: 15vh auto; text-align:center; padding: 28px; background:var(--surface); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow-md);">
+    <img src="{% static 'logo_vp.png' %}" style="height:48px;" alt="VP Motos"><br><br>
+    <h2 style="font-weight:900; margin:0 0 8px;">Sin acceso de técnico</h2>
+    <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
+      Tu usuario actual no está vinculado a una ficha de técnico en el sistema.<br>
+      Solicita a un administrador que te vincule o te cree una cuenta desde el módulo de usuarios.
+    </p>
+    <br>
+    <a href="/usuarios/logout/" onclick="event.preventDefault(); document.getElementById('lf').submit();" style="display:inline-flex; padding:9px 18px; border-radius:9px; background:var(--accent); color:var(--accent-ink); font-weight:800;">
+      <i class="bi bi-box-arrow-right me-1"></i> Salir del sistema
+    </a>
+    <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
+  </div>
+{% else %}
+
+<div class="page-wrapper">
+  <!-- ===== 1. TOP NAVBAR ===== -->
+  <header class="top-navbar">
+    <div class="brand-group">
+      <img src="{% static 'logo_vp.png' %}" class="brand-logo" alt="VP Motos">
+      <div class="tech-card">
+        {% if tecnico.foto %}
+          <img src="{{ tecnico.foto.url }}" class="tech-avatar" id="topAvatar" alt="Foto">
+        {% else %}
+          <span class="tech-avatar"><i class="bi bi-person"></i></span>
+        {% endif %}
+        <div>
+          <div class="tech-name">{{ tecnico.nombres }} {{ tecnico.apellidos }}</div>
+          <div class="tech-meta">
+            <span style="font-size:0.75rem; color:var(--text-muted);">Cód: {{ tecnico.codigo }}</span>
+            <span class="badge-comision">
+              <i class="bi bi-sliders"></i>
+              {% if tecnico.gana_comision %}
+                Comisión: {{ resumen_semana.porcentaje_comision|floatformat:0 }}%
+              {% else %}
+                Salario Fijo
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navegador de Semana (Lunes a Sábado) -->
+    <div class="week-navigator">
+      <a href="?seccion={{ seccion }}&fecha={{ semana_anterior|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-week-step" title="Semana anterior">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      <div class="week-label">
+        <i class="bi bi-calendar3 text-primary"></i>
+        <span>Semana: <strong>{{ inicio|date:"d M" }}</strong> al <strong>{{ fin|date:"d M, Y" }}</strong></span>
+      </div>
+      {% if not es_semana_actual %}
+        <a href="?seccion={{ seccion }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-week-step today">
+          Esta semana
+        </a>
+      {% endif %}
+      <a href="?seccion={{ seccion }}&fecha={{ semana_siguiente|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-week-step" title="Semana siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </div>
+
+    <!-- Acciones -->
+    <div class="header-actions">
+      <button class="btn-icon-tool" id="themeBtn" title="Cambiar tema">
+        <i class="bi bi-moon-stars"></i>
+      </button>
+      <a href="/usuarios/logout/" onclick="event.preventDefault(); document.getElementById('lf').submit();" class="btn-icon-tool" title="Cerrar sesión" style="color:#ef4444;">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+      <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
+    </div>
+  </header>
+
+  {% if es_preview_admin %}
+    <div class="admin-preview-banner">
+      <div>
+        <i class="bi bi-eye-fill"></i> <strong>Modo Administrador:</strong> Previsualizando panel de <strong>{{ tecnico.nombres }} {{ tecnico.apellidos }}</strong>.
+      </div>
+      <a href="{% url 'taller:cuenta_tecnico' pk=tecnico.pk %}" style="text-decoration:underline;">Volver a Gestión Admin</a>
+    </div>
+  {% endif %}
+
+  <!-- ===== 2. NAVEGADOR DE PANTALLAS (PANTALLAS SEPARADAS) ===== -->
+  <nav class="screens-nav">
+    <!-- Pantalla 1: Calculadora & Liquidación -->
+    <a href="?seccion=calculadora&fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="screen-tab {% if seccion == 'calculadora' %}active{% endif %}">
+      <i class="bi bi-calculator"></i>
+      <span>Calculadora & Liquidación</span>
+      <span class="tab-badge">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</span>
+    </a>
+
+    <!-- Pantalla 2: Órdenes de Taller -->
+    <a href="?seccion=ordenes&fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="screen-tab {% if seccion == 'ordenes' %}active{% endif %}">
+      <i class="bi bi-tools text-primary"></i>
+      <span>Órdenes de Taller</span>
+      <span class="tab-badge">{{ resumen_semana.total_ordenes }}</span>
+    </a>
+
+    <!-- Pantalla 3: Mecánica Rápida POS -->
+    <a href="?seccion=pos&fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="screen-tab {% if seccion == 'pos' %}active{% endif %}">
+      <i class="bi bi-lightning-charge text-success"></i>
+      <span>Mecánica Rápida (POS)</span>
+      <span class="tab-badge">{{ resumen_semana.total_pos }}</span>
+    </a>
+
+    <!-- Pantalla 4: Mi Cuenta & Pagos -->
+    <a href="?seccion=cuenta&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="screen-tab {% if seccion == 'cuenta' %}active{% endif %}">
+      <i class="bi bi-wallet2 text-warning"></i>
+      <span>Mi Cuenta & Pagos</span>
+    </a>
+
+    <!-- Pantalla 5: Mi Perfil -->
+    <a href="?seccion=perfil&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="screen-tab {% if seccion == 'perfil' %}active{% endif %}">
+      <i class="bi bi-person-gear"></i>
+      <span>Mi Perfil</span>
+    </a>
+  </nav>
+
+  <!-- ===== 3. BARRA DE DÍAS (LUNES A SÁBADO) ===== -->
+  <section class="days-bar">
+    <!-- Opción: Toda la semana -->
+    <a href="?seccion={{ seccion }}&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="day-btn {% if not dia %}active{% endif %}">
+      <div class="day-btn-head">
+        <span class="day-btn-title">Toda la semana</span>
+        <span class="day-btn-date">Lun - Sáb</span>
+      </div>
+      <div class="day-btn-foot">
+        <span class="day-btn-badge">{{ resumen_semana.total_servicios }} serv.</span>
+        <span class="day-btn-val">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</span>
+      </div>
+    </a>
+
+    <!-- 6 Días: Lunes a Sábado -->
+    {% for d in por_dia %}
+      <a href="?seccion={{ seccion }}&dia={{ d.fecha|date:'Y-m-d' }}&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+         class="day-btn {% if d.activo %}active{% endif %}">
+        <div class="day-btn-head">
+          <span class="day-btn-title">{{ d.nombre }}</span>
+          <span class="day-btn-date">{{ d.fecha|date:"d/m" }}</span>
+        </div>
+        <div class="day-btn-foot">
+          <span class="day-btn-badge">
+            {{ d.total }} trab.
+            {% if d.es_hoy %}<span class="tag-hoy">Hoy</span>{% endif %}
+          </span>
+          <span class="day-btn-val">${{ d.comision|floatformat:2|intcomma }}</span>
+        </div>
+      </a>
+    {% endfor %}
+  </section>
+
+  <!-- Filtro activo de día -->
+  {% if dia %}
+    <div class="active-day-banner">
+      <div>
+        <i class="bi bi-funnel-fill text-primary"></i> Filtrando por: <strong>{{ dia_info.nombre }} {{ dia|date:"d de F, Y" }}</strong>
+        ({{ resumen_semana.servicios_vista }} servicio(s) · Comisión: <strong>${{ resumen_semana.comision_vista|floatformat:2|intcomma }}</strong>)
+      </div>
+      <a href="?seccion={{ seccion }}&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-clear-day">
+        <i class="bi bi-x-circle"></i> Ver toda la semana
+      </a>
+    </div>
+  {% endif %}
+
+  <!-- ===== 4. CONTENIDO DE LA PANTALLA SELECCIONADA ===== -->
+  <main class="screen-container">
+    {% block panel_content %}{% endblock %}
+  </main>
+</div>
+
+{% endif %}
+
+<script>
+  const html = document.documentElement;
+
+  // Theme Toggler
+  try {
+    const t = localStorage.getItem('pt_theme');
+    if (t) html.setAttribute('data-theme', t);
+    const a = localStorage.getItem('pt_accent');
+    if (a) html.setAttribute('data-accent', a);
+  } catch (e) {}
+
+  const tb = document.getElementById('themeBtn');
+  if (tb) {
+    tb.addEventListener('click', () => {
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      try { localStorage.setItem('pt_theme', isDark ? 'light' : 'dark'); } catch (e) {}
+      syncThemeIcon();
+    });
+  }
+  function syncThemeIcon() {
+    const i = document.querySelector('#themeBtn i');
+    if (i) i.className = html.getAttribute('data-theme') === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+  }
+  syncThemeIcon();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
