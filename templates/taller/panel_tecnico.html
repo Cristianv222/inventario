@@ -4,241 +4,1711 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mi Panel · VP Motos</title>
+<title>Panel del Técnico · VP Motos</title>
+<link rel="icon" type="image/png" href="{% static 'logo_vp.png' %}">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-  :root{ --accent:#8bc53f; --accent-ink:#2f4710; --sb:260px; }
-  html[data-accent="azul"]{ --accent:#2563eb; --accent-ink:#0b2a6b; }
-  html[data-accent="naranja"]{ --accent:#f97316; --accent-ink:#7c2d12; }
-  html[data-accent="morado"]{ --accent:#7c3aed; --accent-ink:#3b0f74; }
-  html[data-theme="light"]{ --bg:#f1f5f9; --surface:#fff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; --sidebar:#0f172a; --sidebar-text:#e2e8f0; --shadow:0 2px 14px rgba(15,23,42,.06); }
-  html[data-theme="dark"]{ --bg:#0b1220; --surface:#131c2e; --text:#f1f5f9; --muted:#94a3b8; --border:#263247; --sidebar:#060b16; --sidebar-text:#cbd5e1; --shadow:0 2px 16px rgba(0,0,0,.4); }
-  *{ box-sizing:border-box; } body{ margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
-  a{ color:inherit; text-decoration:none; }
+  :root {
+    --accent: #8bc53f;
+    --accent-dark: #6fa52d;
+    --accent-ink: #1b3506;
+    --accent-light: rgba(139, 197, 63, 0.15);
+    --sb-width: 270px;
+    --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  html[data-accent="azul"] {
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --accent-ink: #ffffff;
+    --accent-light: rgba(37, 99, 235, 0.15);
+  }
+  html[data-accent="naranja"] {
+    --accent: #f97316;
+    --accent-dark: #ea580c;
+    --accent-ink: #ffffff;
+    --accent-light: rgba(249, 115, 22, 0.15);
+  }
+  html[data-accent="morado"] {
+    --accent: #8b5cf6;
+    --accent-dark: #7c3aed;
+    --accent-ink: #ffffff;
+    --accent-light: rgba(139, 92, 246, 0.15);
+  }
+
+  html[data-theme="light"] {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-hover: #f1f5f9;
+    --card-bg: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-light: #edf2f7;
+    --sidebar-bg: #0f172a;
+    --sidebar-surface: #1e293b;
+    --sidebar-text: #f8fafc;
+    --sidebar-muted: #94a3b8;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 16px -2px rgba(15,23,42,0.08);
+    --shadow-lg: 0 10px 25px -3px rgba(15,23,42,0.12);
+    --kpi-orden: #eff6ff;
+    --kpi-orden-text: #1d4ed8;
+    --kpi-pos: #f0fdf4;
+    --kpi-pos-text: #15803d;
+  }
+
+  html[data-theme="dark"] {
+    --bg: #0b1120;
+    --surface: #131c2e;
+    --surface-hover: #1b273d;
+    --card-bg: #131c2e;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: #233149;
+    --border-light: #1e293b;
+    --sidebar-bg: #070d18;
+    --sidebar-surface: #0f172a;
+    --sidebar-text: #f8fafc;
+    --sidebar-muted: #64748b;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 18px rgba(0,0,0,0.45);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.6);
+    --kpi-orden: #172554;
+    --kpi-orden-text: #93c5fd;
+    --kpi-pos: #14532d;
+    --kpi-pos-text: #86efac;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  a { color: inherit; text-decoration: none; }
 
   /* ===== Sidebar ===== */
-  .sidebar{ position:fixed; top:0; left:0; bottom:0; width:var(--sb); background:var(--sidebar); color:var(--sidebar-text); padding:18px 14px; display:flex; flex-direction:column; gap:6px; z-index:50; transition:transform .25s; overflow-y:auto; }
-  .sb-logo{ text-align:center; margin-bottom:10px; } .sb-logo img{ height:38px; }
-  .sb-profile{ text-align:center; padding:10px 0 14px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:10px; }
-  .sb-avatar{ width:64px; height:64px; border-radius:50%; object-fit:cover; border:3px solid var(--accent); background:#1e293b; display:inline-flex; align-items:center; justify-content:center; font-size:1.6rem; color:#fff; }
-  .sb-name{ font-weight:800; margin-top:8px; font-size:.95rem; } .sb-role{ font-size:.72rem; color:#94a3b8; }
-  .sb-link{ display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:10px; color:var(--sidebar-text); font-weight:600; font-size:.9rem; cursor:pointer; }
-  .sb-link:hover,.sb-link.active{ background:var(--accent); color:var(--accent-ink); }
-  .sb-bottom{ margin-top:auto; padding-top:10px; border-top:1px solid rgba(255,255,255,.08); }
-  .sb-controls{ display:flex; gap:8px; align-items:center; justify-content:center; margin:8px 0; }
-  .swatch{ width:20px; height:20px; border-radius:50%; border:2px solid transparent; cursor:pointer; } .swatch.on{ border-color:#fff; }
-  .iconbtn{ border:1px solid rgba(255,255,255,.2); background:transparent; color:var(--sidebar-text); width:34px; height:34px; border-radius:9px; cursor:pointer; }
-  .logout{ display:block; text-align:center; padding:9px; border-radius:10px; border:1px solid rgba(255,255,255,.2); font-weight:600; font-size:.85rem; }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sb-width);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    padding: 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+  .sb-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 8px;
+  }
+  .sb-brand img { height: 38px; object-fit: contain; }
+  .sb-brand-text { display: flex; flex-direction: column; }
+  .sb-brand-title { font-weight: 900; font-size: 1rem; letter-spacing: -0.02em; color: #fff; }
+  .sb-brand-sub { font-size: 0.72rem; color: var(--sidebar-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
-  /* ===== Main ===== */
-  .main{ margin-left:var(--sb); padding:18px; }
-  .topbar{ display:none; }
-  .hamb{ background:var(--surface); border:1px solid var(--border); color:var(--text); width:42px; height:42px; border-radius:10px; font-size:1.3rem; cursor:pointer; }
-  .overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+  .sb-profile {
+    background: var(--sidebar-surface);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .sb-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #334155;
+    border: 2px solid var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .sb-profile-info { overflow: hidden; }
+  .sb-name { font-weight: 700; font-size: 0.92rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-code { font-size: 0.75rem; color: var(--sidebar-muted); }
+  .sb-comision-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: 2px;
+  }
 
-  h1{ font-size:1.4rem; margin:4px 0; } .period{ color:var(--muted); font-size:.9rem; margin-bottom:16px; }
-  .admin-note{ background:color-mix(in srgb,var(--accent) 18%,transparent); border:1px solid var(--accent); border-radius:10px; padding:8px 12px; font-size:.85rem; margin-bottom:14px; }
-  section{ scroll-margin-top:16px; margin-bottom:26px; }
-  .sec-title{ font-size:1.05rem; font-weight:800; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+  .sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .sb-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 11px;
+    color: var(--sidebar-muted);
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .sb-link i { font-size: 1.15rem; }
+  .sb-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .sb-link.active { background: var(--accent); color: var(--accent-ink); font-weight: 800; box-shadow: 0 4px 12px rgba(139, 197, 63, 0.35); }
 
-  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
-  .kpi{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); }
-  .kpi .lbl{ font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:700; }
-  .kpi .val{ font-size:1.5rem; font-weight:800; margin-top:3px; }
-  .kpi.hl{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); } .kpi.hl .lbl{ color:inherit; opacity:.85; }
+  .sb-bottom {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sb-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--sidebar-surface);
+    padding: 6px 10px;
+    border-radius: 12px;
+  }
+  .swatches { display: flex; gap: 6px; align-items: center; }
+  .swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.on { border-color: #fff; transform: scale(1.1); }
+  .iconbtn {
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    transition: background 0.15s;
+  }
+  .iconbtn:hover { background: rgba(255,255,255,0.18); }
+  .btn-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    font-weight: 700;
+    font-size: 0.82rem;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-logout:hover { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
 
-  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:14px; }
-  .card h3{ font-size:.95rem; margin:0; padding:12px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-  table{ width:100%; border-collapse:collapse; font-size:.85rem; } th,td{ padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); }
-  th{ font-size:.68rem; text-transform:uppercase; color:var(--muted); } td.num,th.num{ text-align:right; }
-  .empty{ padding:20px; text-align:center; color:var(--muted); }
-  .tag{ display:inline-block; padding:1px 8px; border-radius:999px; font-size:.7rem; font-weight:700; }
-  .tag.ord{ background:#dbeafe; color:#1e40af; } .tag.pos{ background:#dcfce7; color:#166534; } .tag.liq{ background:#e2e8f0; color:#475569; }
+  /* ===== Main Content ===== */
+  .main {
+    margin-left: var(--sb-width);
+    padding: 24px 32px 60px;
+    min-height: 100vh;
+  }
+  .topbar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hamb {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 45;
+    backdrop-filter: blur(2px);
+  }
 
-  .chips{ display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px; }
-  .chip{ padding:7px 11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); font-size:.78rem; font-weight:700; cursor:pointer; color:var(--text); }
-  .chip.on{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
-  .chip small{ display:block; font-weight:600; opacity:.8; }
+  /* Admin Preview Note */
+  .admin-note {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 0.86rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+  .admin-note a {
+    font-weight: 700;
+    color: var(--accent-dark);
+    text-decoration: underline;
+  }
 
-  .bars{ display:flex; align-items:flex-end; gap:8px; height:120px; padding:14px; }
-  .bcol{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; height:100%; justify-content:flex-end; }
-  .bar{ width:72%; min-height:4px; background:var(--accent); border-radius:5px 5px 0 0; } .bcol.today .bar{ box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent); }
-  .bn{ font-weight:800; font-size:.85rem; } .bd{ font-size:.68rem; color:var(--muted); font-weight:700; }
+  /* Header Section */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .header-left h1 {
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-left .period-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
 
-  .perfil-foto{ width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid var(--accent); display:inline-flex; align-items:center; justify-content:center; font-size:2.4rem; color:#fff; background:#334155; }
-  .form-row{ margin-bottom:12px; } .form-row label{ display:block; font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
-  .form-row input{ width:100%; max-width:420px; padding:9px 11px; border:1px solid var(--border); border-radius:9px; background:var(--surface); color:var(--text); }
-  .btn{ padding:9px 16px; border-radius:10px; border:none; font-weight:700; cursor:pointer; } .btn-accent{ background:var(--accent); color:var(--accent-ink); }
+  /* Week Navigator Bar */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-nav-week {
+    padding: 7px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn-nav-week:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-muted);
+  }
+  .btn-nav-today {
+    padding: 7px 12px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
 
-  @media (max-width:820px){
-    .sidebar{ transform:translateX(-100%); box-shadow:0 0 30px rgba(0,0,0,.4); }
-    .sidebar.open{ transform:none; } .main{ margin-left:0; padding:14px; }
-    .topbar{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
-    .topbar .tb-logo img{ height:30px; } .overlay.show{ display:block; }
+  /* ===== COMMISSION HERO PANEL (HIGHLIGHT CARD) ===== */
+  .hero-panel {
+    background: linear-gradient(145deg, var(--surface) 0%, color-mix(in srgb, var(--surface) 95%, var(--accent)) 100%);
+    border: 2px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    border-radius: 18px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-panel::after {
+    content: "";
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle, var(--accent-light) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .hero-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+  .hero-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0;
+  }
+  .hero-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .cfg-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .cfg-badge i { color: var(--accent-dark); font-size: 0.95rem; }
+
+  /* KPI Grid */
+  .hero-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .hkpi {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .hkpi:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .hkpi .hlbl {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .hkpi .hval {
+    font-size: 1.65rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin: 2px 0 4px;
+  }
+  .hkpi .hsub {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  /* Highlight KPI */
+  .hkpi.highlight {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent-dark);
+    box-shadow: 0 6px 20px rgba(139, 197, 63, 0.35);
+  }
+  .hkpi.highlight .hlbl { color: var(--accent-ink); opacity: 0.85; }
+  .hkpi.highlight .hval { color: var(--accent-ink); }
+  .hkpi.highlight .hsub { color: var(--accent-ink); opacity: 0.85; }
+
+  .hkpi.orden-bg { border-left: 4px solid #2563eb; }
+  .hkpi.pos-bg { border-left: 4px solid #16a34a; }
+
+  /* ===== DAYS SELECTOR / FILTERS (LUNES A SÁBADO) ===== */
+  .day-selector-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .day-selector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .day-selector-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+  .day-selector-info {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .day-chips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+  }
+  .day-chip {
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+  .day-chip:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+    transform: translateY(-2px);
+  }
+  .day-chip.active {
+    background: var(--accent);
+    border-color: var(--accent-dark);
+    color: var(--accent-ink);
+    box-shadow: 0 4px 14px rgba(139, 197, 63, 0.35);
+  }
+  .day-chip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .day-chip-name {
+    font-weight: 800;
+    font-size: 0.88rem;
+  }
+  .day-chip-date {
+    font-size: 0.72rem;
+    font-weight: 700;
+    opacity: 0.8;
+  }
+  .day-chip-body {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .day-chip-count {
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+  .day-chip-val {
+    font-size: 0.82rem;
+    font-weight: 900;
+  }
+  .today-dot {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: rgba(37, 99, 235, 0.15);
+    color: #2563eb;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .day-chip.active .today-dot {
+    background: rgba(0, 0, 0, 0.15);
+    color: var(--accent-ink);
+  }
+
+  /* Activity mini bar chart */
+  .chart-container {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .bars-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 70px;
+    padding: 4px 6px;
+  }
+  .bar-col {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+  .bar-fill {
+    width: 100%;
+    max-width: 32px;
+    min-height: 4px;
+    background: color-mix(in srgb, var(--accent) 70%, var(--border));
+    border-radius: 6px 6px 0 0;
+    transition: height 0.3s ease, background 0.15s;
+  }
+  .bar-col.active .bar-fill {
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(139, 197, 63, 0.5);
+  }
+  .bar-col.today .bar-fill {
+    border: 2px solid #2563eb;
+  }
+  .bar-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  /* ===== ACTIVE FILTER BANNER ===== */
+  .filter-active-alert {
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  .btn-clear-filter {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-clear-filter:hover { background: var(--surface-hover); }
+
+  /* ===== JOBS SECTION ===== */
+  .jobs-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .jobs-toolbar {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .jobs-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .jtab {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .jtab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+  }
+  .jtab-badge {
+    background: color-mix(in srgb, var(--text-muted) 20%, transparent);
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+  }
+  .jtab.active .jtab-badge {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .jobs-search-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 280px;
+  }
+  .jobs-search-wrap input {
+    width: 100%;
+    padding: 7px 12px 7px 32px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .jobs-search-wrap input:focus {
+    border-color: var(--accent);
+  }
+  .jobs-search-wrap i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  /* Table Styles (Desktop) */
+  .table-responsive {
+    overflow-x: auto;
+  }
+  table.jobs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    text-align: left;
+  }
+  table.jobs-table th {
+    padding: 12px 16px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.jobs-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+  table.jobs-table tr:hover td {
+    background: var(--surface-hover);
+  }
+  td.num, th.num { text-align: right; }
+
+  /* Badges */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .tag-orden {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+  }
+  .tag-pos {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
+  .tag-liquidada {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+  .tag-pendiente {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+  html[data-theme="dark"] .tag-orden { background: #1e3a8a; color: #bfdbfe; border-color: #1d4ed8; }
+  html[data-theme="dark"] .tag-pos { background: #14532d; color: #bbf7d0; border-color: #16a34a; }
+  html[data-theme="dark"] .tag-liquidada { background: #1e293b; color: #94a3b8; border-color: #334155; }
+  html[data-theme="dark"] .tag-pendiente { background: #78350f; color: #fde68a; border-color: #92400e; }
+
+  /* Mobile Job Cards */
+  .jobs-mobile-cards {
+    display: none;
+    padding: 12px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .jcard {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .jcard-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .jcard-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin: 4px 0;
+  }
+  .jcard-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .jcard-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+  .jcard-val { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+  .jcard-com { font-size: 1.1rem; font-weight: 900; color: var(--accent-dark); }
+
+  /* Empty state */
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .empty-state i { font-size: 2.8rem; opacity: 0.5; margin-bottom: 8px; display: block; }
+  .empty-state p { margin: 4px 0; font-size: 0.9rem; }
+
+  /* Section Titles */
+  .sec-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 32px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sec-title i { color: var(--accent); }
+
+  /* General Cards for Cuenta & Perfil */
+  .content-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .content-card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+  .content-card-body { padding: 20px; }
+
+  /* Form Elements */
+  .form-row { margin-bottom: 14px; }
+  .form-row label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .form-row input {
+    width: 100%;
+    max-width: 440px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.88rem;
+  }
+  .form-row input:focus { border-color: var(--accent); outline: none; }
+  .btn-save {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 800;
+    font-size: 0.88rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(139, 197, 63, 0.3);
+  }
+  .btn-save:hover { background: var(--accent-dark); }
+  .perfil-foto-lg {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    object-fit: cover;
+    border: 3px solid var(--accent);
+    background: #334155;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #fff;
+  }
+
+  /* Print Styles */
+  @media print {
+    .sidebar, .topbar, .sb-bottom, .week-nav, .jobs-search-wrap, .btn-print, .btn-clear-filter, #cuenta, #perfil, .day-chips-grid { display: none !important; }
+    .main { margin-left: 0 !important; padding: 0 !important; }
+    .hero-panel { border: 1px solid #000 !important; box-shadow: none !important; }
+    table.jobs-table { font-size: 11pt !important; }
+  }
+
+  /* Responsive Rules */
+  @media (max-width: 860px) {
+    .sidebar {
+      transform: translateX(-100%);
+      box-shadow: 0 0 35px rgba(0,0,0,0.6);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; padding: 16px; }
+    .topbar { display: flex; }
+    .overlay.show { display: block; }
+    .page-header { flex-direction: column; align-items: stretch; }
+    .week-nav { justify-content: space-between; }
+    .hero-kpis { grid-template-columns: 1fr 1fr; }
+    table.jobs-table { display: none; }
+    .jobs-mobile-cards { display: flex; }
+    .day-chips-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (max-width: 520px) {
+    .hero-kpis { grid-template-columns: 1fr; }
+    .day-chips-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
 <body>
+
 {% if sin_tecnico %}
-  <div style="max-width:520px;margin:12vh auto;text-align:center;padding:0 20px">
-    <img src="{% static 'logo_vp.png' %}" style="height:46px;filter:none" alt="VP Motos"><br><br>
-    <h1>Sin panel de técnico</h1>
-    <p class="period">Tu usuario no está vinculado a un técnico. Pídele a un administrador que te genere el acceso desde tu ficha.</p>
-    <a href="/usuarios/logout/" onclick="event.preventDefault();document.getElementById('lf').submit();" class="btn btn-accent">Cerrar sesión</a>
+  <div style="max-width:480px; margin: 15vh auto; text-align:center; padding: 24px; background:var(--surface); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow-md);">
+    <img src="{% static 'logo_vp.png' %}" style="height:48px;" alt="VP Motos"><br><br>
+    <h2 style="font-weight:900; margin:0 0 8px;">Sin acceso de técnico</h2>
+    <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
+      Tu usuario actual no está vinculado a una ficha de técnico en el sistema.<br>
+      Solicita a un administrador que vincule tu usuario o te genere una cuenta desde la administración del taller.
+    </p>
+    <br>
+    <a href="/usuarios/logout/" onclick="event.preventDefault(); document.getElementById('lf').submit();" class="btn-save" style="display:inline-flex;">
+      <i class="bi bi-box-arrow-right"></i> Salir del sistema
+    </a>
     <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
   </div>
 {% else %}
+
+<!-- Overlay for mobile drawer -->
 <div class="overlay" id="ov" onclick="toggleSb(false)"></div>
+
+<!-- ===== SIDEBAR ===== -->
 <aside class="sidebar" id="sb">
-  <div class="sb-logo"><img src="{% static 'logo_vp.png' %}" alt="VP Motos"></div>
-  <div class="sb-profile">
-    {% if tecnico.foto %}<img src="{{ tecnico.foto.url }}" class="sb-avatar" id="sbAvatar">{% else %}<span class="sb-avatar" id="sbAvatar"><i class="bi bi-person"></i></span>{% endif %}
-    <div class="sb-name">{{ tecnico.nombres }} {{ tecnico.apellidos }}</div>
-    <div class="sb-role">Técnico · {{ tecnico.codigo }}</div>
+  <div class="sb-brand">
+    <img src="{% static 'logo_vp.png' %}" alt="VP Motos">
+    <div class="sb-brand-text">
+      <span class="sb-brand-title">VP MOTOS</span>
+      <span class="sb-brand-sub">Panel de Técnico</span>
+    </div>
   </div>
-  <a class="sb-link active" onclick="goSec('resumen',this)"><i class="bi bi-speedometer2"></i> Resumen</a>
-  <a class="sb-link" onclick="goSec('trabajos',this)"><i class="bi bi-wrench"></i> Mis trabajos</a>
-  <a class="sb-link" onclick="goSec('cuenta',this)"><i class="bi bi-cash-coin"></i> Mi cuenta</a>
-  <a class="sb-link" onclick="goSec('perfil',this)"><i class="bi bi-person-gear"></i> Mi perfil</a>
+
+  <div class="sb-profile">
+    {% if tecnico.foto %}
+      <img src="{{ tecnico.foto.url }}" class="sb-avatar" id="sbAvatar" alt="Foto">
+    {% else %}
+      <span class="sb-avatar" id="sbAvatar"><i class="bi bi-person"></i></span>
+    {% endif %}
+    <div class="sb-profile-info">
+      <div class="sb-name">{{ tecnico.nombres }} {{ tecnico.apellidos }}</div>
+      <div class="sb-code">Cód: {{ tecnico.codigo }}</div>
+      <div class="sb-comision-pill">
+        <i class="bi bi-percent"></i>
+        {% if tecnico.gana_comision %}
+          Comisión: {{ resumen_semana.porcentaje_comision|floatformat:0 }}%
+        {% else %}
+          Salario Fijo
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <a class="sb-link active" onclick="goSec('seccion-resumen', this)">
+      <i class="bi bi-speedometer2"></i>
+      <span>Liquidación Semanal</span>
+    </a>
+    <a class="sb-link" onclick="goSec('seccion-trabajos', this)">
+      <i class="bi bi-tools"></i>
+      <span>Mis Trabajos ({{ resumen_semana.total_servicios }})</span>
+    </a>
+    <a class="sb-link" onclick="goSec('seccion-cuenta', this)">
+      <i class="bi bi-wallet2"></i>
+      <span>Mi Cuenta & Pagos</span>
+    </a>
+    <a class="sb-link" onclick="goSec('seccion-perfil', this)">
+      <i class="bi bi-person-gear"></i>
+      <span>Mi Perfil</span>
+    </a>
+  </nav>
+
   <div class="sb-bottom">
     <div class="sb-controls">
-      <span class="swatch" data-accent="verde" style="background:#8bc53f"></span>
-      <span class="swatch" data-accent="azul" style="background:#2563eb"></span>
-      <span class="swatch" data-accent="naranja" style="background:#f97316"></span>
-      <span class="swatch" data-accent="morado" style="background:#7c3aed"></span>
-      <button class="iconbtn" id="themeBtn"><i class="bi bi-moon-stars"></i></button>
+      <div class="swatches" title="Color de acento">
+        <span class="swatch" data-accent="verde" style="background:#8bc53f"></span>
+        <span class="swatch" data-accent="azul" style="background:#2563eb"></span>
+        <span class="swatch" data-accent="naranja" style="background:#f97316"></span>
+        <span class="swatch" data-accent="morado" style="background:#8b5cf6"></span>
+      </div>
+      <button class="iconbtn" id="themeBtn" title="Cambiar tema Claro/Oscuro">
+        <i class="bi bi-moon-stars"></i>
+      </button>
     </div>
-    <a href="/usuarios/logout/" onclick="event.preventDefault();document.getElementById('lf').submit();" class="logout"><i class="bi bi-box-arrow-right"></i> Salir</a>
+
+    <a href="/usuarios/logout/" onclick="event.preventDefault(); document.getElementById('lf').submit();" class="btn-logout">
+      <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+    </a>
     <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
   </div>
 </aside>
 
+<!-- ===== MAIN CONTENT ===== -->
 <main class="main">
+  <!-- Mobile Topbar -->
   <div class="topbar">
     <button class="hamb" onclick="toggleSb(true)"><i class="bi bi-list"></i></button>
-    <span class="tb-logo"><img src="{% static 'logo_vp.png' %}" alt="VP Motos" style="filter:invert(.1)"></span>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <img src="{% static 'logo_vp.png' %}" alt="VP Motos" style="height:32px;">
+      <span style="font-weight:900; font-size:0.95rem;">VP MOTOS</span>
+    </div>
+    <div></div>
   </div>
 
-  <h1>Hola, {{ tecnico.nombres }} 👋</h1>
-  <p class="period">Semana del {{ inicio|date:"d M" }} al {{ fin|date:"d M, Y" }}{% if dia %} · viendo {{ dia|date:"l d M" }}{% endif %}</p>
-  {% if es_preview_admin %}<div class="admin-note"><i class="bi bi-eye"></i> Vista de administrador (previsualización).</div>{% endif %}
+  {% if es_preview_admin %}
+    <div class="admin-note">
+      <div>
+        <i class="bi bi-eye-fill"></i> <strong>Modo Administrador:</strong> Estás previsualizando el panel del técnico <strong>{{ tecnico.nombres }} {{ tecnico.apellidos }}</strong>.
+      </div>
+      <a href="{% url 'taller:cuenta_tecnico' pk=tecnico.pk %}"><i class="bi bi-arrow-left"></i> Ir a Gestión Admin</a>
+    </div>
+  {% endif %}
 
-  <!-- ===== RESUMEN ===== -->
-  <section id="resumen">
-    <div class="sec-title"><i class="bi bi-speedometer2"></i> Resumen</div>
-    <div class="kpis">
-      <div class="kpi hl"><div class="lbl">Comisión por cobrar</div><div class="val">${{ cuenta.comision_pendiente|floatformat:2|intcomma }}</div></div>
-      <div class="kpi"><div class="lbl">De órdenes</div><div class="val">${{ cuenta.comision_ordenes|floatformat:2|intcomma }}</div></div>
-      <div class="kpi"><div class="lbl">De POS (rápida)</div><div class="val">${{ cuenta.comision_pos|floatformat:2|intcomma }}</div></div>
-      <div class="kpi"><div class="lbl">Adelantos</div><div class="val">${{ cuenta.adelantos_pendientes|floatformat:2|intcomma }}</div></div>
-      <div class="kpi"><div class="lbl">Neto a recibir</div><div class="val">${{ cuenta.neto_a_pagar|floatformat:2|intcomma }}</div></div>
-      <div class="kpi"><div class="lbl">Servicios (semana)</div><div class="val">{{ metricas.servicios_semana }}</div></div>
+  <!-- Page Header & Week Navigator -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Hola, {{ tecnico.nombres }} 👋</h1>
+      <div class="period-badge">
+        <i class="bi bi-calendar3"></i>
+        <span>Semana del <strong>{{ inicio|date:"d M" }}</strong> al <strong>{{ fin|date:"d M, Y" }}</strong> (Lunes a Sábado)</span>
+      </div>
+    </div>
+
+    <!-- Week Navigator -->
+    <div class="week-nav">
+      <a href="?fecha={{ semana_anterior|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-nav-week" title="Semana Anterior">
+        <i class="bi bi-chevron-left"></i> Anterior
+      </a>
+      {% if not es_semana_actual %}
+        <a href="?{% if es_preview_admin %}tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-nav-today">
+          <i class="bi bi-clock-history"></i> Esta semana
+        </a>
+      {% endif %}
+      <a href="?fecha={{ semana_siguiente|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-nav-week" title="Semana Siguiente">
+        Siguiente <i class="bi bi-chevron-right"></i>
+      </a>
+      <button class="btn-nav-week btn-print" onclick="window.print()" title="Imprimir liquidación semanal">
+        <i class="bi bi-printer"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== 1. LIQUIDACIÓN & RESUMEN SEMANAL ===== -->
+  <section id="seccion-resumen">
+    <div class="hero-panel">
+      <div class="hero-header">
+        <div class="hero-title-wrap">
+          <div class="hero-icon"><i class="bi bi-cash-stack"></i></div>
+          <div>
+            <h2 class="hero-title">Liquidación Semanal de Comisiones</h2>
+            <div class="hero-sub">Lunes {{ inicio|date:"d M" }} a Sábado {{ fin|date:"d M, Y" }}</div>
+          </div>
+        </div>
+        <div class="cfg-badge">
+          <i class="bi bi-sliders"></i>
+          <span>Tasa configurada: <strong>{{ resumen_semana.porcentaje_comision|floatformat:0 }}%</strong> por servicio</span>
+        </div>
+      </div>
+
+      <div class="hero-kpis">
+        <!-- Main Commission KPI -->
+        <div class="hkpi highlight">
+          <div class="hlbl">
+            <span>Comisión Total Semana</span>
+            <i class="bi bi-trophy-fill"></i>
+          </div>
+          <div class="hval">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</div>
+          <div class="hsub">Correspondiente a la semana (Lun - Sáb)</div>
+        </div>
+
+        <!-- Total Net Labor -->
+        <div class="hkpi">
+          <div class="hlbl">
+            <span>Total Mano de Obra Neta</span>
+            <i class="bi bi-activity"></i>
+          </div>
+          <div class="hval">${{ resumen_semana.valor_neto_total|floatformat:2|intcomma }}</div>
+          <div class="hsub">{{ resumen_semana.total_servicios }} servicios realizados</div>
+        </div>
+
+        <!-- From Workshop Orders -->
+        <div class="hkpi orden-bg">
+          <div class="hlbl">
+            <span>Órdenes de Taller</span>
+            <span class="tag tag-orden">{{ resumen_semana.total_ordenes }} trab.</span>
+          </div>
+          <div class="hval">${{ resumen_semana.comision_ordenes|floatformat:2|intcomma }}</div>
+          <div class="hsub">De ${{ resumen_semana.base_ordenes|floatformat:2|intcomma }} neto facturado</div>
+        </div>
+
+        <!-- From POS Quick Service -->
+        <div class="hkpi pos-bg">
+          <div class="hlbl">
+            <span>Mecánica Rápida (POS)</span>
+            <span class="tag tag-pos">{{ resumen_semana.total_pos }} trab.</span>
+          </div>
+          <div class="hval">${{ resumen_semana.comision_pos|floatformat:2|intcomma }}</div>
+          <div class="hsub">De ${{ resumen_semana.base_pos|floatformat:2|intcomma }} neto cobrado</div>
+        </div>
+
+        <!-- Weekly Advances & Net to Pay -->
+        {% if resumen_semana.adelantos_semana > 0 %}
+          <div class="hkpi" style="border-left: 4px solid #f97316;">
+            <div class="hlbl">
+              <span>Adelantos Semana</span>
+              <i class="bi bi-dash-circle-fill text-warning"></i>
+            </div>
+            <div class="hval" style="color:#ea580c;">-${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</div>
+            <div class="hsub">Neto semana: <strong>${{ resumen_semana.neto_a_pagar|floatformat:2|intcomma }}</strong></div>
+          </div>
+        {% endif %}
+      </div>
     </div>
   </section>
 
-  <!-- ===== TRABAJOS ===== -->
-  <section id="trabajos">
-    <div class="sec-title"><i class="bi bi-wrench"></i> Mis trabajos de la semana</div>
-    <div class="chips">
-      <a class="chip {% if not dia %}on{% endif %}" href="?{% if es_preview_admin %}tecnico_id={{ tecnico.pk }}{% endif %}">Toda la semana</a>
-      {% for d in por_dia %}
-      <a class="chip {% if d.activo %}on{% endif %}" href="?dia={{ d.fecha|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}">
-        {{ d.label }} <small>{{ d.fecha|date:'d/m' }} · {{ d.total }}</small>
+  <!-- ===== 2. SELECTOR DE DÍAS (LUNES A SÁBADO) ===== -->
+  <section class="day-selector-card">
+    <div class="day-selector-header">
+      <h3 class="day-selector-title">
+        <i class="bi bi-funnel"></i> Filtrar por Día de la Semana
+      </h3>
+      <div class="day-selector-info">
+        Haz clic en cualquier día para ver sus trabajos específicos
+      </div>
+    </div>
+
+    <div class="day-chips-grid">
+      <!-- Option: Toda la Semana -->
+      <a href="?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+         class="day-chip {% if not dia %}active{% endif %}">
+        <div class="day-chip-head">
+          <span class="day-chip-name">Toda la semana</span>
+          <span class="day-chip-date">Lun - Sáb</span>
+        </div>
+        <div class="day-chip-body">
+          <span class="day-chip-count">{{ resumen_semana.total_servicios }} serv.</span>
+          <span class="day-chip-val">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</span>
+        </div>
       </a>
+
+      <!-- 6 Days: Lunes a Sábado -->
+      {% for d in por_dia %}
+        <a href="?dia={{ d.fecha|date:'Y-m-d' }}&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+           class="day-chip {% if d.activo %}active{% endif %}">
+          <div class="day-chip-head">
+            <span class="day-chip-name">{{ d.nombre }}</span>
+            <span class="day-chip-date">{{ d.fecha|date:"d/m" }}</span>
+          </div>
+          <div class="day-chip-body">
+            <span class="day-chip-count">
+              {{ d.total }} trab.
+              {% if d.es_hoy %}<span class="today-dot">Hoy</span>{% endif %}
+            </span>
+            <span class="day-chip-val">${{ d.comision|floatformat:2|intcomma }}</span>
+          </div>
+        </a>
       {% endfor %}
     </div>
 
-    <div class="card">
-      <div class="bars">
-        {% for d in por_dia %}<div class="bcol {% if d.es_hoy %}today{% endif %}"><div class="bn">{{ d.total }}</div><div class="bar" style="height:{{ d.pct }}%"></div><div class="bd">{{ d.label }}</div></div>{% endfor %}
+    <!-- Mini Activity Bar Chart -->
+    <div class="chart-container">
+      <div class="bars-row">
+        {% for d in por_dia %}
+          <div class="bar-col {% if d.activo %}active{% endif %} {% if d.es_hoy %}today{% endif %}">
+            <div style="font-size:0.75rem; font-weight:800;">{{ d.total }}</div>
+            <div class="bar-fill" style="height: {{ d.pct|default:6 }}%;"></div>
+            <div class="bar-label">{{ d.label }}</div>
+          </div>
+        {% endfor %}
       </div>
-    </div>
-
-    <div class="card">
-      <h3><span><i class="bi bi-clipboard-check text-primary"></i> Órdenes de taller</span><span class="tag ord">Órdenes</span></h3>
-      <div style="overflow-x:auto"><table>
-        <thead><tr><th>Fecha</th><th>Factura</th><th>Cliente</th><th>Servicio</th><th class="num">Valor</th><th class="num">Comisión</th></tr></thead>
-        <tbody>
-          {% for o in lista_ordenes %}
-          <tr><td>{{ o.fecha|date:"d/m H:i" }}</td><td>{{ o.factura }}</td><td>{{ o.cliente }}</td><td>{{ o.servicio }}{% if o.liquidada %} <span class="tag liq">pagada</span>{% endif %}</td><td class="num">${{ o.valor|floatformat:2|intcomma }}</td><td class="num">${{ o.comision|floatformat:2|intcomma }}</td></tr>
-          {% empty %}<tr><td colspan="6" class="empty">Sin servicios de órdenes en este periodo.</td></tr>{% endfor %}
-        </tbody>
-      </table></div>
-    </div>
-
-    <div class="card">
-      <h3><span><i class="bi bi-lightning-charge text-success"></i> Servicios en POS (mecánica rápida)</span><span class="tag pos">POS</span></h3>
-      <div style="overflow-x:auto"><table>
-        <thead><tr><th>Fecha</th><th>Factura</th><th>Cliente</th><th>Servicio</th><th class="num">Valor</th><th class="num">Comisión</th></tr></thead>
-        <tbody>
-          {% for o in lista_pos %}
-          <tr><td>{{ o.fecha|date:"d/m H:i" }}</td><td>{{ o.factura }}</td><td>{{ o.cliente }}</td><td>{{ o.servicio }}{% if o.liquidada %} <span class="tag liq">pagada</span>{% endif %}</td><td class="num">${{ o.valor|floatformat:2|intcomma }}</td><td class="num">${{ o.comision|floatformat:2|intcomma }}</td></tr>
-          {% empty %}<tr><td colspan="6" class="empty">Sin servicios directos de POS en este periodo.</td></tr>{% endfor %}
-        </tbody>
-      </table></div>
     </div>
   </section>
 
-  <!-- ===== CUENTA ===== -->
-  <section id="cuenta">
-    <div class="sec-title"><i class="bi bi-cash-coin"></i> Mi cuenta de comisiones</div>
-    <div class="kpis" style="margin-bottom:12px">
-      <div class="kpi"><div class="lbl">Comisión por cobrar</div><div class="val">${{ cuenta.comision_pendiente|floatformat:2|intcomma }}</div></div>
-      <div class="kpi"><div class="lbl">Adelantos pendientes</div><div class="val">${{ cuenta.adelantos_pendientes|floatformat:2|intcomma }}</div></div>
-      <div class="kpi hl"><div class="lbl">Neto a recibir</div><div class="val">${{ cuenta.neto_a_pagar|floatformat:2|intcomma }}</div></div>
+  <!-- Filter Active Notification -->
+  {% if dia %}
+    <div class="filter-active-alert">
+      <div>
+        <i class="bi bi-filter-circle-fill" style="color:var(--accent-dark)"></i>
+        Mostrando solo trabajos del <strong>{{ dia_info.nombre }} {{ dia|date:"d de F" }}</strong>:
+        {{ resumen_semana.servicios_vista }} servicio(s) · Comisión: <strong>${{ resumen_semana.comision_vista|floatformat:2|intcomma }}</strong>
+      </div>
+      <a href="?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-clear-filter">
+        <i class="bi bi-x-circle"></i> Ver toda la semana
+      </a>
     </div>
-    <div class="card"><h3>Últimos pagos</h3><table><tbody>
-      {% for p in pagos_recientes %}<tr><td>{{ p.fecha|date:"d/m/Y" }}</td><td>{{ p.num_trabajos }} serv.</td><td class="num" style="font-weight:700">${{ p.monto_pagado|floatformat:2|intcomma }}</td></tr>
-      {% empty %}<tr><td class="empty">Aún no has recibido pagos.</td></tr>{% endfor %}
-    </tbody></table></div>
-    <div class="card"><h3>Últimos adelantos</h3><table><tbody>
-      {% for a in adelantos_recientes %}<tr><td>{{ a.fecha|date:"d/m/Y" }}</td><td>{{ a.descripcion|default:"Adelanto" }}</td><td class="num" style="font-weight:700">${{ a.monto|floatformat:2|intcomma }}</td><td>{% if a.liquidado %}<span class="tag liq">liquidado</span>{% else %}<span class="tag pos">pendiente</span>{% endif %}</td></tr>
-      {% empty %}<tr><td class="empty">Sin adelantos.</td></tr>{% endfor %}
-    </tbody></table></div>
-    <p class="period">La comisión es el valor de cada servicio que realizas ÷ 2 (órdenes cobradas en POS + servicios directos). No incluye repuestos ni productos.</p>
+  {% endif %}
+
+  <!-- ===== 3. MIS TRABAJOS (ÓRDENES Y POS) ===== -->
+  <section id="seccion-trabajos" class="jobs-panel">
+    <div class="jobs-toolbar">
+      <!-- Tabs: Todos / Órdenes / POS -->
+      <div class="jobs-tabs">
+        <button class="jtab active" onclick="filterTab('all', this)">
+          <i class="bi bi-grid-fill"></i> Todos
+          <span class="jtab-badge" id="badgeAll">{{ trabajos_filtrados|length }}</span>
+        </button>
+        <button class="jtab" onclick="filterTab('ORDEN', this)">
+          <i class="bi bi-tools text-primary"></i> Órdenes de Taller
+          <span class="jtab-badge" id="badgeOrd">{{ lista_ordenes|length }}</span>
+        </button>
+        <button class="jtab" onclick="filterTab('POS', this)">
+          <i class="bi bi-lightning-charge text-success"></i> Mecánica Rápida (POS)
+          <span class="jtab-badge" id="badgePos">{{ lista_pos|length }}</span>
+        </button>
+      </div>
+
+      <!-- Live Search Box -->
+      <div class="jobs-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" id="jobSearch" placeholder="Buscar cliente, placa, orden..." onkeyup="filterSearch()">
+      </div>
+    </div>
+
+    <!-- Desktop Table View -->
+    <div class="table-responsive">
+      <table class="jobs-table" id="jobsTable">
+        <thead>
+          <tr>
+            <th>Fecha / Hora</th>
+            <th>Tipo / Origen</th>
+            <th>Comprobante</th>
+            <th>Cliente / Vehículo</th>
+            <th>Servicio Realizado</th>
+            <th class="num">Mano de Obra Neta</th>
+            <th class="num">Comisión ({{ resumen_semana.porcentaje_comision|floatformat:0 }}%)</th>
+            <th style="text-align:center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in trabajos_filtrados %}
+            <tr class="job-row" data-type="{{ t.tipo }}" data-search="{{ t.numero|lower }} {{ t.cliente|lower }} {{ t.vehiculo|lower }} {{ t.servicio|lower }}">
+              <td>
+                <div style="font-weight:700;">{{ t.fecha|date:"D d/m" }}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">{{ t.fecha|date:"H:i" }}</div>
+              </td>
+              <td>
+                {% if t.tipo == 'ORDEN' %}
+                  <span class="tag tag-orden"><i class="bi bi-tools"></i> Taller</span>
+                {% else %}
+                  <span class="tag tag-pos"><i class="bi bi-lightning-charge"></i> POS Rápido</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="font-weight:800; font-family:monospace;">{{ t.numero }}</div>
+                {% if t.factura and t.factura != t.numero %}
+                  <div style="font-size:0.72rem; color:var(--text-muted);">Fact: {{ t.factura }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <div style="font-weight:700;">{{ t.cliente }}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);"><i class="bi bi-scooter"></i> {{ t.vehiculo }}</div>
+              </td>
+              <td>
+                <div style="font-weight:800;">{{ t.servicio }}</div>
+                {% if t.tipo == 'ORDEN' and t.estado_orden %}
+                  <span style="font-size:0.72rem; color:var(--text-muted);">Orden {{ t.estado_orden }}</span>
+                {% endif %}
+              </td>
+              <td class="num" style="font-weight:700;">
+                ${{ t.valor|floatformat:2|intcomma }}
+              </td>
+              <td class="num" style="font-weight:900; color:var(--accent-dark);">
+                ${{ t.comision|floatformat:2|intcomma }}
+              </td>
+              <td style="text-align:center">
+                {% if t.liquidada %}
+                  <span class="tag tag-liquidada"><i class="bi bi-check-circle"></i> Liquidada</span>
+                {% else %}
+                  <span class="tag tag-pendiente"><i class="bi bi-hourglass-split"></i> Por cobrar</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <p><strong>Sin servicios registrados en este periodo</strong></p>
+                <p>No se encontraron trabajos de taller ni de POS para las fechas seleccionadas.</p>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Cards View -->
+    <div class="jobs-mobile-cards" id="jobsMobileCards">
+      {% for t in trabajos_filtrados %}
+        <div class="jcard job-card-item" data-type="{{ t.tipo }}" data-search="{{ t.numero|lower }} {{ t.cliente|lower }} {{ t.vehiculo|lower }} {{ t.servicio|lower }}">
+          <div class="jcard-top">
+            {% if t.tipo == 'ORDEN' %}
+              <span class="tag tag-orden"><i class="bi bi-tools"></i> Orden #{{ t.numero }}</span>
+            {% else %}
+              <span class="tag tag-pos"><i class="bi bi-lightning-charge"></i> POS {{ t.numero }}</span>
+            {% endif %}
+            <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted);">
+              {{ t.fecha|date:"D d/m H:i" }}
+            </span>
+          </div>
+
+          <div class="jcard-title">{{ t.servicio }}</div>
+
+          <div class="jcard-meta">
+            <div><i class="bi bi-person"></i> {{ t.cliente }}</div>
+            {% if t.vehiculo and t.vehiculo != '—' %}
+              <div><i class="bi bi-scooter"></i> {{ t.vehiculo }}</div>
+            {% endif %}
+          </div>
+
+          <div class="jcard-bottom">
+            <div>
+              <div class="jcard-val">Valor: ${{ t.valor|floatformat:2|intcomma }}</div>
+              {% if t.liquidada %}
+                <span class="tag tag-liquidada" style="margin-top:2px;">Liquidada</span>
+              {% else %}
+                <span class="tag tag-pendiente" style="margin-top:2px;">Por cobrar</span>
+              {% endif %}
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">Comisión ({{ resumen_semana.porcentaje_comision|floatformat:0 }}%):</div>
+              <div class="jcard-com">${{ t.comision|floatformat:2|intcomma }}</div>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="empty-state">
+          <i class="bi bi-calendar-x"></i>
+          <p><strong>Sin servicios registrados</strong></p>
+        </div>
+      {% endfor %}
+    </div>
   </section>
 
-  <!-- ===== PERFIL ===== -->
-  <section id="perfil">
-    <div class="sec-title"><i class="bi bi-person-gear"></i> Mi perfil</div>
-    <div class="card"><div style="padding:18px">
-      <div style="text-align:center;margin-bottom:16px">
-        {% if tecnico.foto %}<img src="{{ tecnico.foto.url }}" class="perfil-foto" id="perfilFoto">{% else %}<span class="perfil-foto" id="perfilFoto"><i class="bi bi-person"></i></span>{% endif %}
-        <div style="margin-top:10px"><label class="btn btn-accent" style="display:inline-block"><i class="bi bi-camera"></i> Cambiar foto<input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="previewFoto(this)"></label></div>
+  <!-- ===== 4. MI CUENTA & HISTORIAL ===== -->
+  <section id="seccion-cuenta">
+    <div class="sec-title"><i class="bi bi-wallet2"></i> Mi Cuenta & Pagos Históricos</div>
+
+    <!-- Historical unliquidated balance -->
+    <div class="content-card" style="margin-bottom:16px;">
+      <div class="content-card-header">
+        <span><i class="bi bi-clock-history"></i> Saldo Histórico Acumulado Pendiente de Pago</span>
+        <span class="tag tag-pendiente">Todas las semanas sin liquidar</span>
       </div>
-      <div class="form-row"><label>Teléfono</label><input type="text" id="pfTel" value="{{ tecnico.telefono|default:'' }}"></div>
-      <div class="form-row"><label>Correo</label><input type="email" id="pfEmail" value="{{ tecnico.email|default:'' }}"></div>
-      <div class="form-row"><label>Dirección</label><input type="text" id="pfDir" value="{{ tecnico.direccion|default:'' }}"></div>
-      <button class="btn btn-accent" id="btnPerfil" onclick="guardarPerfil()"><i class="bi bi-check-lg"></i> Guardar perfil</button>
-      <span id="pfMsg" style="margin-left:10px;font-size:.85rem"></span>
-    </div></div>
+      <div class="content-card-body">
+        <div class="hero-kpis" style="margin:0;">
+          <div class="hkpi">
+            <div class="hlbl">Comisión Total Acumulada</div>
+            <div class="hval">${{ cuenta.comision_pendiente|floatformat:2|intcomma }}</div>
+            <div class="hsub">{{ cuenta.servicios_pendientes }} servicios pendientes</div>
+          </div>
+          <div class="hkpi">
+            <div class="hlbl">Adelantos Acumulados</div>
+            <div class="hval" style="color:#ea580c;">-${{ cuenta.adelantos_pendientes|floatformat:2|intcomma }}</div>
+            <div class="hsub">Pendientes de descontar</div>
+          </div>
+          <div class="hkpi highlight">
+            <div class="hlbl">Neto Histórico a Cobrar</div>
+            <div class="hval">${{ cuenta.neto_a_pagar|floatformat:2|intcomma }}</div>
+            <div class="hsub">Total acumulado a transferir</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
+      <!-- Last Payments -->
+      <div class="content-card">
+        <div class="content-card-header">
+          <span><i class="bi bi-cash-coin text-success"></i> Últimos Pagos Recibidos</span>
+        </div>
+        <div class="table-responsive">
+          <table class="jobs-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Trabajos</th>
+                <th class="num">Neto Entregado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in pagos_recientes %}
+                <tr>
+                  <td>{{ p.fecha|date:"d/m/Y H:i" }}</td>
+                  <td>{{ p.num_trabajos }} serv.</td>
+                  <td class="num" style="font-weight:800; color:var(--accent-dark);">${{ p.monto_pagado|floatformat:2|intcomma }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="3" class="empty-state" style="padding:20px;">Aún no tienes registros de pagos liquidados.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Last Advances -->
+      <div class="content-card">
+        <div class="content-card-header">
+          <span><i class="bi bi-piggy-bank text-warning"></i> Adelantos Registrados</span>
+        </div>
+        <div class="table-responsive">
+          <table class="jobs-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th class="num">Monto</th>
+                <th style="text-align:center">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in adelantos_recientes %}
+                <tr>
+                  <td>{{ a.fecha|date:"d/m/Y" }}</td>
+                  <td>{{ a.descripcion|default:"Adelanto de efectivo" }}</td>
+                  <td class="num" style="font-weight:800;">${{ a.monto|floatformat:2|intcomma }}</td>
+                  <td style="text-align:center">
+                    {% if a.liquidado %}
+                      <span class="tag tag-liquidada">Liquidado</span>
+                    {% else %}
+                      <span class="tag tag-pos">Pendiente</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="empty-state" style="padding:20px;">Sin adelantos registrados.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 5. MI PERFIL ===== -->
+  <section id="seccion-perfil">
+    <div class="sec-title"><i class="bi bi-person-gear"></i> Mi Perfil de Técnico</div>
+    <div class="content-card">
+      <div class="content-card-body">
+        <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
+          {% if tecnico.foto %}
+            <img src="{{ tecnico.foto.url }}" class="perfil-foto-lg" id="perfilFoto" alt="Foto perfil">
+          {% else %}
+            <span class="perfil-foto-lg" id="perfilFoto"><i class="bi bi-person"></i></span>
+          {% endif %}
+          <div>
+            <label class="btn-nav-week" style="cursor:pointer; display:inline-flex;">
+              <i class="bi bi-camera"></i> Cambiar Foto de Perfil
+              <input type="file" id="fotoInput" accept="image/*" style="display:none;" onchange="previewFoto(this)">
+            </label>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Formatos: JPG o PNG. Tamaño recomendado: 300x300.</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Teléfono / Celular</label>
+          <input type="text" id="pfTel" value="{{ tecnico.telefono|default:'' }}" placeholder="Ej: 0991234567">
+        </div>
+        <div class="form-row">
+          <label>Correo Electrónico</label>
+          <input type="email" id="pfEmail" value="{{ tecnico.email|default:'' }}" placeholder="correo@ejemplo.com">
+        </div>
+        <div class="form-row">
+          <label>Dirección</label>
+          <input type="text" id="pfDir" value="{{ tecnico.direccion|default:'' }}" placeholder="Calle, Barrio, Ciudad">
+        </div>
+
+        <button class="btn-save" id="btnPerfil" onclick="guardarPerfil()">
+          <i class="bi bi-check-lg"></i> Guardar Mis Datos
+        </button>
+        <span id="pfMsg" style="margin-left:14px; font-size:0.88rem; font-weight:700;"></span>
+      </div>
+    </div>
   </section>
 </main>
 {% endif %}
 
 <script>
   const html = document.documentElement;
-  function toggleSb(open){ const sb=document.getElementById('sb'), ov=document.getElementById('ov'); if(!sb)return; sb.classList.toggle('open',open); ov.classList.toggle('show',open); }
-  function goSec(id, el){ const s=document.getElementById(id); if(s) s.scrollIntoView({behavior:'smooth'}); document.querySelectorAll('.sb-link').forEach(l=>l.classList.remove('active')); if(el) el.classList.add('active'); if(window.innerWidth<=820) toggleSb(false); }
-  // Tema y acentos
-  try{ const t=localStorage.getItem('pt_theme'); if(t) html.setAttribute('data-theme',t); const a=localStorage.getItem('pt_accent'); if(a) html.setAttribute('data-accent',a); }catch(e){}
-  function syncSw(){ const cur=html.getAttribute('data-accent'); document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('on',s.dataset.accent===cur)); const i=document.querySelector('#themeBtn i'); if(i) i.className=html.getAttribute('data-theme')==='dark'?'bi bi-sun':'bi bi-moon-stars'; }
-  document.querySelectorAll('.swatch').forEach(s=>s.addEventListener('click',()=>{ html.setAttribute('data-accent',s.dataset.accent); try{localStorage.setItem('pt_accent',s.dataset.accent);}catch(e){} syncSw(); }));
-  const tb=document.getElementById('themeBtn'); if(tb) tb.addEventListener('click',()=>{ const d=html.getAttribute('data-theme')==='dark'; html.setAttribute('data-theme',d?'light':'dark'); try{localStorage.setItem('pt_theme',d?'light':'dark');}catch(e){} syncSw(); });
-  syncSw();
-  // Perfil
-  function previewFoto(input){ if(input.files&&input.files[0]){ const url=URL.createObjectURL(input.files[0]); const f=document.getElementById('perfilFoto'); if(f.tagName==='IMG'){ f.src=url; } else { f.outerHTML='<img src="'+url+'" class="perfil-foto" id="perfilFoto">'; } } }
-  function guardarPerfil(){
-    const btn=document.getElementById('btnPerfil'), msg=document.getElementById('pfMsg');
-    const fd=new FormData();
-    fd.append('telefono',document.getElementById('pfTel').value);
-    fd.append('email',document.getElementById('pfEmail').value);
-    fd.append('direccion',document.getElementById('pfDir').value);
-    const fi=document.getElementById('fotoInput'); if(fi.files[0]) fd.append('foto',fi.files[0]);
-    btn.disabled=true; msg.textContent='Guardando...';
-    fetch('/taller/mi-perfil/',{ method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd })
-      .then(r=>r.json()).then(d=>{ msg.textContent=d.success?'✅ '+d.message:'❌ '+d.message; if(d.success&&d.foto_url){ const sa=document.getElementById('sbAvatar'); if(sa&&sa.tagName==='IMG') sa.src=d.foto_url; } })
-      .catch(()=>{ msg.textContent='❌ Error de comunicación'; }).finally(()=>{ btn.disabled=false; });
+
+  // Toggle Sidebar (Mobile)
+  function toggleSb(open) {
+    const sb = document.getElementById('sb');
+    const ov = document.getElementById('ov');
+    if (!sb) return;
+    sb.classList.toggle('open', open);
+    ov.classList.toggle('show', open);
+  }
+
+  // Smooth scroll to sections
+  function goSec(id, el) {
+    const s = document.getElementById(id);
+    if (s) s.scrollIntoView({ behavior: 'smooth' });
+    document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+    if (el) el.classList.add('active');
+    if (window.innerWidth <= 860) toggleSb(false);
+  }
+
+  // Theme & Accent handling
+  try {
+    const t = localStorage.getItem('pt_theme');
+    if (t) html.setAttribute('data-theme', t);
+    const a = localStorage.getItem('pt_accent');
+    if (a) html.setAttribute('data-accent', a);
+  } catch (e) {}
+
+  function syncSwatches() {
+    const cur = html.getAttribute('data-accent') || 'verde';
+    document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s.dataset.accent === cur));
+    const icon = document.querySelector('#themeBtn i');
+    if (icon) {
+      icon.className = html.getAttribute('data-theme') === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    }
+  }
+
+  document.querySelectorAll('.swatch').forEach(s => {
+    s.addEventListener('click', () => {
+      html.setAttribute('data-accent', s.dataset.accent);
+      try { localStorage.setItem('pt_accent', s.dataset.accent); } catch (e) {}
+      syncSwatches();
+    });
+  });
+
+  const tb = document.getElementById('themeBtn');
+  if (tb) {
+    tb.addEventListener('click', () => {
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      try { localStorage.setItem('pt_theme', isDark ? 'light' : 'dark'); } catch (e) {}
+      syncSwatches();
+    });
+  }
+  syncSwatches();
+
+  // Tabs filtering (All / Orders / POS)
+  let currentTab = 'all';
+  function filterTab(type, el) {
+    currentTab = type;
+    document.querySelectorAll('.jtab').forEach(b => b.classList.remove('active'));
+    if (el) el.classList.add('active');
+    applyFilters();
+  }
+
+  // Search filtering
+  function filterSearch() {
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const q = (document.getElementById('jobSearch')?.value || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('.job-row');
+    const cards = document.querySelectorAll('.job-card-item');
+
+    let countVisible = 0;
+
+    // Filter desktop rows
+    rows.forEach(r => {
+      const rType = r.getAttribute('data-type');
+      const rSearch = r.getAttribute('data-search') || '';
+      const matchType = (currentTab === 'all' || rType === currentTab);
+      const matchSearch = (!q || rSearch.includes(q));
+
+      if (matchType && matchSearch) {
+        r.style.display = '';
+        countVisible++;
+      } else {
+        r.style.display = 'none';
+      }
+    });
+
+    // Filter mobile cards
+    cards.forEach(c => {
+      const cType = c.getAttribute('data-type');
+      const cSearch = c.getAttribute('data-search') || '';
+      const matchType = (currentTab === 'all' || cType === currentTab);
+      const matchSearch = (!q || cSearch.includes(q));
+
+      c.style.display = (matchType && matchSearch) ? 'flex' : 'none';
+    });
+  }
+
+  // Profile Photo Preview
+  function previewFoto(input) {
+    if (input.files && input.files[0]) {
+      const url = URL.createObjectURL(input.files[0]);
+      const f = document.getElementById('perfilFoto');
+      if (f.tagName === 'IMG') {
+        f.src = url;
+      } else {
+        f.outerHTML = '<img src="' + url + '" class="perfil-foto-lg" id="perfilFoto" alt="Foto perfil">';
+      }
+    }
+  }
+
+  // Save Profile via AJAX
+  function guardarPerfil() {
+    const btn = document.getElementById('btnPerfil');
+    const msg = document.getElementById('pfMsg');
+    const fd = new FormData();
+    fd.append('telefono', document.getElementById('pfTel').value);
+    fd.append('email', document.getElementById('pfEmail').value);
+    fd.append('direccion', document.getElementById('pfDir').value);
+    const fi = document.getElementById('fotoInput');
+    if (fi.files[0]) fd.append('foto', fi.files[0]);
+
+    btn.disabled = true;
+    msg.textContent = 'Guardando cambios...';
+    msg.style.color = 'var(--text-muted)';
+
+    fetch('/taller/mi-perfil/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body: fd
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          msg.textContent = '✅ ' + d.message;
+          msg.style.color = '#16a34a';
+          if (d.foto_url) {
+            const sa = document.getElementById('sbAvatar');
+            if (sa && sa.tagName === 'IMG') sa.src = d.foto_url;
+          }
+        } else {
+          msg.textContent = '❌ ' + d.message;
+          msg.style.color = '#dc2626';
+        }
+      })
+      .catch(() => {
+        msg.textContent = '❌ Error de conexión al guardar';
+        msg.style.color = '#dc2626';
+      })
+      .finally(() => {
+        btn.disabled = false;
+      });
   }
 </script>
 </body>
