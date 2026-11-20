@@ -233,9 +233,17 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="btn-group">
+                                    <button onclick="reimprimirTicket('{{ c.venta.id }}')" class="btn btn-sm btn-outline-dark" title="Reimprimir ticket" id="btn-print-{{ c.id }}">
+                                        <i class="bi bi-printer"></i>
+                                    </button>
                                     {% if c.estado != 'AUTORIZADO' %}
-                                    <button onclick="reintentarFactura('{{ c.id }}')" class="btn btn-sm btn-outline-primary" title="Reintentar Procesamiento" id="btn-retry-{{ c.id }}">
+                                    <button onclick="reintentarFactura('{{ c.id }}')" class="btn btn-sm btn-outline-primary" title="Reintentar (nueva clave si fue rechazada)" id="btn-retry-{{ c.id }}">
                                         <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if c.estado == 'AUTORIZADO' %}
+                                    <button onclick="reenviarEmail('{{ c.id }}')" class="btn btn-sm btn-outline-success" title="Reenviar por correo" id="btn-email-{{ c.id }}">
+                                        <i class="bi bi-envelope-arrow-up"></i>
                                     </button>
                                     {% endif %}
                                     {% if c.xml_autorizado or c.xml_firmado or c.xml_generado %}
@@ -399,7 +407,7 @@
             const btn = document.getElementById('btn-retry-' + id);
             if(btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
             
-            const resp = await fetch(`/electronic_invoicing/reintentar/factura/${id}/`, {
+            const resp = await fetch(`/electronic-invoicing/reintentar/factura/${id}/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
@@ -415,6 +423,43 @@
             }
         } catch (e) {
             alert('❌ Error de comunicación');
+        }
+    }
+
+    async function reenviarEmail(id) {
+        if (!confirm('¿Reenviar esta factura por correo al cliente?')) return;
+        const btn = document.getElementById('btn-email-' + id);
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
+        try {
+            const resp = await fetch(`/electronic-invoicing/reenviar/email/${id}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                alert('✅ ' + res.message);
+            } else {
+                alert('❌ ' + res.message);
+            }
+        } catch (e) {
+            alert('❌ Error de comunicación');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-envelope-arrow-up"></i>'; }
+        }
+    }
+
+    async function reimprimirTicket(ventaId) {
+        if (!ventaId || ventaId === 'None') { alert('No hay venta asociada a este comprobante.'); return; }
+        try {
+            const resp = await fetch(`/ventas/imprimir-ticket/${ventaId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+                body: '{}'
+            });
+            const res = await resp.json();
+            alert((res.success ? '✅ ' : '❌ ') + (res.message || 'Sin respuesta'));
+        } catch (e) {
+            alert('❌ Error de comunicación al reimprimir');
         }
     }
 

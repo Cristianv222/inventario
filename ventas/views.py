@@ -1373,12 +1373,21 @@ def imprimir_ticket_venta(request, venta_id=None):
         printer_name = data.get('printer_name') or data.get('impresora_id')
         printer_type = data.get('printer_type') or data.get('tipo_impresora') or 'GENERIC_80MM'
         open_drawer = str(data.get('open_drawer', '')).lower() in ['true', '1', 'on']
-        
+
+        # Si no se envía impresora (p. ej. reimpresión desde el monitor), usar la
+        # impresora principal de tickets configurada.
         if not printer_name:
-            return JsonResponse({
-                'success': False,
-                'message': 'Nombre de impresora requerido'
-            })
+            from hardware_integration.models import Impresora
+            principal = (Impresora.objects.filter(es_principal_tickets=True, estado='ACTIVA').first()
+                         or Impresora.objects.filter(estado='ACTIVA').first())
+            if principal:
+                printer_name = str(principal.id)
+                printer_type = principal.tipo_impresora or printer_type
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'No hay una impresora de tickets configurada como principal.'
+                })
         
         success, message = TicketThermalService.print_ticket(
             venta, 

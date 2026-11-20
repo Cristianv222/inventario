@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/punto/toggle/', views.toggle_punto_emision, name='toggle_punto'),
     path('api/certificado/subir/', views.subir_certificado_sri, name='subir_certificado'),
     path('reintentar/factura/<uuid:pk>/', views.reintentar_factura, name='reintentar_factura'),
+    path('reenviar/email/<uuid:pk>/', views.reenviar_email, name='reenviar_email'),
     path('api/punto/editar/', views.editar_punto_emision, name='editar_punto'),
     path('api/punto/eliminar/', views.eliminar_punto_emision, name='eliminar_punto'),
 ]

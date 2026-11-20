@@ -51,20 +51,28 @@ class ResendInvoicingService:
         """
         Envía el XML y PDF de un comprobante autorizado al correo del cliente.
         """
-        # Configurar API Key desde la Base de Datos
+        venta = comprobante.venta
+        cliente = venta.cliente
+
+        # 1) Sin correo registrado: NO se envía, pero se deja constancia clara
+        #    en el monitor (para que agreguen el correo y reenvíen).
+        if not cliente or not cliente.email:
+            logger.warning(f"Venta {venta.numero_factura} no tiene un cliente con email válido")
+            comprobante.email_enviado = False
+            comprobante.email_mensaje = "Sin correo registrado"
+            comprobante.save(update_fields=['email_enviado', 'email_mensaje'])
+            return False
+
+        # 2) API Key de Resend desde la Base de Datos
         api_key = ResendInvoicingService._get_resend_api_key()
         if not api_key:
             logger.error("API Key de Resend no configurada en la Base de Datos")
+            comprobante.email_enviado = False
+            comprobante.email_mensaje = "Falta configurar la API de correo (Resend)."
+            comprobante.save(update_fields=['email_enviado', 'email_mensaje'])
             return False
-            
+
         resend.api_key = api_key
-        
-        venta = comprobante.venta
-        cliente = venta.cliente
-        
-        if not cliente or not cliente.email:
-            logger.warning(f"Venta {venta.numero_factura} no tiene un cliente con email válido")
-            return False
 
         attachments = []
         

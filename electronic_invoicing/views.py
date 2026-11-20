@@ -388,21 +388,82 @@ def reintentar_factura(request, pk):
     try:
         # Resetear estado y errores
         from .tasks import procesar_factura_electronica, notificar_monitor
-        
+
+        # Si el SRI RECHAZÓ/DEVOLVIÓ la factura (o hubo un error interno), la clave
+        # de acceso anterior ya quedó "quemada": hay que generar una NUEVA clave y un
+        # NUEVO secuencial. Para eso limpiamos la clave y los XML; la tarea regenera
+        # todo desde cero e incrementa el secuencial. Esto NO afecta el inventario
+        # (el stock se descontó en la venta, el comprobante no lo toca).
+        estados_fallidos = ('RECHAZADO', 'DEVUELTO', 'ERROR')
+        nueva_clave = comprobante.estado in estados_fallidos
+        if nueva_clave:
+            comprobante.clave_acceso = None
+            comprobante.numero_autorizacion = None
+            comprobante.fecha_autorizacion = None
+            comprobante.xml_generado = None
+            comprobante.xml_firmado = None
+            comprobante.xml_autorizado = None
+
         comprobante.estado = 'GENERADO'
-        comprobante.mensajes_error = "Reintento manual iniciado..."
+        comprobante.mensajes_error = (
+            "Reintento manual con nueva clave y secuencial..." if nueva_clave
+            else "Reintento manual iniciado..."
+        )
         comprobante.save()
-        
+
         # Notificar al monitor
         notificar_monitor(comprobante, "Reintento iniciado")
-        
+
         # Disparar tarea nuevamente (Usar ID del comprobante, no de la venta)
         procesar_factura_electronica.delay(comprobante.id)
-        
-        return JsonResponse({'status': 'success', 'message': 'Factura enviada a procesamiento nuevamente'})
+
+        msg = ('Factura reenviada con nueva clave y secuencial' if nueva_clave
+               else 'Factura enviada a procesamiento nuevamente')
+        return JsonResponse({'status': 'success', 'message': msg})
     except Exception as e:
         logger.error(f"Error al reintentar factura {pk}: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+def reenviar_email(request, pk):
+    """Reenvía por correo el comprobante AUTORIZADO (RIDE PDF + XML)."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+    comprobante = get_object_or_404(ComprobanteElectronico, pk=pk)
+
+    if comprobante.estado != 'AUTORIZADO':
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Solo se puede enviar por correo una factura AUTORIZADA.'
+        }, status=400)
+
+    cliente = comprobante.venta.cliente
+    if not cliente or not cliente.email:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'El cliente no tiene correo registrado. Agrégalo en el cliente y reenvía.'
+        }, status=400)
+
+    try:
+        from .services.resend_service import ResendInvoicingService
+        from .tasks import notificar_monitor
+
+        ok = ResendInvoicingService.enviar_comprobante(comprobante)
+        comprobante.refresh_from_db()
+        notificar_monitor(comprobante, "Correo reenviado" if ok else "Fallo al reenviar correo")
+
+        if ok:
+            return JsonResponse({'status': 'success', 'message': f'Correo enviado a {cliente.email}'})
+        return JsonResponse({
+            'status': 'error',
+            'message': comprobante.email_mensaje or 'No se pudo enviar el correo'
+        }, status=500)
+    except Exception as e:
+        logger.error(f"Error reenviando email del comprobante {pk}: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 @login_required
 def editar_punto_emision(request):
