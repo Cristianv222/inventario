@@ -2380,14 +2380,160 @@ def _resumen_cuenta_tecnico(tecnico):
 
 @admin_requerido
 def cuenta_tecnico(request, pk):
-    """Página (admin) para gestionar la cuenta de comisiones de un técnico."""
+    """Página (admin) para gestionar liquidaciones semanales de un técnico."""
+    from datetime import date as date_obj
     tecnico = get_object_or_404(Tecnico, pk=pk)
-    resumen = _resumen_cuenta_tecnico(tecnico)
+
+    # Semana a visualizar (parámetro ?fecha=YYYY-MM-DD → lunes de esa semana)
+    hoy = date_obj.today()
+    fecha_str = request.GET.get('fecha')
+    if fecha_str:
+        try:
+            fecha_ref = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except ValueError:
+            fecha_ref = hoy
+    else:
+        fecha_ref = hoy
+
+    inicio = fecha_ref - timedelta(days=fecha_ref.weekday())     # Lunes
+    fin    = inicio + timedelta(days=5)                           # Sábado
+    semana_anterior  = inicio - timedelta(weeks=1)
+    semana_siguiente = inicio + timedelta(weeks=1)
+    es_semana_actual = (inicio == (hoy - timedelta(days=hoy.weekday())))
+
+    # Factor y porcentaje de comisión del técnico
+    factor = _factor_comision(tecnico)
+    gana_comision = getattr(tecnico, 'gana_comision', True)
+    if not gana_comision:
+        porcentaje_cfg = Decimal('0')
+    else:
+        porcentaje_cfg = tecnico.porcentaje_comision if (tecnico.porcentaje_comision and tecnico.porcentaje_comision > 0) else Decimal('50')
+
+    # ---- Servicios de ÓRDENES de esta semana ----
+    ordenes_sem = OrdenTrabajo.objects.filter(
+        Q(tecnico_principal=tecnico) | Q(servicios__tecnico_asignado=tecnico)
+    ).filter(
+        Q(estado__in=['COMPLETADO', 'ENTREGADO']) | Q(facturado=True) | Q(venta__isnull=False)
+    ).filter(
+        Q(fecha_completado__date__gte=inicio, fecha_completado__date__lte=fin) |
+        Q(fecha_completado__isnull=True, venta__fecha_hora__date__gte=inicio, venta__fecha_hora__date__lte=fin) |
+        Q(fecha_completado__isnull=True, venta__isnull=True, fecha_entrega__date__gte=inicio, fecha_entrega__date__lte=fin) |
+        Q(fecha_completado__isnull=True, venta__isnull=True, fecha_entrega__isnull=True, fecha_ingreso__date__gte=inicio, fecha_ingreso__date__lte=fin)
+    ).distinct().select_related('cliente', 'venta', 'tecnico_principal').prefetch_related(
+        'servicios__tipo_servicio',
+    )
+
+    ordenes_venta_ids = set()
+    lista_ordenes = []
+    for orden in ordenes_sem:
+        if orden.venta_id:
+            ordenes_venta_ids.add(orden.venta_id)
+        fecha_orden = orden.fecha_completado or (orden.venta.fecha_hora if orden.venta else None) or orden.fecha_entrega or orden.fecha_ingreso
+        cliente_str = orden.cliente.get_nombre_completo() if orden.cliente else '—'
+        vehiculo_str = f"{orden.moto_marca or ''} {orden.moto_modelo or ''}".strip()
+        if orden.moto_placa:
+            vehiculo_str = f"{vehiculo_str} ({orden.moto_placa})" if vehiculo_str else orden.moto_placa
+        servicios_tec = [s for s in orden.servicios.all()
+            if (s.tecnico_asignado_id == tecnico.id) or (s.tecnico_asignado_id is None and orden.tecnico_principal_id == tecnico.id)]
+
+        if servicios_tec:
+            for s in servicios_tec:
+                val = s.precio_servicio or Decimal('0')
+                lista_ordenes.append({
+                    'tipo': 'ORDEN', 'venta_id': orden.venta_id, 'numero': orden.numero_orden,
+                    'fecha': fecha_orden, 'cliente': cliente_str, 'vehiculo': vehiculo_str,
+                    'servicio': s.nombre_servicio_personalizado or (s.tipo_servicio.nombre if s.tipo_servicio else 'Servicio de Taller'),
+                    'valor': val, 'comision': val * factor,
+                    'liquidada': orden.comision_liquidada, 'estado_orden': orden.get_estado_display(),
+                })
+        elif orden.tecnico_principal_id == tecnico.id and (orden.precio_mano_obra and orden.precio_mano_obra > 0):
+            val = orden.precio_mano_obra
+            lista_ordenes.append({
+                'tipo': 'ORDEN', 'venta_id': orden.venta_id, 'numero': orden.numero_orden,
+                'fecha': fecha_orden, 'cliente': cliente_str, 'vehiculo': vehiculo_str,
+                'servicio': f"Mano de obra - {orden.motivo_ingreso[:50]}" if orden.motivo_ingreso else f"Mano de obra Orden #{orden.numero_orden}",
+                'valor': val, 'comision': val * factor,
+                'liquidada': orden.comision_liquidada, 'estado_orden': orden.get_estado_display(),
+            })
+
+    # ---- Servicios de POS de esta semana ----
+    serv_pos = DetalleVenta.objects.filter(
+        tecnico=tecnico, es_servicio=True,
+        venta__estado='COMPLETADA',
+        venta__fecha_hora__date__gte=inicio,
+        venta__fecha_hora__date__lte=fin,
+    ).select_related('venta', 'venta__cliente', 'tipo_servicio')
+    if ordenes_venta_ids:
+        serv_pos = serv_pos.exclude(venta_id__in=ordenes_venta_ids)
+
+    lista_pos = []
+    for d in serv_pos:
+        val = d.total or d.subtotal or Decimal('0')
+        lista_pos.append({
+            'tipo': 'POS', 'venta_id': d.venta_id,
+            'numero': d.venta.numero_factura or f"POS #{d.venta_id}",
+            'fecha': d.venta.fecha_hora,
+            'cliente': d.venta.cliente.get_nombre_completo() if d.venta.cliente else 'Consumidor Final',
+            'servicio': d.nombre_personalizado or (d.tipo_servicio.nombre if d.tipo_servicio else 'Servicio Rápido POS'),
+            'valor': val, 'comision': val * factor,
+            'liquidada': d.comision_liquidada,
+        })
+
+    todos = sorted(lista_ordenes + lista_pos, key=lambda x: (x['fecha'] or inicio), reverse=True)
+
+    # Totales de la semana
+    base_ord = sum((t['valor'] for t in lista_ordenes), Decimal('0'))
+    com_ord  = sum((t['comision'] for t in lista_ordenes), Decimal('0'))
+    base_pos = sum((t['valor'] for t in lista_pos), Decimal('0'))
+    com_pos  = sum((t['comision'] for t in lista_pos), Decimal('0'))
+    neto_total = base_ord + base_pos
+    com_total  = com_ord + com_pos
+
+    # Adelantos de la semana
+    from .models import AdelantoTecnico
+    adelantos_sem = AdelantoTecnico.objects.filter(
+        tecnico=tecnico, fecha__date__gte=inicio, fecha__date__lte=fin
+    )
+    total_adelantos_sem = adelantos_sem.aggregate(s=Sum('monto'))['s'] or Decimal('0')
+    neto_a_pagar = max(Decimal('0'), com_total - total_adelantos_sem)
+
+    # ¿Ya tiene liquidación para esta semana?
+    from .models import PagoTecnico
+    liquidacion_existente = PagoTecnico.objects.filter(
+        tecnico=tecnico, semana_inicio=inicio, semana_fin=fin
+    ).first()
+
+    # Historial de liquidaciones previas
+    historial_pagos = tecnico.pagos.all()[:30]
+    # Adelantos generales recientes
+    adelantos_all = tecnico.adelantos.select_related('pago').all()[:20]
+
+    resumen_semana = {
+        'inicio': inicio, 'fin': fin,
+        'total_ordenes': len(lista_ordenes),
+        'total_pos': len(lista_pos),
+        'total_servicios': len(todos),
+        'base_ordenes': base_ord, 'comision_ordenes': com_ord,
+        'base_pos': base_pos, 'comision_pos': com_pos,
+        'neto_total': neto_total, 'comision_total': com_total,
+        'adelantos_semana': total_adelantos_sem,
+        'neto_a_pagar': neto_a_pagar,
+        'porcentaje': porcentaje_cfg,
+        'ya_liquidada': liquidacion_existente is not None,
+        'liquidacion': liquidacion_existente,
+    }
+
     return render(request, 'taller/cuenta_tecnico.html', {
         'tecnico': tecnico,
-        'resumen': resumen,
-        'pagos': tecnico.pagos.all()[:40],
-        'adelantos': tecnico.adelantos.select_related('pago').all()[:40],
+        'resumen_semana': resumen_semana,
+        'trabajos': todos,
+        'historial_pagos': historial_pagos,
+        'adelantos': adelantos_all,
+        'inicio': inicio, 'fin': fin,
+        'semana_anterior': semana_anterior,
+        'semana_siguiente': semana_siguiente,
+        'es_semana_actual': es_semana_actual,
+        'hoy': hoy,
     })
 
 
@@ -2418,59 +2564,115 @@ def registrar_adelanto(request, pk):
 
 @admin_requerido
 def pagar_comision(request, pk):
-    """Liquida la comisión pendiente del técnico, descontando adelantos (admin)."""
+    """Liquida la comisión de una semana específica (Lunes–Sábado) del técnico."""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
     tecnico = get_object_or_404(Tecnico, pk=pk)
     from .models import PagoTecnico, AdelantoTecnico
+    from datetime import date as date_obj
     try:
         data = json.loads(request.body) if request.body else {}
     except Exception:
         data = request.POST
 
-    from ventas.models import DetalleVenta
+    # Recibir la semana a liquidar
+    semana_str = (data.get('semana_inicio') or '').strip()
+    if semana_str:
+        try:
+            inicio = datetime.strptime(semana_str, '%Y-%m-%d').date()
+        except ValueError:
+            hoy = date_obj.today()
+            inicio = hoy - timedelta(days=hoy.weekday())
+    else:
+        hoy = date_obj.today()
+        inicio = hoy - timedelta(days=hoy.weekday())
+    fin = inicio + timedelta(days=5)
+
+    # Verificar si ya existe liquidación para esta semana
+    if PagoTecnico.objects.filter(tecnico=tecnico, semana_inicio=inicio, semana_fin=fin).exists():
+        return JsonResponse({'success': False, 'message': f'Esta semana ({inicio:%d/%m} – {fin:%d/%m}) ya fue liquidada.'}, status=400)
+
+    factor = _factor_comision(tecnico)
+    gana = getattr(tecnico, 'gana_comision', True)
+    porcentaje_cfg = Decimal('0')
+    if gana:
+        pct = tecnico.porcentaje_comision if (tecnico.porcentaje_comision and tecnico.porcentaje_comision > 0) else Decimal('50')
+        porcentaje_cfg = pct
+
+    from ventas.models import DetalleVenta as DV
     with transaction.atomic():
-        pend = DetalleVenta.objects.select_for_update().filter(
-            tecnico=tecnico, es_servicio=True,
-            venta__estado='COMPLETADA', comision_liquidada=False)
-        vids = list(pend.values_list('venta_id', flat=True).distinct())
-
-        ordenes_pend = OrdenTrabajo.objects.select_for_update().filter(
-            tecnico_principal=tecnico,
-            comision_liquidada=False,
+        # Órdenes de taller de esta semana
+        ordenes_sem = OrdenTrabajo.objects.select_for_update().filter(
+            Q(tecnico_principal=tecnico) | Q(servicios__tecnico_asignado=tecnico)
         ).filter(
-            Q(estado__in=['COMPLETADO', 'ENTREGADO']) | Q(facturado=True)
-        ).exclude(venta_id__in=vids)
+            Q(estado__in=['COMPLETADO', 'ENTREGADO']) | Q(facturado=True) | Q(venta__isnull=False)
+        ).filter(
+            Q(fecha_completado__date__gte=inicio, fecha_completado__date__lte=fin) |
+            Q(fecha_completado__isnull=True, venta__fecha_hora__date__gte=inicio, venta__fecha_hora__date__lte=fin) |
+            Q(fecha_completado__isnull=True, venta__isnull=True, fecha_entrega__date__gte=inicio, fecha_entrega__date__lte=fin) |
+            Q(fecha_completado__isnull=True, venta__isnull=True, fecha_entrega__isnull=True, fecha_ingreso__date__gte=inicio, fecha_ingreso__date__lte=fin)
+        ).distinct()
+        ordenes_venta_ids = list(ordenes_sem.values_list('venta_id', flat=True))
 
-        num = pend.count() + ordenes_pend.count()
-        base = (pend.aggregate(s=Sum('total'))['s'] or Decimal('0')) + (ordenes_pend.aggregate(s=Sum('precio_mano_obra'))['s'] or Decimal('0'))
-        comision = base * _factor_comision(tecnico)
+        base_ordenes = Decimal('0')
+        for orden in ordenes_sem:
+            servicios_tec = [s for s in orden.servicios.all()
+                if (s.tecnico_asignado_id == tecnico.id) or (s.tecnico_asignado_id is None and orden.tecnico_principal_id == tecnico.id)]
+            if servicios_tec:
+                base_ordenes += sum((s.precio_servicio or Decimal('0') for s in servicios_tec), Decimal('0'))
+            elif orden.tecnico_principal_id == tecnico.id and orden.precio_mano_obra:
+                base_ordenes += orden.precio_mano_obra
 
+        # Servicios POS de esta semana
+        pos_sem = DV.objects.select_for_update().filter(
+            tecnico=tecnico, es_servicio=True,
+            venta__estado='COMPLETADA',
+            venta__fecha_hora__date__gte=inicio,
+            venta__fecha_hora__date__lte=fin,
+        )
+        if ordenes_venta_ids:
+            pos_sem = pos_sem.exclude(venta_id__in=ordenes_venta_ids)
+        base_pos = pos_sem.aggregate(s=Sum('total'))['s'] or Decimal('0')
+
+        base_total = base_ordenes + base_pos
+        comision = base_total * factor
+        num_trabajos = ordenes_sem.count() + pos_sem.count()
+
+        # Adelantos de esta semana pendientes
         adelantos = AdelantoTecnico.objects.select_for_update().filter(
-            tecnico=tecnico, liquidado=False)
+            tecnico=tecnico, liquidado=False,
+            fecha__date__gte=inicio, fecha__date__lte=fin,
+        )
         total_adel = adelantos.aggregate(s=Sum('monto'))['s'] or Decimal('0')
 
-        if num == 0 and total_adel == 0:
-            return JsonResponse({'success': False, 'message': 'No hay comisión pendiente ni adelantos por liquidar.'}, status=400)
+        if num_trabajos == 0 and total_adel == 0:
+            return JsonResponse({'success': False, 'message': 'No hay servicios ni adelantos pendientes en esta semana.'}, status=400)
 
         neto = comision - total_adel
+
         pago = PagoTecnico.objects.create(
             tecnico=tecnico,
+            semana_inicio=inicio,
+            semana_fin=fin,
             comision_bruta=comision,
             adelantos_descontados=total_adel,
             monto_pagado=neto,
-            num_trabajos=num,
-            descripcion=(data.get('descripcion') or '').strip(),
+            num_trabajos=num_trabajos,
+            porcentaje_comision=porcentaje_cfg,
+            descripcion=(data.get('descripcion') or f'Semana {inicio:%d/%m} – {fin:%d/%m/%Y}').strip(),
             usuario_registro=request.user if request.user.is_authenticated else None,
         )
-        pend.update(comision_liquidada=True, pago_comision=pago)
-        ordenes_pend.update(comision_liquidada=True, pago_comision=pago)
+        # Marcar servicios como liquidados
+        ordenes_sem.update(comision_liquidada=True, pago_comision=pago)
+        pos_sem.update(comision_liquidada=True, pago_comision=pago)
         adelantos.update(liquidado=True, pago=pago)
 
     return JsonResponse({
         'success': True,
-        'message': f'Pago registrado. Comisión ${comision}, adelantos descontados ${total_adel}, neto a entregar ${neto}.',
+        'message': f'Semana {inicio:%d/%m} – {fin:%d/%m/%Y} liquidada. '
+                   f'Comisión ${comision:.2f} · Adelantos −${total_adel:.2f} · Neto a entregar ${neto:.2f}.',
         'neto': str(neto), 'comision': str(comision), 'adelantos': str(total_adel),
+        'semana': f'{inicio:%d/%m/%Y} – {fin:%d/%m/%Y}',
     })
 
 

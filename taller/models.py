@@ -1041,31 +1041,47 @@ class EvaluacionServicio(models.Model):
 # ================== CUENTA DEL TÉCNICO (comisiones / adelantos / pagos) ==================
 
 class PagoTecnico(models.Model):
-    """Un pago de comisión realizado a un técnico (registro histórico).
+    """Liquidación semanal de comisión de un técnico.
 
-    Al pagar se liquidan los trabajos pendientes (comisión = mano de obra ÷ 2)
-    y se descuentan los adelantos pendientes. monto_pagado es el neto entregado.
+    Cubre una semana laboral (Lunes–Sábado). Al liquidar se marcan como
+    pagados todos los servicios (DetalleVenta + OrdenTrabajo) de esa semana
+    y se descuentan los adelantos pendientes.
+    monto_pagado = comision_bruta − adelantos_descontados
     """
     tecnico = models.ForeignKey(
         'taller.Tecnico', on_delete=models.CASCADE, related_name='pagos',
     )
+    # Semana que cubre este pago (Lunes a Sábado)
+    semana_inicio = models.DateField(null=True, blank=True, help_text='Lunes de la semana liquidada')
+    semana_fin    = models.DateField(null=True, blank=True, help_text='Sábado de la semana liquidada')
+
     fecha = models.DateTimeField(auto_now_add=True)
     comision_bruta = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     adelantos_descontados = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     monto_pagado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     num_trabajos = models.PositiveIntegerField(default=0)
+    porcentaje_comision = models.DecimalField(max_digits=5, decimal_places=2, default=50,
+                                              help_text='% comisión aplicado en esta liquidación')
     descripcion = models.CharField(max_length=255, blank=True)
     usuario_registro = models.ForeignKey(
         'usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True,
     )
 
     class Meta:
-        ordering = ['-fecha']
-        verbose_name = 'Pago a técnico'
-        verbose_name_plural = 'Pagos a técnicos'
+        ordering = ['-semana_inicio', '-fecha']
+        verbose_name = 'Liquidación semanal de técnico'
+        verbose_name_plural = 'Liquidaciones semanales de técnicos'
 
     def __str__(self):
+        if self.semana_inicio:
+            return f'Semana {self.semana_inicio:%d/%m/%Y} · {self.tecnico} · ${self.monto_pagado}'
         return f'Pago {self.tecnico} - ${self.monto_pagado} ({self.fecha:%d/%m/%Y})'
+
+    @property
+    def semana_label(self):
+        if self.semana_inicio and self.semana_fin:
+            return f'{self.semana_inicio:%d/%m/%Y} – {self.semana_fin:%d/%m/%Y}'
+        return '—'
 
 
 class AdelantoTecnico(models.Model):

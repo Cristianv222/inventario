@@ -1,134 +1,447 @@
 {% extends 'base.html' %}
 {% load humanize %}
-{% block title %}Cuenta de {{ tecnico.nombres }} - Técnico{% endblock %}
+{% block title %}Liquidación Semanal · {{ tecnico.nombres }} {{ tecnico.apellidos }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4" style="max-width:1100px">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div>
-      <a href="{% url 'taller:tecnico_detail' tecnico.pk %}" class="text-muted text-decoration-none small"><i class="fas fa-arrow-left me-1"></i>Volver a la ficha</a>
-      <h3 class="fw-bold mb-0">Cuenta de comisiones · {{ tecnico.nombres }} {{ tecnico.apellidos }}</h3>
-    </div>
-    <div class="d-flex gap-2">
-      <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalAdelanto"><i class="fas fa-hand-holding-usd me-1"></i>Registrar adelanto</button>
-      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalPagar"><i class="fas fa-cash-register me-1"></i>Pagar comisión</button>
+<style>
+  .ct-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:18px 20px; }
+  .ct-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:20px; }
+  .ct-kpi { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; }
+  .ct-kpi .lbl { font-size:0.72rem; text-transform:uppercase; font-weight:800; color:#64748b; margin-bottom:4px; }
+  .ct-kpi .val { font-size:1.5rem; font-weight:900; font-family:monospace; }
+  .ct-kpi.green { background:#f0fdf4; border-color:#bbf7d0; }
+  .ct-kpi.green .val { color:#15803d; }
+  .ct-kpi.red { background:#fff7ed; border-color:#fed7aa; }
+  .ct-kpi.red .val { color:#ea580c; }
+  .ct-kpi.accent { background:#8bc53f; border-color:#6fa52d; color:#1b3506; }
+  .ct-kpi.accent .lbl { color:#1b3506; opacity:0.8; }
+  .ct-kpi.accent .val { color:#1b3506; }
+  .ct-kpi.closed { background:#f1f5f9; border-color:#cbd5e1; }
+  .ct-kpi.closed .val { color:#475569; }
+
+  .week-nav { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+              background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px 18px; margin-bottom:16px; }
+  .week-nav-title { font-size:1.1rem; font-weight:900; }
+  .week-btn { display:inline-flex; align-items:center; gap:4px; padding:7px 14px; border-radius:9px;
+              border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-weight:700;
+              font-size:0.82rem; text-decoration:none; }
+  .week-btn.today { background:#8bc53f; border-color:#6fa52d; color:#1b3506; }
+
+  .liquidar-banner { background:#0f172a; color:#f8fafc; border-radius:14px; padding:18px 22px;
+                     display:flex; align-items:center; justify-content:space-between; gap:14px;
+                     flex-wrap:wrap; margin-bottom:20px; }
+  .liquidar-banner.closed { background:#1e3a1a; border:2px solid #22c55e; }
+  .liquidar-banner .amount { font-size:1.6rem; font-weight:900; font-family:monospace; color:#8bc53f; }
+  .btn-liquidar { background:#8bc53f; color:#1b3506; border:none; border-radius:10px; padding:12px 22px;
+                  font-weight:900; font-size:0.95rem; cursor:pointer; white-space:nowrap; }
+  .btn-liquidar:disabled { background:#94a3b8; color:#fff; cursor:not-allowed; }
+
+  .serv-table th { font-size:0.68rem; text-transform:uppercase; font-weight:800; color:#64748b;
+                   background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:9px 10px; white-space:nowrap; }
+  .serv-table td { padding:9px 10px; border-bottom:1px solid #e2e8f0; font-size:0.84rem; vertical-align:middle; }
+  .serv-table tr:hover td { background:#f8fafc; }
+  .badge-venta { display:inline-flex; align-items:center; gap:4px; background:rgba(139,197,63,0.15);
+                 border:1.5px solid #8bc53f; color:#1b3506; padding:2px 7px; border-radius:6px;
+                 font-family:monospace; font-weight:800; font-size:0.76rem; white-space:nowrap; }
+  .badge-ord { background:#dbeafe; color:#1e40af; padding:2px 7px; border-radius:5px;
+               font-size:0.72rem; font-weight:800; }
+  .badge-pos { background:#dcfce7; color:#15803d; padding:2px 7px; border-radius:5px;
+               font-size:0.72rem; font-weight:800; }
+  .badge-liquid { background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1;
+                  padding:2px 8px; border-radius:999px; font-size:0.7rem; font-weight:800; }
+  .badge-pend { background:#fef3c7; color:#b45309; border:1px solid #fde68a;
+                padding:2px 8px; border-radius:999px; font-size:0.7rem; font-weight:800; }
+
+  .hist-row td { font-size:0.83rem; }
+  .semana-badge { display:inline-block; background:#1e293b; color:#f8fafc; padding:3px 10px;
+                  border-radius:7px; font-family:monospace; font-size:0.8rem; font-weight:800; }
+
+  @media(max-width:768px) {
+    .ct-kpi-grid { grid-template-columns:1fr 1fr; }
+    .liquidar-banner { flex-direction:column; align-items:stretch; }
+    .liquidar-banner .amount { text-align:center; }
+    .btn-liquidar { width:100%; text-align:center; }
+    .week-nav { flex-direction:column; align-items:stretch; }
+  }
+</style>
+
+<div class="container-fluid py-3" style="max-width:1180px;">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+    <a href="{% url 'taller:tecnico_detail' tecnico.pk %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i>Volver a ficha
+    </a>
+    <div class="d-flex align-items-center gap-3">
+      {% if tecnico.foto %}
+        <img src="{{ tecnico.foto.url }}" style="width:48px;height:48px;border-radius:12px;object-fit:cover;border:2px solid #8bc53f;" alt="">
+      {% else %}
+        <span style="width:48px;height:48px;border-radius:12px;background:#1e293b;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem;"><i class="fas fa-user"></i></span>
+      {% endif %}
+      <div>
+        <h4 class="fw-bold mb-0">{{ tecnico.nombres }} {{ tecnico.apellidos }}</h4>
+        <span class="text-muted small">Cód: {{ tecnico.codigo }} · Comisión: {{ resumen_semana.porcentaje|floatformat:0 }}%</span>
+      </div>
     </div>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-md-3 col-6"><div class="card shadow-sm h-100"><div class="card-body">
-      <div class="text-muted small text-uppercase fw-bold">Comisión pendiente</div>
-      <div class="fs-4 fw-bold text-success">${{ resumen.comision_pendiente|floatformat:2|intcomma }}</div>
-      <div class="small text-muted">{{ resumen.servicios_pendientes }} servicios · Órdenes <strong>${{ resumen.comision_ordenes|floatformat:2|intcomma }}</strong> · POS <strong>${{ resumen.comision_pos|floatformat:2|intcomma }}</strong></div>
-    </div></div></div>
-    <div class="col-md-3 col-6"><div class="card shadow-sm h-100"><div class="card-body">
-      <div class="text-muted small text-uppercase fw-bold">Adelantos pendientes</div>
-      <div class="fs-4 fw-bold text-warning">${{ resumen.adelantos_pendientes|floatformat:2|intcomma }}</div>
-      <div class="small text-muted">A descontar al pagar</div>
-    </div></div></div>
-    <div class="col-md-3 col-6"><div class="card shadow-sm h-100 border-primary"><div class="card-body">
-      <div class="text-muted small text-uppercase fw-bold">Neto a pagar</div>
-      <div class="fs-4 fw-bold {% if resumen.neto_a_pagar < 0 %}text-danger{% else %}text-primary{% endif %}">${{ resumen.neto_a_pagar|floatformat:2|intcomma }}</div>
-      <div class="small text-muted">Comisión − adelantos</div>
-    </div></div></div>
-    <div class="col-md-3 col-6"><div class="card shadow-sm h-100"><div class="card-body">
-      <div class="text-muted small text-uppercase fw-bold">Comisión</div>
-      <div class="fs-6 fw-bold">Mano de obra ÷ 2</div>
-      <div class="small text-muted">Solo trabajos completados/entregados</div>
-    </div></div></div>
+  <!-- Navegador de Semana -->
+  <div class="week-nav">
+    <div class="week-nav-title">
+      <i class="fas fa-calendar-week me-2 text-success"></i>
+      Semana: <strong>{{ resumen_semana.inicio|date:"d M" }}</strong> → <strong>{{ resumen_semana.fin|date:"d M, Y" }}</strong>
+      {% if es_semana_actual %}<span class="badge bg-success ms-2 fw-bold" style="font-size:0.68rem;">Semana actual</span>{% endif %}
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="?fecha={{ semana_anterior|date:'Y-m-d' }}" class="week-btn"><i class="fas fa-chevron-left"></i> Anterior</a>
+      {% if not es_semana_actual %}
+        <a href="?" class="week-btn today"><i class="fas fa-home"></i> Esta semana</a>
+      {% endif %}
+      {% if not es_semana_actual %}
+        <a href="?fecha={{ semana_siguiente|date:'Y-m-d' }}" class="week-btn">Siguiente <i class="fas fa-chevron-right"></i></a>
+      {% endif %}
+    </div>
   </div>
 
+  <!-- KPIs de la semana -->
+  <div class="ct-kpi-grid">
+    <div class="ct-kpi">
+      <div class="lbl">Órdenes de Taller</div>
+      <div class="val">${{ resumen_semana.base_ordenes|floatformat:2|intcomma }}</div>
+      <div class="text-muted small">{{ resumen_semana.total_ordenes }} serv. · Comisión <strong>${{ resumen_semana.comision_ordenes|floatformat:2|intcomma }}</strong></div>
+    </div>
+    <div class="ct-kpi">
+      <div class="lbl">Mecánica Rápida POS</div>
+      <div class="val">${{ resumen_semana.base_pos|floatformat:2|intcomma }}</div>
+      <div class="text-muted small">{{ resumen_semana.total_pos }} serv. · Comisión <strong>${{ resumen_semana.comision_pos|floatformat:2|intcomma }}</strong></div>
+    </div>
+    <div class="ct-kpi green">
+      <div class="lbl">Total Mano de Obra Neta</div>
+      <div class="val">${{ resumen_semana.neto_total|floatformat:2|intcomma }}</div>
+      <div class="text-muted small">{{ resumen_semana.total_servicios }} servicios</div>
+    </div>
+    <div class="ct-kpi red">
+      <div class="lbl">Adelantos de la Semana</div>
+      <div class="val">-${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</div>
+      <div class="text-muted small">A descontar al liquidar</div>
+    </div>
+    <div class="ct-kpi {% if resumen_semana.ya_liquidada %}closed{% else %}accent{% endif %}">
+      <div class="lbl">{% if resumen_semana.ya_liquidada %}Ya Liquidado{% else %}Neto a Entregar{% endif %}</div>
+      <div class="val">${{ resumen_semana.neto_a_pagar|floatformat:2|intcomma }}</div>
+      <div class="text-muted small" style="{% if not resumen_semana.ya_liquidada %}color:#1b3506 !important;{% endif %}">
+        {{ resumen_semana.porcentaje|floatformat:0 }}% de ${{ resumen_semana.neto_total|floatformat:2|intcomma }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner de Liquidación -->
+  {% if resumen_semana.ya_liquidada %}
+    <div class="liquidar-banner closed mb-4">
+      <div>
+        <div style="font-size:0.8rem; opacity:0.75; font-weight:700; text-transform:uppercase; margin-bottom:4px;">
+          <i class="fas fa-check-circle me-1"></i> SEMANA LIQUIDADA Y CERRADA
+        </div>
+        <div style="font-size:0.95rem; font-weight:700;">
+          Pagada el {{ resumen_semana.liquidacion.fecha|date:"d/m/Y H:i" }}
+          {% if resumen_semana.liquidacion.usuario_registro %}
+            por <strong>{{ resumen_semana.liquidacion.usuario_registro.get_full_name|default:resumen_semana.liquidacion.usuario_registro.username }}</strong>
+          {% endif %}
+        </div>
+        <div class="amount">${{ resumen_semana.liquidacion.monto_pagado|floatformat:2|intcomma }}</div>
+        <div style="font-size:0.8rem; opacity:0.7;">{{ resumen_semana.liquidacion.descripcion }}</div>
+      </div>
+      <div style="text-align:right;">
+        <i class="fas fa-lock" style="font-size:2.5rem; opacity:0.4;"></i>
+      </div>
+    </div>
+  {% else %}
+    <div class="liquidar-banner mb-4">
+      <div>
+        <div style="font-size:0.8rem; opacity:0.75; font-weight:700; text-transform:uppercase; margin-bottom:4px;">
+          <i class="fas fa-calculator me-1"></i> LIQUIDACIÓN DE LA SEMANA
+        </div>
+        <div style="font-size:0.9rem;">
+          Comisión bruta: <strong>${{ resumen_semana.comision_total|floatformat:2|intcomma }}</strong>
+          {% if resumen_semana.adelantos_semana > 0 %}
+            · Adelantos: <strong style="color:#f87171;">−${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</strong>
+          {% endif %}
+        </div>
+        <div class="amount">${{ resumen_semana.neto_a_pagar|floatformat:2|intcomma }}</div>
+        <div style="font-size:0.78rem; opacity:0.65;">Neto a entregar a {{ tecnico.nombres }}</div>
+      </div>
+      <div>
+        <div class="mb-2">
+          <input type="text" id="pagoDesc" class="form-control form-control-sm"
+                 placeholder="Nota opcional (Ej: Pago en efectivo)" style="background:#1e293b; color:#fff; border-color:#334155;">
+        </div>
+        <div id="pagoMsg" class="small mb-2"></div>
+        <button class="btn-liquidar" id="btnLiquidar"
+                onclick="liquidarSemana('{{ resumen_semana.inicio|date:'Y-m-d' }}')"
+                {% if resumen_semana.total_servicios == 0 and resumen_semana.adelantos_semana == 0 %}disabled{% endif %}>
+          <i class="fas fa-cash-register me-2"></i>
+          Liquidar Semana {{ resumen_semana.inicio|date:"d/m" }} – {{ resumen_semana.fin|date:"d/m/Y" }}
+        </button>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Tabla de servicios de la semana -->
+  <div class="ct-card mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <h5 class="fw-bold mb-0">
+        <i class="fas fa-list-ul me-2 text-success"></i>
+        Servicios de la semana ({{ resumen_semana.total_servicios }})
+      </h5>
+      <div class="d-flex gap-2 flex-wrap">
+        <div style="position:relative;">
+          <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.82rem;"></i>
+          <input type="text" id="searchServ" placeholder="Buscar venta, cliente, servicio..."
+                 style="padding:7px 12px 7px 32px; border:1px solid #e2e8f0; border-radius:9px; font-size:0.82rem; min-width:220px;"
+                 onkeyup="filterServ(this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="w-100 serv-table" style="border-collapse:collapse;" id="servTable">
+        <thead>
+          <tr>
+            <th>ID Venta</th>
+            <th>Tipo</th>
+            <th>Comprobante</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Vehículo</th>
+            <th>Servicio</th>
+            <th style="text-align:right;">Mano de Obra</th>
+            <th style="text-align:right;">Comisión ({{ resumen_semana.porcentaje|floatformat:0 }}%)</th>
+            <th style="text-align:center;">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="servBody">
+          {% for t in trabajos %}
+            <tr data-search="{{ t.venta_id|default:'' }} {{ t.numero|lower }} {{ t.cliente|lower }} {{ t.servicio|lower }}">
+              <td>
+                {% if t.venta_id %}
+                  <span class="badge-venta"><i class="fas fa-receipt"></i> Venta #{{ t.venta_id }}</span>
+                {% else %}
+                  <span style="color:#94a3b8; font-size:0.76rem;"><i class="fas fa-clock"></i> Pendiente</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if t.tipo == 'ORDEN' %}
+                  <span class="badge-ord"><i class="fas fa-tools"></i> Taller</span>
+                {% else %}
+                  <span class="badge-pos"><i class="fas fa-bolt"></i> POS</span>
+                {% endif %}
+              </td>
+              <td style="font-family:monospace; font-size:0.82rem; font-weight:700;">{{ t.numero }}</td>
+              <td style="font-size:0.8rem;">{{ t.fecha|date:"d/m H:i" }}</td>
+              <td style="font-weight:700; font-size:0.84rem;">{{ t.cliente }}</td>
+              <td style="font-size:0.8rem; color:#64748b;">{% if t.vehiculo and t.vehiculo != '—' %}{{ t.vehiculo }}{% else %}—{% endif %}</td>
+              <td style="font-weight:700; font-size:0.84rem;">{{ t.servicio }}</td>
+              <td style="text-align:right; font-weight:700; font-family:monospace;">${{ t.valor|floatformat:2|intcomma }}</td>
+              <td style="text-align:right; font-weight:900; font-family:monospace; color:#6fa52d;">${{ t.comision|floatformat:2|intcomma }}</td>
+              <td style="text-align:center;">
+                {% if t.liquidada %}
+                  <span class="badge-liquid">Liquidada</span>
+                {% else %}
+                  <span class="badge-pend">Por cobrar</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="10" style="text-align:center; padding:40px; color:#94a3b8;">
+                <i class="fas fa-inbox" style="font-size:2rem; display:block; margin-bottom:8px; opacity:0.4;"></i>
+                Sin servicios registrados para esta semana
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Historial de liquidaciones y adelantos -->
   <div class="row g-3">
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-bold"><i class="fas fa-receipt me-2"></i>Historial de pagos</div>
-        <div class="table-responsive"><table class="table table-sm mb-0">
-          <thead class="table-light"><tr><th>Fecha</th><th>Trab.</th><th class="text-end">Comisión</th><th class="text-end">Adelantos</th><th class="text-end">Pagado</th></tr></thead>
-          <tbody>
-            {% for p in pagos %}
-            <tr>
-              <td>{{ p.fecha|date:"d/m/Y H:i" }}</td>
-              <td>{{ p.num_trabajos }}</td>
-              <td class="text-end">${{ p.comision_bruta|floatformat:2|intcomma }}</td>
-              <td class="text-end text-warning">−${{ p.adelantos_descontados|floatformat:2|intcomma }}</td>
-              <td class="text-end fw-bold {% if p.monto_pagado < 0 %}text-danger{% endif %}">${{ p.monto_pagado|floatformat:2|intcomma }}</td>
-            </tr>
-            {% empty %}<tr><td colspan="5" class="text-center text-muted py-3">Sin pagos registrados.</td></tr>{% endfor %}
-          </tbody>
-        </table></div>
+    <!-- Historial Liquidaciones -->
+    <div class="col-lg-7">
+      <div class="ct-card h-100">
+        <h5 class="fw-bold mb-3"><i class="fas fa-history me-2 text-success"></i>Historial de Liquidaciones Semanales</h5>
+        <div class="table-responsive">
+          <table class="w-100 serv-table" style="border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th>Semana</th>
+                <th>Fecha Pago</th>
+                <th>Serv.</th>
+                <th style="text-align:right;">Comisión</th>
+                <th style="text-align:right;">Adelantos</th>
+                <th style="text-align:right;">Pagado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in historial_pagos %}
+                <tr class="hist-row">
+                  <td>
+                    {% if p.semana_inicio %}
+                      <span class="semana-badge">{{ p.semana_inicio|date:"d/m" }} – {{ p.semana_fin|date:"d/m/Y" }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td style="font-size:0.78rem; color:#64748b;">{{ p.fecha|date:"d/m/Y H:i" }}</td>
+                  <td style="font-weight:700;">{{ p.num_trabajos }}</td>
+                  <td style="text-align:right; font-family:monospace; color:#15803d;">${{ p.comision_bruta|floatformat:2|intcomma }}</td>
+                  <td style="text-align:right; font-family:monospace; color:#ea580c;">
+                    {% if p.adelantos_descontados > 0 %}-${{ p.adelantos_descontados|floatformat:2|intcomma }}{% else %}—{% endif %}
+                  </td>
+                  <td style="text-align:right; font-family:monospace; font-weight:900; color:#1b3506;">
+                    ${{ p.monto_pagado|floatformat:2|intcomma }}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="6" style="text-align:center; padding:30px; color:#94a3b8;">Sin liquidaciones registradas aún.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-bold"><i class="fas fa-hand-holding-usd me-2"></i>Adelantos</div>
-        <div class="table-responsive"><table class="table table-sm mb-0">
-          <thead class="table-light"><tr><th>Fecha</th><th>Descripción</th><th class="text-end">Monto</th><th>Estado</th></tr></thead>
-          <tbody>
-            {% for a in adelantos %}
-            <tr>
-              <td>{{ a.fecha|date:"d/m/Y H:i" }}</td>
-              <td>{{ a.descripcion|default:"—" }}</td>
-              <td class="text-end">${{ a.monto|floatformat:2|intcomma }}</td>
-              <td>{% if a.liquidado %}<span class="badge bg-secondary">Liquidado</span>{% else %}<span class="badge bg-warning text-dark">Pendiente</span>{% endif %}</td>
-            </tr>
-            {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Sin adelantos.</td></tr>{% endfor %}
-          </tbody>
-        </table></div>
+
+    <!-- Adelantos + Registrar -->
+    <div class="col-lg-5">
+      <div class="ct-card h-100">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="fw-bold mb-0"><i class="fas fa-hand-holding-usd me-2 text-warning"></i>Adelantos</h5>
+          <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalAdelanto">
+            <i class="fas fa-plus me-1"></i>Registrar adelanto
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="w-100 serv-table" style="border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Descripción</th>
+                <th style="text-align:right;">Monto</th>
+                <th style="text-align:center;">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in adelantos %}
+                <tr>
+                  <td style="font-size:0.78rem;">{{ a.fecha|date:"d/m/Y" }}</td>
+                  <td style="font-size:0.82rem;">{{ a.descripcion|default:"Adelanto de efectivo" }}</td>
+                  <td style="text-align:right; font-family:monospace; font-weight:800;">${{ a.monto|floatformat:2|intcomma }}</td>
+                  <td style="text-align:center;">
+                    {% if a.liquidado %}
+                      <span class="badge-liquid">Liquidado</span>
+                    {% else %}
+                      <span class="badge-pend">Pendiente</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" style="text-align:center; padding:25px; color:#94a3b8;">Sin adelantos.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
+
 </div>
 
 <!-- Modal Adelanto -->
 <div class="modal fade" id="modalAdelanto" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title">Registrar adelanto</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-header"><h5 class="modal-title"><i class="fas fa-hand-holding-usd me-2"></i>Registrar Adelanto</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">
-    <div class="mb-3"><label class="form-label small fw-bold">Monto ($)</label><input type="number" step="0.01" min="0.01" class="form-control" id="adelMonto"></div>
-    <div class="mb-2"><label class="form-label small fw-bold">Descripción (opcional)</label><input type="text" class="form-control" id="adelDesc" placeholder="Ej: adelanto efectivo"></div>
-    <div id="adelMsg" class="small"></div>
+    <div class="mb-3"><label class="form-label small fw-bold">Monto ($)</label>
+      <input type="number" step="0.01" min="0.01" class="form-control" id="adelMonto" placeholder="0.00">
+    </div>
+    <div class="mb-2"><label class="form-label small fw-bold">Descripción (opcional)</label>
+      <input type="text" class="form-control" id="adelDesc" placeholder="Ej: adelanto efectivo sábado">
+    </div>
+    <div id="adelMsg" class="small mt-2"></div>
   </div>
-  <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-warning" id="btnAdel" onclick="registrarAdelanto()">Registrar</button></div>
-</div></div></div>
-
-<!-- Modal Pagar -->
-<div class="modal fade" id="modalPagar" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title">Pagar comisión</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-  <div class="modal-body">
-    <p class="mb-2">Se liquidará la comisión de los <strong>{{ resumen.servicios_pendientes }}</strong> servicios pendientes (órdenes + POS) y se descontarán los adelantos:</p>
-    <ul class="list-unstyled small">
-      <li>Comisión (servicios ÷ 2): <strong class="text-success">${{ resumen.comision_pendiente|floatformat:2|intcomma }}</strong></li>
-      <li>Adelantos a descontar: <strong class="text-warning">−${{ resumen.adelantos_pendientes|floatformat:2|intcomma }}</strong></li>
-      <li class="fs-6">Neto a entregar: <strong class="text-primary">${{ resumen.neto_a_pagar|floatformat:2|intcomma }}</strong></li>
-    </ul>
-    <div class="mb-2"><label class="form-label small fw-bold">Nota (opcional)</label><input type="text" class="form-control" id="pagoDesc" placeholder="Ej: pago semana"></div>
-    <div id="pagoMsg" class="small"></div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+    <button class="btn btn-warning fw-bold" id="btnAdel" onclick="registrarAdelanto()"><i class="fas fa-check me-1"></i>Registrar</button>
   </div>
-  <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success" id="btnPago" onclick="pagarComision()">Confirmar pago</button></div>
 </div></div></div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 function _post(url, body) {
-  return fetch(url, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}','Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r=>r.json());
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).then(r => r.json());
 }
+
+function liquidarSemana(semanaInicio) {
+  const btn = document.getElementById('btnLiquidar');
+  const msg = document.getElementById('pagoMsg');
+  const desc = document.getElementById('pagoDesc').value;
+  if (!confirm(`¿Confirmar liquidación de la semana ${semanaInicio}?\n\nEsta acción marcará todos los servicios de la semana como PAGADOS y no se puede deshacer.`)) return;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+  msg.innerHTML = '';
+  _post('{% url "taller:pagar_comision" tecnico.pk %}', { semana_inicio: semanaInicio, descripcion: desc })
+    .then(d => {
+      if (d.success) {
+        msg.innerHTML = '<span class="text-success fw-bold">✅ ' + d.message + '</span>';
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        msg.innerHTML = '<span class="text-danger fw-bold">❌ ' + d.message + '</span>';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-cash-register me-2"></i>Liquidar Semana';
+      }
+    })
+    .catch(() => {
+      msg.innerHTML = '<span class="text-danger">Error de comunicación</span>';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-cash-register me-2"></i>Liquidar Semana';
+    });
+}
+
 function registrarAdelanto() {
   const monto = document.getElementById('adelMonto').value;
   const descripcion = document.getElementById('adelDesc').value;
-  const msg = document.getElementById('adelMsg'); const btn = document.getElementById('btnAdel');
-  if (!monto || parseFloat(monto) <= 0) { msg.innerHTML='<span class="text-danger">Ingresa un monto válido.</span>'; return; }
-  btn.disabled=true;
-  _post(`{% url 'taller:registrar_adelanto' tecnico.pk %}`, { monto, descripcion })
-    .then(d=>{ if(d.success){ msg.innerHTML='<span class="text-success">✅ '+d.message+'</span>'; setTimeout(()=>location.reload(),900); } else { msg.innerHTML='<span class="text-danger">❌ '+d.message+'</span>'; btn.disabled=false; } })
-    .catch(()=>{ msg.innerHTML='<span class="text-danger">Error de comunicación</span>'; btn.disabled=false; });
+  const msg = document.getElementById('adelMsg');
+  const btn = document.getElementById('btnAdel');
+  if (!monto || parseFloat(monto) <= 0) {
+    msg.innerHTML = '<span class="text-danger">Ingresa un monto válido.</span>';
+    return;
+  }
+  btn.disabled = true;
+  _post('{% url "taller:registrar_adelanto" tecnico.pk %}', { monto, descripcion })
+    .then(d => {
+      if (d.success) {
+        msg.innerHTML = '<span class="text-success">✅ ' + d.message + '</span>';
+        setTimeout(() => location.reload(), 900);
+      } else {
+        msg.innerHTML = '<span class="text-danger">❌ ' + d.message + '</span>';
+        btn.disabled = false;
+      }
+    })
+    .catch(() => {
+      msg.innerHTML = '<span class="text-danger">Error de comunicación</span>';
+      btn.disabled = false;
+    });
 }
-function pagarComision() {
-  const descripcion = document.getElementById('pagoDesc').value;
-  const msg = document.getElementById('pagoMsg'); const btn = document.getElementById('btnPago');
-  btn.disabled=true;
-  _post(`{% url 'taller:pagar_comision' tecnico.pk %}`, { descripcion })
-    .then(d=>{ if(d.success){ msg.innerHTML='<span class="text-success">✅ '+d.message+'</span>'; setTimeout(()=>location.reload(),1200); } else { msg.innerHTML='<span class="text-danger">❌ '+d.message+'</span>'; btn.disabled=false; } })
-    .catch(()=>{ msg.innerHTML='<span class="text-danger">Error de comunicación</span>'; btn.disabled=false; });
+
+function filterServ(q) {
+  q = (q || '').toLowerCase().trim();
+  document.querySelectorAll('#servBody tr').forEach(r => {
+    const s = r.getAttribute('data-search') || '';
+    r.style.display = (!q || s.includes(q)) ? '' : 'none';
+  });
 }
 </script>
 {% endblock %}
