@@ -3,7 +3,7 @@
 <html lang="es" data-theme="light" data-accent="verde">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>{% block title %}Mi Panel{% endblock %} · VP Motos</title>
 <link rel="icon" type="image/png" href="{% static 'logo_vp.png' %}">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -13,6 +13,7 @@
     --accent-dark: #6fa52d;
     --accent-ink: #1b3506;
     --accent-light: rgba(139, 197, 63, 0.15);
+    --sb-width: 260px;
     --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   html[data-accent="azul"] {
@@ -35,38 +36,50 @@
   }
 
   html[data-theme="light"] {
-    --bg: #f4f6fa;
+    --bg: #f1f5f9;
     --surface: #ffffff;
     --surface-hover: #f8fafc;
-    --surface-subtle: #f1f5f9;
+    --surface-subtle: #f8fafc;
     --card-bg: #ffffff;
     --text: #0f172a;
     --text-muted: #64748b;
     --border: #e2e8f0;
-    --border-strong: #cbd5e1;
+    --border-light: #f1f5f9;
+    --sidebar-bg: #0f172a;
+    --sidebar-surface: #1e293b;
+    --sidebar-text: #f8fafc;
+    --sidebar-muted: #94a3b8;
     --shadow-sm: 0 1px 3px rgba(15,23,42,0.06);
     --shadow-md: 0 4px 14px -1px rgba(15,23,42,0.08);
     --shadow-lg: 0 10px 25px -3px rgba(15,23,42,0.12);
   }
 
   html[data-theme="dark"] {
-    --bg: #0b1120;
-    --surface: #111b2e;
+    --bg: #090e17;
+    --surface: #111a2e;
     --surface-hover: #17243c;
     --surface-subtle: #162238;
-    --card-bg: #111b2e;
+    --card-bg: #111a2e;
     --text: #f8fafc;
     --text-muted: #94a3b8;
     --border: #22314a;
-    --border-strong: #334466;
+    --border-light: #162035;
+    --sidebar-bg: #070d18;
+    --sidebar-surface: #0f172a;
+    --sidebar-text: #f8fafc;
+    --sidebar-muted: #64748b;
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
     --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
     --shadow-lg: 0 10px 30px rgba(0,0,0,0.7);
   }
 
   * { box-sizing: border-box; }
-  body {
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
     margin: 0;
+    padding: 0;
     font-family: var(--font);
     background: var(--bg);
     color: var(--text);
@@ -75,43 +88,67 @@
   }
   a { color: inherit; text-decoration: none; }
 
-  .page-wrapper {
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 16px 20px 60px;
+  /* ===== SIDEBAR (SLIDEBAR) ===== */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sb-width);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    padding: 18px 16px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
+    z-index: 999;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    border-right: 1px solid rgba(255,255,255,0.06);
   }
-
-  /* ===== HEADER BAR ===== */
-  .top-navbar {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 12px 20px;
+  .sb-logo-box {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 14px;
-    box-shadow: var(--shadow-sm);
+    gap: 10px;
+    padding: 4px 6px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 6px;
   }
-  .brand-group {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .brand-logo {
-    height: 38px;
-    object-fit: contain;
-  }
-  .tech-card {
+  .sb-logo-brand {
     display: flex;
     align-items: center;
     gap: 10px;
   }
-  .tech-avatar {
+  .sb-logo-brand img { height: 34px; object-fit: contain; }
+  .sb-brand-name { font-weight: 900; font-size: 1rem; color: #fff; letter-spacing: -0.02em; line-height: 1.1; }
+  .sb-brand-desc { font-size: 0.68rem; color: var(--sidebar-muted); font-weight: 600; text-transform: uppercase; }
+
+  .sb-close-btn {
+    display: none;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sb-profile-box {
+    background: var(--sidebar-surface);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .sb-avatar {
     width: 44px;
     height: 44px;
     border-radius: 12px;
@@ -121,45 +158,195 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.3rem;
     color: #fff;
-    font-size: 1.25rem;
     flex-shrink: 0;
   }
-  .tech-name {
-    font-size: 0.98rem;
-    font-weight: 800;
-    color: var(--text);
-    line-height: 1.2;
-  }
-  .tech-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 3px;
-  }
-  .badge-comision {
+  .sb-tech-name { font-weight: 800; font-size: 0.92rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-tech-code { font-size: 0.72rem; color: var(--sidebar-muted); }
+  .sb-comision-badge {
     display: inline-flex;
     align-items: center;
+    gap: 3px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+
+  .sb-nav-list {
+    display: flex;
+    flex-direction: column;
     gap: 4px;
-    background: var(--accent-light);
-    color: var(--accent-dark);
+    flex: 1;
+  }
+  .sb-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 11px;
+    color: var(--sidebar-muted);
+    font-weight: 700;
+    font-size: 0.88rem;
+    transition: all 0.15s ease;
+  }
+  .sb-link-content { display: flex; align-items: center; gap: 12px; }
+  .sb-link i { font-size: 1.15rem; }
+  .sb-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .sb-link.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(139, 197, 63, 0.35);
+  }
+  .sb-pill {
+    padding: 2px 7px;
+    border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 6px;
+    background: rgba(255,255,255,0.1);
+    color: inherit;
+  }
+  .sb-link.active .sb-pill {
+    background: rgba(0,0,0,0.16);
+    color: var(--accent-ink);
+  }
+
+  .sb-bottom-bar {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sb-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--sidebar-surface);
+    padding: 6px 10px;
+    border-radius: 12px;
+  }
+  .swatches { display: flex; gap: 6px; align-items: center; }
+  .swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+  }
+  .swatch.on { border-color: #fff; transform: scale(1.1); }
+  .iconbtn {
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+  }
+  .btn-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    font-weight: 700;
+    font-size: 0.82rem;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    cursor: pointer;
+  }
+
+  /* Overlay for mobile drawer */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 990;
+    backdrop-filter: blur(2px);
+  }
+
+  /* ===== MAIN CONTENT WRAPPER ===== */
+  .main-content {
+    margin-left: var(--sb-width);
+    padding: 18px 24px 60px;
+    min-height: 100vh;
+    max-width: calc(100vw - var(--sb-width));
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Mobile Topbar */
+  .mobile-topbar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .hamb-btn {
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 1.35rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Week Navigator */
-  .week-navigator {
+  .week-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .week-banner-title {
+    font-size: 1.08rem;
+    font-weight: 900;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .week-nav-group {
     display: flex;
     align-items: center;
     gap: 6px;
     background: var(--surface-subtle);
     padding: 4px 6px;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid var(--border);
   }
-  .btn-week-step {
+  .btn-step {
     padding: 6px 12px;
     border-radius: 8px;
     border: 1px solid var(--border);
@@ -171,49 +358,97 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    transition: all 0.15s;
   }
-  .btn-week-step:hover { background: var(--surface-hover); border-color: var(--text-muted); }
-  .btn-week-step.today {
+  .btn-step.today {
     background: var(--accent);
     color: var(--accent-ink);
     border-color: var(--accent-dark);
     font-weight: 800;
   }
-  .week-label {
-    font-size: 0.84rem;
-    font-weight: 800;
-    padding: 0 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
 
-  /* Header action buttons */
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .btn-icon-tool {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
+  /* Days Bar (Lunes a Sábado = 6 Días) */
+  .days-strip {
     background: var(--surface);
-    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 8px 10px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+  }
+  .day-pill {
+    flex: 0 0 110px;
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
     cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    text-align: left;
+    text-decoration: none;
+    color: inherit;
+  }
+  .day-pill:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+  }
+  .day-pill.active {
+    background: var(--accent);
+    border-color: var(--accent-dark);
+    color: var(--accent-ink);
+    box-shadow: 0 4px 12px rgba(139, 197, 63, 0.35);
+  }
+  .day-pill-head { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; font-weight: 800; }
+  .day-pill-date { font-size: 0.7rem; font-weight: 700; opacity: 0.8; }
+  .day-pill-foot { display: flex; align-items: baseline; justify-content: space-between; margin-top: 3px; }
+  .day-pill-cnt { font-size: 0.7rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; background: rgba(0,0,0,0.06); }
+  .day-pill.active .day-pill-cnt { background: rgba(0,0,0,0.16); }
+  .day-pill-val { font-size: 0.82rem; font-weight: 900; }
+  .tag-hoy { display: inline-block; padding: 1px 4px; border-radius: 4px; background: #2563eb; color: #fff; font-size: 0.6rem; font-weight: 900; }
+
+  /* Active Filter Notification */
+  .day-filtered-alert {
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    transition: all 0.15s;
+    justify-content: space-between;
+    font-size: 0.86rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
   }
-  .btn-icon-tool:hover { background: var(--surface-hover); }
+  .btn-remove-day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
 
   /* Admin Mode Banner */
-  .admin-preview-banner {
+  .admin-preview-bar {
     background: color-mix(in srgb, var(--accent) 15%, var(--surface));
     border: 1.5px solid var(--accent);
     border-radius: 12px;
@@ -223,174 +458,92 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
-  /* ===== SCREEN TABS NAVIGATION (PANTALLAS SEPARADAS) ===== */
-  .screens-nav {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--surface);
-    padding: 6px 8px;
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-    overflow-x: auto;
-  }
-  .screen-tab {
-    padding: 10px 18px;
-    border-radius: 10px;
-    font-size: 0.88rem;
-    font-weight: 800;
-    color: var(--text-muted);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    transition: all 0.15s ease;
-    border: 1px solid transparent;
-  }
-  .screen-tab i { font-size: 1.05rem; }
-  .screen-tab:hover {
-    color: var(--text);
-    background: var(--surface-hover);
-  }
-  .screen-tab.active {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: var(--accent-dark);
-    box-shadow: 0 4px 12px rgba(139, 197, 63, 0.3);
-  }
-  .tab-badge {
-    padding: 2px 7px;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 800;
-    background: rgba(0,0,0,0.06);
-  }
-  .screen-tab.active .tab-badge {
-    background: rgba(0,0,0,0.18);
-  }
-
-  /* ===== DAYS OF WEEK SELECTOR BAR (LUNES A SÁBADO) ===== */
-  .days-bar {
+  /* Screen Content Box */
+  .screen-box {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 10px 12px;
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 8px;
+    padding: 18px 20px;
     box-shadow: var(--shadow-sm);
-  }
-  .day-btn {
-    background: var(--card-bg);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-align: left;
-    position: relative;
-    user-select: none;
-  }
-  .day-btn:hover {
-    border-color: var(--accent);
-    background: var(--surface-hover);
-    transform: translateY(-2px);
-  }
-  .day-btn.active {
-    background: var(--accent);
-    border-color: var(--accent-dark);
-    color: var(--accent-ink);
-    box-shadow: 0 4px 14px rgba(139, 197, 63, 0.35);
-  }
-  .day-btn-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .day-btn-title {
-    font-size: 0.84rem;
-    font-weight: 800;
-  }
-  .day-btn-date {
-    font-size: 0.72rem;
-    font-weight: 700;
-    opacity: 0.8;
-  }
-  .day-btn-foot {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-top: 4px;
-  }
-  .day-btn-badge {
-    font-size: 0.72rem;
-    font-weight: 800;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: rgba(0,0,0,0.06);
-  }
-  .day-btn.active .day-btn-badge {
-    background: rgba(0,0,0,0.18);
-  }
-  .day-btn-val {
-    font-size: 0.84rem;
-    font-weight: 900;
-  }
-  .tag-hoy {
-    display: inline-block;
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: #2563eb;
-    color: #fff;
-    font-size: 0.6rem;
-    font-weight: 900;
-    text-transform: uppercase;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
-  /* Active Day Alert */
-  .active-day-banner {
-    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
-    border: 1px solid var(--accent);
-    border-radius: 12px;
-    padding: 10px 16px;
+  /* Screen Toolbar & Headers */
+  .screen-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 0.88rem;
-    font-weight: 700;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
   }
-  .btn-clear-day {
-    background: var(--surface);
+  .screen-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .screen-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+  .screen-icon.calc { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); color: var(--accent-dark); }
+  .screen-icon.orden { background: #dbeafe; color: #1d4ed8; }
+  .screen-icon.pos { background: #dcfce7; color: #15803d; }
+  .screen-icon.cuenta { background: #fef3c7; color: #b45309; }
+  .screen-icon.perfil { background: #e2e8f0; color: #475569; }
+
+  .screen-heading { font-size: 1.15rem; font-weight: 900; margin: 0; }
+  .screen-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+  .search-box-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 220px;
+  }
+  .search-box-wrap i { position: absolute; left: 12px; color: var(--text-muted); font-size: 0.85rem; }
+  .search-box-wrap input {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    border-radius: 10px;
     border: 1px solid var(--border);
+    background: var(--card-bg);
     color: var(--text);
-    padding: 5px 12px;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 800;
-    cursor: pointer;
+    font-size: 0.82rem;
+    outline: none;
+  }
+
+  .btn-clear-day {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-  }
-  .btn-clear-day:hover { background: var(--surface-hover); }
-
-  /* ===== SCREEN CONTENT CONTAINER ===== */
-  .screen-container {
-    background: var(--surface);
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 10px;
     border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
-    min-height: 520px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
   }
 
-  /* Venta ID prominent badge */
+  /* Badges */
   .badge-venta-id {
     display: inline-flex;
     align-items: center;
@@ -417,120 +570,108 @@
     font-size: 0.72rem;
     font-weight: 700;
   }
+  .badge-tag-tipo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+  .badge-tag-tipo.orden { background: #dbeafe; color: #1e40af; }
+  .badge-tag-tipo.pos { background: #dcfce7; color: #15803d; }
+  html[data-theme="dark"] .badge-tag-tipo.orden { background: #1e3a8a; color: #bfdbfe; }
+  html[data-theme="dark"] .badge-tag-tipo.pos { background: #14532d; color: #bbf7d0; }
 
-  /* Table styling */
-  .table-responsive {
+  /* Mobile vs Desktop Views for Tables */
+  .desktop-table-wrap {
+    width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
   }
   table.screen-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     text-align: left;
   }
   table.screen-table th {
-    padding: 12px 14px;
-    font-size: 0.7rem;
+    padding: 11px 12px;
+    font-size: 0.68rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: var(--text-muted);
     background: var(--surface-subtle);
-    border-bottom: 1.5px solid var(--border);
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
   table.screen-table td {
-    padding: 13px 14px;
+    padding: 11px 12px;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
   }
-  table.screen-table tr:hover td {
-    background: var(--surface-hover);
-  }
+  table.screen-table tr:hover td { background: var(--surface-hover); }
   td.num, th.num { text-align: right; }
 
-  /* Toolbar */
-  .screen-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 18px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--border);
-  }
-  .screen-title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .screen-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-  }
-  .screen-icon.orden { background: #dbeafe; color: #1e40af; }
-  .screen-icon.pos { background: #dcfce7; color: #15803d; }
-  .screen-icon.calc { background: var(--accent); color: var(--accent-ink); }
-  .screen-icon.cuenta { background: #fef3c7; color: #b45309; }
-  .screen-icon.perfil { background: #f1f5f9; color: #475569; }
-
-  .screen-heading {
-    font-size: 1.15rem;
-    font-weight: 900;
-    margin: 0;
-  }
-  .screen-sub {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-  }
-
-  .search-box-wrap {
-    position: relative;
-    max-width: 280px;
+  /* Mobile Cards List */
+  .mobile-cards-wrap {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
     width: 100%;
+    box-sizing: border-box;
   }
-  .search-box-wrap input {
-    width: 100%;
-    padding: 7px 10px 7px 30px;
-    border-radius: 9px;
+  .mcard {
+    background: var(--card-bg);
     border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .mcard.deselected {
+    opacity: 0.45;
     background: var(--surface-subtle);
-    color: var(--text);
-    font-size: 0.82rem;
-    outline: none;
   }
-  .search-box-wrap input:focus { border-color: var(--accent); }
-  .search-box-wrap i {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: 0.85rem;
-  }
+  .mcard-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .mcard-title { font-size: 0.92rem; font-weight: 800; margin: 4px 0 6px; }
+  .mcard-meta { font-size: 0.76rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+  .mcard-foot { display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 8px; }
+  .mcard-neto { font-size: 0.8rem; color: var(--text-muted); }
+  .mcard-com { font-size: 1.1rem; font-weight: 900; color: var(--accent-dark); font-family: monospace; }
 
-  /* Empty state */
-  .empty-box {
-    padding: 45px 20px;
-    text-align: center;
-    color: var(--text-muted);
-  }
-  .empty-box i { font-size: 2.8rem; opacity: 0.4; display: block; margin-bottom: 8px; }
+  /* Empty Box */
+  .empty-box { padding: 40px 16px; text-align: center; color: var(--text-muted); }
+  .empty-box i { font-size: 2.6rem; opacity: 0.4; display: block; margin-bottom: 6px; }
 
-  /* Responsive */
-  @media (max-width: 992px) {
-    .days-bar { grid-template-columns: repeat(4, 1fr); }
-  }
-  @media (max-width: 680px) {
-    .days-bar { grid-template-columns: repeat(2, 1fr); }
-    .top-navbar { flex-direction: column; align-items: stretch; }
-    .week-navigator { justify-content: space-between; }
+  /* Responsive Rules */
+  @media (max-width: 900px) {
+    .sidebar {
+      transform: translateX(-100%);
+      width: 280px;
+      max-width: 85vw;
+      box-shadow: 0 0 40px rgba(0,0,0,0.65);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sb-close-btn { display: flex; }
+    .overlay.show { display: block; }
+    .main-content {
+      margin-left: 0;
+      padding: 10px 12px 60px;
+      max-width: 100vw;
+      width: 100%;
+    }
+    .mobile-topbar { display: flex; }
+    .desktop-table-wrap { display: none !important; }
+    .mobile-cards-wrap { display: flex !important; }
+    .screen-box { padding: 14px 12px; border-radius: 14px; }
+    .day-pill { flex: 0 0 100px; padding: 7px 8px; }
   }
 </style>
 {% block extra_css %}{% endblock %}
@@ -538,159 +679,198 @@
 <body>
 
 {% if sin_tecnico %}
-  <div style="max-width:480px; margin: 15vh auto; text-align:center; padding: 28px; background:var(--surface); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow-md);">
+  <div style="max-width:460px; margin: 15vh auto; text-align:center; padding: 24px; background:var(--surface); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow-md);">
     <img src="{% static 'logo_vp.png' %}" style="height:48px;" alt="VP Motos"><br><br>
     <h2 style="font-weight:900; margin:0 0 8px;">Sin acceso de técnico</h2>
-    <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
-      Tu usuario actual no está vinculado a una ficha de técnico en el sistema.<br>
-      Solicita a un administrador que te vincule o te cree una cuenta desde el módulo de usuarios.
-    </p>
+    <p style="color:var(--text-muted); font-size:0.9rem;">Tu usuario actual no está vinculado a una ficha de técnico.</p>
     <br>
     <a href="/usuarios/logout/" onclick="event.preventDefault(); document.getElementById('lf').submit();" style="display:inline-flex; padding:9px 18px; border-radius:9px; background:var(--accent); color:var(--accent-ink); font-weight:800;">
-      <i class="bi bi-box-arrow-right me-1"></i> Salir del sistema
+      Salir del sistema
     </a>
     <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
   </div>
 {% else %}
 
-<div class="page-wrapper">
-  <!-- ===== 1. TOP NAVBAR ===== -->
-  <header class="top-navbar">
-    <div class="brand-group">
-      <img src="{% static 'logo_vp.png' %}" class="brand-logo" alt="VP Motos">
-      <div class="tech-card">
-        {% if tecnico.foto %}
-          <img src="{{ tecnico.foto.url }}" class="tech-avatar" id="topAvatar" alt="Foto">
-        {% else %}
-          <span class="tech-avatar"><i class="bi bi-person"></i></span>
-        {% endif %}
-        <div>
-          <div class="tech-name">{{ tecnico.nombres }} {{ tecnico.apellidos }}</div>
-          <div class="tech-meta">
-            <span style="font-size:0.75rem; color:var(--text-muted);">Cód: {{ tecnico.codigo }}</span>
-            <span class="badge-comision">
-              <i class="bi bi-sliders"></i>
-              {% if tecnico.gana_comision %}
-                Comisión: {{ resumen_semana.porcentaje_comision|floatformat:0 }}%
-              {% else %}
-                Salario Fijo
-              {% endif %}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
+<!-- Overlay para cerrar el sidebar en móviles -->
+<div class="overlay" id="ov" onclick="toggleSb(false)"></div>
 
-    <!-- Navegador de Semana (Lunes a Sábado) -->
-    <div class="week-navigator">
-      <a href="?seccion={{ seccion }}&fecha={{ semana_anterior|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-week-step" title="Semana anterior">
-        <i class="bi bi-chevron-left"></i>
-      </a>
-      <div class="week-label">
-        <i class="bi bi-calendar3 text-primary"></i>
-        <span>Semana: <strong>{{ inicio|date:"d M" }}</strong> al <strong>{{ fin|date:"d M, Y" }}</strong></span>
-      </div>
-      {% if not es_semana_actual %}
-        <a href="?seccion={{ seccion }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-week-step today">
-          Esta semana
-        </a>
-      {% endif %}
-      <a href="?seccion={{ seccion }}&fecha={{ semana_siguiente|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-week-step" title="Semana siguiente">
-        <i class="bi bi-chevron-right"></i>
-      </a>
-    </div>
-
-    <!-- Acciones -->
-    <div class="header-actions">
-      <button class="btn-icon-tool" id="themeBtn" title="Cambiar tema">
-        <i class="bi bi-moon-stars"></i>
-      </button>
-      <a href="/usuarios/logout/" onclick="event.preventDefault(); document.getElementById('lf').submit();" class="btn-icon-tool" title="Cerrar sesión" style="color:#ef4444;">
-        <i class="bi bi-box-arrow-right"></i>
-      </a>
-      <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
-    </div>
-  </header>
-
-  {% if es_preview_admin %}
-    <div class="admin-preview-banner">
+<!-- ===== SIDEBAR (SLIDEBAR RESTAURADO) ===== -->
+<aside class="sidebar" id="sb">
+  <div class="sb-logo-box">
+    <div class="sb-logo-brand">
+      <img src="{% static 'logo_vp.png' %}" alt="VP Motos">
       <div>
-        <i class="bi bi-eye-fill"></i> <strong>Modo Administrador:</strong> Previsualizando panel de <strong>{{ tecnico.nombres }} {{ tecnico.apellidos }}</strong>.
+        <div class="sb-brand-name">VP MOTOS</div>
+        <div class="sb-brand-desc">Panel de Técnico</div>
       </div>
-      <a href="{% url 'taller:cuenta_tecnico' pk=tecnico.pk %}" style="text-decoration:underline;">Volver a Gestión Admin</a>
     </div>
-  {% endif %}
+    <button class="sb-close-btn" type="button" onclick="toggleSb(false)" aria-label="Cerrar menú">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
 
-  <!-- ===== 2. NAVEGADOR DE PANTALLAS (PANTALLAS SEPARADAS) ===== -->
-  <nav class="screens-nav">
+  <div class="sb-profile-box">
+    {% if tecnico.foto %}
+      <img src="{{ tecnico.foto.url }}" class="sb-avatar" id="sbAvatar" alt="Foto">
+    {% else %}
+      <span class="sb-avatar"><i class="bi bi-person"></i></span>
+    {% endif %}
+    <div style="overflow:hidden;">
+      <div class="sb-tech-name">{{ tecnico.nombres }} {{ tecnico.apellidos }}</div>
+      <div class="sb-tech-code">Cód: {{ tecnico.codigo }}</div>
+      <div class="sb-comision-badge">
+        <i class="bi bi-sliders"></i>
+        {% if tecnico.gana_comision %}
+          Comisión: {{ resumen_semana.porcentaje_comision|floatformat:0 }}%
+        {% else %}
+          Salario Fijo
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Enlaces a las 5 Pantallas -->
+  <nav class="sb-nav-list">
     <!-- Pantalla 1: Calculadora & Liquidación -->
-    <a href="?seccion=calculadora&fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
-       class="screen-tab {% if seccion == 'calculadora' %}active{% endif %}">
-      <i class="bi bi-calculator"></i>
-      <span>Calculadora & Liquidación</span>
-      <span class="tab-badge">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</span>
+    <a href="{% url 'taller:panel_tecnico' %}?fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="sb-link {% if seccion == 'calculadora' %}active{% endif %}">
+      <div class="sb-link-content">
+        <i class="bi bi-calculator"></i>
+        <span>Calculadora</span>
+      </div>
+      <span class="sb-pill">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</span>
     </a>
 
     <!-- Pantalla 2: Órdenes de Taller -->
-    <a href="?seccion=ordenes&fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
-       class="screen-tab {% if seccion == 'ordenes' %}active{% endif %}">
-      <i class="bi bi-tools text-primary"></i>
-      <span>Órdenes de Taller</span>
-      <span class="tab-badge">{{ resumen_semana.total_ordenes }}</span>
+    <a href="{% url 'taller:panel_tecnico_ordenes' %}?fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="sb-link {% if seccion == 'ordenes' %}active{% endif %}">
+      <div class="sb-link-content">
+        <i class="bi bi-tools text-primary"></i>
+        <span>Órdenes de Taller</span>
+      </div>
+      <span class="sb-pill">{{ resumen_semana.total_ordenes }}</span>
     </a>
 
-    <!-- Pantalla 3: Mecánica Rápida POS -->
-    <a href="?seccion=pos&fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
-       class="screen-tab {% if seccion == 'pos' %}active{% endif %}">
-      <i class="bi bi-lightning-charge text-success"></i>
-      <span>Mecánica Rápida (POS)</span>
-      <span class="tab-badge">{{ resumen_semana.total_pos }}</span>
+    <!-- Pantalla 3: Mecánica Rápida (POS) -->
+    <a href="{% url 'taller:panel_tecnico_pos' %}?fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="sb-link {% if seccion == 'pos' %}active{% endif %}">
+      <div class="sb-link-content">
+        <i class="bi bi-lightning-charge text-success"></i>
+        <span>Mecánica POS</span>
+      </div>
+      <span class="sb-pill">{{ resumen_semana.total_pos }}</span>
     </a>
 
     <!-- Pantalla 4: Mi Cuenta & Pagos -->
-    <a href="?seccion=cuenta&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
-       class="screen-tab {% if seccion == 'cuenta' %}active{% endif %}">
-      <i class="bi bi-wallet2 text-warning"></i>
-      <span>Mi Cuenta & Pagos</span>
+    <a href="{% url 'taller:panel_tecnico_cuenta' %}?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="sb-link {% if seccion == 'cuenta' %}active{% endif %}">
+      <div class="sb-link-content">
+        <i class="bi bi-wallet2 text-warning"></i>
+        <span>Mi Cuenta</span>
+      </div>
     </a>
 
     <!-- Pantalla 5: Mi Perfil -->
-    <a href="?seccion=perfil&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
-       class="screen-tab {% if seccion == 'perfil' %}active{% endif %}">
-      <i class="bi bi-person-gear"></i>
-      <span>Mi Perfil</span>
+    <a href="{% url 'taller:panel_tecnico_perfil' %}?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="sb-link {% if seccion == 'perfil' %}active{% endif %}">
+      <div class="sb-link-content">
+        <i class="bi bi-person-gear"></i>
+        <span>Mi Perfil</span>
+      </div>
     </a>
   </nav>
 
-  <!-- ===== 3. BARRA DE DÍAS (LUNES A SÁBADO) ===== -->
-  <section class="days-bar">
-    <!-- Opción: Toda la semana -->
-    <a href="?seccion={{ seccion }}&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
-       class="day-btn {% if not dia %}active{% endif %}">
-      <div class="day-btn-head">
-        <span class="day-btn-title">Toda la semana</span>
-        <span class="day-btn-date">Lun - Sáb</span>
+  <div class="sb-bottom-bar">
+    <div class="sb-controls">
+      <div class="swatches" title="Color de acento">
+        <span class="swatch" data-accent="verde" style="background:#8bc53f"></span>
+        <span class="swatch" data-accent="azul" style="background:#2563eb"></span>
+        <span class="swatch" data-accent="naranja" style="background:#f97316"></span>
+        <span class="swatch" data-accent="morado" style="background:#8b5cf6"></span>
       </div>
-      <div class="day-btn-foot">
-        <span class="day-btn-badge">{{ resumen_semana.total_servicios }} serv.</span>
-        <span class="day-btn-val">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</span>
+      <button class="iconbtn" id="themeBtn" title="Cambiar tema">
+        <i class="bi bi-moon-stars"></i>
+      </button>
+    </div>
+
+    <a href="/usuarios/logout/" onclick="event.preventDefault(); document.getElementById('lf').submit();" class="btn-logout">
+      <i class="bi bi-box-arrow-right"></i> Salir del sistema
+    </a>
+    <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
+  </div>
+</aside>
+
+<!-- ===== CONTENIDO PRINCIPAL ===== -->
+<div class="main-content">
+  <!-- Topbar para móviles con botón Hamburguesa -->
+  <div class="mobile-topbar">
+    <button class="hamb-btn" type="button" onclick="toggleSb(true)" aria-label="Abrir menú"><i class="bi bi-list"></i></button>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <img src="{% static 'logo_vp.png' %}" alt="VP Motos" style="height:28px;">
+      <span style="font-weight:900; font-size:0.95rem;">VP MOTOS</span>
+    </div>
+    <div style="font-size:0.75rem; font-weight:800; color:var(--accent-dark); background:var(--surface-subtle); padding:4px 8px; border-radius:6px; border:1px solid var(--border);">{{ tecnico.codigo }}</div>
+  </div>
+
+  {% if es_preview_admin %}
+    <div class="admin-preview-bar">
+      <div>
+        <i class="bi bi-eye-fill"></i> <strong>Modo Administrador:</strong> Previsualizando a <strong>{{ tecnico.nombres }} {{ tecnico.apellidos }}</strong>.
+      </div>
+      <a href="{% url 'taller:cuenta_tecnico' pk=tecnico.pk %}" style="text-decoration:underline;">Volver a Admin</a>
+    </div>
+  {% endif %}
+
+  <!-- Navegador de Semana (Lunes a Sábado) -->
+  <div class="week-banner">
+    <div class="week-banner-title">
+      <i class="bi bi-calendar3 text-primary"></i>
+      <span>Semana: <strong>{{ inicio|date:"d M" }}</strong> al <strong>{{ fin|date:"d M, Y" }}</strong></span>
+    </div>
+
+    <div class="week-nav-group">
+      <a href="?fecha={{ semana_anterior|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-step" title="Semana anterior">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      {% if not es_semana_actual %}
+        <a href="?{% if es_preview_admin %}tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-step today">
+          Esta semana
+        </a>
+      {% endif %}
+      <a href="?fecha={{ semana_siguiente|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-step" title="Semana siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Barra de Días (Lunes a Sábado = 6 Días) -->
+  <section class="days-strip">
+    <!-- Toda la semana -->
+    <a href="?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="day-pill {% if not dia %}active{% endif %}">
+      <div class="day-pill-head">
+        <span>Toda la semana</span>
+      </div>
+      <div class="day-pill-foot">
+        <span class="day-pill-cnt">{{ resumen_semana.total_servicios }} serv.</span>
+        <span class="day-pill-val">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</span>
       </div>
     </a>
 
     <!-- 6 Días: Lunes a Sábado -->
     {% for d in por_dia %}
-      <a href="?seccion={{ seccion }}&dia={{ d.fecha|date:'Y-m-d' }}&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
-         class="day-btn {% if d.activo %}active{% endif %}">
-        <div class="day-btn-head">
-          <span class="day-btn-title">{{ d.nombre }}</span>
-          <span class="day-btn-date">{{ d.fecha|date:"d/m" }}</span>
+      <a href="?dia={{ d.fecha|date:'Y-m-d' }}&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+         class="day-pill {% if d.activo %}active{% endif %}">
+        <div class="day-pill-head">
+          <span>{{ d.nombre }}</span>
+          <span class="day-pill-date">{{ d.fecha|date:"d/m" }}</span>
         </div>
-        <div class="day-btn-foot">
-          <span class="day-btn-badge">
-            {{ d.total }} trab.
+        <div class="day-pill-foot">
+          <span class="day-pill-cnt">
+            {{ d.total }}
             {% if d.es_hoy %}<span class="tag-hoy">Hoy</span>{% endif %}
           </span>
-          <span class="day-btn-val">${{ d.comision|floatformat:2|intcomma }}</span>
+          <span class="day-pill-val">${{ d.comision|floatformat:2|intcomma }}</span>
         </div>
       </a>
     {% endfor %}
@@ -698,19 +878,19 @@
 
   <!-- Filtro activo de día -->
   {% if dia %}
-    <div class="active-day-banner">
+    <div class="day-filtered-alert">
       <div>
-        <i class="bi bi-funnel-fill text-primary"></i> Filtrando por: <strong>{{ dia_info.nombre }} {{ dia|date:"d de F, Y" }}</strong>
+        <i class="bi bi-funnel-fill text-primary"></i> Viendo trabajos de: <strong>{{ dia_info.nombre }} {{ dia|date:"d de F" }}</strong>
         ({{ resumen_semana.servicios_vista }} servicio(s) · Comisión: <strong>${{ resumen_semana.comision_vista|floatformat:2|intcomma }}</strong>)
       </div>
-      <a href="?seccion={{ seccion }}&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-clear-day">
-        <i class="bi bi-x-circle"></i> Ver toda la semana
+      <a href="?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-remove-day">
+        <i class="bi bi-x-circle"></i> Toda la semana
       </a>
     </div>
   {% endif %}
 
-  <!-- ===== 4. CONTENIDO DE LA PANTALLA SELECCIONADA ===== -->
-  <main class="screen-container">
+  <!-- Contenido de la Pantalla Activa -->
+  <main class="screen-box">
     {% block panel_content %}{% endblock %}
   </main>
 </div>
@@ -720,7 +900,16 @@
 <script>
   const html = document.documentElement;
 
-  // Theme Toggler
+  // Toggle Sidebar en Móviles
+  function toggleSb(open) {
+    const sb = document.getElementById('sb');
+    const ov = document.getElementById('ov');
+    if (!sb) return;
+    sb.classList.toggle('open', open);
+    if (ov) ov.classList.toggle('show', open);
+  }
+
+  // Tema y Color de Acento
   try {
     const t = localStorage.getItem('pt_theme');
     if (t) html.setAttribute('data-theme', t);
@@ -728,20 +917,33 @@
     if (a) html.setAttribute('data-accent', a);
   } catch (e) {}
 
+  function syncSwatches() {
+    const cur = html.getAttribute('data-accent') || 'verde';
+    document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s.dataset.accent === cur));
+    const icon = document.querySelector('#themeBtn i');
+    if (icon) {
+      icon.className = html.getAttribute('data-theme') === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    }
+  }
+
+  document.querySelectorAll('.swatch').forEach(s => {
+    s.addEventListener('click', () => {
+      html.setAttribute('data-accent', s.dataset.accent);
+      try { localStorage.setItem('pt_accent', s.dataset.accent); } catch (e) {}
+      syncSwatches();
+    });
+  });
+
   const tb = document.getElementById('themeBtn');
   if (tb) {
     tb.addEventListener('click', () => {
       const isDark = html.getAttribute('data-theme') === 'dark';
       html.setAttribute('data-theme', isDark ? 'light' : 'dark');
       try { localStorage.setItem('pt_theme', isDark ? 'light' : 'dark'); } catch (e) {}
-      syncThemeIcon();
+      syncSwatches();
     });
   }
-  function syncThemeIcon() {
-    const i = document.querySelector('#themeBtn i');
-    if (i) i.className = html.getAttribute('data-theme') === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
-  }
-  syncThemeIcon();
+  syncSwatches();
 </script>
 {% block extra_js %}{% endblock %}
 </body>

@@ -9,7 +9,7 @@
     <div class="screen-icon pos"><i class="bi bi-lightning-charge"></i></div>
     <div>
       <h2 class="screen-heading">Servicios de Mecánica Rápida (POS)</h2>
-      <div class="screen-sub">Mano de obra directa cobrada en el punto de venta / caja (solo el servicio, sin productos físicos)</div>
+      <div class="screen-sub">Mano de obra directa cobrada en el punto de venta / caja (solo el servicio, sin repuestos físicos)</div>
     </div>
   </div>
 
@@ -20,14 +20,15 @@
       Comisión: <strong style="color:var(--accent-dark);">${{ resumen_semana.comision_pos|floatformat:2|intcomma }}</strong>
     </div>
 
-    <div class="search-box-wrap">
+    <div class="search-box-wrap" style="flex:1; max-width:280px;">
       <i class="bi bi-search"></i>
-      <input type="text" id="searchPos" placeholder="Buscar por cliente, comprobante, ID venta..." onkeyup="filterTable(this.value)">
+      <input type="text" id="searchPos" placeholder="Buscar cliente, comprobante, venta..." onkeyup="filterTable(this.value)">
     </div>
   </div>
 </div>
 
-<div class="table-responsive">
+<!-- Vista Desktop: Tabla -->
+<div class="desktop-table-wrap">
   <table class="screen-table" id="tablePos">
     <thead>
       <tr>
@@ -87,12 +88,52 @@
     </tbody>
   </table>
 </div>
+
+<!-- Vista Móvil: Tarjetas -->
+<div class="mobile-cards-wrap" id="cardsPos">
+  {% for t in lista_pos %}
+    <div class="mcard pos-mcard" data-search="{{ t.venta_id }} {{ t.numero|lower }} {{ t.cliente|lower }} {{ t.servicio|lower }}">
+      <div class="mcard-head">
+        <span class="badge-venta-id"><i class="bi bi-receipt"></i> Venta #{{ t.venta_id }}</span>
+        <span class="badge-tag-tipo pos"><i class="bi bi-lightning-charge"></i> {{ t.numero }}</span>
+      </div>
+
+      <div class="mcard-title">{{ t.servicio }}</div>
+
+      <div class="mcard-meta">
+        <span><i class="bi bi-clock"></i> {{ t.fecha|date:"d/m H:i" }}</span>
+        <span><i class="bi bi-person"></i> {{ t.cliente }}</span>
+      </div>
+
+      <div class="mcard-foot">
+        <div>
+          <div class="mcard-neto">Mano de Obra: <strong>${{ t.valor|floatformat:2|intcomma }}</strong></div>
+          <div style="font-size:0.72rem; margin-top:2px;">
+            {% if t.liquidada %}
+              <span style="color:#16a34a; font-weight:800;">Liquidada</span>
+            {% else %}
+              <span style="color:#ea580c; font-weight:800;">Por cobrar</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="mcard-com">${{ t.comision|floatformat:2|intcomma }}</div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="empty-box">
+      <i class="bi bi-lightning-charge"></i>
+      <p><strong>Sin servicios de mecánica rápida registrados</strong></p>
+    </div>
+  {% endfor %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
   function filterTable(query) {
     const q = (query || '').toLowerCase().trim();
+    
+    // Tabla desktop
     const rows = document.querySelectorAll('#tablePos tbody tr.row-item');
     let visible = 0;
     rows.forEach(r => {
@@ -101,6 +142,15 @@
       r.style.display = match ? '' : 'none';
       if (match) visible++;
     });
+
+    // Tarjetas mobile
+    const cards = document.querySelectorAll('.pos-mcard');
+    cards.forEach(c => {
+      const text = c.getAttribute('data-search') || '';
+      const match = (!q || text.includes(q));
+      c.style.display = match ? 'block' : 'none';
+    });
+
     const c = document.getElementById('posTotalCount');
     if (c) c.textContent = visible;
   }

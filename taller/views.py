@@ -1964,8 +1964,11 @@ def panel_tecnico(request, seccion='calculadora'):
             dia = None
 
     factor = _factor_comision(tecnico)
-    porcentaje_cfg = tecnico.porcentaje_comision if tecnico.porcentaje_comision is not None else Decimal('50')
     gana_comision = getattr(tecnico, 'gana_comision', True)
+    if not gana_comision:
+        porcentaje_cfg = Decimal('0')
+    else:
+        porcentaje_cfg = tecnico.porcentaje_comision if (tecnico.porcentaje_comision and tecnico.porcentaje_comision > 0) else Decimal('50')
 
     # -------------------------------------------------------------------------
     # 1. SERVICIOS DE ÓRDENES DE TRABAJO (Taller)

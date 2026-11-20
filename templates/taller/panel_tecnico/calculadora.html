@@ -7,15 +7,15 @@
 <style>
   .calc-hero {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 14px;
-    margin-bottom: 22px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
   }
   .calc-kpi {
     background: var(--surface-subtle);
     border: 1px solid var(--border);
     border-radius: 14px;
-    padding: 16px 18px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -31,7 +31,7 @@
     justify-content: space-between;
   }
   .calc-kpi .kpi-num {
-    font-size: 1.6rem;
+    font-size: 1.55rem;
     font-weight: 900;
     margin: 6px 0 2px;
     color: var(--text);
@@ -48,9 +48,10 @@
 
   .calculator-workspace {
     display: grid;
-    grid-template-columns: 1fr 360px;
+    grid-template-columns: 1fr 340px;
     gap: 18px;
     align-items: start;
+    width: 100%;
   }
 
   .calc-box-side {
@@ -58,10 +59,12 @@
     color: #f8fafc;
     border: 2px solid color-mix(in srgb, var(--accent) 40%, #1e293b);
     border-radius: 16px;
-    padding: 20px;
+    padding: 18px;
     box-shadow: var(--shadow-md);
     position: sticky;
     top: 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
   .calc-side-title {
     font-size: 1rem;
@@ -78,7 +81,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 0;
+    padding: 7px 0;
     font-size: 0.82rem;
     color: #94a3b8;
   }
@@ -100,7 +103,7 @@
     opacity: 0.85;
   }
   .calc-big-payout-val {
-    font-size: 2.1rem;
+    font-size: 2rem;
     font-weight: 900;
     line-height: 1.1;
     margin: 4px 0;
@@ -123,7 +126,7 @@
     margin-bottom: 4px;
   }
   .calc-rate-input-box input {
-    width: 80px;
+    width: 75px;
     padding: 5px 8px;
     border-radius: 6px;
     border: 1px solid #475569;
@@ -149,26 +152,26 @@
     justify-content: center;
     gap: 8px;
     margin-top: 10px;
-    transition: transform 0.15s;
   }
-  .btn-print-payout:hover { transform: scale(1.02); }
 
-  .badge-tag-tipo {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 7px;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 800;
+  @media (max-width: 900px) {
+    .calculator-workspace {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .calc-hero {
+      grid-template-columns: 1fr 1fr;
+    }
+    .calc-box-side {
+      position: static;
+      margin-top: 10px;
+    }
   }
-  .badge-tag-tipo.orden { background: #dbeafe; color: #1e40af; }
-  .badge-tag-tipo.pos { background: #dcfce7; color: #15803d; }
-  html[data-theme="dark"] .badge-tag-tipo.orden { background: #1e3a8a; color: #bfdbfe; }
-  html[data-theme="dark"] .badge-tag-tipo.pos { background: #14532d; color: #bbf7d0; }
 
-  @media (max-width: 960px) {
-    .calculator-workspace { grid-template-columns: 1fr; }
+  @media (max-width: 520px) {
+    .calc-hero {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 {% endblock %}
@@ -184,7 +187,7 @@
     </div>
   </div>
   <div>
-    <button class="btn-clear-day" onclick="window.print()" style="padding:8px 14px; font-size:0.84rem;">
+    <button class="btn-clear-day" onclick="window.print()">
       <i class="bi bi-printer-fill"></i> Imprimir Liquidación
     </button>
   </div>
@@ -217,30 +220,31 @@
   </div>
 </div>
 
-<!-- ===== ESPACIO DE TRABAJO: TABLA UNIFICADA + CALCULADORA ===== -->
+<!-- ===== ESPACIO DE TRABAJO: TABLA/TARJETAS UNIFICADAS + CALCULADORA ===== -->
 <div class="calculator-workspace">
 
-  <!-- Columna Izquierda: Tabla con Checkboxes y ID de Venta -->
-  <div>
+  <!-- Columna Izquierda: Listado con Checkboxes y ID de Venta -->
+  <div style="width:100%; min-width:0;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:10px; flex-wrap:wrap;">
-      <div style="display:flex; align-items:center; gap:10px;">
+      <div style="display:flex; align-items:center; gap:8px;">
         <label style="font-size:0.8rem; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px;">
           <input type="checkbox" id="checkMaster" checked onchange="toggleAllCheckboxes(this.checked)">
           <span>Seleccionar todos</span>
         </label>
-        <span style="font-size:0.78rem; color:var(--text-muted);">| Desmarca servicios para simular liquidaciones parciales</span>
+        <span style="font-size:0.75rem; color:var(--text-muted);">| Simula tu liquidación</span>
       </div>
-      <div class="search-box-wrap">
+      <div class="search-box-wrap" style="flex:1; max-width:280px;">
         <i class="bi bi-search"></i>
         <input type="text" id="calcSearch" placeholder="Buscar ID venta, orden, cliente..." onkeyup="filterCalcRows(this.value)">
       </div>
     </div>
 
-    <div class="table-responsive" style="border:1px solid var(--border); border-radius:14px; background:var(--surface);">
+    <!-- Vista Desktop: Tabla completa -->
+    <div class="desktop-table-wrap">
       <table class="screen-table" id="calcTable">
         <thead>
           <tr>
-            <th style="width:30px;"></th>
+            <th style="width:34px; text-align:center;"></th>
             <th>ID Venta</th>
             <th>Origen</th>
             <th>Comprobante</th>
@@ -254,12 +258,14 @@
         <tbody>
           {% for t in trabajos_filtrados %}
             <tr class="calc-row"
+                id="row-desk-{{ t.id }}"
+                data-id="{{ t.id }}"
                 data-type="{{ t.tipo }}"
                 data-val="{{ t.valor|stringformat:'.2f' }}"
                 data-com="{{ t.comision|stringformat:'.2f' }}"
                 data-search="{{ t.venta_id|default:'' }} {{ t.numero|lower }} {{ t.cliente|lower }} {{ t.servicio|lower }}">
-              <td>
-                <input type="checkbox" class="calc-chk" checked onchange="recalculate()">
+              <td style="text-align:center;">
+                <input type="checkbox" class="calc-chk calc-chk-desk" data-id="{{ t.id }}" checked onchange="handleItemCheck('{{ t.id }}', this.checked)">
               </td>
               <td>
                 {% if t.venta_id %}
@@ -293,6 +299,54 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Vista Móvil: Tarjetas táctiles y compactas -->
+    <div class="mobile-cards-wrap" id="calcMobileCards">
+      {% for t in trabajos_filtrados %}
+        <div class="mcard calc-mcard"
+             id="mcard-{{ t.id }}"
+             data-id="{{ t.id }}"
+             data-type="{{ t.tipo }}"
+             data-val="{{ t.valor|stringformat:'.2f' }}"
+             data-com="{{ t.comision|stringformat:'.2f' }}"
+             data-search="{{ t.venta_id|default:'' }} {{ t.numero|lower }} {{ t.cliente|lower }} {{ t.servicio|lower }}">
+          <div class="mcard-head">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0;">
+              <input type="checkbox" class="calc-chk calc-chk-mob" data-id="{{ t.id }}" checked onchange="handleItemCheck('{{ t.id }}', this.checked)">
+              {% if t.venta_id %}
+                <span class="badge-venta-id"><i class="bi bi-receipt"></i> Venta #{{ t.venta_id }}</span>
+              {% else %}
+                <span class="badge-venta-pending"><i class="bi bi-clock"></i> Pendiente</span>
+              {% endif %}
+            </label>
+
+            {% if t.tipo == 'ORDEN' %}
+              <span class="badge-tag-tipo orden"><i class="bi bi-tools"></i> Taller</span>
+            {% else %}
+              <span class="badge-tag-tipo pos"><i class="bi bi-lightning-charge"></i> POS</span>
+            {% endif %}
+          </div>
+
+          <div class="mcard-title">{{ t.servicio }}</div>
+
+          <div class="mcard-meta">
+            <span><i class="bi bi-file-earmark-text"></i> {{ t.numero }}</span>
+            <span><i class="bi bi-clock"></i> {{ t.fecha|date:"d/m H:i" }}</span>
+            <span><i class="bi bi-person"></i> {{ t.cliente }}</span>
+          </div>
+
+          <div class="mcard-foot">
+            <div class="mcard-neto">Neto: <strong>${{ t.valor|floatformat:2|intcomma }}</strong></div>
+            <div class="mcard-com">${{ t.comision|floatformat:2|intcomma }}</div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="empty-box">
+          <i class="bi bi-calculator"></i>
+          <p><strong>Sin servicios registrados en este periodo</strong></p>
+        </div>
+      {% endfor %}
+    </div>
   </div>
 
   <!-- Columna Derecha: Calculadora Reactiva en Vivo -->
@@ -322,7 +376,7 @@
       <label>% Comisión según panel de administrador</label>
       <div style="display:flex; align-items:center; gap:8px;">
         <input type="number" id="sidePct" value="{{ resumen_semana.porcentaje_comision|floatformat:0 }}" min="0" max="100" onkeyup="recalculate()" onchange="recalculate()">
-        <span style="font-size:0.75rem; color:#94a3b8;">Porcentaje del administrador asignado a tu ficha</span>
+        <span style="font-size:0.75rem; color:#94a3b8;">Porcentaje asignado a tu ficha de técnico</span>
       </div>
     </div>
 
@@ -356,22 +410,40 @@
 <script>
   const adelantos = parseFloat("{{ resumen_semana.adelantos_semana|default:'0' }}") || 0;
 
+  function handleItemCheck(itemId, isChecked) {
+    document.querySelectorAll(`.calc-chk[data-id="${itemId}"]`).forEach(c => {
+      c.checked = isChecked;
+    });
+    const mcard = document.getElementById('mcard-' + itemId);
+    if (mcard) {
+      mcard.classList.toggle('deselected', !isChecked);
+    }
+    recalculate();
+  }
+
   function toggleAllCheckboxes(checked) {
     document.querySelectorAll('.calc-chk').forEach(c => {
-      const row = c.closest('tr');
-      if (!row || row.style.display !== 'none') {
-        c.checked = checked;
-      }
+      c.checked = checked;
+    });
+    document.querySelectorAll('.calc-mcard').forEach(m => {
+      m.classList.toggle('deselected', !checked);
     });
     recalculate();
   }
 
   function filterCalcRows(query) {
     const q = (query || '').toLowerCase().trim();
+
     document.querySelectorAll('tr.calc-row').forEach(r => {
       const s = r.getAttribute('data-search') || '';
       r.style.display = (!q || s.includes(q)) ? '' : 'none';
     });
+
+    document.querySelectorAll('.calc-mcard').forEach(c => {
+      const s = c.getAttribute('data-search') || '';
+      c.style.display = (!q || s.includes(q)) ? '' : 'none';
+    });
+
     recalculate();
   }
 
@@ -379,13 +451,30 @@
     let ordCount = 0, ordVal = 0;
     let posCount = 0, posVal = 0;
 
-    document.querySelectorAll('tr.calc-row').forEach(r => {
-      if (r.style.display === 'none') return;
-      const chk = r.querySelector('.calc-chk');
-      if (!chk || !chk.checked) return;
+    const checkedMap = new Map();
+    // Leer selección
+    document.querySelectorAll('.calc-chk-desk').forEach(c => {
+      const id = c.getAttribute('data-id');
+      const row = c.closest('tr');
+      const isVisible = (!row || row.style.display !== 'none');
+      checkedMap.set(id, c.checked && isVisible);
+    });
 
-      const type = r.getAttribute('data-type');
-      const val = parseFloat(r.getAttribute('data-val')) || 0;
+    if (window.innerWidth <= 900) {
+      document.querySelectorAll('.calc-chk-mob').forEach(c => {
+        const id = c.getAttribute('data-id');
+        const card = c.closest('.calc-mcard');
+        const isVisible = (!card || card.style.display !== 'none');
+        checkedMap.set(id, c.checked && isVisible);
+      });
+    }
+
+    document.querySelectorAll('.calc-mcard').forEach(c => {
+      const id = c.getAttribute('data-id');
+      if (!checkedMap.get(id)) return;
+
+      const type = c.getAttribute('data-type');
+      const val = parseFloat(c.getAttribute('data-val')) || 0;
 
       if (type === 'ORDEN') {
         ordCount++;
@@ -406,10 +495,14 @@
 
     const fmt = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    document.getElementById('sideCountOrd').textContent = `${ordCount} serv. (${fmt(ordVal)})`;
-    document.getElementById('sideCountPos').textContent = `${posCount} serv. (${fmt(posVal)})`;
-    document.getElementById('sideTotalNeto').textContent = fmt(totalVal);
-    document.getElementById('sideComisionTotal').textContent = fmt(comision);
+    const ordEl = document.getElementById('sideCountOrd');
+    if (ordEl) ordEl.textContent = `${ordCount} serv. (${fmt(ordVal)})`;
+    const posEl = document.getElementById('sideCountPos');
+    if (posEl) posEl.textContent = `${posCount} serv. (${fmt(posVal)})`;
+    const totEl = document.getElementById('sideTotalNeto');
+    if (totEl) totEl.textContent = fmt(totalVal);
+    const comEl = document.getElementById('sideComisionTotal');
+    if (comEl) comEl.textContent = fmt(comision);
 
     const netoEl = document.getElementById('sideNetoFinal');
     if (netoEl) netoEl.textContent = fmt(neto);
