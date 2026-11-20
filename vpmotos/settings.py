@@ -96,6 +96,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'usuarios.middleware.ForzarCambioPasswordMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.role_middleware.RoleMiddleware',
     'core.middleware.session_timeout_middleware.MidnightLogoutMiddleware',

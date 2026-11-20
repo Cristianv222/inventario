@@ -250,7 +250,13 @@ class DetalleVenta(models.Model):
         default=False,
         help_text="Indica si este detalle es un servicio (sin IVA)"
     )
-    
+    # Comisión del técnico por este servicio (solo aplica a líneas de servicio).
+    comision_liquidada = models.BooleanField(default=False)
+    pago_comision = models.ForeignKey(
+        'taller.PagoTecnico', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='servicios_pos',
+    )
+
     class Meta:
         verbose_name = _('Detalle de Venta')
         verbose_name_plural = _('Detalles de Venta')
@@ -443,4 +449,4 @@ class DetalleDevolucion(models.Model):
     
     def save(self, *args, **kwargs):
         self.subtotal = self.cantidad * self.precio_unitario
-        super().save(*args, **kwargs)
+        super().save(*args, **kwargs)

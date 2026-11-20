@@ -55,7 +55,15 @@ def login_view(request):
                     messages.error(request, 'Tu cuenta está inactiva. Contacta al administrador.')
                 else:
                     login(request, user)
-                    next_url = request.GET.get('next', reverse('core:dashboard'))
+                    next_url = request.GET.get('next')
+                    if not next_url:
+                        # Los técnicos (usuario vinculado a un Técnico y sin rol de
+                        # administrador) entran directo a su panel personal.
+                        es_tecnico = getattr(user, 'tecnico', None) is not None
+                        if es_tecnico and not (user.is_staff or user.is_superuser):
+                            next_url = reverse('taller:panel_tecnico')
+                        else:
+                            next_url = reverse('core:dashboard')
                     messages.success(request, f'¡Bienvenido {user.nombre}!')
                     return redirect(next_url)
             else:
@@ -576,3 +584,159 @@ def obtener_permisos_por_categoria():
             categorias['otros'].append(p)
 
     return categorias
+
+# ============================================================================
+# GESTIÓN DE TÉCNICOS DESDE USUARIOS (acceso + esquema de pago)
+# ============================================================================
+from decimal import Decimal, InvalidOperation
+from django.utils.crypto import get_random_string
+from usuarios.decorators import admin_requerido
+
+
+def _dec(v, default='0'):
+    try:
+        return Decimal(str(v).replace(',', '.')) if v not in (None, '') else Decimal(default)
+    except (InvalidOperation, ValueError):
+        return Decimal(default)
+
+
+def _generar_codigo_tecnico():
+    from taller.models import Tecnico
+    n = Tecnico.objects.count() + 1
+    while Tecnico.objects.filter(codigo=f'TEC-{n:04d}').exists():
+        n += 1
+    return f'TEC-{n:04d}'
+
+
+@admin_requerido
+def lista_tecnicos(request):
+    from taller.models import Tecnico
+    tecnicos = Tecnico.objects.select_related('usuario').order_by('nombres', 'apellidos')
+    return render(request, 'usuarios/tecnicos_lista.html', {'tecnicos': tecnicos})
+
+
+@admin_requerido
+def crear_tecnico(request):
+    from taller.models import Tecnico
+    if request.method == 'POST':
+        nombres = (request.POST.get('nombres') or '').strip()
+        apellidos = (request.POST.get('apellidos') or '').strip()
+        identificacion = (request.POST.get('identificacion') or '').strip()
+        telefono = (request.POST.get('telefono') or '').strip() or None
+        email = (request.POST.get('email') or '').strip() or None
+        password = (request.POST.get('password') or '').strip()
+        gana_comision = request.POST.get('gana_comision') == 'on'
+        gana_salario = request.POST.get('gana_salario') == 'on'
+        porcentaje = _dec(request.POST.get('porcentaje_comision'), '0')
+        salario = _dec(request.POST.get('salario_base'), '0')
+        periodicidad = request.POST.get('periodicidad_salario') or 'MENSUAL'
+
+        if not nombres or not apellidos or not identificacion:
+            messages.error(request, 'Nombres, apellidos e identificación son obligatorios.')
+            return redirect('usuarios:crear_tecnico')
+        if Tecnico.objects.filter(identificacion=identificacion).exists():
+            messages.error(request, f'Ya existe un técnico con la identificación {identificacion}.')
+            return redirect('usuarios:crear_tecnico')
+        if not gana_comision and not gana_salario:
+            messages.error(request, 'El técnico debe ganar al menos comisión o salario.')
+            return redirect('usuarios:crear_tecnico')
+
+        usuario_login = identificacion
+        if Usuario.objects.filter(usuario=usuario_login).exists():
+            usuario_login = f'tec{identificacion}'
+        temp = password if len(password) >= 6 else get_random_string(8)
+        email_final = email or f'{usuario_login}@tecnico.vpmotos.local'
+        if Usuario.objects.filter(email=email_final).exists():
+            email_final = f'{usuario_login}.{get_random_string(4)}@tecnico.vpmotos.local'
+
+        try:
+            u = Usuario(
+                usuario=usuario_login, email=email_final,
+                nombre=nombres, apellido=apellidos,
+                is_staff=False, is_superuser=False, activo=True,
+                debe_cambiar_password=True,
+            )
+            u.set_password(temp)
+            u.save()
+
+            Tecnico.objects.create(
+                codigo=_generar_codigo_tecnico(),
+                nombres=nombres, apellidos=apellidos,
+                identificacion=identificacion, tipo_identificacion='CEDULA',
+                telefono=telefono, email=email_final, estado='ACTIVO',
+                usuario=u,
+                gana_comision=gana_comision, porcentaje_comision=porcentaje,
+                gana_salario=gana_salario, salario_base=salario,
+                periodicidad_salario=periodicidad,
+            )
+        except Exception as e:
+            messages.error(request, f'No se pudo crear el técnico: {e}')
+            return redirect('usuarios:crear_tecnico')
+
+        messages.success(
+            request,
+            f'Técnico creado. Usuario: "{usuario_login}" · Contraseña temporal: "{temp}" '
+            f'(deberá cambiarla en su primer inicio de sesión).'
+        )
+        return redirect('usuarios:lista_tecnicos')
+
+    return render(request, 'usuarios/tecnico_form.html', {'modo': 'crear'})
+
+
+@admin_requerido
+def editar_tecnico(request, pk):
+    from taller.models import Tecnico
+    tecnico = get_object_or_404(Tecnico, pk=pk)
+    if request.method == 'POST':
+        tecnico.nombres = (request.POST.get('nombres') or tecnico.nombres).strip()
+        tecnico.apellidos = (request.POST.get('apellidos') or tecnico.apellidos).strip()
+        tecnico.telefono = (request.POST.get('telefono') or '').strip() or None
+        tecnico.email = (request.POST.get('email') or '').strip() or None
+        tecnico.gana_comision = request.POST.get('gana_comision') == 'on'
+        tecnico.gana_salario = request.POST.get('gana_salario') == 'on'
+        tecnico.porcentaje_comision = _dec(request.POST.get('porcentaje_comision'), '0')
+        tecnico.salario_base = _dec(request.POST.get('salario_base'), '0')
+        tecnico.periodicidad_salario = request.POST.get('periodicidad_salario') or 'MENSUAL'
+        tecnico.save()
+
+        # Reset de contraseña (opcional) -> temporal + cambio obligatorio
+        nueva = (request.POST.get('password') or '').strip()
+        if nueva and tecnico.usuario_id:
+            if len(nueva) < 6:
+                messages.error(request, 'La contraseña debe tener al menos 6 caracteres.')
+                return redirect('usuarios:editar_tecnico', pk=pk)
+            u = tecnico.usuario
+            u.set_password(nueva)
+            u.debe_cambiar_password = True
+            u.activo = True
+            u.save()
+            messages.success(request, f'Datos guardados y contraseña temporal actualizada a "{nueva}".')
+        else:
+            messages.success(request, 'Datos del técnico actualizados.')
+        return redirect('usuarios:lista_tecnicos')
+
+    return render(request, 'usuarios/tecnico_form.html', {'modo': 'editar', 'tecnico': tecnico})
+
+
+@login_required
+def cambiar_password_obligatorio(request):
+    """El usuario (p. ej. técnico) cambia su contraseña temporal."""
+    user = request.user
+    if request.method == 'POST':
+        p1 = request.POST.get('password1') or ''
+        p2 = request.POST.get('password2') or ''
+        if len(p1) < 6:
+            messages.error(request, 'La contraseña debe tener al menos 6 caracteres.')
+        elif p1 != p2:
+            messages.error(request, 'Las contraseñas no coinciden.')
+        else:
+            user.set_password(p1)
+            user.debe_cambiar_password = False
+            user.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, '¡Contraseña actualizada!')
+            es_tecnico = getattr(user, 'tecnico', None) is not None
+            if es_tecnico and not (user.is_staff or user.is_superuser):
+                return redirect('taller:panel_tecnico')
+            return redirect('core:dashboard')
+    return render(request, 'usuarios/cambiar_password_obligatorio.html')

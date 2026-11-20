@@ -115,12 +115,24 @@ class Tecnico(models.Model):
         help_text="Porcentaje de comisión por servicios"
     )
     salario_base = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        blank=True, 
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
         null=True
     )
-    
+
+    # Esquema de pago (puede tener comisión, salario, o ambos)
+    PERIODICIDAD_CHOICES = [
+        ('SEMANAL', 'Semanal'),
+        ('QUINCENAL', 'Quincenal'),
+        ('MENSUAL', 'Mensual'),
+    ]
+    gana_comision = models.BooleanField(default=True, help_text='Recibe comisión por servicios')
+    gana_salario = models.BooleanField(default=False, help_text='Recibe un salario fijo')
+    periodicidad_salario = models.CharField(
+        max_length=10, choices=PERIODICIDAD_CHOICES, default='MENSUAL', blank=True,
+    )
+
     # Otros campos
     foto = models.ImageField(upload_to='tecnicos/', blank=True, null=True)
     observaciones = models.TextField(blank=True, null=True)
@@ -462,9 +474,15 @@ class OrdenTrabajo(models.Model):
         related_name='ordenes_creadas'
     )
     facturado = models.BooleanField(default=False)
+    # Comisión del técnico: marca si este trabajo ya fue incluido en un pago.
+    comision_liquidada = models.BooleanField(default=False)
+    pago_comision = models.ForeignKey(
+        'taller.PagoTecnico', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='trabajos',
+    )
     venta = models.ForeignKey(
-        'ventas.Venta', 
-        on_delete=models.SET_NULL, 
+        'ventas.Venta',
+        on_delete=models.SET_NULL,
         blank=True, 
         null=True
     )
@@ -1019,3 +1037,59 @@ class EvaluacionServicio(models.Model):
             calificaciones.append(self.calificacion_precio)
         
         return sum(calificaciones) / len(calificaciones)
+
+# ================== CUENTA DEL TÉCNICO (comisiones / adelantos / pagos) ==================
+
+class PagoTecnico(models.Model):
+    """Un pago de comisión realizado a un técnico (registro histórico).
+
+    Al pagar se liquidan los trabajos pendientes (comisión = mano de obra ÷ 2)
+    y se descuentan los adelantos pendientes. monto_pagado es el neto entregado.
+    """
+    tecnico = models.ForeignKey(
+        'taller.Tecnico', on_delete=models.CASCADE, related_name='pagos',
+    )
+    fecha = models.DateTimeField(auto_now_add=True)
+    comision_bruta = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    adelantos_descontados = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    monto_pagado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    num_trabajos = models.PositiveIntegerField(default=0)
+    descripcion = models.CharField(max_length=255, blank=True)
+    usuario_registro = models.ForeignKey(
+        'usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True,
+    )
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Pago a técnico'
+        verbose_name_plural = 'Pagos a técnicos'
+
+    def __str__(self):
+        return f'Pago {self.tecnico} - ${self.monto_pagado} ({self.fecha:%d/%m/%Y})'
+
+
+class AdelantoTecnico(models.Model):
+    """Adelanto / dinero entregado a un técnico, a descontar cuando cobre."""
+    tecnico = models.ForeignKey(
+        'taller.Tecnico', on_delete=models.CASCADE, related_name='adelantos',
+    )
+    fecha = models.DateTimeField(auto_now_add=True)
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    descripcion = models.CharField(max_length=255, blank=True)
+    usuario_registro = models.ForeignKey(
+        'usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True,
+    )
+    liquidado = models.BooleanField(default=False)
+    pago = models.ForeignKey(
+        'taller.PagoTecnico', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='adelantos',
+    )
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Adelanto a técnico'
+        verbose_name_plural = 'Adelantos a técnicos'
+
+    def __str__(self):
+        estado = 'liquidado' if self.liquidado else 'pendiente'
+        return f'Adelanto {self.tecnico} - ${self.monto} ({estado})'

@@ -1,0 +1,245 @@
+{% load static %}{% load humanize %}
+<!doctype html>
+<html lang="es" data-theme="light" data-accent="verde">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi Panel · VP Motos</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root{ --accent:#8bc53f; --accent-ink:#2f4710; --sb:260px; }
+  html[data-accent="azul"]{ --accent:#2563eb; --accent-ink:#0b2a6b; }
+  html[data-accent="naranja"]{ --accent:#f97316; --accent-ink:#7c2d12; }
+  html[data-accent="morado"]{ --accent:#7c3aed; --accent-ink:#3b0f74; }
+  html[data-theme="light"]{ --bg:#f1f5f9; --surface:#fff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; --sidebar:#0f172a; --sidebar-text:#e2e8f0; --shadow:0 2px 14px rgba(15,23,42,.06); }
+  html[data-theme="dark"]{ --bg:#0b1220; --surface:#131c2e; --text:#f1f5f9; --muted:#94a3b8; --border:#263247; --sidebar:#060b16; --sidebar-text:#cbd5e1; --shadow:0 2px 16px rgba(0,0,0,.4); }
+  *{ box-sizing:border-box; } body{ margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  a{ color:inherit; text-decoration:none; }
+
+  /* ===== Sidebar ===== */
+  .sidebar{ position:fixed; top:0; left:0; bottom:0; width:var(--sb); background:var(--sidebar); color:var(--sidebar-text); padding:18px 14px; display:flex; flex-direction:column; gap:6px; z-index:50; transition:transform .25s; overflow-y:auto; }
+  .sb-logo{ text-align:center; margin-bottom:10px; } .sb-logo img{ height:38px; }
+  .sb-profile{ text-align:center; padding:10px 0 14px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:10px; }
+  .sb-avatar{ width:64px; height:64px; border-radius:50%; object-fit:cover; border:3px solid var(--accent); background:#1e293b; display:inline-flex; align-items:center; justify-content:center; font-size:1.6rem; color:#fff; }
+  .sb-name{ font-weight:800; margin-top:8px; font-size:.95rem; } .sb-role{ font-size:.72rem; color:#94a3b8; }
+  .sb-link{ display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:10px; color:var(--sidebar-text); font-weight:600; font-size:.9rem; cursor:pointer; }
+  .sb-link:hover,.sb-link.active{ background:var(--accent); color:var(--accent-ink); }
+  .sb-bottom{ margin-top:auto; padding-top:10px; border-top:1px solid rgba(255,255,255,.08); }
+  .sb-controls{ display:flex; gap:8px; align-items:center; justify-content:center; margin:8px 0; }
+  .swatch{ width:20px; height:20px; border-radius:50%; border:2px solid transparent; cursor:pointer; } .swatch.on{ border-color:#fff; }
+  .iconbtn{ border:1px solid rgba(255,255,255,.2); background:transparent; color:var(--sidebar-text); width:34px; height:34px; border-radius:9px; cursor:pointer; }
+  .logout{ display:block; text-align:center; padding:9px; border-radius:10px; border:1px solid rgba(255,255,255,.2); font-weight:600; font-size:.85rem; }
+
+  /* ===== Main ===== */
+  .main{ margin-left:var(--sb); padding:18px; }
+  .topbar{ display:none; }
+  .hamb{ background:var(--surface); border:1px solid var(--border); color:var(--text); width:42px; height:42px; border-radius:10px; font-size:1.3rem; cursor:pointer; }
+  .overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+
+  h1{ font-size:1.4rem; margin:4px 0; } .period{ color:var(--muted); font-size:.9rem; margin-bottom:16px; }
+  .admin-note{ background:color-mix(in srgb,var(--accent) 18%,transparent); border:1px solid var(--accent); border-radius:10px; padding:8px 12px; font-size:.85rem; margin-bottom:14px; }
+  section{ scroll-margin-top:16px; margin-bottom:26px; }
+  .sec-title{ font-size:1.05rem; font-weight:800; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+  .kpi{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); }
+  .kpi .lbl{ font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:700; }
+  .kpi .val{ font-size:1.5rem; font-weight:800; margin-top:3px; }
+  .kpi.hl{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); } .kpi.hl .lbl{ color:inherit; opacity:.85; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:14px; }
+  .card h3{ font-size:.95rem; margin:0; padding:12px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  table{ width:100%; border-collapse:collapse; font-size:.85rem; } th,td{ padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); }
+  th{ font-size:.68rem; text-transform:uppercase; color:var(--muted); } td.num,th.num{ text-align:right; }
+  .empty{ padding:20px; text-align:center; color:var(--muted); }
+  .tag{ display:inline-block; padding:1px 8px; border-radius:999px; font-size:.7rem; font-weight:700; }
+  .tag.ord{ background:#dbeafe; color:#1e40af; } .tag.pos{ background:#dcfce7; color:#166534; } .tag.liq{ background:#e2e8f0; color:#475569; }
+
+  .chips{ display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px; }
+  .chip{ padding:7px 11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); font-size:.78rem; font-weight:700; cursor:pointer; color:var(--text); }
+  .chip.on{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .chip small{ display:block; font-weight:600; opacity:.8; }
+
+  .bars{ display:flex; align-items:flex-end; gap:8px; height:120px; padding:14px; }
+  .bcol{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; height:100%; justify-content:flex-end; }
+  .bar{ width:72%; min-height:4px; background:var(--accent); border-radius:5px 5px 0 0; } .bcol.today .bar{ box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent); }
+  .bn{ font-weight:800; font-size:.85rem; } .bd{ font-size:.68rem; color:var(--muted); font-weight:700; }
+
+  .perfil-foto{ width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid var(--accent); display:inline-flex; align-items:center; justify-content:center; font-size:2.4rem; color:#fff; background:#334155; }
+  .form-row{ margin-bottom:12px; } .form-row label{ display:block; font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
+  .form-row input{ width:100%; max-width:420px; padding:9px 11px; border:1px solid var(--border); border-radius:9px; background:var(--surface); color:var(--text); }
+  .btn{ padding:9px 16px; border-radius:10px; border:none; font-weight:700; cursor:pointer; } .btn-accent{ background:var(--accent); color:var(--accent-ink); }
+
+  @media (max-width:820px){
+    .sidebar{ transform:translateX(-100%); box-shadow:0 0 30px rgba(0,0,0,.4); }
+    .sidebar.open{ transform:none; } .main{ margin-left:0; padding:14px; }
+    .topbar{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .topbar .tb-logo img{ height:30px; } .overlay.show{ display:block; }
+  }
+</style>
+</head>
+<body>
+{% if sin_tecnico %}
+  <div style="max-width:520px;margin:12vh auto;text-align:center;padding:0 20px">
+    <img src="{% static 'logo_vp.png' %}" style="height:46px;filter:none" alt="VP Motos"><br><br>
+    <h1>Sin panel de técnico</h1>
+    <p class="period">Tu usuario no está vinculado a un técnico. Pídele a un administrador que te genere el acceso desde tu ficha.</p>
+    <a href="/usuarios/logout/" onclick="event.preventDefault();document.getElementById('lf').submit();" class="btn btn-accent">Cerrar sesión</a>
+    <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
+  </div>
+{% else %}
+<div class="overlay" id="ov" onclick="toggleSb(false)"></div>
+<aside class="sidebar" id="sb">
+  <div class="sb-logo"><img src="{% static 'logo_vp.png' %}" alt="VP Motos"></div>
+  <div class="sb-profile">
+    {% if tecnico.foto %}<img src="{{ tecnico.foto.url }}" class="sb-avatar" id="sbAvatar">{% else %}<span class="sb-avatar" id="sbAvatar"><i class="bi bi-person"></i></span>{% endif %}
+    <div class="sb-name">{{ tecnico.nombres }} {{ tecnico.apellidos }}</div>
+    <div class="sb-role">Técnico · {{ tecnico.codigo }}</div>
+  </div>
+  <a class="sb-link active" onclick="goSec('resumen',this)"><i class="bi bi-speedometer2"></i> Resumen</a>
+  <a class="sb-link" onclick="goSec('trabajos',this)"><i class="bi bi-wrench"></i> Mis trabajos</a>
+  <a class="sb-link" onclick="goSec('cuenta',this)"><i class="bi bi-cash-coin"></i> Mi cuenta</a>
+  <a class="sb-link" onclick="goSec('perfil',this)"><i class="bi bi-person-gear"></i> Mi perfil</a>
+  <div class="sb-bottom">
+    <div class="sb-controls">
+      <span class="swatch" data-accent="verde" style="background:#8bc53f"></span>
+      <span class="swatch" data-accent="azul" style="background:#2563eb"></span>
+      <span class="swatch" data-accent="naranja" style="background:#f97316"></span>
+      <span class="swatch" data-accent="morado" style="background:#7c3aed"></span>
+      <button class="iconbtn" id="themeBtn"><i class="bi bi-moon-stars"></i></button>
+    </div>
+    <a href="/usuarios/logout/" onclick="event.preventDefault();document.getElementById('lf').submit();" class="logout"><i class="bi bi-box-arrow-right"></i> Salir</a>
+    <form id="lf" method="post" action="/usuarios/logout/" style="display:none">{% csrf_token %}</form>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <button class="hamb" onclick="toggleSb(true)"><i class="bi bi-list"></i></button>
+    <span class="tb-logo"><img src="{% static 'logo_vp.png' %}" alt="VP Motos" style="filter:invert(.1)"></span>
+  </div>
+
+  <h1>Hola, {{ tecnico.nombres }} 👋</h1>
+  <p class="period">Semana del {{ inicio|date:"d M" }} al {{ fin|date:"d M, Y" }}{% if dia %} · viendo {{ dia|date:"l d M" }}{% endif %}</p>
+  {% if es_preview_admin %}<div class="admin-note"><i class="bi bi-eye"></i> Vista de administrador (previsualización).</div>{% endif %}
+
+  <!-- ===== RESUMEN ===== -->
+  <section id="resumen">
+    <div class="sec-title"><i class="bi bi-speedometer2"></i> Resumen</div>
+    <div class="kpis">
+      <div class="kpi hl"><div class="lbl">Comisión por cobrar</div><div class="val">${{ cuenta.comision_pendiente|floatformat:2|intcomma }}</div></div>
+      <div class="kpi"><div class="lbl">De órdenes</div><div class="val">${{ cuenta.comision_ordenes|floatformat:2|intcomma }}</div></div>
+      <div class="kpi"><div class="lbl">De POS (rápida)</div><div class="val">${{ cuenta.comision_pos|floatformat:2|intcomma }}</div></div>
+      <div class="kpi"><div class="lbl">Adelantos</div><div class="val">${{ cuenta.adelantos_pendientes|floatformat:2|intcomma }}</div></div>
+      <div class="kpi"><div class="lbl">Neto a recibir</div><div class="val">${{ cuenta.neto_a_pagar|floatformat:2|intcomma }}</div></div>
+      <div class="kpi"><div class="lbl">Servicios (semana)</div><div class="val">{{ metricas.servicios_semana }}</div></div>
+    </div>
+  </section>
+
+  <!-- ===== TRABAJOS ===== -->
+  <section id="trabajos">
+    <div class="sec-title"><i class="bi bi-wrench"></i> Mis trabajos de la semana</div>
+    <div class="chips">
+      <a class="chip {% if not dia %}on{% endif %}" href="?{% if es_preview_admin %}tecnico_id={{ tecnico.pk }}{% endif %}">Toda la semana</a>
+      {% for d in por_dia %}
+      <a class="chip {% if d.activo %}on{% endif %}" href="?dia={{ d.fecha|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}">
+        {{ d.label }} <small>{{ d.fecha|date:'d/m' }} · {{ d.total }}</small>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <div class="bars">
+        {% for d in por_dia %}<div class="bcol {% if d.es_hoy %}today{% endif %}"><div class="bn">{{ d.total }}</div><div class="bar" style="height:{{ d.pct }}%"></div><div class="bd">{{ d.label }}</div></div>{% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span><i class="bi bi-clipboard-check text-primary"></i> Órdenes de taller</span><span class="tag ord">Órdenes</span></h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Fecha</th><th>Factura</th><th>Cliente</th><th>Servicio</th><th class="num">Valor</th><th class="num">Comisión</th></tr></thead>
+        <tbody>
+          {% for o in lista_ordenes %}
+          <tr><td>{{ o.fecha|date:"d/m H:i" }}</td><td>{{ o.factura }}</td><td>{{ o.cliente }}</td><td>{{ o.servicio }}{% if o.liquidada %} <span class="tag liq">pagada</span>{% endif %}</td><td class="num">${{ o.valor|floatformat:2|intcomma }}</td><td class="num">${{ o.comision|floatformat:2|intcomma }}</td></tr>
+          {% empty %}<tr><td colspan="6" class="empty">Sin servicios de órdenes en este periodo.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h3><span><i class="bi bi-lightning-charge text-success"></i> Servicios en POS (mecánica rápida)</span><span class="tag pos">POS</span></h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Fecha</th><th>Factura</th><th>Cliente</th><th>Servicio</th><th class="num">Valor</th><th class="num">Comisión</th></tr></thead>
+        <tbody>
+          {% for o in lista_pos %}
+          <tr><td>{{ o.fecha|date:"d/m H:i" }}</td><td>{{ o.factura }}</td><td>{{ o.cliente }}</td><td>{{ o.servicio }}{% if o.liquidada %} <span class="tag liq">pagada</span>{% endif %}</td><td class="num">${{ o.valor|floatformat:2|intcomma }}</td><td class="num">${{ o.comision|floatformat:2|intcomma }}</td></tr>
+          {% empty %}<tr><td colspan="6" class="empty">Sin servicios directos de POS en este periodo.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ===== CUENTA ===== -->
+  <section id="cuenta">
+    <div class="sec-title"><i class="bi bi-cash-coin"></i> Mi cuenta de comisiones</div>
+    <div class="kpis" style="margin-bottom:12px">
+      <div class="kpi"><div class="lbl">Comisión por cobrar</div><div class="val">${{ cuenta.comision_pendiente|floatformat:2|intcomma }}</div></div>
+      <div class="kpi"><div class="lbl">Adelantos pendientes</div><div class="val">${{ cuenta.adelantos_pendientes|floatformat:2|intcomma }}</div></div>
+      <div class="kpi hl"><div class="lbl">Neto a recibir</div><div class="val">${{ cuenta.neto_a_pagar|floatformat:2|intcomma }}</div></div>
+    </div>
+    <div class="card"><h3>Últimos pagos</h3><table><tbody>
+      {% for p in pagos_recientes %}<tr><td>{{ p.fecha|date:"d/m/Y" }}</td><td>{{ p.num_trabajos }} serv.</td><td class="num" style="font-weight:700">${{ p.monto_pagado|floatformat:2|intcomma }}</td></tr>
+      {% empty %}<tr><td class="empty">Aún no has recibido pagos.</td></tr>{% endfor %}
+    </tbody></table></div>
+    <div class="card"><h3>Últimos adelantos</h3><table><tbody>
+      {% for a in adelantos_recientes %}<tr><td>{{ a.fecha|date:"d/m/Y" }}</td><td>{{ a.descripcion|default:"Adelanto" }}</td><td class="num" style="font-weight:700">${{ a.monto|floatformat:2|intcomma }}</td><td>{% if a.liquidado %}<span class="tag liq">liquidado</span>{% else %}<span class="tag pos">pendiente</span>{% endif %}</td></tr>
+      {% empty %}<tr><td class="empty">Sin adelantos.</td></tr>{% endfor %}
+    </tbody></table></div>
+    <p class="period">La comisión es el valor de cada servicio que realizas ÷ 2 (órdenes cobradas en POS + servicios directos). No incluye repuestos ni productos.</p>
+  </section>
+
+  <!-- ===== PERFIL ===== -->
+  <section id="perfil">
+    <div class="sec-title"><i class="bi bi-person-gear"></i> Mi perfil</div>
+    <div class="card"><div style="padding:18px">
+      <div style="text-align:center;margin-bottom:16px">
+        {% if tecnico.foto %}<img src="{{ tecnico.foto.url }}" class="perfil-foto" id="perfilFoto">{% else %}<span class="perfil-foto" id="perfilFoto"><i class="bi bi-person"></i></span>{% endif %}
+        <div style="margin-top:10px"><label class="btn btn-accent" style="display:inline-block"><i class="bi bi-camera"></i> Cambiar foto<input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="previewFoto(this)"></label></div>
+      </div>
+      <div class="form-row"><label>Teléfono</label><input type="text" id="pfTel" value="{{ tecnico.telefono|default:'' }}"></div>
+      <div class="form-row"><label>Correo</label><input type="email" id="pfEmail" value="{{ tecnico.email|default:'' }}"></div>
+      <div class="form-row"><label>Dirección</label><input type="text" id="pfDir" value="{{ tecnico.direccion|default:'' }}"></div>
+      <button class="btn btn-accent" id="btnPerfil" onclick="guardarPerfil()"><i class="bi bi-check-lg"></i> Guardar perfil</button>
+      <span id="pfMsg" style="margin-left:10px;font-size:.85rem"></span>
+    </div></div>
+  </section>
+</main>
+{% endif %}
+
+<script>
+  const html = document.documentElement;
+  function toggleSb(open){ const sb=document.getElementById('sb'), ov=document.getElementById('ov'); if(!sb)return; sb.classList.toggle('open',open); ov.classList.toggle('show',open); }
+  function goSec(id, el){ const s=document.getElementById(id); if(s) s.scrollIntoView({behavior:'smooth'}); document.querySelectorAll('.sb-link').forEach(l=>l.classList.remove('active')); if(el) el.classList.add('active'); if(window.innerWidth<=820) toggleSb(false); }
+  // Tema y acentos
+  try{ const t=localStorage.getItem('pt_theme'); if(t) html.setAttribute('data-theme',t); const a=localStorage.getItem('pt_accent'); if(a) html.setAttribute('data-accent',a); }catch(e){}
+  function syncSw(){ const cur=html.getAttribute('data-accent'); document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('on',s.dataset.accent===cur)); const i=document.querySelector('#themeBtn i'); if(i) i.className=html.getAttribute('data-theme')==='dark'?'bi bi-sun':'bi bi-moon-stars'; }
+  document.querySelectorAll('.swatch').forEach(s=>s.addEventListener('click',()=>{ html.setAttribute('data-accent',s.dataset.accent); try{localStorage.setItem('pt_accent',s.dataset.accent);}catch(e){} syncSw(); }));
+  const tb=document.getElementById('themeBtn'); if(tb) tb.addEventListener('click',()=>{ const d=html.getAttribute('data-theme')==='dark'; html.setAttribute('data-theme',d?'light':'dark'); try{localStorage.setItem('pt_theme',d?'light':'dark');}catch(e){} syncSw(); });
+  syncSw();
+  // Perfil
+  function previewFoto(input){ if(input.files&&input.files[0]){ const url=URL.createObjectURL(input.files[0]); const f=document.getElementById('perfilFoto'); if(f.tagName==='IMG'){ f.src=url; } else { f.outerHTML='<img src="'+url+'" class="perfil-foto" id="perfilFoto">'; } } }
+  function guardarPerfil(){
+    const btn=document.getElementById('btnPerfil'), msg=document.getElementById('pfMsg');
+    const fd=new FormData();
+    fd.append('telefono',document.getElementById('pfTel').value);
+    fd.append('email',document.getElementById('pfEmail').value);
+    fd.append('direccion',document.getElementById('pfDir').value);
+    const fi=document.getElementById('fotoInput'); if(fi.files[0]) fd.append('foto',fi.files[0]);
+    btn.disabled=true; msg.textContent='Guardando...';
+    fetch('/taller/mi-perfil/',{ method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd })
+      .then(r=>r.json()).then(d=>{ msg.textContent=d.success?'✅ '+d.message:'❌ '+d.message; if(d.success&&d.foto_url){ const sa=document.getElementById('sbAvatar'); if(sa&&sa.tagName==='IMG') sa.src=d.foto_url; } })
+      .catch(()=>{ msg.textContent='❌ Error de comunicación'; }).finally(()=>{ btn.disabled=false; });
+  }
+</script>
+</body>
+</html>

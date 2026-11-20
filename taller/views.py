@@ -11,6 +11,7 @@ from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
+from usuarios.decorators import admin_requerido
 from datetime import datetime, timedelta
 import json
 from decimal import Decimal, InvalidOperation
@@ -1901,3 +1902,342 @@ def crear_categoria_ajax(request):
             'success': False,
             'message': f'Error interno del servidor: {str(e)}'
         })
+
+
+# ============================================================================
+# PANEL DEL TÉCNICO (Fase 1: rendimiento + trabajos de la semana)
+# ============================================================================
+@login_required
+def panel_tecnico(request):
+    """Panel personal del técnico: sus trabajos de la semana y su rendimiento.
+
+    Cada técnico ve SOLO sus propios datos (se identifica por el usuario
+    logueado, vía el OneToOne Tecnico.usuario). Un administrador puede
+    previsualizar el de un técnico con ?tecnico_id=<id>.
+    """
+    tecnico = getattr(request.user, 'tecnico', None)
+    if tecnico is None and (request.user.is_staff or request.user.is_superuser):
+        tid = request.GET.get('tecnico_id')
+        if tid:
+            tecnico = Tecnico.objects.filter(pk=tid).first()
+
+    if tecnico is None:
+        return render(request, 'taller/panel_tecnico.html', {'sin_tecnico': True})
+
+    from ventas.models import DetalleVenta
+    hoy = timezone.localdate()
+    inicio = hoy - timedelta(days=hoy.weekday())        # lunes
+    fin = inicio + timedelta(days=6)                    # domingo
+
+    # Filtro opcional por día
+    dia = None
+    dia_str = request.GET.get('dia')
+    if dia_str:
+        try:
+            dia = datetime.strptime(dia_str, '%Y-%m-%d').date()
+        except ValueError:
+            dia = None
+
+    # Servicios (SOLO el servicio, no repuestos) cobrados en POS esta semana
+    serv_sem = DetalleVenta.objects.filter(
+        tecnico=tecnico, es_servicio=True, venta__estado='COMPLETADA',
+        venta__fecha_hora__date__gte=inicio, venta__fecha_hora__date__lte=fin,
+    ).select_related('venta', 'venta__cliente', 'tipo_servicio')
+
+    vids = list(serv_sem.values_list('venta_id', flat=True).distinct())
+    ord_vids = _ventas_de_ordenes(vids)
+    factor = _factor_comision(tecnico)
+
+    filtradas = serv_sem.filter(venta__fecha_hora__date=dia) if dia else serv_sem
+
+    lista_ordenes, lista_pos = [], []
+    for d in filtradas.order_by('-venta__fecha_hora'):
+        item = {
+            'fecha': d.venta.fecha_hora,
+            'factura': d.venta.numero_factura,
+            'cliente': d.venta.cliente.get_nombre_completo() if d.venta.cliente else '—',
+            'servicio': d.nombre_personalizado or (d.tipo_servicio.nombre if d.tipo_servicio else 'Servicio'),
+            'valor': d.total or Decimal('0'),
+            'comision': (d.total or Decimal('0')) * factor,
+            'liquidada': d.comision_liquidada,
+        }
+        (lista_ordenes if d.venta_id in ord_vids else lista_pos).append(item)
+
+    # Conteo por día de la semana (para el gráfico)
+    labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    conteo = {}
+    for d in serv_sem:
+        if d.venta.fecha_hora:
+            k = timezone.localtime(d.venta.fecha_hora).date()
+            conteo[k] = conteo.get(k, 0) + 1
+    por_dia = []
+    max_dia = 0
+    for i in range(7):
+        dd = inicio + timedelta(days=i)
+        tot = conteo.get(dd, 0)
+        por_dia.append({'label': labels[i], 'fecha': dd, 'total': tot,
+                        'es_hoy': dd == hoy, 'activo': dia == dd})
+        max_dia = max(max_dia, tot)
+    for x in por_dia:
+        x['pct'] = int((x['total'] / max_dia) * 100) if max_dia else 0
+
+    base_sem = serv_sem.aggregate(s=Sum('total'))['s'] or Decimal('0')
+    metricas = {
+        'servicios_semana': serv_sem.count(),
+        'valor_semana': base_sem,
+        'comision_semana': base_sem * factor,
+    }
+
+    cuenta = _resumen_cuenta_tecnico(tecnico)
+
+    return render(request, 'taller/panel_tecnico.html', {
+        'tecnico': tecnico,
+        'metricas': metricas,
+        'por_dia': por_dia,
+        'lista_ordenes': lista_ordenes,
+        'lista_pos': lista_pos,
+        'inicio': inicio, 'fin': fin, 'hoy': hoy, 'dia': dia,
+        'cuenta': cuenta,
+        'pagos_recientes': tecnico.pagos.all()[:6],
+        'adelantos_recientes': tecnico.adelantos.all()[:6],
+        'es_preview_admin': getattr(request.user, 'tecnico', None) is None,
+    })
+
+
+@admin_requerido
+def crear_acceso_tecnico(request, pk):
+    """Crea (o resetea) el acceso de login de un técnico. Solo administradores."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
+
+    tecnico = get_object_or_404(Tecnico, pk=pk)
+    from usuarios.models import Usuario
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except Exception:
+        data = request.POST
+
+    username = (data.get('usuario') or tecnico.identificacion or tecnico.codigo or '').strip()
+    password = (data.get('password') or '').strip()
+
+    if not username or not password:
+        return JsonResponse({'success': False, 'message': 'Usuario y contraseña son requeridos.'}, status=400)
+    if len(password) < 6:
+        return JsonResponse({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres.'}, status=400)
+
+    # Si ya tiene acceso, solo reseteamos la contraseña (y lo reactivamos)
+    if tecnico.usuario_id:
+        u = tecnico.usuario
+        u.set_password(password)
+        u.activo = True
+        u.is_staff = False
+        u.save()
+        return JsonResponse({
+            'success': True,
+            'message': f'Contraseña actualizada para el acceso "{u.usuario}".',
+            'usuario': u.usuario,
+        })
+
+    if Usuario.objects.filter(usuario=username).exists():
+        return JsonResponse({'success': False, 'message': f'El usuario "{username}" ya existe. Elige otro.'}, status=400)
+
+    email = f"{username}@tecnico.vpmotos.local"
+    if Usuario.objects.filter(email=email).exists():
+        email = f"tec{tecnico.pk}.{username}@tecnico.vpmotos.local"
+
+    try:
+        u = Usuario(
+            usuario=username, email=email,
+            nombre=tecnico.nombres, apellido=tecnico.apellidos,
+            is_staff=False, is_superuser=False, activo=True,
+        )
+        u.set_password(password)
+        u.save()
+        tecnico.usuario = u
+        tecnico.save(update_fields=['usuario'])
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'No se pudo crear el acceso: {e}'}, status=500)
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Acceso creado. El técnico entra con usuario "{username}".',
+        'usuario': username,
+    })
+
+
+# ============================================================================
+# FASE 2: CUENTA DEL TÉCNICO (comisiones, adelantos, pagos, saldo)
+# ============================================================================
+def _servicios_pendientes_tecnico(tecnico):
+    """Líneas de SERVICIO (solo el servicio, no repuestos) cobradas en POS,
+    del técnico, en ventas completadas y aún no liquidadas para comisión."""
+    from ventas.models import DetalleVenta
+    return DetalleVenta.objects.filter(
+        tecnico=tecnico, es_servicio=True,
+        venta__estado='COMPLETADA', comision_liquidada=False,
+    )
+
+
+def _ventas_de_ordenes(venta_ids):
+    """Subconjunto de venta_ids que corresponden a una Orden de Trabajo."""
+    if not venta_ids:
+        return set()
+    return set(OrdenTrabajo.objects.filter(
+        venta_id__in=venta_ids).values_list('venta_id', flat=True))
+
+
+def _factor_comision(tecnico):
+    """Fracción de comisión del técnico (porcentaje configurable).
+
+    Si no gana comisión -> 0. Si el porcentaje no está configurado, usa 50%
+    (equivalente al ÷2 histórico) para no romper técnicos existentes.
+    """
+    if not getattr(tecnico, 'gana_comision', True):
+        return Decimal('0')
+    pct = tecnico.porcentaje_comision or Decimal('50')
+    return pct / Decimal('100')
+
+
+def _resumen_cuenta_tecnico(tecnico):
+    """Comisión pendiente = valor de los servicios cobrados en POS ÷ 2,
+    separada entre los que vienen de una ORDEN y los de POS directo
+    (mecánica rápida). Descuenta adelantos para el neto."""
+    from .models import AdelantoTecnico
+    pend = _servicios_pendientes_tecnico(tecnico)
+    vids = list(pend.values_list('venta_id', flat=True).distinct())
+    ord_vids = _ventas_de_ordenes(vids)
+
+    en_orden = pend.filter(venta_id__in=ord_vids)
+    en_pos = pend.exclude(venta_id__in=ord_vids)
+    base_ord = en_orden.aggregate(s=Sum('total'))['s'] or Decimal('0')
+    base_pos = en_pos.aggregate(s=Sum('total'))['s'] or Decimal('0')
+
+    factor = _factor_comision(tecnico)
+    com_ord = base_ord * factor
+    com_pos = base_pos * factor
+    comision_pendiente = com_ord + com_pos
+
+    total_adel = AdelantoTecnico.objects.filter(
+        tecnico=tecnico, liquidado=False).aggregate(s=Sum('monto'))['s'] or Decimal('0')
+
+    return {
+        'comision_pendiente': comision_pendiente,
+        'comision_ordenes': com_ord,
+        'comision_pos': com_pos,
+        'base_ordenes': base_ord,
+        'base_pos': base_pos,
+        'servicios_ordenes': en_orden.count(),
+        'servicios_pos': en_pos.count(),
+        'servicios_pendientes': pend.count(),
+        'adelantos_pendientes': total_adel,
+        'neto_a_pagar': comision_pendiente - total_adel,
+    }
+
+
+@admin_requerido
+def cuenta_tecnico(request, pk):
+    """Página (admin) para gestionar la cuenta de comisiones de un técnico."""
+    tecnico = get_object_or_404(Tecnico, pk=pk)
+    resumen = _resumen_cuenta_tecnico(tecnico)
+    return render(request, 'taller/cuenta_tecnico.html', {
+        'tecnico': tecnico,
+        'resumen': resumen,
+        'pagos': tecnico.pagos.all()[:40],
+        'adelantos': tecnico.adelantos.select_related('pago').all()[:40],
+    })
+
+
+@admin_requerido
+def registrar_adelanto(request, pk):
+    """Registra un adelanto / dinero entregado al técnico (admin)."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
+    tecnico = get_object_or_404(Tecnico, pk=pk)
+    from .models import AdelantoTecnico
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except Exception:
+        data = request.POST
+    try:
+        monto = Decimal(str(data.get('monto', '0')))
+    except (InvalidOperation, ValueError):
+        monto = Decimal('0')
+    if monto <= 0:
+        return JsonResponse({'success': False, 'message': 'El monto debe ser mayor a 0.'}, status=400)
+    AdelantoTecnico.objects.create(
+        tecnico=tecnico, monto=monto,
+        descripcion=(data.get('descripcion') or '').strip(),
+        usuario_registro=request.user if request.user.is_authenticated else None,
+    )
+    return JsonResponse({'success': True, 'message': f'Adelanto de ${monto} registrado.'})
+
+
+@admin_requerido
+def pagar_comision(request, pk):
+    """Liquida la comisión pendiente del técnico, descontando adelantos (admin)."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
+    tecnico = get_object_or_404(Tecnico, pk=pk)
+    from .models import PagoTecnico, AdelantoTecnico
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except Exception:
+        data = request.POST
+
+    from ventas.models import DetalleVenta
+    with transaction.atomic():
+        pend = DetalleVenta.objects.select_for_update().filter(
+            tecnico=tecnico, es_servicio=True,
+            venta__estado='COMPLETADA', comision_liquidada=False)
+        num = pend.count()
+        base = pend.aggregate(s=Sum('total'))['s'] or Decimal('0')
+        comision = base * _factor_comision(tecnico)
+
+        adelantos = AdelantoTecnico.objects.select_for_update().filter(
+            tecnico=tecnico, liquidado=False)
+        total_adel = adelantos.aggregate(s=Sum('monto'))['s'] or Decimal('0')
+
+        if num == 0 and total_adel == 0:
+            return JsonResponse({'success': False, 'message': 'No hay comisión pendiente ni adelantos por liquidar.'}, status=400)
+
+        neto = comision - total_adel
+        pago = PagoTecnico.objects.create(
+            tecnico=tecnico,
+            comision_bruta=comision,
+            adelantos_descontados=total_adel,
+            monto_pagado=neto,
+            num_trabajos=num,
+            descripcion=(data.get('descripcion') or '').strip(),
+            usuario_registro=request.user if request.user.is_authenticated else None,
+        )
+        pend.update(comision_liquidada=True, pago_comision=pago)
+        adelantos.update(liquidado=True, pago=pago)
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Pago registrado. Comisión ${comision}, adelantos descontados ${total_adel}, neto a entregar ${neto}.',
+        'neto': str(neto), 'comision': str(comision), 'adelantos': str(total_adel),
+    })
+
+
+@login_required
+def perfil_tecnico(request):
+    """El técnico actualiza sus datos de contacto y su foto de perfil."""
+    tecnico = getattr(request.user, 'tecnico', None)
+    if tecnico is None:
+        return JsonResponse({'success': False, 'message': 'Tu usuario no es un técnico.'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
+
+    tecnico.telefono = (request.POST.get('telefono') or '').strip() or None
+    tecnico.email = (request.POST.get('email') or '').strip() or None
+    tecnico.direccion = (request.POST.get('direccion') or '').strip() or None
+    if request.FILES.get('foto'):
+        tecnico.foto = request.FILES['foto']
+    tecnico.save()
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Perfil actualizado correctamente.',
+        'foto_url': tecnico.foto.url if tecnico.foto else '',
+    })

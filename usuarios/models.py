@@ -69,7 +69,12 @@ class Usuario(AbstractUser):
         default=False,
         help_text=_('Permite al usuario acceder a todas las sucursales (solo para administradores generales)')
     )
-    
+    debe_cambiar_password = models.BooleanField(
+        _('Debe cambiar la contraseña'),
+        default=False,
+        help_text=_('Si está activo, el usuario debe cambiar su contraseña en el próximo inicio de sesión')
+    )
+
     # Configuración del campo de autenticación
     USERNAME_FIELD = 'usuario'
     REQUIRED_FIELDS = ['email', 'nombre', 'apellido']

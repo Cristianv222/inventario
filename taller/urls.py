@@ -21,6 +21,16 @@ urlpatterns = [
     path('tipos-servicio/<int:pk>/duplicar/', views.duplicar_servicio, name='duplicar_servicio'),
     path('tipos-servicio/<int:pk>/historial/', views.historial_ventas_servicio, name='historial_ventas_servicio'),
     
+    # Panel del Técnico
+    path('mi-panel/', views.panel_tecnico, name='panel_tecnico'),
+    path('mi-perfil/', views.perfil_tecnico, name='perfil_tecnico'),
+    path('tecnicos/<int:pk>/crear-acceso/', views.crear_acceso_tecnico, name='crear_acceso_tecnico'),
+
+    # Cuenta del técnico (comisiones / adelantos / pagos)
+    path('tecnicos/<int:pk>/cuenta/', views.cuenta_tecnico, name='cuenta_tecnico'),
+    path('tecnicos/<int:pk>/adelanto/', views.registrar_adelanto, name='registrar_adelanto'),
+    path('tecnicos/<int:pk>/pagar-comision/', views.pagar_comision, name='pagar_comision'),
+
     # Órdenes de Trabajo
     path('ordenes/', views.OrdenTrabajoListView.as_view(), name='orden_list'),
     path('ordenes/crear/', views.OrdenTrabajoCreateView.as_view(), name='orden_create'),

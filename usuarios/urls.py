@@ -13,6 +13,14 @@ urlpatterns = [
     # ── Gestión de Usuarios ────────────────────────────────────
     path('usuarios/',                              views.lista_usuarios,             name='lista_usuarios'),
     path('usuarios/nuevo/',                        views.crear_usuario,              name='crear_usuario'),
+
+    # Técnicos (creación con acceso + esquema de pago)
+    path('tecnicos/',                              views.lista_tecnicos,             name='lista_tecnicos'),
+    path('tecnicos/nuevo/',                        views.crear_tecnico,              name='crear_tecnico'),
+    path('tecnicos/<int:pk>/editar/',              views.editar_tecnico,             name='editar_tecnico'),
+
+    # Cambio obligatorio de contraseña (primer inicio de sesión)
+    path('cambiar-password/',                      views.cambiar_password_obligatorio, name='cambiar_password_obligatorio'),
     path('usuarios/por-sucursal/',                 views.usuarios_por_sucursal,      name='usuarios_por_sucursal'),
     path('usuarios/<int:user_id>/editar/',         views.editar_usuario,             name='editar_usuario'),
     path('usuarios/<int:user_id>/activar/',        views.activar_desactivar_usuario, name='activar_desactivar_usuario'),
