@@ -58,10 +58,12 @@ class RoleMiddleware:
 
         # Rutas que NO requieren verificación
         exempt_paths = [
-            '/admin/', 
-            '/usuarios/login/', 
+            '/admin/',
+            '/usuarios/login/',
             '/usuarios/logout/',
             '/usuarios/cambiar-password/',
+            '/taller/mi-panel/',      # panel propio del técnico (la vista ya restringe)
+            '/taller/mi-perfil/',     # perfil propio del técnico
             '/static/',
             '/media/',
             '/favicon.ico',

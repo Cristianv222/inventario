@@ -9,7 +9,7 @@
     <p class="text-muted small mb-0">Datos, acceso al sistema y esquema de pago.</p>
   </div>
 
-  <form method="post">
+  <form method="post" id="tecForm">
     {% csrf_token %}
     <div class="card shadow-sm mb-3"><div class="card-header fw-bold"><i class="fas fa-user me-2"></i>Datos del técnico</div>
       <div class="card-body row g-3">
@@ -54,30 +54,68 @@
     <div class="card shadow-sm mb-3"><div class="card-header fw-bold"><i class="fas fa-key me-2"></i>Acceso al sistema</div>
       <div class="card-body">
         {% if modo == 'editar' %}
-          <p class="small text-muted">Usuario de acceso: <strong>{{ tecnico.usuario.usuario|default:'(sin acceso)' }}</strong>. Escribe una contraseña solo si quieres resetearla (será temporal y deberá cambiarla).</p>
+          <p class="small text-muted mb-2">Usuario de acceso: <strong>{{ tecnico.usuario.usuario|default:'(sin acceso)' }}</strong>. Escribe una contraseña solo si quieres resetearla (será temporal y deberá cambiarla).</p>
           <label class="form-label small fw-bold">Nueva contraseña temporal (opcional)</label>
+          <input name="password" type="text" class="form-control" style="max-width:280px" placeholder="Déjalo vacío para no cambiarla">
         {% else %}
-          <p class="small text-muted">El usuario de acceso será su <strong>cédula</strong>. Si dejas la contraseña vacía, se genera una temporal automáticamente. En ambos casos el técnico deberá cambiarla en su primer inicio de sesión.</p>
-          <label class="form-label small fw-bold">Contraseña temporal (opcional)</label>
+          <p class="small text-muted mb-0"><i class="fas fa-info-circle text-primary"></i> El usuario será su <strong>cédula</strong> y se generará una <strong>contraseña temporal aleatoria</strong>. Al guardar se mostrará en pantalla para copiarla. El técnico deberá cambiarla en su primer inicio de sesión.</p>
         {% endif %}
-        <input name="password" type="text" class="form-control" style="max-width:280px" placeholder="Se autogenera si lo dejas vacío">
       </div>
     </div>
 
     <div class="d-flex gap-2">
-      <button type="submit" class="btn btn-primary px-4"><i class="fas fa-check me-1"></i>{% if modo == 'editar' %}Guardar cambios{% else %}Crear técnico{% endif %}</button>
+      <button type="submit" class="btn btn-primary px-4" id="btnGuardar"><i class="fas fa-check me-1"></i>{% if modo == 'editar' %}Guardar cambios{% else %}Crear técnico{% endif %}</button>
       <a href="{% url 'usuarios:lista_tecnicos' %}" class="btn btn-light">Cancelar</a>
     </div>
   </form>
+</div>
+
+<!-- Modal credenciales (solo al crear) -->
+<div class="modal fade" id="modalCreds" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header bg-success text-white"><h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Técnico creado</h5></div>
+    <div class="modal-body">
+      <p class="small text-muted">Guarda o entrégale estas credenciales al técnico. <strong>No se volverán a mostrar.</strong> Deberá cambiar la contraseña en su primer inicio de sesión.</p>
+      <div class="mb-3">
+        <label class="form-label small fw-bold">Usuario</label>
+        <div class="input-group"><input type="text" class="form-control" id="credUser" readonly><button class="btn btn-outline-secondary" type="button" onclick="copiar('credUser',this)"><i class="fas fa-copy"></i></button></div>
+      </div>
+      <div class="mb-1">
+        <label class="form-label small fw-bold">Contraseña temporal</label>
+        <div class="input-group"><input type="text" class="form-control fw-bold" id="credPass" readonly><button class="btn btn-outline-secondary" type="button" onclick="copiar('credPass',this)"><i class="fas fa-copy"></i></button></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline-primary" type="button" onclick="copiarAmbos(this)"><i class="fas fa-clipboard"></i> Copiar usuario y contraseña</button>
+      <a href="{% url 'usuarios:lista_tecnicos' %}" class="btn btn-success">Listo</a>
+    </div>
+  </div></div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
   function toggleBox(id, chk){ document.getElementById(id).style.display = chk.checked ? '' : 'none'; }
+  function copiar(id, btn){ const el=document.getElementById(id); navigator.clipboard.writeText(el.value).then(()=>{ const o=btn.innerHTML; btn.innerHTML='<i class="fas fa-check"></i>'; setTimeout(()=>btn.innerHTML=o,1200); }); }
+  function copiarAmbos(btn){ const t='Usuario: '+document.getElementById('credUser').value+'  Contraseña: '+document.getElementById('credPass').value; navigator.clipboard.writeText(t).then(()=>{ const o=btn.innerHTML; btn.innerHTML='<i class="fas fa-check"></i> Copiado'; setTimeout(()=>btn.innerHTML=o,1400); }); }
   document.addEventListener('DOMContentLoaded', function(){
     toggleBox('boxCom', document.getElementById('chkCom'));
     toggleBox('boxSal', document.getElementById('chkSal'));
+    {% if modo != 'editar' %}
+    const form=document.getElementById('tecForm'), btn=document.getElementById('btnGuardar');
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      btn.disabled=true; const o=btn.innerHTML; btn.innerHTML='Creando...';
+      fetch('{% url "usuarios:crear_tecnico" %}', { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:new FormData(form) })
+        .then(r=>r.json()).then(d=>{
+          if(d.success){
+            document.getElementById('credUser').value=d.usuario;
+            document.getElementById('credPass').value=d.password;
+            new bootstrap.Modal(document.getElementById('modalCreds')).show();
+          } else { alert('❌ '+(d.message||'No se pudo crear')); btn.disabled=false; btn.innerHTML=o; }
+        }).catch(()=>{ alert('❌ Error de comunicación'); btn.disabled=false; btn.innerHTML=o; });
+    });
+    {% endif %}
   });
 </script>
 {% endblock %}

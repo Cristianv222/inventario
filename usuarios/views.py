@@ -590,6 +590,7 @@ def obtener_permisos_por_categoria():
 # ============================================================================
 from decimal import Decimal, InvalidOperation
 from django.utils.crypto import get_random_string
+from django.utils import timezone
 from usuarios.decorators import admin_requerido
 
 
@@ -632,19 +633,17 @@ def crear_tecnico(request):
         periodicidad = request.POST.get('periodicidad_salario') or 'MENSUAL'
 
         if not nombres or not apellidos or not identificacion:
-            messages.error(request, 'Nombres, apellidos e identificación son obligatorios.')
-            return redirect('usuarios:crear_tecnico')
+            return JsonResponse({'success': False, 'message': 'Nombres, apellidos e identificación son obligatorios.'}, status=400)
         if Tecnico.objects.filter(identificacion=identificacion).exists():
-            messages.error(request, f'Ya existe un técnico con la identificación {identificacion}.')
-            return redirect('usuarios:crear_tecnico')
+            return JsonResponse({'success': False, 'message': f'Ya existe un técnico con la identificación {identificacion}.'}, status=400)
         if not gana_comision and not gana_salario:
-            messages.error(request, 'El técnico debe ganar al menos comisión o salario.')
-            return redirect('usuarios:crear_tecnico')
+            return JsonResponse({'success': False, 'message': 'El técnico debe ganar al menos comisión o salario.'}, status=400)
 
         usuario_login = identificacion
         if Usuario.objects.filter(usuario=usuario_login).exists():
             usuario_login = f'tec{identificacion}'
-        temp = password if len(password) >= 6 else get_random_string(8)
+        # Contraseña temporal ALEATORIA (sin caracteres ambiguos)
+        temp = get_random_string(10, allowed_chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789')
         email_final = email or f'{usuario_login}@tecnico.vpmotos.local'
         if Usuario.objects.filter(email=email_final).exists():
             email_final = f'{usuario_login}.{get_random_string(4)}@tecnico.vpmotos.local'
@@ -664,21 +663,21 @@ def crear_tecnico(request):
                 nombres=nombres, apellidos=apellidos,
                 identificacion=identificacion, tipo_identificacion='CEDULA',
                 telefono=telefono, email=email_final, estado='ACTIVO',
+                fecha_ingreso=timezone.localdate(),
                 usuario=u,
                 gana_comision=gana_comision, porcentaje_comision=porcentaje,
                 gana_salario=gana_salario, salario_base=salario,
                 periodicidad_salario=periodicidad,
             )
         except Exception as e:
-            messages.error(request, f'No se pudo crear el técnico: {e}')
-            return redirect('usuarios:crear_tecnico')
+            return JsonResponse({'success': False, 'message': f'No se pudo crear el técnico: {e}'}, status=500)
 
-        messages.success(
-            request,
-            f'Técnico creado. Usuario: "{usuario_login}" · Contraseña temporal: "{temp}" '
-            f'(deberá cambiarla en su primer inicio de sesión).'
-        )
-        return redirect('usuarios:lista_tecnicos')
+        return JsonResponse({
+            'success': True,
+            'usuario': usuario_login,
+            'password': temp,
+            'nombre': f'{nombres} {apellidos}',
+        })
 
     return render(request, 'usuarios/tecnico_form.html', {'modo': 'crear'})
 
