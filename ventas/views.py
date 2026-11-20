@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
+from usuarios.decorators import admin_requerido
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
@@ -99,9 +100,12 @@ def obtener_venta_por_id_o_numero(identificador):
 
 # ========== VISTAS PRINCIPALES DE VENTAS ==========
 
-@login_required
+@admin_requerido
 def lista_ventas(request):
-    """Dashboard principal de ventas con métricas en tiempo real"""
+    """Dashboard principal de ventas con métricas en tiempo real.
+
+    Acceso restringido a administradores (is_staff / is_superuser).
+    """
     today = timezone.localdate()
     yesterday = today - timedelta(days=1)
     week_ago = today - timedelta(days=7)

@@ -22,3 +22,14 @@ def permiso_requerido(codename):
             raise PermissionDenied("No tienes permiso para acceder a esta página.")
         return wrapper
     return decorator
+
+
+def admin_requerido(view_func):
+    """Permite el acceso solo a administradores (is_staff o is_superuser)."""
+    @wraps(view_func)
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_staff or request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        raise PermissionDenied("Solo los administradores pueden acceder a esta página.")
+    return wrapper

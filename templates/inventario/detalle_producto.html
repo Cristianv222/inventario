@@ -112,9 +112,10 @@
             </a>
             
             <div class="mt-3">
-                <a href="{% url 'inventario:imprimir_etiquetas' %}" class="btn btn-outline-secondary">
+                <button type="button" class="btn btn-outline-secondary" id="btnImprimirEtiquetaDetalle"
+                    data-producto-id="{{ producto.id }}" data-producto-nombre="{{ producto.nombre }}">
                     <i class="fas fa-print me-2"></i> Imprimir Etiqueta
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -217,4 +218,93 @@
     </div>
 </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Modal Imprimir Etiqueta (misma función que el botón del listado) -->
+<div class="modal fade" id="modalImprimirEtiquetas" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-white">
+        <h5 class="modal-title"><i class="fas fa-print me-2"></i> Impresión de Etiquetas</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="modalImprimirEtiquetasTexto" class="fw-bold text-center mb-3"></p>
+        <label class="form-label small text-muted text-uppercase text-center d-block">Cantidad de etiquetas</label>
+        <div class="d-flex align-items-center justify-content-center gap-3">
+          <button class="btn btn-outline-secondary" type="button" id="btnRestarEtiqueta"><i class="fas fa-minus"></i></button>
+          <input type="number" class="form-control text-center fw-bold fs-5" style="max-width:100px" id="inputCantidadEtiquetas" value="1" min="1" max="100">
+          <button class="btn btn-outline-secondary" type="button" id="btnSumarEtiqueta"><i class="fas fa-plus"></i></button>
+        </div>
+        <div id="printAlert" class="alert d-none mt-3 mb-0"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning text-white px-4 fw-bold" id="btnConfirmarImpresion">
+          <span id="btnTextImpresion">Imprimir Ahora</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function () {
+    let currentProductoId = null;
+    const modalImprimir = new bootstrap.Modal(document.getElementById('modalImprimirEtiquetas'));
+
+    $('#btnImprimirEtiquetaDetalle').on('click', function () {
+        currentProductoId = $(this).data('producto-id');
+        const nombre = $(this).data('producto-nombre');
+        $('#modalImprimirEtiquetasTexto').text('Imprimir para: ' + nombre);
+        $('#inputCantidadEtiquetas').val(1);
+        $('#printAlert').addClass('d-none');
+        $('#btnConfirmarImpresion').prop('disabled', false);
+        $('#btnTextImpresion').text('Imprimir Ahora');
+        modalImprimir.show();
+    });
+
+    $('#btnSumarEtiqueta').on('click', function () {
+        const v = parseInt($('#inputCantidadEtiquetas').val()) || 1;
+        if (v < 100) $('#inputCantidadEtiquetas').val(v + 1);
+    });
+    $('#btnRestarEtiqueta').on('click', function () {
+        const v = parseInt($('#inputCantidadEtiquetas').val()) || 1;
+        if (v > 1) $('#inputCantidadEtiquetas').val(v - 1);
+    });
+    $('#inputCantidadEtiquetas').on('keypress', function (e) { if (e.which === 13) ejecutarImpresion(); });
+    $('#btnConfirmarImpresion').on('click', ejecutarImpresion);
+
+    function ejecutarImpresion() {
+        const cantidad = $('#inputCantidadEtiquetas').val();
+        const $btn = $('#btnConfirmarImpresion');
+        const $alert = $('#printAlert');
+        $btn.prop('disabled', true);
+        $('#btnTextImpresion').html('<i class="fas fa-circle-notch fa-spin me-2"></i> Procesando...');
+        $.ajax({
+            url: '/inventario/imprimir-etiqueta-rapida/' + currentProductoId + '/',
+            method: 'POST',
+            data: { cantidad: cantidad, csrfmiddlewaretoken: '{{ csrf_token }}' },
+            success: function (response) {
+                $alert.removeClass('d-none alert-danger').addClass('alert-success')
+                      .html('<i class="fas fa-check-circle me-2"></i>' + (response.message || 'Etiqueta enviada a impresión'));
+                $('#btnTextImpresion').html('<i class="fas fa-check me-2"></i>¡Enviado!');
+                setTimeout(function () {
+                    modalImprimir.hide();
+                    $btn.prop('disabled', false);
+                    $('#btnTextImpresion').text('Imprimir Ahora');
+                }, 2000);
+            },
+            error: function (xhr) {
+                const msg = xhr.responseJSON ? (xhr.responseJSON.error || xhr.responseJSON.message || 'Error al imprimir') : 'Error al imprimir';
+                $alert.removeClass('d-none alert-success').addClass('alert-danger')
+                      .html('<i class="fas fa-exclamation-circle me-2"></i>' + msg);
+                $btn.prop('disabled', false);
+                $('#btnTextImpresion').text('Reintentar');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
