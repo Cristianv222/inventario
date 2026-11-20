@@ -169,8 +169,12 @@ class TicketThermalService:
         def wrap_center(text, width):
             return [center_text(l, width) for l in wrap_text(text, width)]
 
-        def chunk(text, width):
-            """Parte una cadena larga (p. ej. clave de 49 díg.) en bloques."""
+        def partir_texto(text, width):
+            """Parte una cadena larga (p. ej. clave de 49 díg.) en bloques.
+
+            OJO: no llamar 'chunk' — ese nombre se reutiliza como variable local
+            en el bucle de descripciones de productos y la sombrearía.
+            """
             return [text[i:i + width] for i in range(0, len(text), width)]
         
         # Construir contenido del ticket
@@ -318,11 +322,11 @@ class TicketThermalService:
             lines.append(center_text(f"Ambiente: {amb}", width))
             lines.append(separator_line(width))
             lines.append("Clave de Acceso / No. Autorizacion:")
-            for l in chunk(comp.clave_acceso, width):
+            for l in partir_texto(comp.clave_acceso, width):
                 lines.append(l)
             if comp.numero_autorizacion and comp.numero_autorizacion != comp.clave_acceso:
                 lines.append("No. Autorizacion:")
-                for l in chunk(comp.numero_autorizacion, width):
+                for l in partir_texto(comp.numero_autorizacion, width):
                     lines.append(l)
             if comp.fecha_autorizacion:
                 fa = timezone.localtime(comp.fecha_autorizacion).strftime("%d/%m/%Y %H:%M")
