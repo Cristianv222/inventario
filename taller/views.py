@@ -2311,6 +2311,7 @@ def _resumen_cuenta_tecnico(tecnico):
 def cuenta_tecnico(request, pk):
     """Página (admin) para gestionar liquidaciones semanales de un técnico."""
     from datetime import date as date_obj
+    from ventas.models import DetalleVenta
     tecnico = get_object_or_404(Tecnico, pk=pk)
 
     # Semana a visualizar (parámetro ?fecha=YYYY-MM-DD → lunes de esa semana)
