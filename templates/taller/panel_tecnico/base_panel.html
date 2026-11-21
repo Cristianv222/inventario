@@ -675,6 +675,12 @@
   }
 </style>
 {% block extra_css %}{% endblock %}
+<link rel="manifest" href="/manifest-tecnico.json">
+<meta name="theme-color" content="#8bc53f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi Panel">
+<link rel="apple-touch-icon" href="/static/img/icon-192.png">
 </head>
 <body>
 
@@ -946,5 +952,12 @@
   syncSwatches();
 </script>
 {% block extra_js %}{% endblock %}
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function (e) { console.warn('[PWA] SW error:', e); });
+  });
+}
+</script>
 </body>
 </html>

@@ -16,6 +16,10 @@ def serve_sw(request):
     path_sw = os.path.join(settings.BASE_DIR, 'sw.js')
     return FileResponse(open(path_sw, 'rb'), content_type='application/javascript')
 
+def serve_manifest_tecnico(request):
+    path_manifest = os.path.join(settings.BASE_DIR, 'manifest-tecnico.json')
+    return FileResponse(open(path_manifest, 'rb'), content_type='application/manifest+json')
+
 def serve_manifest(request):
     path_manifest = os.path.join(settings.BASE_DIR, 'manifest.json')
     return FileResponse(open(path_manifest, 'rb'), content_type='application/manifest+json')
@@ -30,6 +34,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('sw.js', serve_sw, name='sw'),
     path('manifest.json', serve_manifest, name='manifest'),
+    path('manifest-tecnico.json', serve_manifest_tecnico, name='manifest_tecnico'),
     path('', include('core.urls', namespace='core')),
     path('usuarios/', include('usuarios.urls')),
     path('ventas/', include('ventas.urls')),

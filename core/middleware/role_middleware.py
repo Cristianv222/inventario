@@ -68,6 +68,7 @@ class RoleMiddleware:
             '/media/',
             '/favicon.ico',
             '/manifest.json',
+            '/manifest-tecnico.json',
             '/sw.js',
             '/inventario/api/publica/',
             '/ventas/api/publica/',

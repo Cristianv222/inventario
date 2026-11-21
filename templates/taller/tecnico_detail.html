@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}{{ tecnico.nombres }} {{ tecnico.apellidos }} - Técnico - VPMOTOS{% endblock %}
 
@@ -437,6 +438,58 @@
                 </div>
             </div>
             
+            <!-- Historial financiero -->
+            <div class="info-card">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="mb-0"><i class="fas fa-wallet text-success me-2"></i>Historial de pagos y cuenta</h5>
+                    <a href="{% url 'taller:cuenta_tecnico' tecnico.pk %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-cash-register me-1"></i>Cobrar / registrar adelantos
+                    </a>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6 col-lg-3"><div class="p-2 border rounded text-center"><div class="small text-muted">Comisión pagada (histórico)</div><div class="fw-bold">${{ hist_total_comision|floatformat:2|intcomma }}</div></div></div>
+                    <div class="col-6 col-lg-3"><div class="p-2 border rounded text-center"><div class="small text-muted">Neto entregado</div><div class="fw-bold text-success">${{ hist_total_pagado|floatformat:2|intcomma }}</div></div></div>
+                    <div class="col-6 col-lg-3"><div class="p-2 border rounded text-center"><div class="small text-muted">Deudas ya descontadas</div><div class="fw-bold">${{ hist_total_descontado|floatformat:2|intcomma }}</div></div></div>
+                    <div class="col-6 col-lg-3"><div class="p-2 border rounded text-center" style="background:#fff7ed;"><div class="small text-muted">Deuda pendiente</div><div class="fw-bold text-danger">${{ hist_deuda_total|floatformat:2|intcomma }}</div><div class="small text-muted">Adel. ${{ hist_deuda_adelantos|floatformat:2 }} · Inv. ${{ hist_deuda_consumos|floatformat:2 }}</div></div></div>
+                </div>
+
+                <h6 class="fw-bold mt-3">Liquidaciones semanales</h6>
+                <div class="table-responsive mb-3"><table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Semana</th><th>Pagado el</th><th class="text-end">Serv.</th><th class="text-end">Comisión</th><th class="text-end">Adelantos</th><th class="text-end">Inventario</th><th class="text-end">Neto</th></tr></thead>
+                    <tbody>
+                    {% for p in hist_pagos %}
+                        <tr><td>{% if p.semana_inicio %}{{ p.semana_inicio|date:"d/m" }} – {{ p.semana_fin|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                            <td>{{ p.fecha|date:"d/m/Y H:i" }}</td><td class="text-end">{{ p.num_trabajos }}</td>
+                            <td class="text-end">${{ p.comision_bruta|floatformat:2|intcomma }}</td>
+                            <td class="text-end text-danger">{% if p.adelantos_descontados > 0 %}-${{ p.adelantos_descontados|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td class="text-end text-danger">{% if p.consumos_descontados > 0 %}-${{ p.consumos_descontados|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td class="text-end fw-bold">${{ p.monto_pagado|floatformat:2|intcomma }}</td></tr>
+                    {% empty %}<tr><td colspan="7" class="text-center text-muted py-3">Sin liquidaciones todavía.</td></tr>{% endfor %}
+                    </tbody></table></div>
+
+                <h6 class="fw-bold">Adelantos</h6>
+                <div class="table-responsive mb-3"><table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Fecha</th><th>Descripción</th><th class="text-end">Monto</th><th class="text-end">Descontado</th><th class="text-center">Estado</th></tr></thead>
+                    <tbody>
+                    {% for a in hist_adelantos %}
+                        <tr><td>{{ a.fecha|date:"d/m/Y" }}</td><td>{{ a.descripcion|default:"Adelanto de efectivo" }}</td>
+                            <td class="text-end">${{ a.monto|floatformat:2|intcomma }}</td><td class="text-end">${{ a.abonado|floatformat:2 }}</td>
+                            <td class="text-center">{% if a.liquidado %}<span class="badge bg-secondary">Liquidado</span>{% elif a.abonado > 0 %}<span class="badge bg-warning text-dark">Debe ${{ a.saldo|floatformat:2 }}</span>{% else %}<span class="badge bg-danger">Pendiente</span>{% endif %}</td></tr>
+                    {% empty %}<tr><td colspan="5" class="text-center text-muted py-3">Sin adelantos.</td></tr>{% endfor %}
+                    </tbody></table></div>
+
+                <h6 class="fw-bold">Inventario tomado a cuenta</h6>
+                <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Fecha</th><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Total</th><th class="text-center">Estado</th></tr></thead>
+                    <tbody>
+                    {% for c in hist_consumos %}
+                        <tr {% if c.anulado %}class="text-muted" style="text-decoration:line-through;"{% endif %}><td>{{ c.fecha|date:"d/m/Y" }}</td><td>{{ c.producto.nombre }}</td>
+                            <td class="text-end">{{ c.cantidad|floatformat:"-2" }}</td><td class="text-end">${{ c.total|floatformat:2|intcomma }}</td>
+                            <td class="text-center">{% if c.anulado %}<span class="badge bg-secondary">Anulado</span>{% elif c.liquidado %}<span class="badge bg-secondary">Pagado</span>{% elif c.abonado > 0 %}<span class="badge bg-warning text-dark">Debe ${{ c.saldo|floatformat:2 }}</span>{% else %}<span class="badge bg-danger">Pendiente</span>{% endif %}</td></tr>
+                    {% empty %}<tr><td colspan="5" class="text-center text-muted py-3">Sin productos anotados.</td></tr>{% endfor %}
+                    </tbody></table></div>
+            </div>
+
             <!-- Órdenes Recientes -->
             <div class="info-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">

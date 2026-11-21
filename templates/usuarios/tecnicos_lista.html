@@ -31,7 +31,7 @@
           <td class="text-end">
             <a href="{% url 'usuarios:editar_tecnico' t.pk %}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fas fa-edit"></i></a>
             <a href="{% url 'taller:cuenta_tecnico' t.pk %}" class="btn btn-sm btn-outline-success" title="Comisiones"><i class="fas fa-cash-register"></i></a>
-            <a href="{% url 'taller:panel_tecnico' %}?tecnico_id={{ t.pk }}" class="btn btn-sm btn-outline-dark" title="Ver panel"><i class="fas fa-eye"></i></a>
+            <a href="{% url 'taller:tecnico_detail' t.pk %}" class="btn btn-sm btn-outline-dark" title="Ver historial"><i class="fas fa-eye"></i></a>
           </td>
         </tr>
         {% empty %}

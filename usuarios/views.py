@@ -10,6 +10,7 @@ from django.contrib.auth.models import Permission, ContentType
 from django.contrib import messages
 from django.http import JsonResponse
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 
@@ -38,29 +39,42 @@ def is_superuser(user):
 # AUTENTICACIÓN
 # ══════════════════════════════════════════════
 
+def _es_solo_tecnico(user):
+    """Usuario vinculado a un Técnico y sin rol de administrador."""
+    return getattr(user, 'tecnico', None) is not None and not (user.is_staff or user.is_superuser)
+
+
 def login_view(request):
     """Vista de inicio de sesión"""
     if request.user.is_authenticated:
+        if _es_solo_tecnico(request.user):
+            return redirect('taller:panel_tecnico')
         return redirect('core:dashboard')
 
     if request.method == 'POST':
         form = CustomAuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            usuario   = form.cleaned_data.get('username')
+            usuario   = (form.cleaned_data.get('username') or '').strip()
             contraseña = form.cleaned_data.get('password')
-            user = authenticate(username=usuario, password=contraseña)
+            # El usuario de un técnico es su código (TEC-XXXX): no distinguir mayúsculas
+            real = Usuario.objects.filter(usuario__iexact=usuario).values_list('usuario', flat=True).first()
+            user = authenticate(username=real or usuario, password=contraseña)
 
             if user is not None:
                 if not user.activo:
                     messages.error(request, 'Tu cuenta está inactiva. Contacta al administrador.')
                 else:
                     login(request, user)
-                    next_url = request.GET.get('next')
+                    next_url = request.GET.get('next') or request.POST.get('next')
+                    # Solo se aceptan destinos internos (evita redirecciones a sitios externos)
+                    if next_url and not url_has_allowed_host_and_scheme(
+                            next_url, allowed_hosts={request.get_host()},
+                            require_https=request.is_secure()):
+                        next_url = None
                     if not next_url:
                         # Los técnicos (usuario vinculado a un Técnico y sin rol de
                         # administrador) entran directo a su panel personal.
-                        es_tecnico = getattr(user, 'tecnico', None) is not None
-                        if es_tecnico and not (user.is_staff or user.is_superuser):
+                        if _es_solo_tecnico(user):
                             next_url = reverse('taller:panel_tecnico')
                         else:
                             next_url = reverse('core:dashboard')
@@ -809,6 +823,8 @@ def cambiar_password_obligatorio(request):
             messages.error(request, 'La contraseña debe tener al menos 6 caracteres.')
         elif p1 != p2:
             messages.error(request, 'Las contraseñas no coinciden.')
+        elif user.check_password(p1):
+            messages.error(request, 'La contraseña nueva debe ser distinta a la temporal.')
         else:
             user.set_password(p1)
             user.debe_cambiar_password = False

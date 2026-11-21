@@ -21,6 +21,7 @@ class ForzarCambioPasswordMiddleware:
             except Exception:
                 permitidos = set()
             if (path not in permitidos
+                    and path not in ('/manifest.json', '/manifest-tecnico.json', '/sw.js')
                     and not path.startswith('/static/')
                     and not path.startswith('/media/')
                     and not path.startswith('/admin/')):

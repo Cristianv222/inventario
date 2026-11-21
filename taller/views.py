@@ -229,7 +229,23 @@ class TecnicoDetailView(AdminRequeridoMixin, DetailView):
         context['ordenes_recientes'] = OrdenTrabajo.objects.filter(
             tecnico_principal=tecnico
         ).select_related('cliente').order_by('-fecha_ingreso')[:10]
-        
+
+        # Historial financiero completo (comisiones pagadas, adelantos, inventario a cuenta)
+        deudas = _deudas_pendientes(tecnico)
+        pagos = list(tecnico.pagos.all()[:50])
+        todos_pagos = tecnico.pagos.all()
+        context['hist_pagos'] = pagos
+        context['hist_adelantos'] = tecnico.adelantos.select_related('pago')[:50]
+        context['hist_consumos'] = tecnico.consumos.select_related('producto')[:50]
+        context['hist_deuda_adelantos'] = deudas['adelantos_saldo']
+        context['hist_deuda_consumos'] = deudas['consumos_saldo']
+        context['hist_deuda_total'] = deudas['total']
+        context['hist_total_pagado'] = todos_pagos.aggregate(s=Sum('monto_pagado'))['s'] or Decimal('0')
+        context['hist_total_comision'] = todos_pagos.aggregate(s=Sum('comision_bruta'))['s'] or Decimal('0')
+        context['hist_total_descontado'] = (
+            (todos_pagos.aggregate(s=Sum('adelantos_descontados'))['s'] or Decimal('0')) +
+            (todos_pagos.aggregate(s=Sum('consumos_descontados'))['s'] or Decimal('0'))
+        )
         return context
 
 # ================== TIPOS DE SERVICIO ==================

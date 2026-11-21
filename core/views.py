@@ -69,6 +69,10 @@ def get_sucursal_data(sucursal):
 @login_required
 def dashboard(request):
     """Vista del panel principal"""
+    # Un técnico (sin rol de administrador) solo usa su panel personal
+    if getattr(request.user, 'tecnico', None) is not None and not (request.user.is_staff or request.user.is_superuser):
+        from django.shortcuts import redirect
+        return redirect('taller:panel_tecnico')
     existing_tables = connection.introspection.table_names()
 
     # Sucursales: viven en core, siempre disponibles
