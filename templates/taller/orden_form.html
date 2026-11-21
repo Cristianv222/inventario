@@ -1646,9 +1646,9 @@ function renderQsOrderDropdown() {
     }
     dd.innerHTML = qsoResults.map((p, i) => {
         const sc = p.stock > 10 ? 'ok' : (p.stock > 0 ? 'low' : 'out');
-        return `<div class="qso-item ${i === qsoActiveIndex ? 'active' : ''}" data-index="${i}" onclick="selectQsOrderItem(${i})">
+        return `<div class="qso-item ${i === qsoActiveIndex ? 'active' : ''}" style="${p.stock <= 0 ? 'opacity:.55' : ''}" data-index="${i}" onclick="selectQsOrderItem(${i})">
             <div><div class="qso-name">${escapeHtml(p.nombre)}</div><div class="qso-code">Código: ${escapeHtml(p.codigo || '')}</div></div>
-            <div class="qso-right"><span class="qso-price">$${Number(p.precio || 0).toFixed(2)}</span><span class="qso-stock ${sc}">Stock: ${p.stock}</span></div>
+            <div class="qso-right"><span class="qso-price">$${Number(p.precio || 0).toFixed(2)}</span><span class="qso-stock ${sc}">${p.stock <= 0 ? 'Sin stock' : 'Stock: ' + p.stock}</span></div>
         </div>`;
     }).join('');
     dd.classList.add('show');
@@ -1657,9 +1657,15 @@ function renderQsOrderDropdown() {
 function selectQsOrderItem(index) {
     const p = qsoResults[index];
     if (!p) return;
+    if (Number(p.stock) <= 0) {
+        showToast('Sin stock: "' + p.nombre + '" no se puede agregar hasta que ingrese más inventario', 'warning');
+        const inp = document.getElementById('qsOrderInput');
+        if (inp) { inp.value = ''; inp.focus(); }
+        hideQsOrderDropdown();
+        return;
+    }
     addProductToFormset(p);
-    if (Number(p.stock) <= 0) showToast('Agregado (sin stock): ' + p.nombre, 'warning');
-    else showToast('✅ ' + p.nombre, 'success');
+    showToast('✅ ' + p.nombre, 'success');
     const input = document.getElementById('qsOrderInput');
     if (input) { input.value = ''; input.focus(); }
     hideQsOrderDropdown();
@@ -2220,6 +2226,12 @@ function selectProductFromModal(productId) {
 }
 
 function addProductToFormset(product) {
+    // Bloqueo central: un producto sin stock no entra a la orden
+    // (el servidor lo rechazaría y se perdería todo el formulario).
+    if (Number(product.stock) <= 0) {
+        showToast('Sin stock: "' + product.nombre + '" no se puede agregar hasta que ingrese más inventario', 'warning');
+        return;
+    }
     const existingIndex = repuestosFormset.findIndex(item => item.id === product.id);
     
     if (existingIndex !== -1) {
