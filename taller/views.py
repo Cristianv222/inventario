@@ -29,12 +29,22 @@ from .models import (
 )
 from .service.cotizacion_service import CotizacionService
 from .forms import (
-    TecnicoForm, TipoServicioForm, OrdenTrabajoForm, ServicioOrdenForm,
+    TipoServicioForm, OrdenTrabajoForm, ServicioOrdenForm,
     RepuestoOrdenForm, EvaluacionServicioForm,
     BusquedaOrdenForm, ServicioOrdenFormSet, RepuestoOrdenFormSet
 )
 from clientes.models import Cliente, Moto
 from inventario.models import Producto
+
+class AdminRequeridoMixin(LoginRequiredMixin):
+    """Solo administradores (is_staff / is_superuser). La gestión de técnicos
+    (crear/editar) vive en Admin > Técnicos."""
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not (request.user.is_staff or request.user.is_superuser):
+            messages.error(request, 'Solo un administrador puede ver esta sección.')
+            return redirect('taller:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
 
 # ================== HELPERS ==================
 
@@ -168,7 +178,7 @@ def dashboard_taller(request):
 
 # ================== TÉCNICOS ==================
 
-class TecnicoListView(LoginRequiredMixin, ListView):
+class TecnicoListView(AdminRequeridoMixin, ListView):
     model = Tecnico
     template_name = 'taller/tecnico_list.html'
     context_object_name = 'tecnicos'
@@ -200,7 +210,7 @@ class TecnicoListView(LoginRequiredMixin, ListView):
         context['estados'] = Tecnico.ESTADO_CHOICES
         return context
 
-class TecnicoDetailView(LoginRequiredMixin, DetailView):
+class TecnicoDetailView(AdminRequeridoMixin, DetailView):
     model = Tecnico
     template_name = 'taller/tecnico_detail.html'
     context_object_name = 'tecnico'
@@ -221,88 +231,6 @@ class TecnicoDetailView(LoginRequiredMixin, DetailView):
         ).select_related('cliente').order_by('-fecha_ingreso')[:10]
         
         return context
-
-class TecnicoCreateView(LoginRequiredMixin, CreateView):
-    model = Tecnico
-    form_class = TecnicoForm
-    template_name = 'taller/tecnico_form.html'
-    success_url = reverse_lazy('taller:tecnico_list')
-    
-    def form_valid(self, form):
-        # Debugging
-        print("=" * 50)
-        print("FORMULARIO VÁLIDO - Guardando técnico...")
-        print(f"Datos: {form.cleaned_data}")
-        
-        try:
-            response = super().form_valid(form)
-            print(f"Técnico guardado: ID={self.object.id}, Código={self.object.codigo}")
-            
-            messages.success(
-                self.request, 
-                f'Técnico {self.object.get_nombre_completo()} creado exitosamente.'
-            )
-            
-            # Verificar si es "Guardar y Nuevo"
-            if self.request.POST.get('action') == 'save_and_new':
-                return redirect('taller:tecnico_create')
-            
-            return response
-            
-        except Exception as e:
-            print(f"ERROR al guardar: {e}")
-            import traceback
-            traceback.print_exc()
-            messages.error(self.request, f'Error al guardar: {str(e)}')
-            return self.form_invalid(form)
-    
-    def form_invalid(self, form):
-        # AGREGAR ESTOS PRINTS
-        print("=" * 50)
-        print("FORMULARIO INVÁLIDO - ORDEN DE TRABAJO")
-        print("Errores del formulario:")
-        for field, errors in form.errors.items():
-            print(f"  {field}: {errors}")
-        print("=" * 50)
-        print("Datos POST recibidos:")
-        for field, value in self.request.POST.items():
-            print(f"  {field}: {value}")
-        print("=" * 50)
-        
-        # También revisar formsets
-        context = self.get_context_data()
-        servicios_formset = context['servicios_formset']
-        repuestos_formset = context['repuestos_formset']
-        
-        if not servicios_formset.is_valid():
-            print("ERRORES EN FORMSET DE SERVICIOS:")
-            print(servicios_formset.errors)
-            print("=" * 50)
-        
-        if not repuestos_formset.is_valid():
-            print("ERRORES EN FORMSET DE REPUESTOS:")
-            print(repuestos_formset.errors)
-            print("=" * 50)
-        
-        messages.error(
-            self.request,
-            'Por favor corrija los errores en el formulario.'
-        )
-        return super().form_invalid(form)
-
-class TecnicoUpdateView(LoginRequiredMixin, UpdateView):
-    model = Tecnico
-    form_class = TecnicoForm
-    template_name = 'taller/tecnico_form.html'
-    success_url = reverse_lazy('taller:tecnico_list')
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Técnico actualizado exitosamente.')
-        return super().form_valid(form)
-    
-    def form_invalid(self, form):
-        messages.error(self.request, 'Error al actualizar el técnico. Revisa los campos marcados.')
-        return super().form_invalid(form)
 
 # ================== TIPOS DE SERVICIO ==================
 
@@ -2238,69 +2166,6 @@ def panel_tecnico(request, seccion='calculadora'):
     })
 
 
-@admin_requerido
-def crear_acceso_tecnico(request, pk):
-    """Crea (o resetea) el acceso de login de un técnico. Solo administradores."""
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
-
-    tecnico = get_object_or_404(Tecnico, pk=pk)
-    from usuarios.models import Usuario
-    try:
-        data = json.loads(request.body) if request.body else {}
-    except Exception:
-        data = request.POST
-
-    username = (data.get('usuario') or tecnico.identificacion or tecnico.codigo or '').strip()
-    password = (data.get('password') or '').strip()
-
-    if not username or not password:
-        return JsonResponse({'success': False, 'message': 'Usuario y contraseña son requeridos.'}, status=400)
-    if len(password) < 6:
-        return JsonResponse({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres.'}, status=400)
-
-    # Si ya tiene acceso, solo reseteamos la contraseña (y lo reactivamos)
-    if tecnico.usuario_id:
-        u = tecnico.usuario
-        u.set_password(password)
-        u.activo = True
-        u.is_staff = False
-        u.save()
-        return JsonResponse({
-            'success': True,
-            'message': f'Contraseña actualizada para el acceso "{u.usuario}".',
-            'usuario': u.usuario,
-        })
-
-    if Usuario.objects.filter(usuario=username).exists():
-        return JsonResponse({'success': False, 'message': f'El usuario "{username}" ya existe. Elige otro.'}, status=400)
-
-    email = f"{username}@tecnico.vpmotos.local"
-    if Usuario.objects.filter(email=email).exists():
-        email = f"tec{tecnico.pk}.{username}@tecnico.vpmotos.local"
-
-    try:
-        u = Usuario(
-            usuario=username, email=email,
-            nombre=tecnico.nombres, apellido=tecnico.apellidos,
-            is_staff=False, is_superuser=False, activo=True,
-        )
-        u.set_password(password)
-        u.save()
-        tecnico.usuario = u
-        tecnico.save(update_fields=['usuario'])
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'No se pudo crear el acceso: {e}'}, status=500)
-
-    return JsonResponse({
-        'success': True,
-        'message': f'Acceso creado. El técnico entra con usuario "{username}".',
-        'usuario': username,
-    })
-
-
-# ============================================================================
-# FASE 2: CUENTA DEL TÉCNICO (comisiones, adelantos, pagos, saldo)
 # ============================================================================
 def _servicios_pendientes_tecnico(tecnico):
     """Líneas de SERVICIO (solo el servicio, no repuestos) cobradas en POS,

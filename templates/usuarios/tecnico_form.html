@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 {% block title %}{% if modo == 'editar' %}Editar{% else %}Nuevo{% endif %} Técnico - OPENMOTORS{% endblock %}
 
 {% block content %}
@@ -9,15 +10,33 @@
     <p class="text-muted small mb-0">Datos, acceso al sistema y esquema de pago.</p>
   </div>
 
-  <form method="post" id="tecForm">
+  <form method="post" id="tecForm" enctype="multipart/form-data">
     {% csrf_token %}
     <div class="card shadow-sm mb-3"><div class="card-header fw-bold"><i class="fas fa-user me-2"></i>Datos del técnico</div>
       <div class="card-body row g-3">
         <div class="col-md-6"><label class="form-label small fw-bold">Nombres *</label><input name="nombres" class="form-control" required value="{{ tecnico.nombres|default:'' }}"></div>
         <div class="col-md-6"><label class="form-label small fw-bold">Apellidos *</label><input name="apellidos" class="form-control" required value="{{ tecnico.apellidos|default:'' }}"></div>
         <div class="col-md-6"><label class="form-label small fw-bold">Identificación (cédula) *</label><input name="identificacion" class="form-control" required value="{{ tecnico.identificacion|default:'' }}" {% if modo == 'editar' %}readonly{% endif %}></div>
+        <div class="col-md-6"><label class="form-label small fw-bold">Tipo de identificación</label>
+          <select name="tipo_identificacion" class="form-select">
+            {% for v,l in tipos_identificacion %}<option value="{{ v }}" {% if tecnico.tipo_identificacion == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+          </select></div>
+        <div class="col-md-6"><label class="form-label small fw-bold">Fecha de nacimiento</label><input name="fecha_nacimiento" type="date" class="form-control" value="{{ tecnico.fecha_nacimiento|date:'Y-m-d' }}"></div>
         <div class="col-md-6"><label class="form-label small fw-bold">Teléfono</label><input name="telefono" class="form-control" value="{{ tecnico.telefono|default:'' }}"></div>
+        <div class="col-md-6"><label class="form-label small fw-bold">Celular</label><input name="celular" class="form-control" value="{{ tecnico.celular|default:'' }}"></div>
         <div class="col-md-6"><label class="form-label small fw-bold">Correo</label><input name="email" type="email" class="form-control" value="{{ tecnico.email|default:'' }}"></div>
+        <div class="col-md-6"><label class="form-label small fw-bold">Dirección</label><input name="direccion" class="form-control" value="{{ tecnico.direccion|default:'' }}"></div>
+        <div class="col-md-4"><label class="form-label small fw-bold">Fecha de ingreso</label><input name="fecha_ingreso" type="date" class="form-control" value="{% if tecnico %}{{ tecnico.fecha_ingreso|date:'Y-m-d' }}{% else %}{{ hoy|date:'Y-m-d' }}{% endif %}"></div>
+        <div class="col-md-4"><label class="form-label small fw-bold">Estado</label>
+          <select name="estado" class="form-select">
+            {% for v,l in estados %}<option value="{{ v }}" {% if tecnico.estado == v or not tecnico and v == 'ACTIVO' %}selected{% endif %}>{{ l }}</option>{% endfor %}
+          </select></div>
+        <div class="col-md-4"><label class="form-label small fw-bold">Foto</label><input name="foto" type="file" accept="image/*" class="form-control">{% if tecnico.foto %}<div class="form-text">Ya tiene foto; sube otra solo para reemplazarla.</div>{% endif %}</div>
+        <div class="col-12"><label class="form-label small fw-bold">Especialidades</label>
+          <select name="especialidades" class="form-select" multiple size="4">
+            {% for e in especialidades %}<option value="{{ e.pk }}" {% if tecnico and e in tecnico.especialidades.all %}selected{% endif %}>{{ e.nombre }}</option>{% endfor %}
+          </select><div class="form-text">Mantén Ctrl (o Cmd) para elegir varias.</div></div>
+        <div class="col-12"><label class="form-label small fw-bold">Observaciones</label><textarea name="observaciones" rows="2" class="form-control">{{ tecnico.observaciones|default:'' }}</textarea></div>
       </div>
     </div>
 
@@ -30,7 +49,7 @@
         </div>
         <div id="boxCom" class="ms-4 mb-3">
           <label class="form-label small fw-bold">Porcentaje de comisión (%)</label>
-          <input name="porcentaje_comision" type="number" step="0.01" min="0" max="100" class="form-control" style="max-width:200px" value="{{ tecnico.porcentaje_comision|default:'50' }}">
+          <input name="porcentaje_comision" type="number" step="0.01" min="0" max="100" class="form-control" style="max-width:200px" value="{% if tecnico %}{{ tecnico.porcentaje_comision|unlocalize }}{% else %}50{% endif %}">
           <div class="form-text">Ej: 50 = la mitad del valor del servicio. Se aplica a órdenes cobradas en POS y a mecánica rápida.</div>
         </div>
 
@@ -39,7 +58,7 @@
           <label class="form-check-label fw-bold" for="chkSal">Gana salario fijo</label>
         </div>
         <div id="boxSal" class="ms-4 row g-2" style="display:none">
-          <div class="col-md-6"><label class="form-label small fw-bold">Monto del salario</label><input name="salario_base" type="number" step="0.01" min="0" class="form-control" value="{{ tecnico.salario_base|default:'' }}"></div>
+          <div class="col-md-6"><label class="form-label small fw-bold">Monto del salario</label><input name="salario_base" type="number" step="0.01" min="0" class="form-control" value="{% if tecnico and tecnico.salario_base %}{{ tecnico.salario_base|unlocalize }}{% endif %}"></div>
           <div class="col-md-6"><label class="form-label small fw-bold">Periodicidad</label>
             <select name="periodicidad_salario" class="form-select">
               <option value="SEMANAL" {% if tecnico.periodicidad_salario == 'SEMANAL' %}selected{% endif %}>Semanal</option>
@@ -54,11 +73,18 @@
     <div class="card shadow-sm mb-3"><div class="card-header fw-bold"><i class="fas fa-key me-2"></i>Acceso al sistema</div>
       <div class="card-body">
         {% if modo == 'editar' %}
-          <p class="small text-muted mb-2">Usuario de acceso: <strong>{{ tecnico.usuario.usuario|default:'(sin acceso)' }}</strong>. Escribe una contraseña solo si quieres resetearla (será temporal y deberá cambiarla).</p>
-          <label class="form-label small fw-bold">Nueva contraseña temporal (opcional)</label>
-          <input name="password" type="text" class="form-control" style="max-width:280px" placeholder="Déjalo vacío para no cambiarla">
+          {% if tecnico.usuario_id %}
+          <p class="small text-muted mb-2">Usuario de acceso: <strong>{{ tecnico.usuario.usuario }}</strong>. Genera o escribe una contraseña solo si quieres resetearla (será temporal y deberá cambiarla).</p>
+          {% else %}
+          <p class="small text-warning-emphasis mb-2"><i class="fas fa-exclamation-triangle"></i> Este técnico <strong>no tiene acceso</strong>. Al guardar se creará su usuario (<strong>{{ tecnico.codigo }}</strong>) con la contraseña de abajo; si la dejas vacía se genera una aleatoria.</p>
+          {% endif %}
+          <label class="form-label small fw-bold">Contraseña temporal{% if tecnico.usuario_id %} (opcional){% endif %}</label>
+          <div class="input-group" style="max-width:380px">
+            <input name="password" id="inpPass" type="text" class="form-control" placeholder="{% if tecnico.usuario_id %}Vacío = no cambiarla{% else %}Vacío = aleatoria{% endif %}" autocomplete="off">
+            <button class="btn btn-outline-primary" type="button" onclick="generarClave()"><i class="fas fa-dice"></i> Generar clave aleatoria</button>
+          </div>
         {% else %}
-          <p class="small text-muted mb-0"><i class="fas fa-info-circle text-primary"></i> El usuario será su <strong>cédula</strong> y se generará una <strong>contraseña temporal aleatoria</strong>. Al guardar se mostrará en pantalla para copiarla. El técnico deberá cambiarla en su primer inicio de sesión.</p>
+          <p class="small text-muted mb-0"><i class="fas fa-info-circle text-primary"></i> El usuario será su <strong>código de técnico</strong> (ej. TEC-0001) y se generará una <strong>contraseña temporal aleatoria</strong>. Al guardar se mostrará en pantalla para copiarla. El técnico deberá cambiarla en su primer inicio de sesión.</p>
         {% endif %}
       </div>
     </div>
@@ -73,7 +99,7 @@
 <!-- Modal credenciales (solo al crear) -->
 <div class="modal fade" id="modalCreds" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-    <div class="modal-header bg-success text-white"><h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Técnico creado</h5></div>
+    <div class="modal-header bg-success text-white"><h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>{% if modo == 'editar' %}Acceso listo{% else %}Técnico creado{% endif %}</h5></div>
     <div class="modal-body">
       <p class="small text-muted">Guarda o entrégale estas credenciales al técnico. <strong>No se volverán a mostrar.</strong> Deberá cambiar la contraseña en su primer inicio de sesión.</p>
       <div class="mb-3">
@@ -95,12 +121,21 @@
 
 {% block extra_js %}
 <script>
+  function generarClave(){
+    const c='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'; const a=new Uint32Array(10); crypto.getRandomValues(a);
+    document.getElementById('inpPass').value=Array.from(a,n=>c[n%c.length]).join('');
+  }
   function toggleBox(id, chk){ document.getElementById(id).style.display = chk.checked ? '' : 'none'; }
   function copiar(id, btn){ const el=document.getElementById(id); navigator.clipboard.writeText(el.value).then(()=>{ const o=btn.innerHTML; btn.innerHTML='<i class="fas fa-check"></i>'; setTimeout(()=>btn.innerHTML=o,1200); }); }
   function copiarAmbos(btn){ const t='Usuario: '+document.getElementById('credUser').value+'  Contraseña: '+document.getElementById('credPass').value; navigator.clipboard.writeText(t).then(()=>{ const o=btn.innerHTML; btn.innerHTML='<i class="fas fa-check"></i> Copiado'; setTimeout(()=>btn.innerHTML=o,1400); }); }
   document.addEventListener('DOMContentLoaded', function(){
     toggleBox('boxCom', document.getElementById('chkCom'));
     toggleBox('boxSal', document.getElementById('chkSal'));
+    {% if creds %}
+    document.getElementById('credUser').value='{{ creds.usuario|escapejs }}';
+    document.getElementById('credPass').value='{{ creds.password|escapejs }}';
+    new bootstrap.Modal(document.getElementById('modalCreds')).show();
+    {% endif %}
     {% if modo != 'editar' %}
     const form=document.getElementById('tecForm'), btn=document.getElementById('btnGuardar');
     form.addEventListener('submit', function(e){

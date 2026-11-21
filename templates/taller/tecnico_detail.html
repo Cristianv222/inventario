@@ -253,11 +253,8 @@
                     {{ tecnico.get_estado_display }}
                 </span>
                 <div class="action-buttons">
-                    <a href="{% url 'taller:tecnico_update' tecnico.pk %}" class="btn btn-light me-2">
-                        <i class="fas fa-edit me-1"></i>Editar
-                    </a>
                     <a href="{% url 'usuarios:editar_tecnico' tecnico.pk %}" class="btn btn-light me-2">
-                        <i class="fas fa-key me-1"></i>Acceso y pago
+                        <i class="fas fa-edit me-1"></i>Editar / Acceso
                     </a>
                     <a href="{% url 'taller:cuenta_tecnico' tecnico.pk %}" class="btn btn-light me-2">
                         <i class="fas fa-cash-register me-1"></i>Comisiones
@@ -530,61 +527,6 @@
 {% endblock %}
 
 {% block extra_js %}
-
-<!-- Modal: Crear / Resetear acceso del técnico -->
-<div class="modal fade" id="modalAccesoTecnico" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="fas fa-key me-2"></i>Acceso del técnico</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p class="text-muted small">El técnico usará este usuario y contraseña en el <strong>mismo inicio de sesión</strong> del sistema y entrará directo a su panel.</p>
-        <div class="mb-3">
-          <label class="form-label small fw-bold">Usuario</label>
-          <input type="text" class="form-control" id="accesoUsuario" value="{{ tecnico.usuario.usuario|default:tecnico.identificacion }}" {% if tecnico.usuario_id %}readonly{% endif %}>
-        </div>
-        <div class="mb-2">
-          <label class="form-label small fw-bold">Contraseña {% if tecnico.usuario_id %}(nueva){% endif %}</label>
-          <input type="text" class="form-control" id="accesoPassword" placeholder="Mínimo 6 caracteres">
-        </div>
-        <div id="accesoMsg" class="small mt-2"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btnGuardarAcceso" onclick="guardarAccesoTecnico()">
-          {% if tecnico.usuario_id %}Actualizar contraseña{% else %}Crear acceso{% endif %}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-function guardarAccesoTecnico() {
-    const usuario = document.getElementById('accesoUsuario').value.trim();
-    const password = document.getElementById('accesoPassword').value.trim();
-    const msg = document.getElementById('accesoMsg');
-    const btn = document.getElementById('btnGuardarAcceso');
-    msg.innerHTML = '';
-    if (!usuario || password.length < 6) { msg.innerHTML = '<span class="text-danger">Usuario y contraseña (mín. 6) son requeridos.</span>'; return; }
-    btn.disabled = true; const orig = btn.innerHTML; btn.innerHTML = 'Guardando...';
-    fetch(`{% url 'taller:crear_acceso_tecnico' tecnico.pk %}`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario, password })
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            msg.innerHTML = `<span class="text-success">✅ ${d.message}<br>Usuario: <strong>${d.usuario}</strong> · Contraseña: <strong>${password}</strong></span>`;
-        } else { msg.innerHTML = `<span class="text-danger">❌ ${d.message}</span>`; }
-    })
-    .catch(() => { msg.innerHTML = '<span class="text-danger">❌ Error de comunicación.</span>'; })
-    .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
-}
-</script>
 
 <script>
 // Variables globales

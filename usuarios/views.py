@@ -609,6 +609,81 @@ def _generar_codigo_tecnico():
     return f'TEC-{n:04d}'
 
 
+_CLAVE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
+
+
+def _contexto_form_tecnico(**extra):
+    from taller.models import Tecnico, EspecialidadTecnica
+    ctx = {
+        'tipos_identificacion': Tecnico.TIPO_IDENTIFICACION_CHOICES,
+        'estados': Tecnico.ESTADO_CHOICES,
+        'especialidades': EspecialidadTecnica.objects.all(),
+        'hoy': timezone.localdate(),
+    }
+    ctx.update(extra)
+    return ctx
+
+
+def _clave_temporal():
+    return get_random_string(10, allowed_chars=_CLAVE_CHARS)
+
+
+def _crear_usuario_tecnico(tecnico, password, email=None):
+    """Crea el usuario de acceso del técnico. El usuario de login es su CÓDIGO."""
+    login_name = tecnico.codigo
+    if Usuario.objects.filter(usuario=login_name).exists():
+        login_name = f'{tecnico.codigo}-{get_random_string(3, allowed_chars="0123456789")}'
+    email_final = email or f'{login_name.lower()}@tecnico.vpmotos.local'
+    if Usuario.objects.filter(email=email_final).exists():
+        email_final = f'{login_name.lower()}.{get_random_string(4)}@tecnico.vpmotos.local'
+    u = Usuario(
+        usuario=login_name, email=email_final,
+        nombre=tecnico.nombres, apellido=tecnico.apellidos,
+        is_staff=False, is_superuser=False, activo=True,
+        debe_cambiar_password=True,
+    )
+    u.set_password(password)
+    u.save()
+    tecnico.usuario = u
+    tecnico.save(update_fields=['usuario'])
+    return u
+
+
+def _fecha(v):
+    from django.utils.dateparse import parse_date
+    try:
+        return parse_date((v or '').strip()) if v else None
+    except ValueError:
+        return None
+
+
+def _aplicar_datos_extra_tecnico(tecnico, request, creando=False):
+    """Campos que antes solo existían en el formulario de Taller."""
+    from taller.models import Tecnico
+    P = request.POST
+    tipos = dict(Tecnico.TIPO_IDENTIFICACION_CHOICES)
+    estados = dict(Tecnico.ESTADO_CHOICES)
+    if P.get('tipo_identificacion') in tipos:
+        tecnico.tipo_identificacion = P['tipo_identificacion']
+    tecnico.celular = (P.get('celular') or '').strip() or None
+    tecnico.direccion = (P.get('direccion') or '').strip() or None
+    tecnico.observaciones = (P.get('observaciones') or '').strip() or None
+    tecnico.fecha_nacimiento = _fecha(P.get('fecha_nacimiento'))
+    fi = _fecha(P.get('fecha_ingreso'))
+    if fi:
+        tecnico.fecha_ingreso = fi
+    if P.get('estado') in estados:
+        tecnico.estado = P['estado']
+        tecnico.activo = tecnico.estado != 'INACTIVO'
+    if request.FILES.get('foto'):
+        tecnico.foto = request.FILES['foto']
+
+
+def _guardar_especialidades(tecnico, request):
+    ids = [i for i in request.POST.getlist('especialidades') if i.isdigit()]
+    tecnico.especialidades.set(ids)
+
+
 @admin_requerido
 def lista_tecnicos(request):
     from taller.models import Tecnico
@@ -639,36 +714,25 @@ def crear_tecnico(request):
         if not gana_comision and not gana_salario:
             return JsonResponse({'success': False, 'message': 'El técnico debe ganar al menos comisión o salario.'}, status=400)
 
-        usuario_login = identificacion
-        if Usuario.objects.filter(usuario=usuario_login).exists():
-            usuario_login = f'tec{identificacion}'
-        # Contraseña temporal ALEATORIA (sin caracteres ambiguos)
-        temp = get_random_string(10, allowed_chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789')
-        email_final = email or f'{usuario_login}@tecnico.vpmotos.local'
-        if Usuario.objects.filter(email=email_final).exists():
-            email_final = f'{usuario_login}.{get_random_string(4)}@tecnico.vpmotos.local'
-
+        temp = _clave_temporal()
         try:
-            u = Usuario(
-                usuario=usuario_login, email=email_final,
-                nombre=nombres, apellido=apellidos,
-                is_staff=False, is_superuser=False, activo=True,
-                debe_cambiar_password=True,
-            )
-            u.set_password(temp)
-            u.save()
-
-            Tecnico.objects.create(
-                codigo=_generar_codigo_tecnico(),
-                nombres=nombres, apellidos=apellidos,
-                identificacion=identificacion, tipo_identificacion='CEDULA',
-                telefono=telefono, email=email_final, estado='ACTIVO',
-                fecha_ingreso=timezone.localdate(),
-                usuario=u,
-                gana_comision=gana_comision, porcentaje_comision=porcentaje,
-                gana_salario=gana_salario, salario_base=salario,
-                periodicidad_salario=periodicidad,
-            )
+            from django.db import transaction
+            with transaction.atomic():
+                tecnico = Tecnico.objects.create(
+                    codigo=_generar_codigo_tecnico(),
+                    nombres=nombres, apellidos=apellidos,
+                    identificacion=identificacion, tipo_identificacion='CEDULA',
+                    telefono=telefono, email=email, estado='ACTIVO',
+                    fecha_ingreso=timezone.localdate(),
+                    gana_comision=gana_comision, porcentaje_comision=porcentaje,
+                    gana_salario=gana_salario, salario_base=salario,
+                    periodicidad_salario=periodicidad,
+                )
+                _aplicar_datos_extra_tecnico(tecnico, request, creando=True)
+                tecnico.save()
+                _guardar_especialidades(tecnico, request)
+                u = _crear_usuario_tecnico(tecnico, temp, email=email)
+                usuario_login = u.usuario
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'No se pudo crear el técnico: {e}'}, status=500)
 
@@ -679,7 +743,7 @@ def crear_tecnico(request):
             'nombre': f'{nombres} {apellidos}',
         })
 
-    return render(request, 'usuarios/tecnico_form.html', {'modo': 'crear'})
+    return render(request, 'usuarios/tecnico_form.html', _contexto_form_tecnico(modo='crear'))
 
 
 @admin_requerido
@@ -696,25 +760,42 @@ def editar_tecnico(request, pk):
         tecnico.porcentaje_comision = _dec(request.POST.get('porcentaje_comision'), '0')
         tecnico.salario_base = _dec(request.POST.get('salario_base'), '0')
         tecnico.periodicidad_salario = request.POST.get('periodicidad_salario') or 'MENSUAL'
+        _aplicar_datos_extra_tecnico(tecnico, request)
         tecnico.save()
+        _guardar_especialidades(tecnico, request)
 
-        # Reset de contraseña (opcional) -> temporal + cambio obligatorio
+        # Acceso: crear si no tiene, o resetear contraseña (temporal + cambio obligatorio)
         nueva = (request.POST.get('password') or '').strip()
-        if nueva and tecnico.usuario_id:
-            if len(nueva) < 6:
-                messages.error(request, 'La contraseña debe tener al menos 6 caracteres.')
+        if nueva and len(nueva) < 6:
+            messages.error(request, 'La contraseña debe tener al menos 6 caracteres.')
+            return redirect('usuarios:editar_tecnico', pk=pk)
+
+        creds = None
+        if not tecnico.usuario_id:
+            clave = nueva or _clave_temporal()
+            try:
+                u = _crear_usuario_tecnico(tecnico, clave, email=tecnico.email)
+                creds = {'usuario': u.usuario, 'password': clave}
+            except Exception as e:
+                messages.error(request, f'Datos guardados, pero no se pudo crear el acceso: {e}')
                 return redirect('usuarios:editar_tecnico', pk=pk)
+        elif nueva:
             u = tecnico.usuario
             u.set_password(nueva)
             u.debe_cambiar_password = True
             u.activo = True
             u.save()
-            messages.success(request, f'Datos guardados y contraseña temporal actualizada a "{nueva}".')
-        else:
-            messages.success(request, 'Datos del técnico actualizados.')
+            creds = {'usuario': u.usuario, 'password': nueva}
+
+        if creds:
+            # Se muestra en pantalla (no se redirige) para que el admin copie las credenciales
+            tecnico.refresh_from_db()
+            return render(request, 'usuarios/tecnico_form.html',
+                          _contexto_form_tecnico(modo='editar', tecnico=tecnico, creds=creds))
+        messages.success(request, 'Datos del técnico actualizados.')
         return redirect('usuarios:lista_tecnicos')
 
-    return render(request, 'usuarios/tecnico_form.html', {'modo': 'editar', 'tecnico': tecnico})
+    return render(request, 'usuarios/tecnico_form.html', _contexto_form_tecnico(modo='editar', tecnico=tecnico))
 
 
 @login_required

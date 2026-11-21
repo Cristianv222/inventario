@@ -9,9 +9,7 @@ urlpatterns = [
     
     # Técnicos
     path('tecnicos/', views.TecnicoListView.as_view(), name='tecnico_list'),
-    path('tecnicos/crear/', views.TecnicoCreateView.as_view(), name='tecnico_create'),
     path('tecnicos/<int:pk>/', views.TecnicoDetailView.as_view(), name='tecnico_detail'),
-    path('tecnicos/<int:pk>/editar/', views.TecnicoUpdateView.as_view(), name='tecnico_update'),
     
     # Tipos de Servicio
     path('tipos-servicio/', views.TipoServicioListView.as_view(), name='tipo_servicio_list'),
@@ -28,7 +26,6 @@ urlpatterns = [
     path('mi-panel/cuenta/', views.panel_tecnico, {'seccion': 'cuenta'}, name='panel_tecnico_cuenta'),
     path('mi-panel/perfil/', views.panel_tecnico, {'seccion': 'perfil'}, name='panel_tecnico_perfil'),
     path('mi-perfil/', views.perfil_tecnico, name='perfil_tecnico'),
-    path('tecnicos/<int:pk>/crear-acceso/', views.crear_acceso_tecnico, name='crear_acceso_tecnico'),
 
     # Cuenta del técnico (comisiones / adelantos / pagos)
     path('tecnicos/<int:pk>/cuenta/', views.cuenta_tecnico, name='cuenta_tecnico'),

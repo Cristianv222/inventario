@@ -413,11 +413,11 @@
                     </div>
                     <div class="price-row">
                         <span>Repuestos:</span>
-                        <span>${{ orden.precio_repuestos|floatformat:2 }}</span>
+                        <span>${{ orden.repuestos_con_iva|floatformat:2 }}</span>
                     </div>
                     <div class="price-row price-total">
                         <span>Total:</span>
-                        <span>${{ orden.precio_total|floatformat:2 }}</span>
+                        <span>${{ orden.total_con_iva|floatformat:2 }}</span>
                     </div>
                     {% if orden.anticipo > 0 %}
                     <div class="price-row mt-3">
@@ -426,7 +426,7 @@
                     </div>
                     <div class="price-row">
                         <span>Saldo Pendiente:</span>
-                        <span class="text-danger fw-bold">${{ orden.saldo_pendiente|floatformat:2 }}</span>
+                        <span class="text-danger fw-bold">${{ orden.saldo_con_iva|floatformat:2 }}</span>
                     </div>
                     {% endif %}
                 </div>

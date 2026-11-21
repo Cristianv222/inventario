@@ -330,6 +330,25 @@ class ServicioOrdenForm(forms.ModelForm):
 # ============================================
 # ✅ CORREGIDO: RepuestoOrdenForm
 # ============================================
+class SelectProductoLigero(forms.Select):
+    """Select de producto que solo dibuja la opción seleccionada.
+
+    El formulario de la orden renderizaba <select> con TODOS los productos en
+    cada fila del formset (HTML de ~4 MB), lo que hacía muy lenta la edición.
+    La validación sigue usando el queryset completo del campo; los productos
+    nuevos los agrega el JS con inputs ocultos.
+    """
+    def optgroups(self, name, value, attrs=None):
+        options = [self.create_option(name, '', '---------', False, 0)]
+        ids = [str(v) for v in (value or []) if v not in (None, '')]
+        if ids:
+            for i, prod in enumerate(Producto.objects.filter(pk__in=ids), start=1):
+                options.append(self.create_option(
+                    name, prod.pk, str(prod), True, i
+                ))
+        return [(None, options, 0)]
+
+
 class RepuestoOrdenForm(forms.ModelForm):
     """Formulario para repuestos en órdenes"""
     class Meta:
@@ -351,7 +370,7 @@ class RepuestoOrdenForm(forms.ModelForm):
         }
         
         widgets = {
-            'producto': forms.Select(attrs={
+            'producto': SelectProductoLigero(attrs={
                 'class': 'form-select producto-select',
                 'data-precio-url': '/taller/ajax/precio-producto/'
             }),

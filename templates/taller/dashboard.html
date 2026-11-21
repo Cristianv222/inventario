@@ -725,13 +725,15 @@
                 <div class="action-subtitle">Crear orden de trabajo</div>
             </a>
             
-            <a href="{% url 'taller:tecnico_create' %}" class="action-btn crear-tecnico">
+            {% if user.is_staff or user.is_superuser %}
+            <a href="{% url 'usuarios:crear_tecnico' %}" class="action-btn crear-tecnico">
                 <div class="action-icon">
                     <i class="fas fa-user-plus"></i>
                 </div>
                 <div class="action-title">Nuevo Técnico</div>
                 <div class="action-subtitle">Agregar personal</div>
             </a>
+            {% endif %}
             
             <a href="{% url 'taller:tipo_servicio_create' %}" class="action-btn crear-servicio">
                 <div class="action-icon">

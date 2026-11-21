@@ -657,6 +657,21 @@ class OrdenTrabajo(models.Model):
         servicios_completados = self.servicios.filter(completado=True).count()
         return int((servicios_completados / total_servicios) * 100)
 
+    # --- Valores para mostrar con IVA incluido (IVA 15% solo sobre repuestos).
+    # Lo guardado en BD (precio_total) sigue siendo sin IVA para no alterar
+    # comisiones ni reportes; el desglose del IVA se hace en el POS.
+    @property
+    def repuestos_con_iva(self):
+        return (self.precio_repuestos * Decimal('1.15')).quantize(Decimal('0.01'))
+
+    @property
+    def total_con_iva(self):
+        return (self.precio_mano_obra + self.repuestos_con_iva).quantize(Decimal('0.01'))
+
+    @property
+    def saldo_con_iva(self):
+        return (self.total_con_iva - self.anticipo).quantize(Decimal('0.01'))
+
     def get_subtotal_servicios(self):
         return self.precio_mano_obra
 
