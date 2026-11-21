@@ -31,6 +31,8 @@ urlpatterns = [
     path('tecnicos/<int:pk>/cuenta/', views.cuenta_tecnico, name='cuenta_tecnico'),
     path('tecnicos/<int:pk>/adelanto/', views.registrar_adelanto, name='registrar_adelanto'),
     path('tecnicos/<int:pk>/pagar-comision/', views.pagar_comision, name='pagar_comision'),
+    path('tecnicos/<int:pk>/consumo/', views.registrar_consumo, name='registrar_consumo'),
+    path('consumos/<int:pk>/anular/', views.anular_consumo, name='anular_consumo'),
 
     # Órdenes de Trabajo
     path('ordenes/', views.OrdenTrabajoListView.as_view(), name='orden_list'),

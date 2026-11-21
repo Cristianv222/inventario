@@ -2101,12 +2101,10 @@ def panel_tecnico(request, seccion='calculadora'):
     valor_neto_total_semana = base_ordenes_semana + base_pos_semana
     comision_total_semana = comision_ordenes_semana + comision_pos_semana
 
-    adelantos_semana_qs = AdelantoTecnico.objects.filter(
-        tecnico=tecnico,
-        fecha__date__gte=inicio,
-        fecha__date__lte=fin,
-    )
-    total_adelantos_semana = adelantos_semana_qs.aggregate(s=Sum('monto'))['s'] or Decimal('0')
+    # Deudas pendientes (adelantos + productos tomados a cuenta). El administrador
+    # decide cuánto se descuenta (parcial o total) al liquidar la semana.
+    deudas = _deudas_pendientes(tecnico)
+    total_adelantos_semana = deudas['total']
     neto_semana = max(Decimal('0'), comision_total_semana - total_adelantos_semana)
 
     resumen_semana = {
@@ -2120,6 +2118,8 @@ def panel_tecnico(request, seccion='calculadora'):
         'valor_neto_total': valor_neto_total_semana,
         'comision_total': comision_total_semana,
         'adelantos_semana': total_adelantos_semana,
+        'deuda_adelantos': deudas['adelantos_saldo'],
+        'deuda_consumos': deudas['consumos_saldo'],
         'neto_a_pagar': neto_semana,
         'porcentaje_comision': porcentaje_cfg,
         'gana_comision': gana_comision,
@@ -2162,6 +2162,7 @@ def panel_tecnico(request, seccion='calculadora'):
         'cuenta': cuenta_historica,
         'pagos_recientes': tecnico.pagos.all()[:15],
         'adelantos_recientes': tecnico.adelantos.all()[:15],
+        'consumos_recientes': tecnico.consumos.select_related('producto').filter(anulado=False)[:15],
         'es_preview_admin': getattr(request.user, 'tecnico', None) is None,
     })
 
@@ -2197,6 +2198,54 @@ def _factor_comision(tecnico):
     return pct / Decimal('100')
 
 
+def _deudas_pendientes(tecnico, lock=False):
+    """Deudas del técnico por descontar: adelantos de efectivo + productos del
+    inventario tomados a cuenta. Cada una con su saldo (permite cobros parciales)."""
+    from .models import AdelantoTecnico, ConsumoTecnico
+    qa = AdelantoTecnico.objects.filter(tecnico=tecnico, liquidado=False).order_by('fecha')
+    qc = ConsumoTecnico.objects.filter(tecnico=tecnico, liquidado=False, anulado=False).order_by('fecha')
+    if lock:
+        qa = qa.select_for_update()
+        qc = qc.select_for_update()
+    adel = list(qa)
+    cons = list(qc.select_related('producto'))
+    s_adel = sum((x.saldo for x in adel), Decimal('0'))
+    s_cons = sum((x.saldo for x in cons), Decimal('0'))
+    return {
+        'adelantos': adel, 'consumos': cons,
+        'adelantos_saldo': s_adel, 'consumos_saldo': s_cons,
+        'total': s_adel + s_cons,
+    }
+
+
+def _aplicar_descuento_deudas(tecnico, monto, pago):
+    """Descuenta `monto` de las deudas, de la más antigua a la más nueva.
+    Devuelve (aplicado_a_adelantos, aplicado_a_consumos)."""
+    d = _deudas_pendientes(tecnico, lock=True)
+    items = [('A', x) for x in d['adelantos']] + [('C', x) for x in d['consumos']]
+    items.sort(key=lambda t: t[1].fecha)
+    restante = monto
+    ap_a = Decimal('0')
+    ap_c = Decimal('0')
+    for tipo, obj in items:
+        if restante <= 0:
+            break
+        aplicar = min(obj.saldo, restante)
+        if aplicar <= 0:
+            continue
+        obj.abonado = (obj.abonado or Decimal('0')) + aplicar
+        obj.pago = pago
+        if obj.saldo <= 0:
+            obj.liquidado = True
+        obj.save(update_fields=['abonado', 'pago', 'liquidado'])
+        restante -= aplicar
+        if tipo == 'A':
+            ap_a += aplicar
+        else:
+            ap_c += aplicar
+    return ap_a, ap_c
+
+
 def _resumen_cuenta_tecnico(tecnico):
     """Comisión pendiente acumulada = valor de los servicios cobrados en POS
     y órdenes de trabajo completadas/facturadas no liquidadas.
@@ -2226,8 +2275,7 @@ def _resumen_cuenta_tecnico(tecnico):
     com_pos = base_pos * factor
     comision_pendiente = com_ord + com_pos
 
-    total_adel = AdelantoTecnico.objects.filter(
-        tecnico=tecnico, liquidado=False).aggregate(s=Sum('monto'))['s'] or Decimal('0')
+    total_adel = _deudas_pendientes(tecnico)['total']
 
     return {
         'comision_pendiente': comision_pendiente,
@@ -2354,13 +2402,11 @@ def cuenta_tecnico(request, pk):
     neto_total = base_ord + base_pos
     com_total  = com_ord + com_pos
 
-    # Adelantos de la semana
-    from .models import AdelantoTecnico
-    adelantos_sem = AdelantoTecnico.objects.filter(
-        tecnico=tecnico, fecha__date__gte=inicio, fecha__date__lte=fin
-    )
-    total_adelantos_sem = adelantos_sem.aggregate(s=Sum('monto'))['s'] or Decimal('0')
-    neto_a_pagar = max(Decimal('0'), com_total - total_adelantos_sem)
+    # Deudas pendientes del técnico (adelantos + inventario a cuenta)
+    deudas = _deudas_pendientes(tecnico)
+    total_adelantos_sem = deudas['total']
+    descuento_max = min(deudas['total'], com_total)
+    neto_a_pagar = max(Decimal('0'), com_total - descuento_max)
 
     # ¿Ya tiene liquidación para esta semana?
     from .models import PagoTecnico
@@ -2382,6 +2428,9 @@ def cuenta_tecnico(request, pk):
         'base_pos': base_pos, 'comision_pos': com_pos,
         'neto_total': neto_total, 'comision_total': com_total,
         'adelantos_semana': total_adelantos_sem,
+        'deuda_adelantos': deudas['adelantos_saldo'],
+        'deuda_consumos': deudas['consumos_saldo'],
+        'descuento_max': descuento_max,
         'neto_a_pagar': neto_a_pagar,
         'porcentaje': porcentaje_cfg,
         'ya_liquidada': liquidacion_existente is not None,
@@ -2394,6 +2443,7 @@ def cuenta_tecnico(request, pk):
         'trabajos': todos,
         'historial_pagos': historial_pagos,
         'adelantos': adelantos_all,
+        'consumos': tecnico.consumos.select_related('producto').all()[:30],
         'inicio': inicio, 'fin': fin,
         'semana_anterior': semana_anterior,
         'semana_siguiente': semana_siguiente,
@@ -2425,6 +2475,96 @@ def registrar_adelanto(request, pk):
         usuario_registro=request.user if request.user.is_authenticated else None,
     )
     return JsonResponse({'success': True, 'message': f'Adelanto de ${monto} registrado.'})
+
+
+@admin_requerido
+def registrar_consumo(request, pk):
+    """Anota un producto del inventario que el técnico se lleva a cuenta.
+    Descuenta stock y queda como deuda del técnico."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
+    tecnico = get_object_or_404(Tecnico, pk=pk)
+    from .models import ConsumoTecnico
+    from inventario.models import MovimientoInventario
+    from django.db.models import F
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except Exception:
+        data = request.POST
+    try:
+        cantidad = Decimal(str(data.get('cantidad') or '0'))
+    except (InvalidOperation, ValueError):
+        cantidad = Decimal('0')
+    if cantidad <= 0:
+        return JsonResponse({'success': False, 'message': 'La cantidad debe ser mayor a 0.'}, status=400)
+
+    with transaction.atomic():
+        producto = Producto.objects.select_for_update().filter(pk=data.get('producto_id'), activo=True).first()
+        if not producto:
+            return JsonResponse({'success': False, 'message': 'Producto no encontrado o inactivo.'}, status=400)
+        if producto.stock_actual < cantidad:
+            return JsonResponse({
+                'success': False,
+                'message': f'Stock insuficiente de "{producto.nombre}": hay {producto.stock_actual}.'
+            }, status=400)
+        try:
+            precio = Decimal(str(data.get('precio_unitario') or producto.precio_venta))
+        except (InvalidOperation, ValueError):
+            precio = producto.precio_venta
+        if precio < 0:
+            return JsonResponse({'success': False, 'message': 'El precio no es válido.'}, status=400)
+        total = (cantidad * precio).quantize(Decimal('0.01'))
+        usuario = request.user if request.user.is_authenticated else None
+
+        consumo = ConsumoTecnico.objects.create(
+            tecnico=tecnico, producto=producto, cantidad=cantidad,
+            precio_unitario=precio, total=total,
+            descripcion=(data.get('descripcion') or '').strip(),
+            usuario_registro=usuario,
+        )
+        stock_ant = producto.stock_actual
+        # update() para no disparar la señal de "ajuste automático": el movimiento se registra aquí
+        Producto.objects.filter(pk=producto.pk).update(stock_actual=F('stock_actual') - cantidad)
+        MovimientoInventario.objects.create(
+            producto=producto, usuario=usuario, tipo_movimiento='SALIDA',
+            cantidad=cantidad, stock_anterior=stock_ant, stock_nuevo=stock_ant - cantidad,
+            precio_unitario=precio,
+            motivo=f'Consumo a cuenta del técnico {tecnico.get_nombre_completo()}',
+            referencia=f'CONSUMO-TEC-{consumo.pk}',
+        )
+    return JsonResponse({'success': True, 'message': f'{producto.nombre} x{cantidad} anotado a {tecnico.nombres} (${total}).'})
+
+
+@admin_requerido
+def anular_consumo(request, pk):
+    """Anula un consumo aún no cobrado y devuelve el producto al stock."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
+    from .models import ConsumoTecnico
+    from inventario.models import MovimientoInventario
+    from django.db.models import F
+    with transaction.atomic():
+        c = ConsumoTecnico.objects.select_for_update().select_related('producto', 'tecnico').filter(pk=pk).first()
+        if not c:
+            return JsonResponse({'success': False, 'message': 'Consumo no encontrado.'}, status=404)
+        if c.anulado:
+            return JsonResponse({'success': False, 'message': 'Este consumo ya está anulado.'}, status=400)
+        if c.abonado > 0 or c.liquidado:
+            return JsonResponse({'success': False, 'message': 'No se puede anular: ya fue descontado (total o parcialmente) en un pago.'}, status=400)
+        prod = Producto.objects.select_for_update().get(pk=c.producto_id)
+        stock_ant = prod.stock_actual
+        Producto.objects.filter(pk=prod.pk).update(stock_actual=F('stock_actual') + c.cantidad)
+        MovimientoInventario.objects.create(
+            producto=prod, usuario=request.user if request.user.is_authenticated else None,
+            tipo_movimiento='ENTRADA', cantidad=c.cantidad,
+            stock_anterior=stock_ant, stock_nuevo=stock_ant + c.cantidad,
+            precio_unitario=c.precio_unitario,
+            motivo=f'Anulación de consumo a cuenta de {c.tecnico.get_nombre_completo()}',
+            referencia=f'CONSUMO-TEC-{c.pk}-ANULADO',
+        )
+        c.anulado = True
+        c.save(update_fields=['anulado'])
+    return JsonResponse({'success': True, 'message': 'Consumo anulado y producto devuelto al inventario.'})
 
 
 @admin_requerido
@@ -2503,40 +2643,64 @@ def pagar_comision(request, pk):
         comision = base_total * factor
         num_trabajos = ordenes_sem.count() + pos_sem.count()
 
-        # Adelantos de esta semana pendientes
-        adelantos = AdelantoTecnico.objects.select_for_update().filter(
-            tecnico=tecnico, liquidado=False,
-            fecha__date__gte=inicio, fecha__date__lte=fin,
-        )
-        total_adel = adelantos.aggregate(s=Sum('monto'))['s'] or Decimal('0')
+        if num_trabajos == 0:
+            return JsonResponse({'success': False, 'message': 'No hay servicios pendientes de liquidar en esta semana.'}, status=400)
 
-        if num_trabajos == 0 and total_adel == 0:
-            return JsonResponse({'success': False, 'message': 'No hay servicios ni adelantos pendientes en esta semana.'}, status=400)
-
-        neto = comision - total_adel
+        # Deudas (adelantos + inventario a cuenta): el admin elige cuánto descontar
+        deuda = _deudas_pendientes(tecnico, lock=True)
+        modo = (data.get('modo_descuento') or 'total').strip().lower()
+        tope = min(deuda['total'], comision)
+        if modo == 'ninguno':
+            descuento = Decimal('0')
+        elif modo == 'parcial':
+            try:
+                descuento = Decimal(str(data.get('monto_descuento') or '0'))
+            except (InvalidOperation, ValueError):
+                descuento = Decimal('-1')
+            if descuento < 0:
+                return JsonResponse({'success': False, 'message': 'El monto a descontar no es válido.'}, status=400)
+            if descuento > tope:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Lo máximo que se puede descontar es ${tope:.2f} (deuda ${deuda["total"]:.2f}, comisión ${comision:.2f}).'
+                }, status=400)
+        else:  # total: toda la deuda, sin pasar de la comisión de la semana
+            descuento = tope
+        descuento = descuento.quantize(Decimal('0.01'))
 
         pago = PagoTecnico.objects.create(
             tecnico=tecnico,
             semana_inicio=inicio,
             semana_fin=fin,
             comision_bruta=comision,
-            adelantos_descontados=total_adel,
-            monto_pagado=neto,
+            adelantos_descontados=0,
+            consumos_descontados=0,
+            monto_pagado=comision,
             num_trabajos=num_trabajos,
             porcentaje_comision=porcentaje_cfg,
             descripcion=(data.get('descripcion') or f'Semana {inicio:%d/%m} – {fin:%d/%m/%Y}').strip(),
             usuario_registro=request.user if request.user.is_authenticated else None,
         )
+        ap_adel, ap_cons = _aplicar_descuento_deudas(tecnico, descuento, pago) if descuento > 0 else (Decimal('0'), Decimal('0'))
+        total_adel = ap_adel + ap_cons
+        neto = comision - total_adel
+        pago.adelantos_descontados = ap_adel
+        pago.consumos_descontados = ap_cons
+        pago.monto_pagado = neto
+        pago.save(update_fields=['adelantos_descontados', 'consumos_descontados', 'monto_pagado'])
+
         # Marcar servicios como liquidados
         ordenes_sem.update(comision_liquidada=True, pago_comision=pago)
         pos_sem.update(comision_liquidada=True, pago_comision=pago)
-        adelantos.update(liquidado=True, pago=pago)
+        deuda_restante = deuda['total'] - total_adel
 
     return JsonResponse({
         'success': True,
         'message': f'Semana {inicio:%d/%m} – {fin:%d/%m/%Y} liquidada. '
-                   f'Comisión ${comision:.2f} · Adelantos −${total_adel:.2f} · Neto a entregar ${neto:.2f}.',
+                   f'Comisión ${comision:.2f} · Descuento deudas −${total_adel:.2f} · Neto a entregar ${neto:.2f}.'
+                   + (f' Deuda pendiente: ${deuda_restante:.2f}.' if deuda_restante > 0 else ''),
         'neto': str(neto), 'comision': str(comision), 'adelantos': str(total_adel),
+        'deuda_restante': str(deuda_restante),
         'semana': f'{inicio:%d/%m/%Y} – {fin:%d/%m/%Y}',
     })
 

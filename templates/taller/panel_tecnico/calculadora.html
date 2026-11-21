@@ -1,5 +1,5 @@
 {% extends "taller/panel_tecnico/base_panel.html" %}
-{% load humanize %}
+{% load humanize l10n %}
 
 {% block title %}Calculadora & Liquidación Semanal{% endblock %}
 
@@ -371,12 +371,12 @@
       <strong id="sideTotalNeto" style="font-size:1.15rem; color:#fff;">$0.00</strong>
     </div>
 
-    <!-- Tasa de Comisión Configurada -->
+    <!-- Tasa de Comisión (fija: la define el administrador) -->
     <div class="calc-rate-input-box">
-      <label>% Comisión según panel de administrador</label>
+      <label>% Comisión asignado por el administrador</label>
       <div style="display:flex; align-items:center; gap:8px;">
-        <input type="number" id="sidePct" value="{{ resumen_semana.porcentaje_comision|floatformat:0 }}" min="0" max="100" onkeyup="recalculate()" onchange="recalculate()">
-        <span style="font-size:0.75rem; color:#94a3b8;">Porcentaje asignado a tu ficha de técnico</span>
+        <input type="number" id="sidePct" value="{{ resumen_semana.porcentaje_comision|unlocalize }}" readonly tabindex="-1" style="opacity:.85; cursor:not-allowed;">
+        <span style="font-size:0.75rem; color:#94a3b8;"><i class="bi bi-lock-fill"></i> Fijo, no se puede modificar</span>
       </div>
     </div>
 
@@ -389,13 +389,18 @@
 
     {% if resumen_semana.adelantos_semana > 0 %}
       <div class="calc-side-row" style="color:#f87171;">
-        <span>Adelantos de la semana:</span>
-        <strong style="color:#f87171;">-${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</strong>
+        <span>Adelantos pendientes:</span>
+        <strong style="color:#f87171;">-${{ resumen_semana.deuda_adelantos|floatformat:2|intcomma }}</strong>
+      </div>
+      <div class="calc-side-row" style="color:#f87171;">
+        <span>Productos a cuenta:</span>
+        <strong style="color:#f87171;">-${{ resumen_semana.deuda_consumos|floatformat:2|intcomma }}</strong>
       </div>
       <div class="calc-side-row" style="background:#1e293b; padding:8px 10px; border-radius:8px;">
-        <span style="color:#fff; font-weight:800;">Neto final a entregar:</span>
+        <span style="color:#fff; font-weight:800;">Neto si se descuenta todo:</span>
         <strong id="sideNetoFinal" style="color:var(--accent); font-size:1.1rem;">$0.00</strong>
       </div>
+      <div style="font-size:0.7rem; color:#94a3b8; margin-top:4px;">El administrador decide si el descuento es parcial o total al pagarte.</div>
     {% endif %}
 
     <button class="btn-print-payout" onclick="window.print()">
@@ -408,7 +413,7 @@
 
 {% block extra_js %}
 <script>
-  const adelantos = parseFloat("{{ resumen_semana.adelantos_semana|default:'0' }}") || 0;
+  const adelantos = parseFloat("{{ resumen_semana.adelantos_semana|unlocalize|default:'0' }}") || 0;
 
   function handleItemCheck(itemId, isChecked) {
     document.querySelectorAll(`.calc-chk[data-id="${itemId}"]`).forEach(c => {

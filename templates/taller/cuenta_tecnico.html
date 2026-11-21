@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load humanize %}
+{% load humanize l10n %}
 {% block title %}Liquidación Semanal · {{ tecnico.nombres }} {{ tecnico.apellidos }}{% endblock %}
 
 {% block content %}
@@ -121,9 +121,9 @@
       <div class="text-muted small">{{ resumen_semana.total_servicios }} servicios</div>
     </div>
     <div class="ct-kpi red">
-      <div class="lbl">Adelantos de la Semana</div>
+      <div class="lbl">Deudas pendientes</div>
       <div class="val">-${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</div>
-      <div class="text-muted small">A descontar al liquidar</div>
+      <div class="text-muted small">Adelantos ${{ resumen_semana.deuda_adelantos|floatformat:2|intcomma }} · Inventario ${{ resumen_semana.deuda_consumos|floatformat:2|intcomma }}</div>
     </div>
     <div class="ct-kpi {% if resumen_semana.ya_liquidada %}closed{% else %}accent{% endif %}">
       <div class="lbl">{% if resumen_semana.ya_liquidada %}Ya Liquidado{% else %}Neto a Entregar{% endif %}</div>
@@ -163,13 +163,22 @@
         <div style="font-size:0.9rem;">
           Comisión bruta: <strong>${{ resumen_semana.comision_total|floatformat:2|intcomma }}</strong>
           {% if resumen_semana.adelantos_semana > 0 %}
-            · Adelantos: <strong style="color:#f87171;">−${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</strong>
+            · Deudas pendientes: <strong style="color:#f87171;">${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</strong>
           {% endif %}
         </div>
-        <div class="amount">${{ resumen_semana.neto_a_pagar|floatformat:2|intcomma }}</div>
+        <div class="amount" id="netoEntregar">${{ resumen_semana.neto_a_pagar|floatformat:2|intcomma }}</div>
         <div style="font-size:0.78rem; opacity:0.65;">Neto a entregar a {{ tecnico.nombres }}</div>
       </div>
       <div>
+        {% if resumen_semana.adelantos_semana > 0 %}
+        <div class="mb-2 small" style="background:#1e293b; border:1px solid #334155; border-radius:10px; padding:10px 12px;">
+          <div class="fw-bold mb-1" style="color:#fbbf24;"><i class="fas fa-hand-holding-usd me-1"></i>¿Cuánta deuda descontar? (máx. ${{ resumen_semana.descuento_max|floatformat:2 }})</div>
+          <div class="form-check"><input class="form-check-input" type="radio" name="modoDesc" id="mdTotal" value="total" checked onchange="recalcNeto()"><label class="form-check-label" for="mdTotal">Cobro total de la deuda</label></div>
+          <div class="form-check"><input class="form-check-input" type="radio" name="modoDesc" id="mdParcial" value="parcial" onchange="recalcNeto()"><label class="form-check-label" for="mdParcial">Cobro parcial</label></div>
+          <input type="number" step="0.01" min="0" id="montoDesc" class="form-control form-control-sm mt-1" placeholder="Monto a descontar" style="display:none; max-width:180px; background:#0f172a; color:#fff; border-color:#334155;" oninput="recalcNeto()">
+          <div class="form-check"><input class="form-check-input" type="radio" name="modoDesc" id="mdNinguno" value="ninguno" onchange="recalcNeto()"><label class="form-check-label" for="mdNinguno">No descontar (la deuda sigue pendiente)</label></div>
+        </div>
+        {% endif %}
         <div class="mb-2">
           <input type="text" id="pagoDesc" class="form-control form-control-sm"
                  placeholder="Nota opcional (Ej: Pago en efectivo)" style="background:#1e293b; color:#fff; border-color:#334155;">
@@ -177,7 +186,7 @@
         <div id="pagoMsg" class="small mb-2"></div>
         <button class="btn-liquidar" id="btnLiquidar"
                 onclick="liquidarSemana('{{ resumen_semana.inicio|date:'Y-m-d' }}')"
-                {% if resumen_semana.total_servicios == 0 and resumen_semana.adelantos_semana == 0 %}disabled{% endif %}>
+                {% if resumen_semana.total_servicios == 0 %}disabled{% endif %}>
           <i class="fas fa-cash-register me-2"></i>
           Liquidar Semana {{ resumen_semana.inicio|date:"d/m" }} – {{ resumen_semana.fin|date:"d/m/Y" }}
         </button>
@@ -338,6 +347,8 @@
                   <td style="text-align:center;">
                     {% if a.liquidado %}
                       <span class="badge-liquid">Liquidado</span>
+                    {% elif a.abonado > 0 %}
+                      <span class="badge-pend">Debe ${{ a.saldo|floatformat:2 }}</span>
                     {% else %}
                       <span class="badge-pend">Pendiente</span>
                     {% endif %}
@@ -353,6 +364,52 @@
     </div>
   </div>
 
+
+  <!-- Inventario tomado a cuenta -->
+  <div class="ct-card mt-3">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <h5 class="fw-bold mb-0"><i class="fas fa-boxes-stacked me-2 text-primary"></i>Inventario tomado a cuenta</h5>
+      <button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalConsumo">
+        <i class="fas fa-plus me-1"></i>Anotar producto
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="w-100 serv-table" style="border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Producto</th>
+            <th style="text-align:right;">Cant.</th>
+            <th style="text-align:right;">Total</th>
+            <th style="text-align:center;">Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in consumos %}
+            <tr {% if c.anulado %}style="opacity:.5; text-decoration:line-through;"{% endif %}>
+              <td style="font-size:0.78rem;">{{ c.fecha|date:"d/m/Y" }}</td>
+              <td style="font-size:0.82rem;">{{ c.producto.nombre }}{% if c.descripcion %} <span class="text-muted">· {{ c.descripcion }}</span>{% endif %}</td>
+              <td style="text-align:right; font-family:monospace;">{{ c.cantidad|floatformat:"-2" }}</td>
+              <td style="text-align:right; font-family:monospace; font-weight:800;">${{ c.total|floatformat:2|intcomma }}</td>
+              <td style="text-align:center;">
+                {% if c.anulado %}<span class="badge-liquid">Anulado</span>
+                {% elif c.liquidado %}<span class="badge-liquid">Pagado</span>
+                {% elif c.abonado > 0 %}<span class="badge-pend">Debe ${{ c.saldo|floatformat:2 }}</span>
+                {% else %}<span class="badge-pend">Pendiente</span>{% endif %}
+              </td>
+              <td style="text-align:right;">
+                {% if not c.anulado and not c.liquidado and c.abonado == 0 %}
+                  <button class="btn btn-outline-danger btn-sm" title="Anular y devolver al inventario" onclick="anularConsumo({{ c.pk }})"><i class="fas fa-undo"></i></button>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" style="text-align:center; padding:25px; color:#94a3b8;">Sin productos anotados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- Modal Adelanto -->
@@ -370,6 +427,34 @@
   <div class="modal-footer">
     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
     <button class="btn btn-warning fw-bold" id="btnAdel" onclick="registrarAdelanto()"><i class="fas fa-check me-1"></i>Registrar</button>
+  </div>
+</div></div></div>
+
+<!-- Modal Consumo de inventario -->
+<div class="modal fade" id="modalConsumo" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title"><i class="fas fa-boxes-stacked me-2"></i>Anotar producto a cuenta</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="mb-3" style="position:relative;">
+      <label class="form-label small fw-bold">Producto del inventario</label>
+      <input type="text" class="form-control" id="consBuscar" placeholder="Buscar por nombre o código..." autocomplete="off" oninput="buscarProductoConsumo()">
+      <div id="consResultados" class="list-group" style="position:absolute; z-index:5; width:100%; max-height:240px; overflow:auto; display:none;"></div>
+      <div id="consElegido" class="small mt-2 fw-bold text-success"></div>
+      <input type="hidden" id="consProductoId">
+    </div>
+    <div class="row g-2">
+      <div class="col-6"><label class="form-label small fw-bold">Cantidad</label>
+        <input type="number" step="0.01" min="0.01" value="1" class="form-control" id="consCantidad" oninput="totalConsumo()"></div>
+      <div class="col-6"><label class="form-label small fw-bold">Precio unitario ($)</label>
+        <input type="number" step="0.01" min="0" class="form-control" id="consPrecio" oninput="totalConsumo()"></div>
+    </div>
+    <div class="mt-2 fw-bold">Total: <span id="consTotal">$0.00</span> <span id="consStock" class="small text-muted"></span></div>
+    <div class="mt-2"><label class="form-label small fw-bold">Nota (opcional)</label>
+      <input type="text" class="form-control" id="consDesc" placeholder="Ej: pidió aceite para su moto"></div>
+    <div id="consMsg" class="small mt-2"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+    <button class="btn btn-primary fw-bold" id="btnCons" onclick="registrarConsumo()"><i class="fas fa-check me-1"></i>Anotar</button>
   </div>
 </div></div></div>
 {% endblock %}
@@ -392,7 +477,14 @@ function liquidarSemana(semanaInicio) {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
   msg.innerHTML = '';
-  _post('{% url "taller:pagar_comision" tecnico.pk %}', { semana_inicio: semanaInicio, descripcion: desc })
+  const modo = (document.querySelector('input[name="modoDesc"]:checked') || {}).value || 'total';
+  const montoDesc = document.getElementById('montoDesc') ? document.getElementById('montoDesc').value : '';
+  if (modo === 'parcial' && (!montoDesc || parseFloat(montoDesc) < 0)) {
+    msg.innerHTML = '<span class="text-danger fw-bold">Indica el monto a descontar.</span>';
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-cash-register me-2"></i>Liquidar Semana';
+    return;
+  }
+  _post('{% url "taller:pagar_comision" tecnico.pk %}', { semana_inicio: semanaInicio, descripcion: desc, modo_descuento: modo, monto_descuento: montoDesc })
     .then(d => {
       if (d.success) {
         msg.innerHTML = '<span class="text-success fw-bold">✅ ' + d.message + '</span>';
@@ -434,6 +526,80 @@ function registrarAdelanto() {
       msg.innerHTML = '<span class="text-danger">Error de comunicación</span>';
       btn.disabled = false;
     });
+}
+
+const COM_BRUTA = parseFloat("{{ resumen_semana.comision_total|unlocalize }}") || 0;
+const DEUDA_TOTAL = parseFloat("{{ resumen_semana.adelantos_semana|unlocalize }}") || 0;
+function recalcNeto() {
+  const modo = (document.querySelector('input[name="modoDesc"]:checked') || {}).value || 'total';
+  const inp = document.getElementById('montoDesc');
+  if (inp) inp.style.display = (modo === 'parcial') ? '' : 'none';
+  const tope = Math.min(DEUDA_TOTAL, COM_BRUTA);
+  let desc = tope;
+  if (modo === 'ninguno') desc = 0;
+  if (modo === 'parcial') desc = Math.min(parseFloat(inp && inp.value) || 0, tope);
+  const el = document.getElementById('netoEntregar');
+  if (el) el.textContent = '$' + (COM_BRUTA - desc).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+let _consTimer = null, _consStockDisp = null;
+function buscarProductoConsumo() {
+  clearTimeout(_consTimer);
+  const q = document.getElementById('consBuscar').value.trim();
+  const box = document.getElementById('consResultados');
+  if (q.length < 2) { box.style.display = 'none'; return; }
+  _consTimer = setTimeout(() => {
+    fetch('/inventario/api/productos/?q=' + encodeURIComponent(q) + '&limit=10')
+      .then(r => r.json()).then(d => {
+        const res = (d.success && d.productos) ? d.productos : [];
+        box.innerHTML = res.length ? '' : '<div class="list-group-item small text-muted">Sin resultados</div>';
+        res.forEach(p => {
+          const a = document.createElement('button');
+          a.type = 'button'; a.className = 'list-group-item list-group-item-action small d-flex justify-content-between';
+          const sinStock = Number(p.stock) <= 0;
+          a.innerHTML = '<span>' + (p.nombre || '') + ' <span class="text-muted">' + (p.codigo || '') + '</span></span><span class="' + (sinStock ? 'text-danger' : 'text-success') + '">' + (sinStock ? 'Sin stock' : 'Stock: ' + p.stock) + '</span>';
+          if (sinStock) { a.disabled = true; }
+          a.onclick = () => elegirProductoConsumo(p);
+          box.appendChild(a);
+        });
+        box.style.display = '';
+      }).catch(() => {});
+  }, 250);
+}
+function elegirProductoConsumo(p) {
+  document.getElementById('consProductoId').value = p.id;
+  document.getElementById('consElegido').textContent = '✔ ' + p.nombre;
+  document.getElementById('consPrecio').value = Number(p.precio || 0).toFixed(2);
+  document.getElementById('consBuscar').value = '';
+  document.getElementById('consResultados').style.display = 'none';
+  _consStockDisp = Number(p.stock);
+  document.getElementById('consStock').textContent = '(disponible: ' + p.stock + ')';
+  totalConsumo();
+}
+function totalConsumo() {
+  const t = (parseFloat(document.getElementById('consCantidad').value) || 0) * (parseFloat(document.getElementById('consPrecio').value) || 0);
+  document.getElementById('consTotal').textContent = '$' + t.toFixed(2);
+}
+function registrarConsumo() {
+  const msg = document.getElementById('consMsg'), btn = document.getElementById('btnCons');
+  const producto_id = document.getElementById('consProductoId').value;
+  const cantidad = document.getElementById('consCantidad').value;
+  if (!producto_id) { msg.innerHTML = '<span class="text-danger">Elige un producto de la lista.</span>'; return; }
+  if (_consStockDisp !== null && parseFloat(cantidad) > _consStockDisp) { msg.innerHTML = '<span class="text-danger">Stock insuficiente (hay ' + _consStockDisp + ').</span>'; return; }
+  btn.disabled = true;
+  _post('{% url "taller:registrar_consumo" tecnico.pk %}', {
+    producto_id, cantidad,
+    precio_unitario: document.getElementById('consPrecio').value,
+    descripcion: document.getElementById('consDesc').value
+  }).then(d => {
+    if (d.success) { msg.innerHTML = '<span class="text-success">✅ ' + d.message + '</span>'; setTimeout(() => location.reload(), 900); }
+    else { msg.innerHTML = '<span class="text-danger">❌ ' + d.message + '</span>'; btn.disabled = false; }
+  }).catch(() => { msg.innerHTML = '<span class="text-danger">Error de comunicación</span>'; btn.disabled = false; });
+}
+function anularConsumo(id) {
+  if (!confirm('¿Anular este consumo y devolver el producto al inventario?')) return;
+  fetch('/taller/consumos/' + id + '/anular/', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+    .then(r => r.json()).then(d => { alert(d.message); if (d.success) location.reload(); });
 }
 
 function filterServ(q) {

@@ -1073,6 +1073,7 @@ class PagoTecnico(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
     comision_bruta = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     adelantos_descontados = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    consumos_descontados = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     monto_pagado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     num_trabajos = models.PositiveIntegerField(default=0)
     porcentaje_comision = models.DecimalField(max_digits=5, decimal_places=2, default=50,
@@ -1110,11 +1111,17 @@ class AdelantoTecnico(models.Model):
     usuario_registro = models.ForeignKey(
         'usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True,
     )
+    # Lo ya descontado en liquidaciones (permite cobros parciales)
+    abonado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     liquidado = models.BooleanField(default=False)
     pago = models.ForeignKey(
         'taller.PagoTecnico', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='adelantos',
     )
+
+    @property
+    def saldo(self):
+        return (self.monto or Decimal('0')) - (self.abonado or Decimal('0'))
 
     class Meta:
         ordering = ['-fecha']
@@ -1124,3 +1131,44 @@ class AdelantoTecnico(models.Model):
     def __str__(self):
         estado = 'liquidado' if self.liquidado else 'pendiente'
         return f'Adelanto {self.tecnico} - ${self.monto} ({estado})'
+
+
+class ConsumoTecnico(models.Model):
+    """Producto del inventario que el técnico se lleva "a cuenta".
+
+    Descuenta stock al registrarse y queda como deuda del técnico, que se
+    descuenta (total o parcialmente) cuando se le liquida la comisión.
+    """
+    tecnico = models.ForeignKey(
+        'taller.Tecnico', on_delete=models.CASCADE, related_name='consumos',
+    )
+    producto = models.ForeignKey(
+        'inventario.Producto', on_delete=models.PROTECT, related_name='consumos_tecnico',
+    )
+    fecha = models.DateTimeField(auto_now_add=True)
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=12, decimal_places=2)
+    descripcion = models.CharField(max_length=255, blank=True)
+    usuario_registro = models.ForeignKey(
+        'usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True,
+    )
+    abonado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    liquidado = models.BooleanField(default=False)
+    anulado = models.BooleanField(default=False)
+    pago = models.ForeignKey(
+        'taller.PagoTecnico', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='consumos',
+    )
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Consumo de inventario del técnico'
+        verbose_name_plural = 'Consumos de inventario de técnicos'
+
+    @property
+    def saldo(self):
+        return (self.total or Decimal('0')) - (self.abonado or Decimal('0'))
+
+    def __str__(self):
+        return f'{self.tecnico} - {self.producto} x{self.cantidad} (${self.total})'

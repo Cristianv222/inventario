@@ -880,7 +880,7 @@
   {% if dia %}
     <div class="day-filtered-alert">
       <div>
-        <i class="bi bi-funnel-fill text-primary"></i> Viendo trabajos de: <strong>{{ dia_info.nombre }} {{ dia|date:"d de F" }}</strong>
+        <i class="bi bi-funnel-fill text-primary"></i> Viendo trabajos de: <strong>{{ dia_info.nombre }} {{ dia|date:"j F" }}</strong>
         ({{ resumen_semana.servicios_vista }} servicio(s) · Comisión: <strong>${{ resumen_semana.comision_vista|floatformat:2|intcomma }}</strong>)
       </div>
       <a href="?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}" class="btn-remove-day">
