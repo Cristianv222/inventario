@@ -128,9 +128,6 @@
                     <a href="{% url 'taller:dashboard' %}" class="btn btn-outline-secondary me-2">
                         <i class="fas fa-arrow-left me-1"></i>Volver
                     </a>
-                    <a href="{% url 'usuarios:crear_tecnico' %}" class="btn btn-primary">
-                        <i class="fas fa-user-plus me-1"></i>Nuevo Técnico
-                    </a>
                 </div>
             </div>
         </div>
@@ -248,12 +245,6 @@
                                data-action="detail">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            <a href="{% url 'usuarios:editar_tecnico' tecnico.pk %}" 
-                               class="btn btn-outline-warning btn-sm" 
-                               title="Editar"
-                               data-action="edit">
-                                <i class="fas fa-edit"></i>
-                            </a>
                             {% if tecnico.estado == 'ACTIVO' %}
                             <button type="button" 
                                     class="btn btn-outline-danger btn-sm btn-toggle-estado" 
@@ -294,11 +285,6 @@
                     Aún no has registrado técnicos en el sistema.
                 </p>
                 {% endif %}
-                <div class="mt-3">
-                    <a href="{% url 'usuarios:crear_tecnico' %}" class="btn btn-primary">
-                        <i class="fas fa-user-plus me-1"></i>Registrar Primer Técnico
-                    </a>
-                </div>
             </div>
         </div>
         {% endfor %}
