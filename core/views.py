@@ -149,7 +149,7 @@ def dashboard(request):
         try:
             from taller.ranking import token_pantalla, payload_publico
             context['ranking_token'] = token_pantalla()
-            context['ranking_payload'] = payload_publico()
+            context['ranking_payload'] = payload_publico(periodo='semana')
         except Exception:
             context['ranking_token'] = None
 

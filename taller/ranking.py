@@ -56,7 +56,7 @@ def _trabajos_basicos_tecnico(tecnico, inicio, fin):
     return out
 
 
-def _ranking_tecnicos(inicio, fin, dia=None, yo=None):
+def _armar_ranking(inicio, fin, dia=None, yo=None, campeones_dia=True):
     """Ranking de técnicos activos por servicios realizados (desempate: mano de obra).
     Cubre la semana [inicio, fin] o, si se indica, solo el día `dia`."""
     activos = list(Tecnico.objects.filter(estado='ACTIVO', activo=True))
@@ -69,9 +69,10 @@ def _ranking_tecnicos(inicio, fin, dia=None, yo=None):
     for t in activos:
         trabajos = _trabajos_basicos_tecnico(t, inicio, fin)
         sel = [x for x in trabajos if (dia is None or x['fecha_date'] == dia)]
-        for d in dias:
-            n = sum(1 for x in trabajos if x['fecha_date'] == d)
-            por_dia[d].append((n, t))
+        if campeones_dia:
+            for d in dias:
+                n = sum(1 for x in trabajos if x['fecha_date'] == d)
+                por_dia[d].append((n, t))
         filas.append({
             'tecnico': t,
             'nombre': f"{t.nombres.split()[0].title()} {t.apellidos.split()[0][:1].upper()}." if t.apellidos else t.nombres.title(),
@@ -107,7 +108,7 @@ def _ranking_tecnicos(inicio, fin, dia=None, yo=None):
             mensaje = f'Te faltan {lider["servicios"] - mi["servicios"]} servicio(s) para alcanzar a {lider["nombre"]}.'
 
     campeones = []
-    for i, d in enumerate(dias):
+    for i, d in enumerate(dias if campeones_dia else []):
         lista = sorted(por_dia[d], key=lambda x: -x[0])
         mejor = lista[0][0] if lista else 0
         ganadores = [f"{t.nombres.split()[0].title()}" for n, t in lista if n == mejor and mejor > 0]
@@ -118,6 +119,60 @@ def _ranking_tecnicos(inicio, fin, dia=None, yo=None):
         'total_equipo': sum(r['servicios'] for r in filas),
         'dia': dia,
     }
+
+
+def _ranking_tecnicos(inicio, fin, dia=None, yo=None):
+    """Ranking de la semana [inicio, fin] (lun–sáb) o, si se indica, de un solo día."""
+    return _armar_ranking(inicio, fin, dia=dia, yo=yo, campeones_dia=True)
+
+
+DIAS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto',
+            'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+PERIODOS = ('dia', 'semana', 'mes')
+
+
+def rango_periodo(periodo, ref):
+    """(inicio, fin, etiqueta) del periodo que contiene `ref`.
+    La semana va de lunes a sábado (los domingos no se trabaja)."""
+    import calendar
+    if periodo == 'dia':
+        return ref, ref, f'{DIAS_ES[ref.weekday()]} {ref:%d/%m/%Y}'
+    if periodo == 'mes':
+        ini = ref.replace(day=1)
+        fin = ref.replace(day=calendar.monthrange(ref.year, ref.month)[1])
+        return ini, fin, f'{MESES_ES[ref.month - 1]} {ref.year}'
+    ini = ref - timedelta(days=ref.weekday())
+    fin = ini + timedelta(days=5)
+    return ini, fin, f'Semana {ini:%d/%m} al {fin:%d/%m/%Y} (lun a sáb)'
+
+
+def vecino_periodo(periodo, ref, delta):
+    """Fecha de referencia del periodo anterior (delta=-1) o siguiente (delta=1)."""
+    if periodo == 'dia':
+        r = ref + timedelta(days=delta)
+        if r.weekday() == 6:          # sin domingos
+            r += timedelta(days=delta)
+        return r
+    if periodo == 'mes':
+        m = ref.month - 1 + delta
+        return ref.replace(day=1, year=ref.year + m // 12, month=m % 12 + 1)
+    return ref + timedelta(days=7 * delta)
+
+
+def ranking_rango(periodo, ref, yo=None):
+    """Ranking para un periodo (dia | semana | mes) con su etiqueta y navegación."""
+    if periodo not in PERIODOS:
+        periodo = 'semana'
+    ini, fin, etiqueta = rango_periodo(periodo, ref)
+    r = _armar_ranking(ini, fin, dia=None, yo=yo, campeones_dia=(periodo == 'semana'))
+    hoy = timezone.localdate()
+    r.update({
+        'periodo': periodo, 'etiqueta': etiqueta, 'inicio': ini, 'fin': fin,
+        'anterior': vecino_periodo(periodo, ref, -1), 'siguiente': vecino_periodo(periodo, ref, 1),
+        'es_actual': rango_periodo(periodo, hoy)[0] == ini,
+    })
+    return r
 
 
 # ---------------------------------------------------------------------------
@@ -148,24 +203,37 @@ def _fila_publica(r):
     }
 
 
-def payload_publico():
-    """Datos para el monitor: ranking de HOY y de la SEMANA (lun–sáb)."""
-    hoy = timezone.localdate()
-    inicio = hoy - timedelta(days=hoy.weekday())
-    fin = inicio + timedelta(days=5)
-    semana = _ranking_tecnicos(inicio, fin)
-    dia = _ranking_tecnicos(inicio, fin, dia=hoy) if inicio <= hoy <= fin else {'filas': [], 'total_equipo': 0}
+def _bloque_publico(r):
     return {
-        'generado': timezone.localtime().strftime('%H:%M:%S'),
-        'hoy': {
-            'fecha': hoy.strftime('%d/%m/%Y'),
-            'filas': [_fila_publica(r) for r in dia['filas']],
-            'total': dia['total_equipo'],
-        },
-        'semana': {
-            'inicio': inicio.strftime('%d/%m'),
-            'fin': fin.strftime('%d/%m/%Y'),
-            'filas': [_fila_publica(r) for r in semana['filas']],
-            'total': semana['total_equipo'],
-        },
+        'filas': [_fila_publica(x) for x in r['filas']],
+        'total': r['total_equipo'],
     }
+
+
+def payload_publico(periodo=None, fecha=None):
+    """Datos para el monitor / widget.
+
+    - Sin `periodo`: devuelve Hoy, Semana (lun–sáb) y Mes (monitor).
+    - Con `periodo` (dia|semana|mes) y `fecha`: devuelve solo esa vista, con su
+      etiqueta y las fechas para navegar al periodo anterior / siguiente (widget).
+    """
+    hoy = timezone.localdate()
+    generado = timezone.localtime().strftime('%H:%M:%S')
+    if periodo in PERIODOS:
+        ref = fecha or hoy
+        r = ranking_rango(periodo, ref)
+        out = {
+            'generado': generado, 'modo': 'filtro', 'periodo': periodo,
+            'etiqueta': r['etiqueta'], 'fecha': ref.strftime('%Y-%m-%d'),
+            'anterior': r['anterior'].strftime('%Y-%m-%d'),
+            'siguiente': r['siguiente'].strftime('%Y-%m-%d'),
+            'es_actual': r['es_actual'],
+        }
+        out.update(_bloque_publico(r))
+        return out
+
+    secciones = {}
+    for clave, per in (('hoy', 'dia'), ('semana', 'semana'), ('mes', 'mes')):
+        r = ranking_rango(per, hoy)
+        secciones[clave] = dict(_bloque_publico(r), etiqueta=r['etiqueta'])
+    return dict(secciones, generado=generado, modo='todo')

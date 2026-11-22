@@ -1,11 +1,12 @@
 import asyncio
 import json
+from datetime import datetime
 from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from .ranking import payload_publico, token_valido
+from .ranking import payload_publico, token_valido, PERIODOS
 
 GRUPO_RANKING = 'ranking_taller'
 
@@ -24,6 +25,7 @@ class RankingConsumer(AsyncWebsocketConsumer):
             await self.close(code=4403)
             return
         self._pendiente = False
+        self._filtro = {}
         await self.channel_layer.group_add(GRUPO_RANKING, self.channel_name)
         await self.accept()
         await self._enviar()
@@ -34,7 +36,20 @@ class RankingConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         # El cliente pide refrescar de vez en cuando (p. ej. al cambiar el día)
         try:
-            if json.loads(text_data or '{}').get('action') == 'refresh':
+            msg = json.loads(text_data or '{}')
+            if msg.get('action') == 'set':
+                # El widget del dashboard elige periodo (dia | semana | mes) y fecha
+                per = msg.get('periodo')
+                if per in PERIODOS:
+                    try:
+                        fecha = datetime.strptime(msg.get('fecha') or '', '%Y-%m-%d').date()
+                    except ValueError:
+                        fecha = None
+                    self._filtro = {'periodo': per, 'fecha': fecha}
+                else:
+                    self._filtro = {}
+                await self._enviar()
+            elif msg.get('action') == 'refresh':
                 await self._enviar()
         except Exception:
             pass
@@ -50,7 +65,7 @@ class RankingConsumer(AsyncWebsocketConsumer):
 
     async def _enviar(self):
         try:
-            data = await database_sync_to_async(payload_publico)()
+            data = await database_sync_to_async(payload_publico)(**getattr(self, '_filtro', {}))
             await self.send(text_data=json.dumps({'type': 'ranking', 'data': data}))
         except Exception:
             pass

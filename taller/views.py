@@ -2160,11 +2160,20 @@ def panel_tecnico(request, seccion='calculadora'):
     }
     template_name = template_map.get(seccion, 'taller/panel_tecnico/calculadora.html')
 
-    ranking = _ranking_tecnicos(inicio, fin, dia=dia if (dia and inicio <= dia <= fin) else None, yo=tecnico) if seccion == 'rendimiento' else None
+    ranking = None
+    periodo_rank = 'semana'
+    if seccion == 'rendimiento':
+        if request.GET.get('periodo') == 'mes':
+            periodo_rank = 'mes'
+            ranking = ranking_rango('mes', fecha_ref, yo=tecnico)
+        else:
+            ranking = _ranking_tecnicos(inicio, fin, dia=dia if (dia and inicio <= dia <= fin) else None, yo=tecnico)
+            ranking['etiqueta'] = None
 
     return render(request, template_name, {
         'seccion': seccion,
         'ranking': ranking,
+        'periodo_rank': periodo_rank,
         'tecnico': tecnico,
         'resumen_semana': resumen_semana,
         'por_dia': por_dia,
@@ -2269,7 +2278,7 @@ def _aplicar_descuento_deudas(tecnico, monto, pago):
     return ap_a, ap_c
 
 
-from .ranking import _ranking_tecnicos  # noqa: E402
+from .ranking import _ranking_tecnicos, ranking_rango  # noqa: E402
 
 
 def pantalla_publica(request, token):
@@ -2290,19 +2299,35 @@ def pantalla_publica_datos(request, token):
     from django.http import Http404
     if not token_valido(token):
         raise Http404()
-    resp = JsonResponse(payload_publico())
+    per = request.GET.get('periodo')
+    try:
+        fecha = datetime.strptime(request.GET.get('fecha') or '', '%Y-%m-%d').date()
+    except ValueError:
+        fecha = None
+    resp = JsonResponse(payload_publico(periodo=per, fecha=fecha))
     resp['Cache-Control'] = 'no-store'
     return resp
 
 
 @admin_requerido
 def rendimiento_tecnicos(request):
-    """Ranking de rendimiento de los técnicos activos (semana o día). Solo administradores."""
+    """Ranking de rendimiento de los técnicos activos por semana (lun–sáb), día o mes.
+    Solo administradores."""
     hoy = timezone.localdate()
     try:
         ref = datetime.strptime(request.GET.get('fecha') or '', '%Y-%m-%d').date()
     except ValueError:
         ref = hoy
+    periodo = 'mes' if request.GET.get('periodo') == 'mes' else 'semana'
+    if periodo == 'mes':
+        rank = ranking_rango('mes', ref)
+        rank['dia'] = None
+        return render(request, 'taller/rendimiento_tecnicos.html', {
+            'rank': rank, 'periodo': 'mes', 'etiqueta': rank['etiqueta'],
+            'inicio': rank['inicio'], 'fin': rank['fin'], 'dia': None, 'hoy': hoy,
+            'anterior': rank['anterior'], 'siguiente': rank['siguiente'],
+            'es_actual': rank['es_actual'], 'dias': [],
+        })
     inicio = ref - timedelta(days=ref.weekday())
     fin = inicio + timedelta(days=5)
     try:
@@ -2313,10 +2338,11 @@ def rendimiento_tecnicos(request):
         dia = None
     rank = _ranking_tecnicos(inicio, fin, dia=dia)
     return render(request, 'taller/rendimiento_tecnicos.html', {
-        'rank': rank, 'inicio': inicio, 'fin': fin, 'dia': dia, 'hoy': hoy,
-        'semana_anterior': inicio - timedelta(days=7),
-        'semana_siguiente': inicio + timedelta(days=7),
-        'es_semana_actual': inicio == hoy - timedelta(days=hoy.weekday()),
+        'rank': rank, 'periodo': 'semana',
+        'etiqueta': f'Semana {inicio:%d/%m} al {fin:%d/%m/%Y} (lunes a sábado)',
+        'inicio': inicio, 'fin': fin, 'dia': dia, 'hoy': hoy,
+        'anterior': inicio - timedelta(days=7), 'siguiente': inicio + timedelta(days=7),
+        'es_actual': inicio == hoy - timedelta(days=hoy.weekday()),
         'dias': [inicio + timedelta(days=i) for i in range(6)],
     })
 

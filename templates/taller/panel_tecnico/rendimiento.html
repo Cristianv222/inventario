@@ -13,5 +13,11 @@
     </div>
   </div>
 </div>
+<div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+  <a href="{% url 'taller:panel_tecnico_rendimiento' %}?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+     class="day-pill {% if periodo_rank != 'mes' %}active{% endif %}" style="padding:8px 16px;"><span>Semana (lunes a sábado) y día</span></a>
+  <a href="{% url 'taller:panel_tecnico_rendimiento' %}?periodo=mes&fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+     class="day-pill {% if periodo_rank == 'mes' %}active{% endif %}" style="padding:8px 16px;"><span>Mes</span></a>
+</div>
 {% include "taller/_ranking_rendimiento.html" with rank=ranking %}
 {% endblock %}

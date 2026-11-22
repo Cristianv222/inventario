@@ -31,7 +31,7 @@
     <div>
       <div class="msg">{{ rank.mensaje }}</div>
       <div class="sub">
-        {% if rank.dia %}Día: {{ rank.dia|date:"l d/m" }}{% else %}Esta semana{% endif %}
+        {% if rank.etiqueta %}{{ rank.etiqueta }}{% elif rank.dia %}Día: {{ rank.dia|date:"l d/m" }}{% else %}Esta semana{% endif %}
         · Tú: {{ rank.mi.servicios }} servicio(s) · ${{ rank.mi.valor|floatformat:2|intcomma }} en mano de obra
         · Equipo: {{ rank.total_equipo }} servicio(s)
       </div>
@@ -40,7 +40,7 @@
   {% endif %}
 
   <div class="rk-board">
-    <h3><i class="bi bi-trophy-fill" style="color:#f59e0b;"></i> Ranking de técnicos {% if rank.dia %}· {{ rank.dia|date:"l d/m" }}{% else %}· semana{% endif %}</h3>
+    <h3><i class="bi bi-trophy-fill" style="color:#f59e0b;"></i> Ranking de técnicos {% if rank.periodo == "mes" %}· mes{% elif rank.dia %}· {{ rank.dia|date:"l d/m" }}{% else %}· semana{% endif %}</h3>
     {% for r in rank.filas %}
       <div class="rk-row {% if r.es_yo %}yo{% endif %}">
         <div class="rk-medal {% if r.servicios > 0 and r.posicion == 1 %}p1{% elif r.servicios > 0 and r.posicion == 2 %}p2{% elif r.servicios > 0 and r.posicion == 3 %}p3{% endif %}">{{ r.posicion }}</div>
@@ -56,6 +56,7 @@
     {% endfor %}
   </div>
 
+  {% if rank.campeones %}
   <div class="rk-board">
     <h3><i class="bi bi-calendar-check"></i> Mejor técnico de cada día</h3>
     <table class="rk-days">
@@ -70,5 +71,6 @@
       </tbody>
     </table>
   </div>
-  <div style="font-size:.74rem; color: var(--rk-muted);">El ranking cuenta servicios realizados (órdenes de taller y mecánica rápida) por técnicos activos; en caso de empate gana quien generó más mano de obra.</div>
+  {% endif %}
+  <div style="font-size:.74rem; color: var(--rk-muted);">El ranking cuenta servicios realizados (órdenes de taller y mecánica rápida) por técnicos activos, de lunes a sábado; en caso de empate gana quien generó más mano de obra.</div>
 </div>
