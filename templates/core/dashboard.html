@@ -199,6 +199,27 @@ body::before {
     {% endif %}
 </div>
 
+{% if ranking_token %}
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+      <h5 class="fw-bold mb-0"><i class="fas fa-trophy me-2" style="color:#bdd62a;"></i>Rendimiento del taller en vivo</h5>
+      <div class="d-flex gap-2">
+        <a href="{% url 'taller:pantalla_publica' ranking_token %}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-dark"><i class="fas fa-tv me-1"></i>Abrir en el monitor</a>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopiarPantalla" data-url="{% url 'taller:pantalla_publica' ranking_token %}"><i class="fas fa-link me-1"></i>Copiar enlace</button>
+      </div>
+    </div>
+    {% include "taller/_ranking_publico.html" with modo="widget" token=ranking_token payload=ranking_payload %}
+  </div>
+</div>
+<script>
+document.getElementById('btnCopiarPantalla').addEventListener('click', function () {
+  const url = location.origin + this.dataset.url, b = this;
+  navigator.clipboard.writeText(url).then(function () { const o = b.innerHTML; b.innerHTML = '<i class="fas fa-check me-1"></i>Copiado'; setTimeout(function () { b.innerHTML = o; }, 1500); });
+});
+</script>
+{% endif %}
+
 <script>
 function updateTime() {
     const now = new Date();

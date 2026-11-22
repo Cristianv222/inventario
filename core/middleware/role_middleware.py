@@ -68,6 +68,7 @@ class RoleMiddleware:
             '/media/',
             '/favicon.ico',
             '/manifest.json',
+            '/taller/pantalla/',      # monitor público del taller (protegido por token)
             '/manifest-tecnico.json',
             '/sw.js',
             '/inventario/api/publica/',

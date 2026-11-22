@@ -455,12 +455,12 @@
 
                 <h6 class="fw-bold mt-3">Liquidaciones semanales</h6>
                 <div class="table-responsive mb-3"><table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>Semana</th><th>Pagado el</th><th class="text-end">Serv.</th><th class="text-end">Comisión</th><th class="text-end">Adelantos</th><th class="text-end">Inventario</th><th class="text-end">Neto</th></tr></thead>
+                    <thead><tr><th>Semana</th><th>Pagado el</th><th class="text-end">Serv.</th><th class="text-end">Comisión / Salario</th><th class="text-end">Adelantos</th><th class="text-end">Inventario</th><th class="text-end">Neto</th></tr></thead>
                     <tbody>
                     {% for p in hist_pagos %}
-                        <tr><td>{% if p.semana_inicio %}{{ p.semana_inicio|date:"d/m" }} – {{ p.semana_fin|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                        <tr><td>{% if p.semana_inicio %}{{ p.semana_inicio|date:"d/m" }} – {{ p.semana_fin|date:"d/m/Y" }}{% else %}—{% endif %}{% if p.tipo == 'SALARIO' %} <span class="badge bg-info">Salario</span>{% endif %}</td>
                             <td>{{ p.fecha|date:"d/m/Y H:i" }}</td><td class="text-end">{{ p.num_trabajos }}</td>
-                            <td class="text-end">${{ p.comision_bruta|floatformat:2|intcomma }}</td>
+                            <td class="text-end">${% if p.tipo == 'SALARIO' %}{{ p.salario_bruto|floatformat:2|intcomma }}{% else %}{{ p.comision_bruta|floatformat:2|intcomma }}{% endif %}</td>
                             <td class="text-end text-danger">{% if p.adelantos_descontados > 0 %}-${{ p.adelantos_descontados|floatformat:2 }}{% else %}—{% endif %}</td>
                             <td class="text-end text-danger">{% if p.consumos_descontados > 0 %}-${{ p.consumos_descontados|floatformat:2 }}{% else %}—{% endif %}</td>
                             <td class="text-end fw-bold">${{ p.monto_pagado|floatformat:2|intcomma }}</td></tr>

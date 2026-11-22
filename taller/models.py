@@ -1074,6 +1074,9 @@ class PagoTecnico(models.Model):
     comision_bruta = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     adelantos_descontados = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     consumos_descontados = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    TIPO_CHOICES = [('COMISION', 'Comisión'), ('SALARIO', 'Salario')]
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='COMISION')
+    salario_bruto = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     monto_pagado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     num_trabajos = models.PositiveIntegerField(default=0)
     porcentaje_comision = models.DecimalField(max_digits=5, decimal_places=2, default=50,

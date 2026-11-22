@@ -776,6 +776,15 @@
       </div>
     </a>
 
+    <!-- Rendimiento: ranking del equipo -->
+    <a href="{% url 'taller:panel_tecnico_rendimiento' %}?fecha={{ inicio|date:'Y-m-d' }}{% if dia %}&dia={{ dia|date:'Y-m-d' }}{% endif %}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
+       class="sb-link {% if seccion == 'rendimiento' %}active{% endif %}">
+      <div class="sb-link-content">
+        <i class="bi bi-trophy" style="color:#f59e0b;"></i>
+        <span>Rendimiento</span>
+      </div>
+    </a>
+
     <!-- Pantalla 5: Mi Perfil -->
     <a href="{% url 'taller:panel_tecnico_perfil' %}?fecha={{ inicio|date:'Y-m-d' }}{% if es_preview_admin %}&tecnico_id={{ tecnico.pk }}{% endif %}"
        class="sb-link {% if seccion == 'perfil' %}active{% endif %}">

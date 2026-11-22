@@ -1,0 +1,74 @@
+{% load humanize %}
+<style>
+  .rk-wrap { --rk-border: var(--border, #e2e8f0); --rk-surface: var(--surface, #fff); --rk-subtle: var(--surface-subtle, #f8fafc); --rk-muted: var(--text-muted, #64748b); --rk-accent: var(--accent, #8bc53f); --rk-accent-ink: var(--accent-ink, #1b3506); }
+  .rk-hero { background: var(--rk-accent); color: var(--rk-accent-ink); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .rk-hero .pos { font-size: 2.6rem; font-weight: 900; line-height:1; font-family: monospace; }
+  .rk-hero .msg { font-weight: 800; font-size: 1.02rem; }
+  .rk-hero .sub { font-size: .8rem; font-weight: 700; opacity: .85; }
+  .rk-board { border:1px solid var(--rk-border); border-radius:14px; background: var(--rk-surface); overflow:hidden; margin-bottom:18px; }
+  .rk-board h3 { margin:0; padding:12px 16px; font-size:.95rem; font-weight:800; background: var(--rk-subtle); border-bottom:1px solid var(--rk-border); }
+  .rk-row { display:grid; grid-template-columns: 44px 1fr auto; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--rk-border); }
+  .rk-row:last-child { border-bottom:0; }
+  .rk-row.yo { background: color-mix(in srgb, var(--rk-accent) 14%, transparent); }
+  .rk-medal { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; background: var(--rk-subtle); border:1px solid var(--rk-border); }
+  .rk-medal.p1 { background:#fde68a; border-color:#f59e0b; } .rk-medal.p2 { background:#e2e8f0; border-color:#94a3b8; } .rk-medal.p3 { background:#fed7aa; border-color:#ea580c; }
+  .rk-name { font-weight:800; }
+  .rk-tag { font-size:.68rem; font-weight:800; padding:1px 8px; border-radius:999px; background: var(--rk-accent); color: var(--rk-accent-ink); margin-left:6px; }
+  .rk-bar { height:8px; border-radius:99px; background: var(--rk-subtle); border:1px solid var(--rk-border); margin-top:6px; overflow:hidden; }
+  .rk-bar > span { display:block; height:100%; background: var(--rk-accent); }
+  .rk-num { text-align:right; font-family: monospace; }
+  .rk-num strong { font-size:1.2rem; }
+  .rk-num small { display:block; color: var(--rk-muted); font-size:.72rem; }
+  .rk-days { width:100%; border-collapse:collapse; font-size:.85rem; }
+  .rk-days td, .rk-days th { padding:9px 14px; border-bottom:1px solid var(--rk-border); text-align:left; }
+  .rk-days tr:last-child td { border-bottom:0; }
+</style>
+
+<div class="rk-wrap">
+  {% if rank.mi %}
+  <div class="rk-hero">
+    <div class="pos">#{{ rank.mi.posicion }}</div>
+    <div>
+      <div class="msg">{{ rank.mensaje }}</div>
+      <div class="sub">
+        {% if rank.dia %}Día: {{ rank.dia|date:"l d/m" }}{% else %}Esta semana{% endif %}
+        · Tú: {{ rank.mi.servicios }} servicio(s) · ${{ rank.mi.valor|floatformat:2|intcomma }} en mano de obra
+        · Equipo: {{ rank.total_equipo }} servicio(s)
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="rk-board">
+    <h3><i class="bi bi-trophy-fill" style="color:#f59e0b;"></i> Ranking de técnicos {% if rank.dia %}· {{ rank.dia|date:"l d/m" }}{% else %}· semana{% endif %}</h3>
+    {% for r in rank.filas %}
+      <div class="rk-row {% if r.es_yo %}yo{% endif %}">
+        <div class="rk-medal {% if r.servicios > 0 and r.posicion == 1 %}p1{% elif r.servicios > 0 and r.posicion == 2 %}p2{% elif r.servicios > 0 and r.posicion == 3 %}p3{% endif %}">{{ r.posicion }}</div>
+        <div>
+          <div class="rk-name">{{ r.nombre }}{% if r.es_yo %}<span class="rk-tag">Tú</span>{% endif %}</div>
+          <div class="rk-bar"><span style="width: {{ r.pct }}%;"></span></div>
+          <div style="font-size:.72rem; color: var(--rk-muted); margin-top:3px;">{{ r.ordenes }} orden(es) de taller · {{ r.pos }} mecánica rápida</div>
+        </div>
+        <div class="rk-num"><strong>{{ r.servicios }}</strong><small>servicios · ${{ r.valor|floatformat:2|intcomma }}</small></div>
+      </div>
+    {% empty %}
+      <div style="padding:24px; text-align:center; color: var(--rk-muted);">No hay técnicos activos.</div>
+    {% endfor %}
+  </div>
+
+  <div class="rk-board">
+    <h3><i class="bi bi-calendar-check"></i> Mejor técnico de cada día</h3>
+    <table class="rk-days">
+      <tbody>
+        {% for c in rank.campeones %}
+          <tr>
+            <td style="font-weight:800; width:34%;">{{ c.nombre }} <span style="color: var(--rk-muted); font-weight:600;">{{ c.fecha|date:"d/m" }}</span></td>
+            <td>{% if c.ganadores %}<i class="bi bi-trophy-fill" style="color:#f59e0b;"></i> {{ c.ganadores|join:" y " }}{% if c.yo_gano %} <span class="rk-tag">Tú</span>{% endif %}{% else %}<span style="color: var(--rk-muted);">—</span>{% endif %}</td>
+            <td style="text-align:right; font-family:monospace;">{% if c.servicios %}{{ c.servicios }} serv.{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:.74rem; color: var(--rk-muted);">El ranking cuenta servicios realizados (órdenes de taller y mecánica rápida) por técnicos activos; en caso de empate gana quien generó más mano de obra.</div>
+</div>

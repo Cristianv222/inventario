@@ -143,6 +143,16 @@ def dashboard(request):
             activo=True
         )
 
+    # Ranking de técnicos en vivo (solo administradores)
+    context['ranking_token'] = None
+    if (request.user.is_staff or request.user.is_superuser) and 'taller_tecnico' in existing_tables:
+        try:
+            from taller.ranking import token_pantalla, payload_publico
+            context['ranking_token'] = token_pantalla()
+            context['ranking_payload'] = payload_publico()
+        except Exception:
+            context['ranking_token'] = None
+
     return render(request, 'core/dashboard.html', context)
 
 

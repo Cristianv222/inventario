@@ -25,12 +25,17 @@ urlpatterns = [
     path('mi-panel/pos/', views.panel_tecnico, {'seccion': 'pos'}, name='panel_tecnico_pos'),
     path('mi-panel/cuenta/', views.panel_tecnico, {'seccion': 'cuenta'}, name='panel_tecnico_cuenta'),
     path('mi-panel/perfil/', views.panel_tecnico, {'seccion': 'perfil'}, name='panel_tecnico_perfil'),
+    path('mi-panel/rendimiento/', views.panel_tecnico, {'seccion': 'rendimiento'}, name='panel_tecnico_rendimiento'),
+    path('rendimiento/', views.rendimiento_tecnicos, name='rendimiento_tecnicos'),
+    path('pantalla/<str:token>/', views.pantalla_publica, name='pantalla_publica'),
+    path('pantalla/<str:token>/datos/', views.pantalla_publica_datos, name='pantalla_publica_datos'),
     path('mi-perfil/', views.perfil_tecnico, name='perfil_tecnico'),
 
     # Cuenta del técnico (comisiones / adelantos / pagos)
     path('tecnicos/<int:pk>/cuenta/', views.cuenta_tecnico, name='cuenta_tecnico'),
     path('tecnicos/<int:pk>/adelanto/', views.registrar_adelanto, name='registrar_adelanto'),
     path('tecnicos/<int:pk>/pagar-comision/', views.pagar_comision, name='pagar_comision'),
+    path('tecnicos/<int:pk>/pagar-salario/', views.pagar_salario, name='pagar_salario'),
     path('tecnicos/<int:pk>/consumo/', views.registrar_consumo, name='registrar_consumo'),
     path('consumos/<int:pk>/anular/', views.anular_consumo, name='anular_consumo'),
 

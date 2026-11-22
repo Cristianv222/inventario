@@ -1,0 +1,17 @@
+{% extends "taller/panel_tecnico/base_panel.html" %}
+{% load humanize %}
+
+{% block title %}Mi Rendimiento{% endblock %}
+
+{% block panel_content %}
+<div class="screen-toolbar">
+  <div class="screen-title-wrap">
+    <div class="screen-icon"><i class="bi bi-trophy"></i></div>
+    <div>
+      <h2 class="screen-heading">Mi Rendimiento</h2>
+      <div class="screen-sub">¿Quién hizo más esta semana o este día? Usa los días de arriba para ver un día específico.</div>
+    </div>
+  </div>
+</div>
+{% include "taller/_ranking_rendimiento.html" with rank=ranking %}
+{% endblock %}

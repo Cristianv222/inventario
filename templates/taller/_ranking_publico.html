@@ -1,0 +1,174 @@
+{% load static %}
+{# Ranking de técnicos en vivo. Variables: modo ("widget" | "kiosko"), token, payload #}
+<style>
+  .rkp { --bg:#0a0c09; --panel:#12160f; --line:#252d1b; --lime:#bdd62a; --lime-d:#8fa61a; --text:#f4f6ef; --muted:#8c9784;
+         background: radial-gradient(1200px 500px at 85% -10%, rgba(189,214,42,.10), transparent 60%), var(--bg);
+         color: var(--text); border-radius: 18px; border:1px solid var(--line); overflow:hidden; font-family: 'Poppins','DM Sans',system-ui,sans-serif;
+         display:flex; flex-direction:column; }
+  .rkp * { box-sizing: border-box; }
+  .rkp-head { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .rkp-brand { display:flex; align-items:center; gap:14px; min-width:0; }
+  .rkp-logo { height:64px; margin:-14px 0 -14px -8px; display:none; }
+  .rkp-title { font-weight:800; font-size:1.05rem; letter-spacing:.02em; text-transform:uppercase; }
+  .rkp-title i { color: var(--lime); margin-right:8px; }
+  .rkp-sub { font-size:.78rem; color: var(--muted); }
+  .rkp-tools { display:flex; align-items:center; gap:14px; }
+  .rkp-live { font-size:.75rem; font-weight:700; color: var(--lime); display:inline-flex; align-items:center; gap:6px; }
+  .rkp-live i { font-size:.55rem; }
+  .rkp-live.off { color:#f59e0b; }
+  .rkp-clock { font-family: 'DM Mono', monospace; color: var(--muted); font-size:.9rem; }
+  .rkp-btn { background: transparent; color: var(--text); border:1px solid var(--line); border-radius:10px; padding:6px 12px; font-size:.8rem; cursor:pointer; }
+  .rkp-btn:hover { border-color: var(--lime); color: var(--lime); }
+  .rkp-cols { display:grid; grid-template-columns: 1fr 1fr; gap:16px; padding:16px 20px 20px; flex:1; min-height:0; }
+  @media (max-width: 820px) { .rkp-cols { grid-template-columns: 1fr; } }
+  .rkp-col { background: var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+  .rkp-col-head { display:flex; align-items:baseline; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .rkp-col-title { font-weight:800; text-transform:uppercase; letter-spacing:.06em; font-size:.85rem; color: var(--lime); }
+  .rkp-col-meta { font-size:.75rem; color: var(--muted); }
+  .rkp-list { padding:6px 0; overflow:hidden; }
+  .rkp-row { display:grid; grid-template-columns: 38px 46px 1fr auto; gap:12px; align-items:center; padding:9px 16px; transition: background .4s; }
+  .rkp-row.first { background: linear-gradient(90deg, rgba(189,214,42,.16), transparent); }
+  .rkp-row.flash { animation: rkflash 1.6s ease-out; }
+  @keyframes rkflash { 0% { background: rgba(189,214,42,.45); } 100% { background: transparent; } }
+  .rkp-pos { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; border:1px solid var(--line); color: var(--muted); font-size:.9rem; }
+  .rkp-row.first .rkp-pos { background: var(--lime); color:#10150a; border-color: var(--lime); }
+  .rkp-av { width:42px; height:42px; border-radius:50%; background:#1b2214; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-weight:800; color: var(--lime); overflow:hidden; }
+  .rkp-av img { width:100%; height:100%; object-fit:cover; }
+  .rkp-name { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rkp-name small { font-weight:500; color: var(--muted); margin-left:6px; }
+  .rkp-bar { height:6px; border-radius:99px; background:#1b2214; margin-top:6px; overflow:hidden; }
+  .rkp-bar span { display:block; height:100%; background: linear-gradient(90deg, var(--lime-d), var(--lime)); border-radius:99px; transition: width .8s ease; }
+  .rkp-count { text-align:right; font-weight:800; font-size:1.7rem; line-height:1; font-family:'DM Mono', monospace; }
+  .rkp-count small { display:block; font-family: inherit; font-size:.62rem; color: var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.08em; margin-top:3px; }
+  .rkp-empty { padding:34px 16px; text-align:center; color: var(--muted); font-size:.9rem; }
+  .rkp-empty i { display:block; font-size:1.6rem; margin-bottom:8px; color: var(--lime-d); }
+
+  /* Pantalla completa (monitor) */
+  .rkp.kiosko, .rkp:fullscreen { position:fixed; inset:0; width:100vw; height:100vh; border-radius:0; border:0; }
+  .rkp.kiosko .rkp-logo, .rkp:fullscreen .rkp-logo { display:block; height:clamp(70px, 9vh, 120px); margin:-10px 0 -10px -10px; }
+  .rkp.kiosko .rkp-head, .rkp:fullscreen .rkp-head { padding:2vh 3vw; }
+  .rkp.kiosko .rkp-title, .rkp:fullscreen .rkp-title { font-size: clamp(1.1rem, 2.2vw, 2rem); }
+  .rkp.kiosko .rkp-sub, .rkp:fullscreen .rkp-sub { font-size: clamp(.8rem, 1.2vw, 1.1rem); }
+  .rkp.kiosko .rkp-clock, .rkp:fullscreen .rkp-clock { font-size: clamp(1rem, 2vw, 1.8rem); }
+  .rkp.kiosko .rkp-cols, .rkp:fullscreen .rkp-cols { padding:2vh 3vw 3vh; gap:2vw; }
+  .rkp.kiosko .rkp-col-title, .rkp:fullscreen .rkp-col-title { font-size: clamp(1rem, 1.8vw, 1.6rem); }
+  .rkp.kiosko .rkp-col-meta, .rkp:fullscreen .rkp-col-meta { font-size: clamp(.8rem, 1.2vw, 1.1rem); }
+  .rkp.kiosko .rkp-row, .rkp:fullscreen .rkp-row { grid-template-columns: 4.2vw 5vw 1fr auto; gap:1.4vw; padding:1.4vh 1.6vw; }
+  .rkp.kiosko .rkp-pos, .rkp:fullscreen .rkp-pos { width:3.6vw; height:3.6vw; font-size: clamp(1rem, 1.7vw, 1.6rem); }
+  .rkp.kiosko .rkp-av, .rkp:fullscreen .rkp-av { width:4.6vw; height:4.6vw; font-size: clamp(1rem, 1.7vw, 1.6rem); }
+  .rkp.kiosko .rkp-name, .rkp:fullscreen .rkp-name { font-size: clamp(1.1rem, 2vw, 1.9rem); }
+  .rkp.kiosko .rkp-count, .rkp:fullscreen .rkp-count { font-size: clamp(1.8rem, 3.4vw, 3.4rem); }
+  .rkp.kiosko .rkp-count small, .rkp:fullscreen .rkp-count small { font-size: clamp(.6rem, .9vw, .9rem); }
+  .rkp.kiosko .rkp-bar, .rkp:fullscreen .rkp-bar { height: .8vh; }
+</style>
+
+<section class="rkp {{ modo }}" id="rkp-root">
+  <header class="rkp-head">
+    <div class="rkp-brand">
+      <img class="rkp-logo" src="{% static 'logo_vp.png' %}" alt="VP Motos">
+      <div>
+        <div class="rkp-title"><i class="fa-solid fa-trophy"></i>Ranking de técnicos</div>
+        <div class="rkp-sub" id="rkpSub">Servicios realizados en el taller</div>
+      </div>
+    </div>
+    <div class="rkp-tools">
+      <span class="rkp-live off" id="rkpLive"><i class="fa-solid fa-circle"></i><span>Conectando</span></span>
+      <span class="rkp-clock" id="rkpClock"></span>
+      <button type="button" class="rkp-btn" id="rkpFs" title="Pantalla completa"><i class="fa-solid fa-expand"></i> Pantalla completa</button>
+    </div>
+  </header>
+  <div class="rkp-cols">
+    <div class="rkp-col"><div class="rkp-col-head"><span class="rkp-col-title">Hoy</span><span class="rkp-col-meta" id="rkpHoyMeta"></span></div><div class="rkp-list" id="rkpHoy"></div></div>
+    <div class="rkp-col"><div class="rkp-col-head"><span class="rkp-col-title">Esta semana</span><span class="rkp-col-meta" id="rkpSemMeta"></span></div><div class="rkp-list" id="rkpSem"></div></div>
+  </div>
+</section>
+{{ payload|json_script:"rkp-data" }}
+
+<script>
+(function () {
+  const root = document.getElementById('rkp-root');
+  const TOKEN = '{{ token }}';
+  const MODO = '{{ modo }}';
+  let data = JSON.parse(document.getElementById('rkp-data').textContent);
+  const prev = {};
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function enPantallaCompleta() { return MODO === 'kiosko' || document.fullscreenElement === root; }
+
+  function filas(clave, bloque) {
+    const max = enPantallaCompleta() ? 10 : 5;
+    if (!bloque.filas.length) {
+      return '<div class="rkp-empty"><i class="fa-solid fa-user-slash"></i>No hay técnicos activos</div>';
+    }
+    return bloque.filas.slice(0, max).map(function (r) {
+      const k = clave + ':' + r.nombre;
+      const subio = prev[k] !== undefined && r.servicios > prev[k];
+      prev[k] = r.servicios;
+      const primero = r.servicios > 0 && r.posicion === 1;
+      const av = r.foto ? '<img src="' + esc(r.foto) + '" alt="">' : esc(r.iniciales);
+      return '<div class="rkp-row ' + (primero ? 'first ' : '') + (subio ? 'flash' : '') + '">' +
+        '<div class="rkp-pos">' + (primero ? '<i class="fa-solid fa-crown"></i>' : r.posicion) + '</div>' +
+        '<div class="rkp-av">' + av + '</div>' +
+        '<div style="min-width:0"><div class="rkp-name">' + esc(r.nombre) +
+        '<small>' + r.ordenes + ' taller · ' + r.pos + ' rápida</small></div>' +
+        '<div class="rkp-bar"><span style="width:' + r.pct + '%"></span></div></div>' +
+        '<div class="rkp-count">' + r.servicios + '<small>servicios</small></div></div>';
+    }).join('');
+  }
+
+  function render() {
+    document.getElementById('rkpHoy').innerHTML = filas('hoy', data.hoy);
+    document.getElementById('rkpSem').innerHTML = filas('sem', data.semana);
+    document.getElementById('rkpHoyMeta').textContent = data.hoy.fecha + ' · ' + data.hoy.total + ' en total';
+    document.getElementById('rkpSemMeta').textContent = data.semana.inicio + ' al ' + data.semana.fin + ' · ' + data.semana.total + ' en total';
+    document.getElementById('rkpSub').textContent = 'Servicios realizados en el taller · actualizado ' + data.generado;
+  }
+
+  function reloj() {
+    document.getElementById('rkpClock').textContent = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function setLive(on) {
+    const el = document.getElementById('rkpLive');
+    el.classList.toggle('off', !on);
+    el.querySelector('span').textContent = on ? 'En vivo' : 'Reconectando';
+  }
+
+  // ---- WebSocket con reconexión + respaldo por HTTP ----
+  let ws = null, intento = 0, poll = null;
+  function conectar() {
+    const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/taller/ranking/?t=' + encodeURIComponent(TOKEN);
+    try { ws = new WebSocket(url); } catch (e) { return programar(); }
+    ws.onopen = function () { intento = 0; setLive(true); if (poll) { clearInterval(poll); poll = null; } };
+    ws.onmessage = function (ev) {
+      try { const m = JSON.parse(ev.data); if (m.type === 'ranking') { data = m.data; render(); } } catch (e) {}
+    };
+    ws.onclose = function () { setLive(false); respaldo(); programar(); };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+  }
+  function programar() { intento = Math.min(intento + 1, 6); setTimeout(conectar, Math.min(30000, 1000 * Math.pow(2, intento))); }
+  function respaldo() {
+    if (poll) return;
+    poll = setInterval(function () {
+      fetch('/taller/pantalla/' + encodeURIComponent(TOKEN) + '/datos/', { cache: 'no-store' })
+        .then(function (r) { return r.json(); }).then(function (d) { data = d; render(); }).catch(function () {});
+    }, 30000);
+  }
+  // Refresco periódico (cambio de día, por si no hubo eventos)
+  setInterval(function () { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ action: 'refresh' })); }, 120000);
+
+  // ---- Pantalla completa ----
+  const btn = document.getElementById('rkpFs');
+  btn.addEventListener('click', function () {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else if (root.requestFullscreen) { root.requestFullscreen().catch(function () {}); }
+  });
+  document.addEventListener('fullscreenchange', function () {
+    const full = document.fullscreenElement === root;
+    btn.innerHTML = full ? '<i class="fa-solid fa-compress"></i> Salir' : '<i class="fa-solid fa-expand"></i> Pantalla completa';
+    render();
+  });
+
+  render(); reloj(); setInterval(reloj, 15000); conectar();
+})();
+</script>

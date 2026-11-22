@@ -42,7 +42,7 @@
 
     <div class="card shadow-sm mb-3"><div class="card-header fw-bold"><i class="fas fa-money-bill-wave me-2"></i>Esquema de pago</div>
       <div class="card-body">
-        <p class="small text-muted">Marca cómo se le paga a este técnico. Puede ser comisión, salario, o ambos.</p>
+        <p class="small text-muted">Marca cómo se le paga a este técnico. Puede ser comisión, salario, o ambos. <strong>Si solo cobra salario fijo, desmarca "Gana comisión".</strong> El salario se liquida desde el botón de cobros (caja registradora) del técnico, según su periodicidad.</p>
         <div class="form-check form-switch mb-2">
           <input class="form-check-input" type="checkbox" name="gana_comision" id="chkCom" {% if modo != 'editar' or tecnico.gana_comision %}checked{% endif %} onchange="toggleBox('boxCom',this)">
           <label class="form-check-label fw-bold" for="chkCom">Gana comisión por servicios</label>

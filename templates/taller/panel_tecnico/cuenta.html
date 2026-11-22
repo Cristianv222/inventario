@@ -14,6 +14,24 @@
   </div>
 </div>
 
+{% if gana_salario and salario_info %}
+<!-- Salario fijo -->
+<div style="background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; border-radius:14px; padding:18px; margin-bottom:20px;">
+  <div style="font-size:0.72rem; text-transform:uppercase; font-weight:900; opacity:0.85;"><i class="bi bi-cash-stack"></i> Tu salario {{ salario_info.periodicidad|lower }}</div>
+  <div style="font-size:2rem; font-weight:900; margin:6px 0; font-family:monospace;">${{ salario_info.salario|floatformat:2|intcomma }}</div>
+  <div style="font-size:0.8rem; font-weight:700;">Periodo: {{ salario_info.inicio|date:"d/m/Y" }} al {{ salario_info.fin|date:"d/m/Y" }}</div>
+  <div style="margin-top:8px; display:inline-block; padding:3px 12px; border-radius:999px; font-size:0.75rem; font-weight:800; background:rgba(255,255,255,.2);">
+    {% if salario_info.pagado %}<i class="bi bi-check-circle-fill"></i> Pagado el {{ salario_info.pago.fecha|date:"d/m/Y" }}{% else %}<i class="bi bi-clock"></i> Pendiente de pago{% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if not gana_comision %}
+<div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:12px; padding:12px 16px; font-size:0.85rem; margin-bottom:20px;">
+  <i class="bi bi-info-circle"></i> Tu pago es por <strong>salario fijo</strong>; no generas comisión por servicio.
+  {% if resumen_semana.adelantos_semana > 0 %}Tienes deudas pendientes por <strong>${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</strong> que se descuentan al pagarte.{% endif %}
+</div>
+{% else %}
 <!-- Resumen de la semana seleccionada -->
 <div style="font-size:0.8rem; font-weight:800; color:var(--text-muted); margin-bottom:8px;">
   <i class="bi bi-calendar-week"></i> Semana del {{ inicio|date:"d/m" }} al {{ fin|date:"d/m/Y" }}
@@ -44,6 +62,8 @@
 </div>
 {% endif %}
 
+{% endif %}
+
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:18px;">
   <!-- Últimos Pagos -->
   <div style="border:1px solid var(--border); border-radius:14px; background:var(--surface); overflow:hidden;">
@@ -52,12 +72,12 @@
     </div>
     <div style="width:100%; overflow-x:auto;">
       <table class="screen-table">
-        <thead><tr><th>Fecha / Hora</th><th>Servicios</th><th class="num">Monto Pagado</th></tr></thead>
+        <thead><tr><th>Fecha / Hora</th><th>Concepto</th><th class="num">Monto Pagado</th></tr></thead>
         <tbody>
           {% for p in pagos_recientes %}
             <tr>
               <td>{{ p.fecha|date:"d/m/Y H:i" }}</td>
-              <td><strong>{{ p.num_trabajos }}</strong> serv.</td>
+              <td>{% if p.tipo == 'SALARIO' %}<strong>Salario</strong>{% else %}<strong>{{ p.num_trabajos }}</strong> serv.{% endif %}</td>
               <td class="num" style="font-weight:900; color:var(--accent-dark); font-size:0.95rem;">${{ p.monto_pagado|floatformat:2|intcomma }}</td>
             </tr>
           {% empty %}

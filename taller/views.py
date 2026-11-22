@@ -2156,11 +2156,15 @@ def panel_tecnico(request, seccion='calculadora'):
         'pos': 'taller/panel_tecnico/pos.html',
         'cuenta': 'taller/panel_tecnico/cuenta.html',
         'perfil': 'taller/panel_tecnico/perfil.html',
+        'rendimiento': 'taller/panel_tecnico/rendimiento.html',
     }
     template_name = template_map.get(seccion, 'taller/panel_tecnico/calculadora.html')
 
+    ranking = _ranking_tecnicos(inicio, fin, dia=dia if (dia and inicio <= dia <= fin) else None, yo=tecnico) if seccion == 'rendimiento' else None
+
     return render(request, template_name, {
         'seccion': seccion,
+        'ranking': ranking,
         'tecnico': tecnico,
         'resumen_semana': resumen_semana,
         'por_dia': por_dia,
@@ -2179,6 +2183,9 @@ def panel_tecnico(request, seccion='calculadora'):
         'pagos_recientes': tecnico.pagos.all()[:15],
         'adelantos_recientes': tecnico.adelantos.all()[:15],
         'consumos_recientes': tecnico.consumos.select_related('producto').filter(anulado=False)[:15],
+        'gana_comision': gana_comision,
+        'gana_salario': getattr(tecnico, 'gana_salario', False),
+        'salario_info': _info_salario(tecnico, hoy) if getattr(tecnico, 'gana_salario', False) else None,
         'es_preview_admin': getattr(request.user, 'tecnico', None) is None,
     })
 
@@ -2260,6 +2267,95 @@ def _aplicar_descuento_deudas(tecnico, monto, pago):
         else:
             ap_c += aplicar
     return ap_a, ap_c
+
+
+from .ranking import _ranking_tecnicos  # noqa: E402
+
+
+def pantalla_publica(request, token):
+    """Monitor del taller (pantalla completa). Sin login: se protege con un token
+    en la URL. Solo muestra servicios realizados, nunca dinero."""
+    from .ranking import token_valido, payload_publico
+    from django.http import Http404
+    if not token_valido(token):
+        raise Http404()
+    resp = render(request, 'taller/pantalla_publica.html', {'token': token, 'payload': payload_publico()})
+    resp['Cache-Control'] = 'no-store'
+    return resp
+
+
+def pantalla_publica_datos(request, token):
+    """Respaldo por HTTP del monitor (si el WebSocket no está disponible)."""
+    from .ranking import token_valido, payload_publico
+    from django.http import Http404
+    if not token_valido(token):
+        raise Http404()
+    resp = JsonResponse(payload_publico())
+    resp['Cache-Control'] = 'no-store'
+    return resp
+
+
+@admin_requerido
+def rendimiento_tecnicos(request):
+    """Ranking de rendimiento de los técnicos activos (semana o día). Solo administradores."""
+    hoy = timezone.localdate()
+    try:
+        ref = datetime.strptime(request.GET.get('fecha') or '', '%Y-%m-%d').date()
+    except ValueError:
+        ref = hoy
+    inicio = ref - timedelta(days=ref.weekday())
+    fin = inicio + timedelta(days=5)
+    try:
+        dia = datetime.strptime(request.GET.get('dia') or '', '%Y-%m-%d').date()
+        if not (inicio <= dia <= fin):
+            dia = None
+    except ValueError:
+        dia = None
+    rank = _ranking_tecnicos(inicio, fin, dia=dia)
+    return render(request, 'taller/rendimiento_tecnicos.html', {
+        'rank': rank, 'inicio': inicio, 'fin': fin, 'dia': dia, 'hoy': hoy,
+        'semana_anterior': inicio - timedelta(days=7),
+        'semana_siguiente': inicio + timedelta(days=7),
+        'es_semana_actual': inicio == hoy - timedelta(days=hoy.weekday()),
+        'dias': [inicio + timedelta(days=i) for i in range(6)],
+    })
+
+
+def _periodo_salario(tecnico, ref):
+    """Periodo de salario (inicio, fin) que contiene la fecha `ref`, según la
+    periodicidad del técnico: SEMANAL (lun–sáb), QUINCENAL (1–15 / 16–fin) o MENSUAL."""
+    import calendar
+    per = tecnico.periodicidad_salario or 'MENSUAL'
+    if per == 'SEMANAL':
+        ini = ref - timedelta(days=ref.weekday())
+        return ini, ini + timedelta(days=5)
+    ultimo = calendar.monthrange(ref.year, ref.month)[1]
+    if per == 'QUINCENAL':
+        if ref.day <= 15:
+            return ref.replace(day=1), ref.replace(day=15)
+        return ref.replace(day=16), ref.replace(day=ultimo)
+    return ref.replace(day=1), ref.replace(day=ultimo)
+
+
+def _info_salario(tecnico, ref):
+    """Estado del salario del técnico en el periodo de `ref` (para admin y panel)."""
+    from .models import PagoTecnico
+    hoy = timezone.localdate()
+    ini, fin = _periodo_salario(tecnico, ref)
+    ini_hoy, _fin_hoy = _periodo_salario(tecnico, hoy)
+    paso = 2 if (tecnico.periodicidad_salario == 'SEMANAL') else 1
+    ant, _ = _periodo_salario(tecnico, ini - timedelta(days=1))
+    sig, _ = _periodo_salario(tecnico, fin + timedelta(days=paso))
+    pago = PagoTecnico.objects.filter(
+        tecnico=tecnico, tipo='SALARIO', semana_inicio=ini, semana_fin=fin).first()
+    return {
+        'inicio': ini, 'fin': fin,
+        'salario': tecnico.salario_base or Decimal('0'),
+        'periodicidad': tecnico.get_periodicidad_salario_display() if tecnico.periodicidad_salario else 'Mensual',
+        'pago': pago, 'pagado': pago is not None,
+        'anterior': ant, 'siguiente': sig,
+        'es_actual': ini == ini_hoy,
+    }
 
 
 def _resumen_cuenta_tecnico(tecnico):
@@ -2428,7 +2524,7 @@ def cuenta_tecnico(request, pk):
     # ¿Ya tiene liquidación para esta semana?
     from .models import PagoTecnico
     liquidacion_existente = PagoTecnico.objects.filter(
-        tecnico=tecnico, semana_inicio=inicio, semana_fin=fin
+        tecnico=tecnico, semana_inicio=inicio, semana_fin=fin, tipo='COMISION'
     ).first()
 
     # Historial de liquidaciones previas
@@ -2454,8 +2550,26 @@ def cuenta_tecnico(request, pk):
         'liquidacion': liquidacion_existente,
     }
 
+    # Salario fijo (si el técnico gana salario): periodo elegido con ?periodo=YYYY-MM-DD
+    salario_info = None
+    if getattr(tecnico, 'gana_salario', False):
+        ref_s = hoy
+        per_str = request.GET.get('periodo')
+        if per_str:
+            try:
+                ref_s = datetime.strptime(per_str, '%Y-%m-%d').date()
+            except ValueError:
+                ref_s = hoy
+        salario_info = _info_salario(tecnico, ref_s)
+        salario_info['descuento_max'] = min(deudas['total'], salario_info['salario'])
+        salario_info['neto'] = salario_info['salario'] - salario_info['descuento_max']
+
     return render(request, 'taller/cuenta_tecnico.html', {
         'tecnico': tecnico,
+        'gana_comision': getattr(tecnico, 'gana_comision', True),
+        'gana_salario': getattr(tecnico, 'gana_salario', False),
+        'salario_info': salario_info,
+        'deuda_total': deudas['total'],
         'resumen_semana': resumen_semana,
         'trabajos': todos,
         'historial_pagos': historial_pagos,
@@ -2585,6 +2699,74 @@ def anular_consumo(request, pk):
 
 
 @admin_requerido
+def pagar_salario(request, pk):
+    """Liquida el salario fijo de un periodo (semanal, quincenal o mensual).
+    Igual que la comisión, permite descontar deudas (adelantos / inventario) total o parcial."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
+    tecnico = get_object_or_404(Tecnico, pk=pk)
+    from .models import PagoTecnico
+    if not getattr(tecnico, 'gana_salario', False) or not tecnico.salario_base or tecnico.salario_base <= 0:
+        return JsonResponse({'success': False, 'message': 'Este técnico no tiene un salario configurado.'}, status=400)
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except Exception:
+        data = request.POST
+    try:
+        ref = datetime.strptime((data.get('periodo') or '').strip(), '%Y-%m-%d').date()
+    except ValueError:
+        ref = timezone.localdate()
+    ini, fin = _periodo_salario(tecnico, ref)
+    salario = tecnico.salario_base
+
+    with transaction.atomic():
+        if PagoTecnico.objects.filter(tecnico=tecnico, tipo='SALARIO', semana_inicio=ini, semana_fin=fin).exists():
+            return JsonResponse({'success': False, 'message': f'El salario del periodo {ini:%d/%m} – {fin:%d/%m/%Y} ya fue pagado.'}, status=400)
+
+        deuda = _deudas_pendientes(tecnico, lock=True)
+        modo = (data.get('modo_descuento') or 'total').strip().lower()
+        tope = min(deuda['total'], salario)
+        if modo == 'ninguno':
+            descuento = Decimal('0')
+        elif modo == 'parcial':
+            try:
+                descuento = Decimal(str(data.get('monto_descuento') or '0'))
+            except (InvalidOperation, ValueError):
+                descuento = Decimal('-1')
+            if descuento < 0:
+                return JsonResponse({'success': False, 'message': 'El monto a descontar no es válido.'}, status=400)
+            if descuento > tope:
+                return JsonResponse({'success': False, 'message': f'Lo máximo que se puede descontar es ${tope:.2f}.'}, status=400)
+        else:
+            descuento = tope
+        descuento = descuento.quantize(Decimal('0.01'))
+
+        pago = PagoTecnico.objects.create(
+            tecnico=tecnico, tipo='SALARIO',
+            semana_inicio=ini, semana_fin=fin,
+            comision_bruta=0, salario_bruto=salario,
+            adelantos_descontados=0, consumos_descontados=0,
+            monto_pagado=salario, num_trabajos=0,
+            porcentaje_comision=0,
+            descripcion=(data.get('descripcion') or f'Salario {tecnico.get_periodicidad_salario_display()} {ini:%d/%m} – {fin:%d/%m/%Y}').strip(),
+            usuario_registro=request.user if request.user.is_authenticated else None,
+        )
+        ap_adel, ap_cons = _aplicar_descuento_deudas(tecnico, descuento, pago) if descuento > 0 else (Decimal('0'), Decimal('0'))
+        neto = salario - ap_adel - ap_cons
+        pago.adelantos_descontados = ap_adel
+        pago.consumos_descontados = ap_cons
+        pago.monto_pagado = neto
+        pago.save(update_fields=['adelantos_descontados', 'consumos_descontados', 'monto_pagado'])
+        deuda_restante = deuda['total'] - ap_adel - ap_cons
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Salario {ini:%d/%m} – {fin:%d/%m/%Y} pagado. Salario ${salario:.2f} · Descuento deudas −${ap_adel + ap_cons:.2f} · Neto a entregar ${neto:.2f}.'
+                   + (f' Deuda pendiente: ${deuda_restante:.2f}.' if deuda_restante > 0 else ''),
+    })
+
+
+@admin_requerido
 def pagar_comision(request, pk):
     """Liquida la comisión de una semana específica (Lunes–Sábado) del técnico."""
     if request.method != 'POST':
@@ -2611,7 +2793,7 @@ def pagar_comision(request, pk):
     fin = inicio + timedelta(days=5)
 
     # Verificar si ya existe liquidación para esta semana
-    if PagoTecnico.objects.filter(tecnico=tecnico, semana_inicio=inicio, semana_fin=fin).exists():
+    if PagoTecnico.objects.filter(tecnico=tecnico, semana_inicio=inicio, semana_fin=fin, tipo='COMISION').exists():
         return JsonResponse({'success': False, 'message': f'Esta semana ({inicio:%d/%m} – {fin:%d/%m}) ya fue liquidada.'}, status=400)
 
     factor = _factor_comision(tecnico)
