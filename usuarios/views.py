@@ -102,8 +102,14 @@ def cambiar_password(request):
         form = CustomPasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
+            # Si era una contraseña temporal, ya no hay que volver a pedirla
+            if user.debe_cambiar_password:
+                user.debe_cambiar_password = False
+                user.save(update_fields=['debe_cambiar_password'])
             update_session_auth_hash(request, user)
             messages.success(request, 'Tu contraseña ha sido actualizada correctamente.')
+            if _es_solo_tecnico(user):
+                return redirect('taller:panel_tecnico')
             return redirect('core:dashboard')
         else:
             messages.error(request, 'Por favor corrige los errores en el formulario.')
