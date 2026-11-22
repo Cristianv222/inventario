@@ -2250,11 +2250,52 @@ def _deudas_pendientes(tecnico, lock=False):
     }
 
 
-def _aplicar_descuento_deudas(tecnico, monto, pago):
+def _resolver_descuento(data, deuda, bruto):
+    """Determina cuánto y qué deudas se descuentan al liquidar.
+
+    modo_descuento:
+      - 'seleccion' : el admin marcó adelantos y/o productos concretos (adelanto_ids / consumo_ids);
+                      si además manda monto_descuento, solo se descuenta ese monto (cobro parcial).
+      - 'total' / 'parcial' / 'ninguno': comportamiento anterior sobre toda la deuda.
+    Devuelve (descuento, ids_adelantos, ids_consumos, error_response)."""
+    modo = (data.get('modo_descuento') or 'total').strip().lower()
+    ids_a = ids_c = None
+    if modo == 'seleccion':
+        ids_a = {int(x) for x in (data.get('adelanto_ids') or []) if str(x).isdigit()}
+        ids_c = {int(x) for x in (data.get('consumo_ids') or []) if str(x).isdigit()}
+        disponible = (sum((a.saldo for a in deuda['adelantos'] if a.pk in ids_a), Decimal('0')) +
+                      sum((c.saldo for c in deuda['consumos'] if c.pk in ids_c), Decimal('0')))
+    else:
+        disponible = deuda['total']
+    tope = min(disponible, bruto)
+
+    raw = data.get('monto_descuento')
+    quiere_parcial = modo == 'parcial' or (modo == 'seleccion' and raw not in (None, ''))
+    if modo == 'ninguno':
+        descuento = Decimal('0')
+    elif quiere_parcial:
+        try:
+            descuento = Decimal(str(raw or '0'))
+        except (InvalidOperation, ValueError):
+            descuento = Decimal('-1')
+        if descuento < 0:
+            return None, None, None, JsonResponse({'success': False, 'message': 'El monto a descontar no es válido.'}, status=400)
+        if descuento > tope:
+            return None, None, None, JsonResponse({
+                'success': False,
+                'message': f'Lo máximo que se puede descontar es ${tope:.2f} (seleccionado ${disponible:.2f}, a pagar ${bruto:.2f}).'
+            }, status=400)
+    else:
+        descuento = tope   # todo lo seleccionado, sin pasar de lo que se le paga
+    return descuento.quantize(Decimal('0.01')), ids_a, ids_c, None
+
+
+def _aplicar_descuento_deudas(tecnico, monto, pago, ids_adelantos=None, ids_consumos=None):
     """Descuenta `monto` de las deudas, de la más antigua a la más nueva.
     Devuelve (aplicado_a_adelantos, aplicado_a_consumos)."""
     d = _deudas_pendientes(tecnico, lock=True)
-    items = [('A', x) for x in d['adelantos']] + [('C', x) for x in d['consumos']]
+    items = ([('A', x) for x in d['adelantos'] if ids_adelantos is None or x.pk in ids_adelantos] +
+             [('C', x) for x in d['consumos'] if ids_consumos is None or x.pk in ids_consumos])
     items.sort(key=lambda t: t[1].fecha)
     restante = monto
     ap_a = Decimal('0')
@@ -2596,6 +2637,8 @@ def cuenta_tecnico(request, pk):
         'gana_salario': getattr(tecnico, 'gana_salario', False),
         'salario_info': salario_info,
         'deuda_total': deudas['total'],
+        'deudas_adelantos_lista': deudas['adelantos'],
+        'deudas_consumos_lista': deudas['consumos'],
         'resumen_semana': resumen_semana,
         'trabajos': todos,
         'historial_pagos': historial_pagos,
@@ -2750,22 +2793,9 @@ def pagar_salario(request, pk):
             return JsonResponse({'success': False, 'message': f'El salario del periodo {ini:%d/%m} – {fin:%d/%m/%Y} ya fue pagado.'}, status=400)
 
         deuda = _deudas_pendientes(tecnico, lock=True)
-        modo = (data.get('modo_descuento') or 'total').strip().lower()
-        tope = min(deuda['total'], salario)
-        if modo == 'ninguno':
-            descuento = Decimal('0')
-        elif modo == 'parcial':
-            try:
-                descuento = Decimal(str(data.get('monto_descuento') or '0'))
-            except (InvalidOperation, ValueError):
-                descuento = Decimal('-1')
-            if descuento < 0:
-                return JsonResponse({'success': False, 'message': 'El monto a descontar no es válido.'}, status=400)
-            if descuento > tope:
-                return JsonResponse({'success': False, 'message': f'Lo máximo que se puede descontar es ${tope:.2f}.'}, status=400)
-        else:
-            descuento = tope
-        descuento = descuento.quantize(Decimal('0.01'))
+        descuento, ids_a, ids_c, err = _resolver_descuento(data, deuda, salario)
+        if err:
+            return err
 
         pago = PagoTecnico.objects.create(
             tecnico=tecnico, tipo='SALARIO',
@@ -2777,7 +2807,7 @@ def pagar_salario(request, pk):
             descripcion=(data.get('descripcion') or f'Salario {tecnico.get_periodicidad_salario_display()} {ini:%d/%m} – {fin:%d/%m/%Y}').strip(),
             usuario_registro=request.user if request.user.is_authenticated else None,
         )
-        ap_adel, ap_cons = _aplicar_descuento_deudas(tecnico, descuento, pago) if descuento > 0 else (Decimal('0'), Decimal('0'))
+        ap_adel, ap_cons = _aplicar_descuento_deudas(tecnico, descuento, pago, ids_a, ids_c) if descuento > 0 else (Decimal('0'), Decimal('0'))
         neto = salario - ap_adel - ap_cons
         pago.adelantos_descontados = ap_adel
         pago.consumos_descontados = ap_cons
@@ -2832,7 +2862,9 @@ def pagar_comision(request, pk):
     from ventas.models import DetalleVenta as DV
     with transaction.atomic():
         # Órdenes de taller de esta semana
-        ordenes_sem = OrdenTrabajo.objects.select_for_update().filter(
+        # PostgreSQL no permite FOR UPDATE junto con DISTINCT/joins: primero se obtienen
+        # los ids y luego se bloquean esas filas por pk.
+        ids_ordenes = list(OrdenTrabajo.objects.filter(
             Q(tecnico_principal=tecnico) | Q(servicios__tecnico_asignado=tecnico)
         ).filter(
             Q(estado__in=['COMPLETADO', 'ENTREGADO']) | Q(facturado=True) | Q(venta__isnull=False)
@@ -2841,7 +2873,8 @@ def pagar_comision(request, pk):
             Q(fecha_completado__isnull=True, venta__fecha_hora__date__gte=inicio, venta__fecha_hora__date__lte=fin) |
             Q(fecha_completado__isnull=True, venta__isnull=True, fecha_entrega__date__gte=inicio, fecha_entrega__date__lte=fin) |
             Q(fecha_completado__isnull=True, venta__isnull=True, fecha_entrega__isnull=True, fecha_ingreso__date__gte=inicio, fecha_ingreso__date__lte=fin)
-        ).distinct()
+        ).values_list('pk', flat=True).distinct())
+        ordenes_sem = OrdenTrabajo.objects.select_for_update().filter(pk__in=ids_ordenes)
         ordenes_venta_ids = list(ordenes_sem.values_list('venta_id', flat=True))
 
         base_ordenes = Decimal('0')
@@ -2873,25 +2906,9 @@ def pagar_comision(request, pk):
 
         # Deudas (adelantos + inventario a cuenta): el admin elige cuánto descontar
         deuda = _deudas_pendientes(tecnico, lock=True)
-        modo = (data.get('modo_descuento') or 'total').strip().lower()
-        tope = min(deuda['total'], comision)
-        if modo == 'ninguno':
-            descuento = Decimal('0')
-        elif modo == 'parcial':
-            try:
-                descuento = Decimal(str(data.get('monto_descuento') or '0'))
-            except (InvalidOperation, ValueError):
-                descuento = Decimal('-1')
-            if descuento < 0:
-                return JsonResponse({'success': False, 'message': 'El monto a descontar no es válido.'}, status=400)
-            if descuento > tope:
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Lo máximo que se puede descontar es ${tope:.2f} (deuda ${deuda["total"]:.2f}, comisión ${comision:.2f}).'
-                }, status=400)
-        else:  # total: toda la deuda, sin pasar de la comisión de la semana
-            descuento = tope
-        descuento = descuento.quantize(Decimal('0.01'))
+        descuento, ids_a, ids_c, err = _resolver_descuento(data, deuda, comision)
+        if err:
+            return err
 
         pago = PagoTecnico.objects.create(
             tecnico=tecnico,
@@ -2906,7 +2923,7 @@ def pagar_comision(request, pk):
             descripcion=(data.get('descripcion') or f'Semana {inicio:%d/%m} – {fin:%d/%m/%Y}').strip(),
             usuario_registro=request.user if request.user.is_authenticated else None,
         )
-        ap_adel, ap_cons = _aplicar_descuento_deudas(tecnico, descuento, pago) if descuento > 0 else (Decimal('0'), Decimal('0'))
+        ap_adel, ap_cons = _aplicar_descuento_deudas(tecnico, descuento, pago, ids_a, ids_c) if descuento > 0 else (Decimal('0'), Decimal('0'))
         total_adel = ap_adel + ap_cons
         neto = comision - total_adel
         pago.adelantos_descontados = ap_adel

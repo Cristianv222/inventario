@@ -112,19 +112,14 @@
           <div class="fw-bold text-danger">${{ deuda_total|floatformat:2|intcomma }}</div>
         </div>
         <div class="col-md-5">
-          {% if deuda_total > 0 %}
-          <div class="small fw-bold mb-1"><i class="fas fa-hand-holding-usd text-warning me-1"></i>¿Cuánta deuda descontar? (máx. ${{ salario_info.descuento_max|floatformat:2 }})</div>
-          <div class="form-check"><input class="form-check-input" type="radio" name="modoSal" id="msTotal" value="total" checked onchange="recalcSal()"><label class="form-check-label" for="msTotal">Cobro total de la deuda</label></div>
-          <div class="form-check"><input class="form-check-input" type="radio" name="modoSal" id="msParcial" value="parcial" onchange="recalcSal()"><label class="form-check-label" for="msParcial">Cobro parcial</label></div>
-          <input type="number" step="0.01" min="0" id="montoSal" class="form-control form-control-sm mt-1" placeholder="Monto a descontar" style="display:none; max-width:180px;" oninput="recalcSal()">
-          <div class="form-check"><input class="form-check-input" type="radio" name="modoSal" id="msNinguno" value="ninguno" onchange="recalcSal()"><label class="form-check-label" for="msNinguno">No descontar</label></div>
+          {% if deuda_total > 0 %}<div class="small text-muted"><i class="fas fa-info-circle me-1"></i>Al pagar podrás elegir qué adelantos o productos descontar.</div>
           {% else %}<div class="small text-muted">Sin deudas pendientes que descontar.</div>{% endif %}
         </div>
         <div class="col-md-3 text-md-end">
-          <div class="small text-muted">Neto a entregar</div>
-          <div class="fw-bold text-success" style="font-size:1.6rem;" id="netoSal">${{ salario_info.neto|floatformat:2|intcomma }}</div>
+          <div class="small text-muted">Se paga (antes de descuentos)</div>
+          <div class="fw-bold text-success" style="font-size:1.6rem;">${{ salario_info.salario|floatformat:2|intcomma }}</div>
           <div id="salMsg" class="small my-1"></div>
-          <button class="btn btn-info fw-bold text-white" id="btnPagarSal" onclick="pagarSalario('{{ salario_info.inicio|date:'Y-m-d' }}')"><i class="fas fa-cash-register me-1"></i>Pagar salario</button>
+          <button class="btn btn-info fw-bold text-white" id="btnPagarSal" onclick="abrirLiquidacion('salario', '{{ salario_info.inicio|date:'Y-m-d' }}', {{ salario_info.salario|unlocalize }}, 'Salario {{ salario_info.inicio|date:'d/m' }} – {{ salario_info.fin|date:'d/m/Y' }}')"><i class="fas fa-cash-register me-1"></i>Pagar salario</button>
         </div>
       </div>
     {% endif %}
@@ -215,26 +210,13 @@
             · Deudas pendientes: <strong style="color:#f87171;">${{ resumen_semana.adelantos_semana|floatformat:2|intcomma }}</strong>
           {% endif %}
         </div>
-        <div class="amount" id="netoEntregar">${{ resumen_semana.neto_a_pagar|floatformat:2|intcomma }}</div>
-        <div style="font-size:0.78rem; opacity:0.65;">Neto a entregar a {{ tecnico.nombres }}</div>
+        <div class="amount">${{ resumen_semana.comision_total|floatformat:2|intcomma }}</div>
+        <div style="font-size:0.78rem; opacity:0.65;">Comisión de {{ tecnico.nombres }} · al liquidar eliges qué adelantos o productos cobrar</div>
       </div>
       <div>
-        {% if resumen_semana.adelantos_semana > 0 %}
-        <div class="mb-2 small" style="background:#1e293b; border:1px solid #334155; border-radius:10px; padding:10px 12px;">
-          <div class="fw-bold mb-1" style="color:#fbbf24;"><i class="fas fa-hand-holding-usd me-1"></i>¿Cuánta deuda descontar? (máx. ${{ resumen_semana.descuento_max|floatformat:2 }})</div>
-          <div class="form-check"><input class="form-check-input" type="radio" name="modoDesc" id="mdTotal" value="total" checked onchange="recalcNeto()"><label class="form-check-label" for="mdTotal">Cobro total de la deuda</label></div>
-          <div class="form-check"><input class="form-check-input" type="radio" name="modoDesc" id="mdParcial" value="parcial" onchange="recalcNeto()"><label class="form-check-label" for="mdParcial">Cobro parcial</label></div>
-          <input type="number" step="0.01" min="0" id="montoDesc" class="form-control form-control-sm mt-1" placeholder="Monto a descontar" style="display:none; max-width:180px; background:#0f172a; color:#fff; border-color:#334155;" oninput="recalcNeto()">
-          <div class="form-check"><input class="form-check-input" type="radio" name="modoDesc" id="mdNinguno" value="ninguno" onchange="recalcNeto()"><label class="form-check-label" for="mdNinguno">No descontar (la deuda sigue pendiente)</label></div>
-        </div>
-        {% endif %}
-        <div class="mb-2">
-          <input type="text" id="pagoDesc" class="form-control form-control-sm"
-                 placeholder="Nota opcional (Ej: Pago en efectivo)" style="background:#1e293b; color:#fff; border-color:#334155;">
-        </div>
         <div id="pagoMsg" class="small mb-2"></div>
         <button class="btn-liquidar" id="btnLiquidar"
-                onclick="liquidarSemana('{{ resumen_semana.inicio|date:'Y-m-d' }}')"
+                onclick="abrirLiquidacion('comision', '{{ resumen_semana.inicio|date:'Y-m-d' }}', {{ resumen_semana.comision_total|unlocalize }}, 'Semana {{ resumen_semana.inicio|date:'d/m' }} – {{ resumen_semana.fin|date:'d/m/Y' }}')"
                 {% if resumen_semana.total_servicios == 0 %}disabled{% endif %}>
           <i class="fas fa-cash-register me-2"></i>
           Liquidar Semana {{ resumen_semana.inicio|date:"d/m" }} – {{ resumen_semana.fin|date:"d/m/Y" }}
@@ -463,6 +445,92 @@
   </div>
 </div>
 
+
+<!-- Modal Liquidación (comisión o salario): elegir qué deudas cobrar -->
+<div class="modal fade" id="modalLiquidar" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+  <div class="modal-header">
+    <h5 class="modal-title"><i class="fas fa-cash-register me-2"></i><span id="liqTitulo">Liquidar</span></h5>
+    <button class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <div class="d-flex justify-content-between align-items-center p-3 rounded mb-3" style="background:#f1f5f9;">
+      <div><div class="small text-muted" id="liqConcepto">Comisión de la semana</div><div class="fw-bold" style="font-size:1.4rem;" id="liqBruto">$0.00</div></div>
+      <div class="text-end"><div class="small text-muted">{{ tecnico.nombres }} {{ tecnico.apellidos }}</div></div>
+    </div>
+
+    {% if deudas_adelantos_lista or deudas_consumos_lista %}
+    <p class="small text-muted mb-2">Marca lo que quieres <strong>cobrarle ahora</strong>. Lo que no marques sigue pendiente para la próxima liquidación.</p>
+
+    {% if deudas_adelantos_lista %}
+    <div class="mb-3">
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <div class="fw-bold"><i class="fas fa-hand-holding-usd text-warning me-1"></i>Adelantos pendientes</div>
+        <label class="small mb-0"><input type="checkbox" id="liqAllA" checked onchange="liqToggle('liq-a', this.checked)"> Todos</label>
+      </div>
+      <table class="table table-sm align-middle mb-0">
+        <tbody>
+          {% for a in deudas_adelantos_lista %}
+          <tr>
+            <td style="width:30px;"><input type="checkbox" class="liq-a" value="{{ a.pk }}" data-saldo="{{ a.saldo|unlocalize }}" checked onchange="recalcLiq()"></td>
+            <td class="small">{{ a.fecha|date:"d/m/Y" }}</td>
+            <td class="small">{{ a.descripcion|default:"Adelanto de efectivo" }}{% if a.abonado > 0 %} <span class="text-muted">(ya se descontó ${{ a.abonado|floatformat:2 }})</span>{% endif %}</td>
+            <td class="text-end fw-bold">${{ a.saldo|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if deudas_consumos_lista %}
+    <div class="mb-3">
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <div class="fw-bold"><i class="fas fa-boxes-stacked text-primary me-1"></i>Productos tomados a cuenta</div>
+        <label class="small mb-0"><input type="checkbox" id="liqAllC" checked onchange="liqToggle('liq-c', this.checked)"> Todos</label>
+      </div>
+      <table class="table table-sm align-middle mb-0">
+        <tbody>
+          {% for c in deudas_consumos_lista %}
+          <tr>
+            <td style="width:30px;"><input type="checkbox" class="liq-c" value="{{ c.pk }}" data-saldo="{{ c.saldo|unlocalize }}" checked onchange="recalcLiq()"></td>
+            <td class="small">{{ c.fecha|date:"d/m/Y" }}</td>
+            <td class="small">{{ c.producto.nombre }} <span class="text-muted">x{{ c.cantidad|floatformat:"-2" }}</span>{% if c.abonado > 0 %} <span class="text-muted">(ya se descontó ${{ c.abonado|floatformat:2 }})</span>{% endif %}</td>
+            <td class="text-end fw-bold">${{ c.saldo|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-sm-6">
+        <label class="form-label small fw-bold mb-1">Descontar solo un monto (cobro parcial, opcional)</label>
+        <input type="number" step="0.01" min="0" id="liqParcial" class="form-control form-control-sm" placeholder="Vacío = todo lo marcado" oninput="recalcLiq()">
+      </div>
+      <div class="col-sm-6 text-sm-end small">
+        Marcado: <strong id="liqMarcado">$0.00</strong><br>
+        Se descuenta: <strong class="text-danger" id="liqDescuento">$0.00</strong>
+      </div>
+    </div>
+    {% else %}
+      <div class="alert alert-light border small mb-2">Este técnico no tiene deudas pendientes (adelantos ni productos).</div>
+    {% endif %}
+
+    <div class="mb-3"><label class="form-label small fw-bold mb-1">Nota (opcional)</label>
+      <input type="text" id="liqNota" class="form-control form-control-sm" placeholder="Ej: pago en efectivo"></div>
+
+    <div class="d-flex justify-content-between align-items-center p-3 rounded" style="background:#ecfdf5; border:1px solid #a7f3d0;">
+      <div class="fw-bold">Neto a entregar</div>
+      <div class="fw-bold text-success" style="font-size:1.8rem;" id="liqNeto">$0.00</div>
+    </div>
+    <div id="liqMsg" class="small mt-2"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+    <button class="btn btn-success fw-bold" id="btnConfirmarLiq" onclick="confirmarLiquidacion()"><i class="fas fa-check me-1"></i>Confirmar liquidación</button>
+  </div>
+</div></div></div>
 <!-- Modal Adelanto -->
 <div class="modal fade" id="modalAdelanto" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <div class="modal-header"><h5 class="modal-title"><i class="fas fa-hand-holding-usd me-2"></i>Registrar Adelanto</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -520,39 +588,6 @@ function _post(url, body) {
   }).then(r => r.json());
 }
 
-function liquidarSemana(semanaInicio) {
-  const btn = document.getElementById('btnLiquidar');
-  const msg = document.getElementById('pagoMsg');
-  const desc = document.getElementById('pagoDesc').value;
-  if (!confirm(`¿Confirmar liquidación de la semana ${semanaInicio}?\n\nEsta acción marcará todos los servicios de la semana como PAGADOS y no se puede deshacer.`)) return;
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
-  msg.innerHTML = '';
-  const modo = (document.querySelector('input[name="modoDesc"]:checked') || {}).value || 'total';
-  const montoDesc = document.getElementById('montoDesc') ? document.getElementById('montoDesc').value : '';
-  if (modo === 'parcial' && (!montoDesc || parseFloat(montoDesc) < 0)) {
-    msg.innerHTML = '<span class="text-danger fw-bold">Indica el monto a descontar.</span>';
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-cash-register me-2"></i>Liquidar Semana';
-    return;
-  }
-  _post('{% url "taller:pagar_comision" tecnico.pk %}', { semana_inicio: semanaInicio, descripcion: desc, modo_descuento: modo, monto_descuento: montoDesc })
-    .then(d => {
-      if (d.success) {
-        msg.innerHTML = '<span class="text-success fw-bold">✅ ' + d.message + '</span>';
-        setTimeout(() => location.reload(), 1200);
-      } else {
-        msg.innerHTML = '<span class="text-danger fw-bold">❌ ' + d.message + '</span>';
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-cash-register me-2"></i>Liquidar Semana';
-      }
-    })
-    .catch(() => {
-      msg.innerHTML = '<span class="text-danger">Error de comunicación</span>';
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-cash-register me-2"></i>Liquidar Semana';
-    });
-}
-
 function registrarAdelanto() {
   const monto = document.getElementById('adelMonto').value;
   const descripcion = document.getElementById('adelDesc').value;
@@ -579,18 +614,51 @@ function registrarAdelanto() {
     });
 }
 
-const COM_BRUTA = parseFloat("{{ resumen_semana.comision_total|unlocalize }}") || 0;
-const DEUDA_TOTAL = parseFloat("{{ resumen_semana.adelantos_semana|unlocalize }}") || 0;
-function recalcNeto() {
-  const modo = (document.querySelector('input[name="modoDesc"]:checked') || {}).value || 'total';
-  const inp = document.getElementById('montoDesc');
-  if (inp) inp.style.display = (modo === 'parcial') ? '' : 'none';
-  const tope = Math.min(DEUDA_TOTAL, COM_BRUTA);
+const LIQ = { tipo: null, fecha: null, bruto: 0 };
+const _fmt = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function abrirLiquidacion(tipo, fecha, bruto, titulo) {
+  LIQ.tipo = tipo; LIQ.fecha = fecha; LIQ.bruto = bruto;
+  document.getElementById('liqTitulo').textContent = (tipo === 'salario' ? 'Pagar salario · ' : 'Liquidar · ') + titulo;
+  document.getElementById('liqConcepto').textContent = tipo === 'salario' ? 'Salario del periodo' : 'Comisión de la semana';
+  document.getElementById('liqBruto').textContent = _fmt(bruto);
+  document.getElementById('liqMsg').innerHTML = '';
+  document.getElementById('btnConfirmarLiq').disabled = false;
+  const p = document.getElementById('liqParcial'); if (p) p.value = '';
+  document.querySelectorAll('.liq-a, .liq-c').forEach(c => c.checked = true);
+  ['liqAllA', 'liqAllC'].forEach(id => { const e = document.getElementById(id); if (e) e.checked = true; });
+  recalcLiq();
+  new bootstrap.Modal(document.getElementById('modalLiquidar')).show();
+}
+function liqToggle(clase, on) { document.querySelectorAll('.' + clase).forEach(c => c.checked = on); recalcLiq(); }
+function _sel(clase) { return Array.from(document.querySelectorAll('.' + clase + ':checked')); }
+function recalcLiq() {
+  const marcado = _sel('liq-a').concat(_sel('liq-c')).reduce((t, c) => t + (parseFloat(c.dataset.saldo) || 0), 0);
+  const tope = Math.min(marcado, LIQ.bruto);
+  const pi = document.getElementById('liqParcial');
   let desc = tope;
-  if (modo === 'ninguno') desc = 0;
-  if (modo === 'parcial') desc = Math.min(parseFloat(inp && inp.value) || 0, tope);
-  const el = document.getElementById('netoEntregar');
-  if (el) el.textContent = '$' + (COM_BRUTA - desc).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  if (pi && pi.value !== '') desc = Math.min(Math.max(parseFloat(pi.value) || 0, 0), tope);
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = _fmt(v); };
+  set('liqMarcado', marcado); set('liqDescuento', desc); set('liqNeto', LIQ.bruto - desc);
+}
+function confirmarLiquidacion() {
+  const msg = document.getElementById('liqMsg'), btn = document.getElementById('btnConfirmarLiq');
+  const pi = document.getElementById('liqParcial');
+  const cuerpo = {
+    modo_descuento: 'seleccion',
+    adelanto_ids: _sel('liq-a').map(c => c.value),
+    consumo_ids: _sel('liq-c').map(c => c.value),
+    monto_descuento: pi ? pi.value : '',
+    descripcion: document.getElementById('liqNota').value
+  };
+  let url;
+  if (LIQ.tipo === 'salario') { url = '{% url "taller:pagar_salario" tecnico.pk %}'; cuerpo.periodo = LIQ.fecha; }
+  else { url = '{% url "taller:pagar_comision" tecnico.pk %}'; cuerpo.semana_inicio = LIQ.fecha; }
+  btn.disabled = true; msg.innerHTML = '';
+  _post(url, cuerpo).then(d => {
+    if (d.success) { msg.innerHTML = '<span class="text-success fw-bold">✅ ' + d.message + '</span>'; setTimeout(() => location.reload(), 1600); }
+    else { msg.innerHTML = '<span class="text-danger fw-bold">❌ ' + d.message + '</span>'; btn.disabled = false; }
+  }).catch(() => { msg.innerHTML = '<span class="text-danger fw-bold">Error de comunicación. Revisa los registros del servidor.</span>'; btn.disabled = false; });
 }
 
 let _consTimer = null, _consStockDisp = null;
@@ -651,33 +719,6 @@ function anularConsumo(id) {
   if (!confirm('¿Anular este consumo y devolver el producto al inventario?')) return;
   fetch('/taller/consumos/' + id + '/anular/', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
     .then(r => r.json()).then(d => { alert(d.message); if (d.success) location.reload(); });
-}
-
-const SAL = parseFloat("{{ salario_info.salario|unlocalize }}") || 0;
-const DEUDA_SAL = parseFloat("{{ deuda_total|unlocalize }}") || 0;
-function recalcSal() {
-  const m = (document.querySelector('input[name="modoSal"]:checked') || {}).value || 'total';
-  const inp = document.getElementById('montoSal');
-  if (inp) inp.style.display = (m === 'parcial') ? '' : 'none';
-  const tope = Math.min(DEUDA_SAL, SAL);
-  let d = tope;
-  if (m === 'ninguno') d = 0;
-  if (m === 'parcial') d = Math.min(parseFloat(inp && inp.value) || 0, tope);
-  const el = document.getElementById('netoSal');
-  if (el) el.textContent = '$' + (SAL - d).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-}
-function pagarSalario(periodo) {
-  const msg = document.getElementById('salMsg'), btn = document.getElementById('btnPagarSal');
-  const modo = (document.querySelector('input[name="modoSal"]:checked') || {}).value || 'total';
-  const monto = document.getElementById('montoSal') ? document.getElementById('montoSal').value : '';
-  if (modo === 'parcial' && (!monto || parseFloat(monto) < 0)) { msg.innerHTML = '<span class="text-danger">Indica el monto a descontar.</span>'; return; }
-  if (!confirm('¿Confirmar el pago del salario de este periodo? No se puede deshacer.')) return;
-  btn.disabled = true;
-  _post('{% url "taller:pagar_salario" tecnico.pk %}', { periodo: periodo, modo_descuento: modo, monto_descuento: monto })
-    .then(d => {
-      if (d.success) { msg.innerHTML = '<span class="text-success fw-bold">✅ ' + d.message + '</span>'; setTimeout(() => location.reload(), 1400); }
-      else { msg.innerHTML = '<span class="text-danger fw-bold">❌ ' + d.message + '</span>'; btn.disabled = false; }
-    }).catch(() => { msg.innerHTML = '<span class="text-danger">Error de comunicación</span>'; btn.disabled = false; });
 }
 
 function filterServ(q) {
