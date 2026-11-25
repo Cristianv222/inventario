@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.forms import inlineformset_factory
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -86,7 +87,8 @@ class TipoServicioForm(forms.ModelForm):
             'requiere_repuestos',
             'requiere_especialidad',
             'nivel_dificultad',
-            'es_personalizable'
+            'es_personalizable',
+            'incluye_iva'
         ]
         
         labels = {
@@ -100,7 +102,8 @@ class TipoServicioForm(forms.ModelForm):
             'requiere_repuestos': 'Requiere Repuestos',
             'requiere_especialidad': 'Requiere Especialidad',
             'nivel_dificultad': 'Nivel de Dificultad',
-            'es_personalizable': '¿Es Personalizable? (Permite editar nombre y precio al seleccionarlo)'
+            'es_personalizable': '¿Es Personalizable? (Permite editar nombre y precio al seleccionarlo)',
+            'incluye_iva': '¿Aplicar IVA al precio?'
         }
         
         widgets = {
@@ -143,6 +146,9 @@ class TipoServicioForm(forms.ModelForm):
                 'class': 'form-select'
             }),
             'activo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'incluye_iva': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             })
         }
@@ -398,11 +404,13 @@ class RepuestoOrdenForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Filtrar solo productos activos con stock
-        self.fields['producto'].queryset = Producto.objects.filter(
-            activo=True,
-            stock_actual__gt=0
-        )
+        # Productos nuevos: solo activos y con stock. Pero una fila que YA está en la orden
+        # debe seguir siendo válida aunque su producto se haya quedado en 0 (se vendió
+        # en otro lado) o inactivo; si no, la orden quedaba "congelada" y no se podía editar.
+        disponibles = Q(activo=True, stock_actual__gt=0)
+        if self.instance and self.instance.pk and self.instance.producto_id:
+            disponibles |= Q(pk=self.instance.producto_id)
+        self.fields['producto'].queryset = Producto.objects.filter(disponibles)
         
         # ✅ Hacer campos opcionales
         self.fields['precio_unitario'].required = False

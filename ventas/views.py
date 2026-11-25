@@ -783,6 +783,7 @@ def api_servicios(request):
                 'tiempo_estimado': float(servicio.tiempo_estimado_horas or 0),
                 'nivel_dificultad': servicio.nivel_dificultad,
                 'es_personalizable': servicio.es_personalizable,
+                'incluye_iva': bool(servicio.incluye_iva),
                 'requiere_especialidad': servicio.requiere_especialidad.nombre if servicio.requiere_especialidad else None
             })
         
@@ -794,16 +795,20 @@ def api_servicios(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
 
+ESTADOS_ORDEN_NO_FACTURABLES = ['CANCELADO', 'ENTREGADO']
+
+
 @login_required
 def api_ordenes_completadas(request):
     """API para obtener órdenes PENDIENTES listas para facturar"""
     try:
         search = request.GET.get('q', '').strip()
         
-        # ✅ CAMBIAR A PENDIENTES en lugar de COMPLETADAS
+        # Órdenes listas para cobrar: cualquiera que no esté cancelada, entregada ni facturada
         ordenes = OrdenTrabajo.objects.filter(
-            estado='PENDIENTE',
             facturado=False
+        ).exclude(
+            estado__in=ESTADOS_ORDEN_NO_FACTURABLES
         ).select_related('cliente', 'tecnico_principal')
         
         if search:
@@ -814,7 +819,7 @@ def api_ordenes_completadas(request):
                 Q(moto_placa__icontains=search)
             )
         
-        ordenes = ordenes.order_by('-fecha_ingreso')[:20]
+        ordenes = ordenes.order_by('-fecha_ingreso')[:200]
         
         ordenes_data = []
         for orden in ordenes:
@@ -862,7 +867,8 @@ def api_ordenes_completadas(request):
                 'cliente_id': orden.cliente.id,
                 'vehiculo': vehiculo,
                 'placa': orden.moto_placa,
-                'precio_total': precio_total_real,
+                'precio_total': float(orden.total_con_iva),          # lo que paga el cliente (con IVA)
+                'precio_total_sin_iva': precio_total_real,
                 'fecha_ingreso': fecha_ingreso,
                 'tecnico_principal': tecnico_principal,
                 'estado': orden.estado,
@@ -879,51 +885,60 @@ def api_ordenes_completadas(request):
 
 @login_required  
 def api_orden_datos_pos(request, orden_id):
-    """API para obtener datos SIMPLIFICADOS de una orden para el POS"""
+    """Datos de una orden para cobrarla en el POS, DESGLOSADA: cada servicio y cada
+    repuesto entra como su propia línea (así la factura lleva el detalle, se descuenta
+    el stock y los servicios conservan su técnico y su IVA)."""
     try:
         orden = get_object_or_404(OrdenTrabajo, pk=orden_id)
-        
-        # ✅ VALIDAR QUE LA ORDEN ESTÉ PENDIENTE
-        if orden.estado != 'PENDIENTE':
+
+        if orden.estado in ESTADOS_ORDEN_NO_FACTURABLES:
             return JsonResponse({
-                'success': False, 
-                'message': f'Solo se pueden facturar órdenes PENDIENTES. Estado actual: {orden.get_estado_display()}'
+                'success': False,
+                'message': f'No se puede facturar una orden en estado: {orden.get_estado_display()}'
             })
-        
+
         if orden.facturado:
             return JsonResponse({
-                'success': False, 
+                'success': False,
                 'message': 'Esta orden ya ha sido facturada'
             })
-        
-        # ✅ CALCULAR PRECIO TOTAL
-        servicios_total = orden.servicios.aggregate(
-            total=Sum('precio_servicio')
-        )['total'] or Decimal('0.00')
-        
-        repuestos_total = orden.repuestos_utilizados.aggregate(
-            total=Sum('subtotal')
-        )['total'] or Decimal('0.00')
-        
-        precio_total_calculado = servicios_total + repuestos_total
-        
-        # Actualizar orden si hay inconsistencias
-        if abs(float(orden.precio_total) - float(precio_total_calculado)) > 0.01:
-            orden.precio_mano_obra = servicios_total
-            orden.precio_repuestos = repuestos_total
-            orden.precio_total = precio_total_calculado
-            orden.saldo_pendiente = precio_total_calculado - orden.anticipo
-            orden.save(update_fields=[
-                'precio_mano_obra', 'precio_repuestos',
-                'precio_total', 'saldo_pendiente'
-            ])
-        
-        # ✅ DATOS DEL CLIENTE
+
+        # Mantener los totales de la orden al día
+        orden.actualizar_precios()
+        orden.refresh_from_db()
+
         cliente_nombre = f"{orden.cliente.nombres} {orden.cliente.apellidos}".strip()
         vehiculo_info = f"{orden.moto_marca} {orden.moto_modelo} - {orden.moto_placa}"
         tecnico_principal = orden.tecnico_principal.get_nombre_completo() if orden.tecnico_principal else 'Sin técnico'
-        
-        # ✅ ESTRUCTURA SIMPLIFICADA - SIN DESGLOSE
+
+        servicios = []
+        for so in orden.servicios.select_related('tipo_servicio', 'tecnico_asignado').all():
+            if so.tipo_servicio_id is None:
+                continue
+            tec = so.tecnico_asignado or orden.tecnico_principal
+            servicios.append({
+                'id': so.tipo_servicio_id,
+                'codigo': so.tipo_servicio.codigo,
+                'nombre': so.nombre_servicio_personalizado or so.tipo_servicio.nombre,
+                'precio': float(so.precio_servicio),          # sin IVA
+                'incluye_iva': bool(so.aplica_iva),
+                'tecnico_id': tec.id if tec else None,
+                'tecnico_nombre': tec.get_nombre_completo() if tec else None,
+            })
+
+        repuestos = []
+        for ro in orden.repuestos_utilizados.select_related('producto').all():
+            p = ro.producto
+            repuestos.append({
+                'id': p.id,
+                'codigo': getattr(p, 'codigo_unico', '') or '',
+                'nombre': ro.nombre_personalizado or p.nombre,
+                'cantidad': float(ro.cantidad),
+                'precio_unitario': float(ro.precio_unitario),   # sin IVA
+                'stock': float(p.stock_actual),
+                'es_editable': bool(getattr(p, 'es_editable', False)),
+            })
+
         orden_data = {
             'id': orden.id,
             'numero_orden': str(orden.numero_orden),
@@ -934,17 +949,19 @@ def api_orden_datos_pos(request, orden_id):
             },
             'vehiculo': str(vehiculo_info),
             'tecnico_principal': str(tecnico_principal),
-            'precio_total': float(orden.precio_total),
+            'precio_total': float(orden.total_con_iva),
+            'precio_total_sin_iva': float(orden.precio_total),
             'descripcion_problema': str(orden.motivo_ingreso or ''),
             'observaciones': str(orden.observaciones_tecnico or ''),
-            # ✅ NO SE ENVÍAN servicios ni repuestos desglosados
+            'servicios': servicios,
+            'repuestos': repuestos,
         }
-        
+
         return JsonResponse({
             'success': True,
             'orden': orden_data
         })
-        
+
     except OrdenTrabajo.DoesNotExist:
         return JsonResponse({
             'success': False,
@@ -1343,6 +1360,9 @@ def api_procesar_venta_pos_mejorado(request):
         import traceback
         logger.error(f"Error procesando venta POS: {str(e)}")
         logger.error(traceback.format_exc())
+        # La vista está en una transacción y el error se captura aquí: sin esto, si fallaba una
+        # línea (p. ej. sin stock) se quedaban guardadas la venta y las líneas anteriores.
+        transaction.set_rollback(True)
         return JsonResponse({'success': False, 'message': f'Error en el servidor: {str(e)}'})
 
 

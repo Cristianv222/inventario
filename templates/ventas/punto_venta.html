@@ -2369,6 +2369,9 @@
             } else {
                 let itemDesc = itemTotalPrice * (itemDescPct / 100);
                 netItemTotal = itemTotalPrice - itemDesc;
+                if (item.type === 'service' && item.incluye_iva) {
+                    netItemTotal += netItemTotal * IVA_RATE;   // servicio con IVA 15%
+                }
             }
 
             if (item.type === 'orden_trabajo') {
@@ -2543,6 +2546,9 @@
             } else if (item.type === 'service') {
                 itemSubtotalGross = itemTotalPrice;
                 itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                if (item.incluye_iva) {
+                    itemTax = (itemSubtotalGross - itemDiscount) * IVA_RATE;   // servicio con IVA 15%
+                }
                 subtotalServicios += itemSubtotalGross;
             } else if (item.type === 'orden_trabajo') {
                 itemSubtotalGross = itemTotalPrice;
@@ -2740,6 +2746,9 @@
             } else if (item.type === 'service') {
                 itemSubtotalGross = itemTotalPrice;
                 itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                if (item.incluye_iva) {
+                    itemTax = (itemSubtotalGross - itemDiscount) * IVA_RATE;   // servicio con IVA 15%
+                }
                 subtotalServicios += itemSubtotalGross;
             } else if (item.type === 'orden_trabajo') {
                 itemSubtotalGross = itemTotalPrice;
@@ -2781,6 +2790,9 @@
                 } else if (item.type === 'service') {
                     itemSubtotalGross = itemTotalPrice;
                     itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                    if (item.incluye_iva) {
+                        itemIva = (itemSubtotalGross - itemDiscount) * IVA_RATE;   // servicio con IVA 15%
+                    }
                 }
 
                 const itemTotal = itemSubtotalGross + itemIva - itemDiscount;
@@ -3327,19 +3339,45 @@
             );
         }
 
-        const ordenItem = {
-            id: orderData.id,
-            code: orderData.numero_orden,
-            name: `Orden ${orderData.numero_orden} - ${orderData.vehiculo}`,
-            type: 'orden_trabajo',
-            price: orderData.precio_total,
-            quantity: 1,
-            description: orderData.descripcion_problema || '',
-            vehiculo: orderData.vehiculo,
-            stock: 999
-        };
+        // La orden se carga DESGLOSADA: cada servicio y cada repuesto es una línea
+        // (con su técnico, su IVA y su descuento de stock), igual que si se vendieran sueltos.
+        (orderData.servicios || []).forEach(sv => {
+            cart.push({
+                id: sv.id,
+                code: sv.codigo,
+                name: sv.nombre,
+                type: 'service',
+                price: sv.precio,                       // sin IVA
+                incluye_iva: !!sv.incluye_iva,
+                quantity: 1,
+                descuento_porcentaje: 0,
+                technician_id: sv.tecnico_id || null,
+                technician_name: sv.tecnico_nombre || null,
+                es_personalizable: false,
+                from_order: true
+            });
+        });
 
-        cart.push(ordenItem);
+        const sinStock = [];
+        (orderData.repuestos || []).forEach(rp => {
+            if (Number(rp.stock) < Number(rp.cantidad)) {
+                sinStock.push(rp.nombre + ' (hay ' + rp.stock + ', la orden usa ' + rp.cantidad + ')');
+            }
+            cart.push({
+                id: rp.id,
+                code: rp.codigo,
+                name: rp.nombre,
+                type: 'product',
+                price: rp.precio_unitario * (1 + IVA_RATE),   // el POS maneja el precio con IVA incluido
+                quantity: rp.cantidad,
+                stock: rp.stock,
+                descuento_porcentaje: 0,
+                technician_id: null,
+                technician_name: null,
+                es_editable: !!rp.es_editable,
+                from_order: true
+            });
+        });
 
         const selectedOrderIdElement = document.getElementById('selectedOrderId');
         if (selectedOrderIdElement) {
@@ -3351,7 +3389,10 @@
         updateTotals();
         enableCheckoutIfReady();
 
-        showToast(`Orden ${orderData.numero_orden} cargada - Total: S/ ${orderData.precio_total.toFixed(2)}`, 'success');
+        showToast('Orden ' + orderData.numero_orden + ' cargada - Total: $' + orderData.precio_total.toFixed(2), 'success');
+        if (sinStock.length) {
+            showToast('Sin stock suficiente: ' + sinStock.join('; ') + '. Quita esa línea o ingresa inventario antes de cobrar.', 'warning');
+        }
     }
 
     // ========== MODALES - SERVICIOS ==========
@@ -3500,6 +3541,7 @@
                 name: svc.nombre,
                 type: 'service',
                 price: svc.precio_total,
+                incluye_iva: !!svc.incluye_iva,
                 es_personalizable: svc.es_personalizable,
                 technician_id: technicianId,
                 technician_name: technician ? technician.nombre : null
@@ -3886,6 +3928,9 @@
             } else if (item.type === 'service') {
                 itemSubtotalGross = itemTotalPrice;
                 itemDiscount = itemSubtotalGross * (itemDescPct / 100);
+                if (item.incluye_iva) {
+                    itemTax = (itemSubtotalGross - itemDiscount) * IVA_RATE;   // servicio con IVA 15%
+                }
                 subtotalServicios += itemSubtotalGross;
             } else if (item.type === 'orden_trabajo') {
                 itemSubtotalGross = itemTotalPrice;

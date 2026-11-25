@@ -458,7 +458,7 @@
                         <div class="col-md-6">
                             <div class="form-floating required-field">
                                 {{ form.precio }}
-                                <label for="{{ form.precio.id_for_label }}">Precio del Servicio (S/)</label>
+                                <label for="{{ form.precio.id_for_label }}">Precio del Servicio ($)</label>
                             </div>
                             <div class="help-text">Precio del servicio (sin IVA)</div>
                             {% if form.precio.errors %}
@@ -485,17 +485,17 @@
                                 
                                 <div class="price-row">
                                     <span>Precio Base:</span>
-                                    <span id="calc-precio-base">S/ 0.00</span>
+                                    <span id="calc-precio-base">$0.00</span>
                                 </div>
                                 
                                 <div class="price-row">
                                     <span>IVA (15%):</span>
-                                    <span id="calc-iva">S/ 0.00</span>
+                                    <span id="calc-iva">$0.00</span>
                                 </div>
                                 
                                 <div class="price-row">
                                     <span>PRECIO TOTAL AL CLIENTE:</span>
-                                    <span id="calc-total">S/ 0.00</span>
+                                    <span id="calc-total">$0.00</span>
                                 </div>
                             </div>
                         </div>
@@ -603,7 +603,7 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span>Precio Total:</span>
-                            <strong id="previewPrecio">S/ {{ object.precio|default:"0.00" }}</strong>
+                            <strong id="previewPrecio">${{ object.precio|default:"0.00" }}</strong>
                         </div>
                         <div class="d-flex justify-content-between mb-1">
                             <span>Tiempo:</span>
@@ -890,10 +890,10 @@ function updateCalculator() {
     const totalEl = document.getElementById('calc-total');
     const previewPrecioEl = document.getElementById('previewPrecio');
     
-    if (precioBaseEl) precioBaseEl.textContent = `S/ ${precioBase.toFixed(2)}`;
-    if (ivaEl) ivaEl.textContent = `S/ ${iva.toFixed(2)}`;
-    if (totalEl) totalEl.textContent = `S/ ${total.toFixed(2)}`;
-    if (previewPrecioEl) previewPrecioEl.textContent = `S/ ${total.toFixed(2)}`;
+    if (precioBaseEl) precioBaseEl.textContent = `$${precioBase.toFixed(2)}`;
+    if (ivaEl) ivaEl.textContent = `$${iva.toFixed(2)}`;
+    if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+    if (previewPrecioEl) previewPrecioEl.textContent = `$${total.toFixed(2)}`;
     
     console.log('✅ Calculadora actualizada - Total:', total.toFixed(2));
 }

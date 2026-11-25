@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse, HttpResponse
-from django.db.models import Q, Count, Sum, Avg
+from django.db.models import Q, Count, Sum, Avg, F
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
@@ -625,6 +625,7 @@ class OrdenTrabajoUpdateView(LoginRequiredMixin, UpdateView):
                 'code': servicio_orden.tipo_servicio.codigo,
                 'price': float(servicio_orden.precio_servicio),
                 'es_personalizable': servicio_orden.tipo_servicio.es_personalizable,
+                'incluye_iva': bool(servicio_orden.aplica_iva),
                 'technician_id': servicio_orden.tecnico_asignado.id if servicio_orden.tecnico_asignado else None,
                 'technician_name': servicio_orden.tecnico_asignado.get_nombre_completo() if servicio_orden.tecnico_asignado else None,
                 'quantity': 1,
@@ -1391,7 +1392,9 @@ def ajax_servicios_disponibles(request):
                 Q(codigo__icontains=busqueda)
             )
         
-        servicios = servicios.select_related('categoria')[:50]  # Limitar a 50
+        # Sin límite: el catálogo de servicios es chico y el formulario de la orden filtra
+        # en el navegador; con [:50] los servicios más allá de los primeros 50 no aparecían.
+        servicios = servicios.select_related('categoria', 'requiere_especialidad').order_by('categoria__nombre', 'nombre')
         
         datos = []
         for servicio in servicios:
@@ -1403,7 +1406,8 @@ def ajax_servicios_disponibles(request):
                 'precio': float(servicio.precio),  # ✅ Usar 'precio' en lugar de 'precio_total'
                 'tiempo_estimado': float(servicio.tiempo_estimado_horas) if servicio.tiempo_estimado_horas else 0,
                 'requiere_especialidad': servicio.requiere_especialidad.nombre if servicio.requiere_especialidad else None,
-                'es_personalizable': servicio.es_personalizable
+                'es_personalizable': servicio.es_personalizable,
+                'incluye_iva': bool(servicio.incluye_iva)
             })
         
         # ✅ FORMATO CORRECTO
@@ -2020,7 +2024,7 @@ def panel_tecnico(request, seccion='calculadora'):
     for d in serv_pos_sem:
         fecha_pos = d.venta.fecha_hora
         fecha_pos_date = timezone.localtime(fecha_pos).date() if fecha_pos else inicio
-        val = d.total or d.subtotal or Decimal('0')
+        val = _base_comision_detalle(d)
         com = val * factor
         lista_pos_semana.append({
             'id': f"POS-{d.id}",
@@ -2200,6 +2204,13 @@ def panel_tecnico(request, seccion='calculadora'):
 
 
 # ============================================================================
+def _base_comision_detalle(d):
+    """Valor de un servicio cobrado en POS sobre el que se paga la comisión: SIN IVA.
+    El IVA no es ingreso del taller (se paga al SRI), así que no genera comisión."""
+    total = d.total if d.total is not None else (d.subtotal or Decimal('0'))
+    return max(Decimal('0'), (total or Decimal('0')) - (d.iva or Decimal('0')))
+
+
 def _servicios_pendientes_tecnico(tecnico):
     """Líneas de SERVICIO (solo el servicio, no repuestos) cobradas en POS,
     del técnico, en ventas completadas y aún no liquidadas para comisión."""
@@ -2436,8 +2447,8 @@ def _resumen_cuenta_tecnico(tecnico):
 
     en_orden = pend.filter(venta_id__in=ord_vids)
     en_pos = pend.exclude(venta_id__in=ord_vids)
-    base_ord = en_orden.aggregate(s=Sum('total'))['s'] or Decimal('0')
-    base_pos = en_pos.aggregate(s=Sum('total'))['s'] or Decimal('0')
+    base_ord = en_orden.aggregate(s=Sum(F('total') - F('iva')))['s'] or Decimal('0')
+    base_pos = en_pos.aggregate(s=Sum(F('total') - F('iva')))['s'] or Decimal('0')
 
     # Órdenes de taller completadas o facturadas donde el técnico es principal y aún no liquidadas
     ordenes_pend = OrdenTrabajo.objects.filter(
@@ -2561,7 +2572,7 @@ def cuenta_tecnico(request, pk):
 
     lista_pos = []
     for d in serv_pos:
-        val = d.total or d.subtotal or Decimal('0')
+        val = _base_comision_detalle(d)
         lista_pos.append({
             'tipo': 'POS', 'venta_id': d.venta_id,
             'numero': d.venta.numero_factura or f"POS #{d.venta_id}",
@@ -2895,7 +2906,7 @@ def pagar_comision(request, pk):
         )
         if ordenes_venta_ids:
             pos_sem = pos_sem.exclude(venta_id__in=ordenes_venta_ids)
-        base_pos = pos_sem.aggregate(s=Sum('total'))['s'] or Decimal('0')
+        base_pos = pos_sem.aggregate(s=Sum(F('total') - F('iva')))['s'] or Decimal('0')
 
         base_total = base_ordenes + base_pos
         comision = base_total * factor

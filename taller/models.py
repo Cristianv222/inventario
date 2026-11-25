@@ -261,11 +261,14 @@ class TipoServicio(models.Model):
         help_text="Precio total del servicio (sin IVA)"
     )
     
-    # ❌ ELIMINAR ESTOS CAMPOS:
-    # precio_base = models.DecimalField(...)
-    # precio_mano_obra = models.DecimalField(...)
-    # incluye_iva = models.BooleanField(...)  # Los servicios NO tienen IVA
-    
+    # El precio se guarda SIN IVA. Si el servicio "incluye IVA", al cobrar se agrega 15% encima
+    # (en la orden de trabajo y en el POS). La comisión del técnico se calcula siempre sobre el
+    # precio sin IVA, porque el IVA no es ingreso del taller (se paga al SRI).
+    incluye_iva = models.BooleanField(
+        default=False,
+        help_text="Agregar 15% de IVA sobre el precio base al cobrar este servicio"
+    )
+
     # Configuración
     activo = models.BooleanField(default=True)
     tiempo_estimado_horas = models.DecimalField(
@@ -304,14 +307,18 @@ class TipoServicio(models.Model):
     def __str__(self):
         return f"{self.categoria.nombre} - {self.nombre}"
     
-    # ✅ CAMBIO 2: Simplificar método
     def get_precio_total(self):
-        """Retorna el precio del servicio"""
+        """Precio base del servicio (sin IVA)"""
         return self.precio
-    
-    # ❌ ELIMINAR ESTE MÉTODO:
-    # def get_precio_con_iva(self):
-    #     ...
+
+    def get_valor_iva(self):
+        """IVA (15%) que se agrega al precio base, si el servicio lo incluye"""
+        if not self.incluye_iva:
+            return Decimal('0.00')
+        return (self.precio * Decimal('0.15')).quantize(Decimal('0.01'))
+
+    def get_precio_con_iva(self):
+        return (self.precio + self.get_valor_iva()).quantize(Decimal('0.01'))
     
     def puede_realizar_tecnico(self, tecnico):
         """Verifica si un técnico puede realizar este servicio"""
@@ -657,16 +664,30 @@ class OrdenTrabajo(models.Model):
         servicios_completados = self.servicios.filter(completado=True).count()
         return int((servicios_completados / total_servicios) * 100)
 
-    # --- Valores para mostrar con IVA incluido (IVA 15% solo sobre repuestos).
-    # Lo guardado en BD (precio_total) sigue siendo sin IVA para no alterar
-    # comisiones ni reportes; el desglose del IVA se hace en el POS.
+    # --- Valores con IVA (15%). Lo guardado en BD (precio_total) es SIEMPRE sin IVA:
+    # las comisiones y reportes se calculan sobre eso. El IVA se agrega:
+    #   - sobre los repuestos (siempre) y
+    #   - sobre los servicios que tengan "incluye IVA".
+    @property
+    def iva_repuestos(self):
+        return ((self.precio_repuestos or Decimal('0')) * Decimal('0.15')).quantize(Decimal('0.01'))
+
+    @property
+    def iva_servicios(self):
+        base = self.servicios.filter(aplica_iva=True).aggregate(t=Sum('precio_servicio'))['t'] or Decimal('0')
+        return (base * Decimal('0.15')).quantize(Decimal('0.01'))
+
+    @property
+    def mano_obra_con_iva(self):
+        return ((self.precio_mano_obra or Decimal('0')) + self.iva_servicios).quantize(Decimal('0.01'))
+
     @property
     def repuestos_con_iva(self):
-        return (self.precio_repuestos * Decimal('1.15')).quantize(Decimal('0.01'))
+        return ((self.precio_repuestos or Decimal('0')) + self.iva_repuestos).quantize(Decimal('0.01'))
 
     @property
     def total_con_iva(self):
-        return (self.precio_mano_obra + self.repuestos_con_iva).quantize(Decimal('0.01'))
+        return (self.mano_obra_con_iva + self.repuestos_con_iva).quantize(Decimal('0.01'))
 
     @property
     def saldo_con_iva(self):
@@ -682,11 +703,11 @@ class OrdenTrabajo(models.Model):
         return self.precio_total
 
     def get_porcentaje_iva(self):
-        return Decimal('0.00')
+        return Decimal('15.00') if self.get_valor_iva() > 0 else Decimal('0.00')
 
     def get_valor_iva(self):
-        return Decimal('0.00')
-    
+        return (self.iva_servicios + self.iva_repuestos).quantize(Decimal('0.01'))
+
     def generar_cotizacion_data(self):
         return {
             'orden': self,
@@ -698,7 +719,7 @@ class OrdenTrabajo(models.Model):
                 'subtotal': self.get_subtotal(),
                 'porcentaje_iva': self.get_porcentaje_iva(),
                 'valor_iva': self.get_valor_iva(),
-                'total': self.precio_total
+                'total': self.total_con_iva
             }
         }
 
@@ -737,11 +758,11 @@ class ServicioOrden(models.Model):
         help_text="Precio del servicio en esta orden"
     )
     
-    # ❌ ELIMINAR ESTOS CAMPOS:
-    # precio_base = models.DecimalField(...)
-    # precio_mano_obra = models.DecimalField(...)
-    # precio_total = models.DecimalField(...)
-    
+    # Copia del "incluye IVA" del servicio al agregarlo a la orden: así, si después se cambia
+    # el servicio en el catálogo, las órdenes ya creadas no cambian de precio.
+    # None = orden anterior a esta función (se trata como sin IVA).
+    aplica_iva = models.BooleanField(null=True, blank=True, default=None)
+
     # Control de tiempo
     tiempo_estimado = models.DecimalField(
         max_digits=5, 
@@ -776,8 +797,19 @@ class ServicioOrden(models.Model):
     def __str__(self):
         return f"{self.orden.numero_orden} - {self.tipo_servicio.nombre}"
     
-    # ✅ CAMBIO 4: Simplificar método save
+    @property
+    def con_iva(self):
+        return bool(self.aplica_iva)
+
+    @property
+    def iva_valor(self):
+        if not self.con_iva:
+            return Decimal('0.00')
+        return ((self.precio_servicio or Decimal('0')) * Decimal('0.15')).quantize(Decimal('0.01'))
+
     def save(self, *args, **kwargs):
+        if self.pk is None and self.aplica_iva is None:
+            self.aplica_iva = bool(self.tipo_servicio and self.tipo_servicio.incluye_iva)
         # Establecer precio por defecto si no está definido y hay tipo de servicio
         if not self.precio_servicio:
             if self.tipo_servicio:

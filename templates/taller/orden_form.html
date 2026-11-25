@@ -2057,7 +2057,8 @@ function addServiceToFormset(service, technicianId, technicianName) {
             price: service.price || service.precio || 0,
             quantity: 1,
             isExisting: false,
-            es_personalizable: service.es_personalizable || false
+            es_personalizable: service.es_personalizable || false,
+            incluye_iva: !!service.incluye_iva
         });
     }
     
@@ -2366,8 +2367,9 @@ function calculateTotals() {
     // Total repuestos (SIN IVA)
     let totalRepuestos = repuestosFormset.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // IVA solo sobre repuestos (15%)
-    const iva = totalRepuestos * IVA_RATE;
+    // IVA: repuestos (siempre) + servicios marcados "incluye IVA" (15%)
+    const baseServiciosIva = serviciosFormset.reduce((sum, item) => sum + (item.incluye_iva ? item.price * item.quantity : 0), 0);
+    const iva = (totalRepuestos + baseServiciosIva) * IVA_RATE;
     
     // Total general
     const total = totalServicios + totalRepuestos + iva;

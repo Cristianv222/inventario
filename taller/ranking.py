@@ -52,7 +52,9 @@ def _trabajos_basicos_tecnico(tecnico, inicio, fin):
         pos = pos.exclude(venta_id__in=venta_ids)
     for d in pos:
         fd = timezone.localtime(d.venta.fecha_hora).date() if d.venta.fecha_hora else inicio
-        out.append({'fecha_date': fd, 'valor': d.total or d.subtotal or Decimal('0'), 'tipo': 'POS'})
+        total = d.total if d.total is not None else (d.subtotal or Decimal('0'))
+        # Mano de obra SIN IVA (igual que la base de la comisión)
+        out.append({'fecha_date': fd, 'valor': max(Decimal('0'), (total or Decimal('0')) - (d.iva or Decimal('0'))), 'tipo': 'POS'})
     return out
 
 
