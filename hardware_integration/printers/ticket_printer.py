@@ -150,7 +150,13 @@ class TicketPrinter:
 
             # TOTALES
             c += sep("=")
-            c += fila("SUBTOTAL", S + "{:.{}f}".format(venta.subtotal, D))
+            base_15 = venta.get_base_iva_standard()
+            base_0 = venta.get_base_iva_0()
+            if base_15 > 0 and base_0 > 0:
+                c += fila("SUBTOTAL 15%", S + "{:.{}f}".format(base_15, D))
+                c += fila("SUBTOTAL 0%", S + "{:.{}f}".format(base_0, D))
+            else:
+                c += fila("SUBTOTAL", S + "{:.{}f}".format(venta.subtotal, D))
             if venta.descuento and venta.descuento > 0:
                 c += fila("DESCUENTO", "-" + S + "{:.{}f}".format(venta.descuento, D))
             if venta.iva and venta.iva > 0:

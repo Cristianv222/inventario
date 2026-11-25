@@ -197,9 +197,9 @@
                 {% endif %}
             </td>
             <td class="c">{{ servicio.tipo_servicio.tiempo_estimado_horas }}h</td>
-            <td class="r">${{ servicio.tipo_servicio.precio_mano_obra|floatformat:2 }}</td>
-            <td class="r">${{ servicio.tipo_servicio.precio_base|floatformat:2 }}</td>
-            <td class="r">${{ servicio.precio_total|floatformat:2 }}</td>
+            <td class="r">${{ servicio.precio_servicio|floatformat:2 }}</td>
+            <td class="r">&mdash;</td>
+            <td class="r">${{ servicio.precio_servicio|floatformat:2 }}</td>
         </tr>
         {% endfor %}
         </tbody>

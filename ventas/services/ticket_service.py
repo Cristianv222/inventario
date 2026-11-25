@@ -289,7 +289,14 @@ class TicketThermalService:
         lines.append(separator_line(width))
         
         # Totales
-        lines.append(left_right_text("SUBTOTAL:", f"${venta.subtotal:.2f}", width))
+        base_15 = venta.get_base_iva_standard()
+        base_0 = venta.get_base_iva_0()
+        if base_15 > 0 and base_0 > 0:
+            # Venta mixta (p. ej. productos/servicios con IVA y otros sin IVA): se separan igual que en la factura
+            lines.append(left_right_text("SUBTOTAL 15%:", f"${base_15:.2f}", width))
+            lines.append(left_right_text("SUBTOTAL 0%:", f"${base_0:.2f}", width))
+        else:
+            lines.append(left_right_text("SUBTOTAL:", f"${venta.subtotal:.2f}", width))
         if venta.iva > 0:
             lines.append(left_right_text("IVA (15%):", f"${venta.iva:.2f}", width))
         if venta.descuento > 0:

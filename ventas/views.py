@@ -1309,15 +1309,6 @@ def api_procesar_venta_pos_mejorado(request):
                 producto.stock_actual -= cant
                 producto.save()
 
-            # Totales de la venta calculados en el servidor (no se confía en los del navegador)
-            agg = venta.detalleventa_set.aggregate(
-                sub=Sum('subtotal'), iva=Sum('iva'), desc=Sum('descuento'))
-            venta.subtotal = agg['sub'] or Decimal('0.00')
-            venta.iva = agg['iva'] or Decimal('0.00')
-            venta.descuento = agg['desc'] or Decimal('0.00')
-            venta.total = venta.subtotal + venta.iva - venta.descuento
-            venta.save(update_fields=['subtotal', 'iva', 'descuento', 'total'])
-
             # La orden queda facturada y ENTREGADA (save() registra la fecha de entrega)
             from taller.models import SeguimientoOrden
             estado_anterior = orden.estado
@@ -1333,6 +1324,16 @@ def api_procesar_venta_pos_mejorado(request):
                 observaciones=f'Orden cobrada en el POS (venta {venta.numero_factura or venta.id}) y entregada'
             )
 
+
+        # Totales de la venta calculados en el servidor desde las líneas ya guardadas
+        # (no se confía en los del navegador): así ticket, factura y SRI siempre cuadran.
+        agg = venta.detalleventa_set.aggregate(
+            sub=Sum('subtotal'), iva=Sum('iva'), desc=Sum('descuento'))
+        venta.subtotal = agg['sub'] or Decimal('0.00')
+        venta.iva = agg['iva'] or Decimal('0.00')
+        venta.descuento = agg['desc'] or Decimal('0.00')
+        venta.total = venta.subtotal + venta.iva - venta.descuento
+        venta.save(update_fields=['subtotal', 'iva', 'descuento', 'total'])
 
         # ⭐ INTEGRACIÓN: Facturación Electrónica SRI — TODAS las ventas se facturan.
         try:

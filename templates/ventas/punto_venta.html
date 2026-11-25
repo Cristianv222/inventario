@@ -1229,20 +1229,36 @@
             <div class="totals-section">
                 <div class="section-title">Resumen de Venta</div>
                 <div class="total-row">
-                    <span class="total-label">Subtotal:</span>
-                    <span class="total-value" id="subtotalAmount">S/ 0.00</span>
+                    <span class="total-label">Subtotal productos:</span>
+                    <span class="total-value" id="subtotalProductsAmount">$0.00</span>
                 </div>
                 <div class="total-row">
-                    <span class="total-label">IVA (15%):</span>
-                    <span class="total-value" id="taxAmount">S/ 0.00</span>
+                    <span class="total-label">Subtotal servicios:</span>
+                    <span class="total-value" id="subtotalServicesAmount">$0.00</span>
+                </div>
+                <div class="total-row">
+                    <span class="total-label">Subtotal (sin IVA):</span>
+                    <span class="total-value" id="subtotalAmount">$0.00</span>
+                </div>
+                <div class="total-row">
+                    <span class="total-label">IVA productos (15%):</span>
+                    <span class="total-value" id="taxProductsAmount">$0.00</span>
+                </div>
+                <div class="total-row">
+                    <span class="total-label">IVA servicios (15%):</span>
+                    <span class="total-value" id="taxServicesAmount">$0.00</span>
+                </div>
+                <div class="total-row">
+                    <span class="total-label">IVA total:</span>
+                    <span class="total-value" id="taxAmount">$0.00</span>
                 </div>
                 <div class="total-row">
                     <span class="total-label">Descuento:</span>
-                    <span class="total-value" id="discountAmount">S/ 0.00</span>
+                    <span class="total-value" id="discountAmount">$0.00</span>
                 </div>
                 <div class="total-row">
                     <span class="total-label">TOTAL:</span>
-                    <span class="total-value" id="totalAmount">S/ 0.00</span>
+                    <span class="total-value" id="totalAmount">$0.00</span>
                 </div>
             </div>
 
@@ -1290,7 +1306,7 @@
             </div>
             <div class="modal-body confirmation-modal">
                 <h4>¿Completar esta venta?</h4>
-                <div class="confirmation-total" id="confirmationTotal">S/ 0.00</div>
+                <div class="confirmation-total" id="confirmationTotal">$0.00</div>
 
                 <div class="confirmation-details">
                     <div class="confirmation-detail">
@@ -1922,7 +1938,7 @@
                     <div class="qs-code">Código: ${escapeHtml(p.codigo || '')}</div>
                 </div>
                 <div class="qs-right">
-                    <span class="qs-price">S/ ${Number(p.precio).toFixed(2)}</span>
+                    <span class="qs-price">$${Number(p.precio).toFixed(2)}</span>
                     <span class="qs-stock ${stockClass}">Stock: ${p.stock}</span>
                 </div>
             </div>`;
@@ -2418,7 +2434,7 @@
                                    onchange="updateDiscount(${index}, this.value)">
                         </div>
                         <div class="item-price" style="margin-top: 8px; font-weight: 600; color: #0d6efd;">
-                            Total: S/ ${netItemTotal.toFixed(2)}
+                            Total: $${netItemTotal.toFixed(2)}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -2447,7 +2463,7 @@
                                title="Puede editar el nombre de este item">
                         <div class="item-code"><span class="badge ${badgeClass}">${badgeText}</span> ${escapeHtml(item.code || '')}${item.from_order ? ' <span class="badge bg-primary">Orden</span>' : ''}</div>
                         <div class="input-group input-group-sm mt-1" style="max-width: 150px;">
-                            <span class="input-group-text">S/</span>
+                            <span class="input-group-text">$</span>
                             <input type="number" class="form-control" value="${item.price}" step="0.01"
                                    onchange="updateManualItem(${index}, 'price', this.value)">
                         </div>
@@ -2466,7 +2482,7 @@
                             <i class="bi bi-plus"></i>
                         </button>
                     </div>
-                    <div class="item-total">S/ ${netItemTotal.toFixed(2)}</div>
+                    <div class="item-total">$${netItemTotal.toFixed(2)}</div>
                     <button class="remove-btn" onclick="removeFromCart(${index})" title="Eliminar">
                         <i class="bi bi-x"></i>
                     </button>
@@ -2479,7 +2495,9 @@
                 <div class="item-info">
                     <div class="item-name">${escapeHtml(item.name)}</div>
                     <div class="item-code">${escapeHtml(item.code)}${item.from_order ? ' <span class="badge bg-primary">Orden</span>' : ''}</div>
-                    <div class="item-price">S/ ${item.price.toFixed(2)} c/u</div>
+                    <div class="item-price">${item.type === 'service' && item.incluye_iva
+                        ? '$' + (item.price * (1 + IVA_RATE)).toFixed(2) + ' c/u <small class="text-muted">(base $' + item.price.toFixed(2) + ' + IVA 15%)</small>'
+                        : '$' + item.price.toFixed(2) + ' c/u' + (item.type === 'product' ? ' <small class="text-muted">(IVA incl.)</small>' : '')}</div>
                     ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
                     <div class="input-group input-group-sm mt-1" style="max-width: 120px;">
                         <span class="input-group-text">Desc %</span>
@@ -2496,7 +2514,7 @@
                         <i class="bi bi-plus"></i>
                     </button>
                 </div>
-                <div class="item-total">S/ ${netItemTotal.toFixed(2)}</div>
+                <div class="item-total">$${netItemTotal.toFixed(2)}</div>
                 <button class="remove-btn" onclick="removeFromCart(${index})" title="Eliminar">
                     <i class="bi bi-x"></i>
                 </button>
@@ -2559,6 +2577,8 @@
         let subtotalServicios = 0;
         let subtotalOrdenes = 0;
         let taxTotal = 0;
+        let taxProductos = 0;
+        let taxServicios = 0;
         let discountTotal = 0;
 
         cart.forEach(item => {
@@ -2574,6 +2594,7 @@
                 itemDiscount = itemSubtotalGross * (itemDescPct / 100);
                 let netSubtotal = itemSubtotalGross - itemDiscount;
                 itemTax = netSubtotal * IVA_RATE;
+                taxProductos += itemTax;
                 subtotalProductos += itemSubtotalGross;
             } else if (item.type === 'service') {
                 itemSubtotalGross = itemTotalPrice;
@@ -2581,6 +2602,7 @@
                 if (item.incluye_iva) {
                     itemTax = (itemSubtotalGross - itemDiscount) * IVA_RATE;   // servicio con IVA 15%
                 }
+                taxServicios += itemTax;
                 subtotalServicios += itemSubtotalGross;
             } else if (item.type === 'orden_trabajo') {
                 itemSubtotalGross = itemTotalPrice;
@@ -2600,10 +2622,17 @@
         const discountElement = document.getElementById('discountAmount');
         const totalElement = document.getElementById('totalAmount');
 
-        if (subtotalElement) subtotalElement.textContent = `S/ ${subtotalTotal.toFixed(2)}`;
-        if (taxElement) taxElement.textContent = `S/ ${taxTotal.toFixed(2)}`;
-        if (discountElement) discountElement.textContent = `S/ ${discountTotal.toFixed(2)}`;
-        if (totalElement) totalElement.textContent = `S/ ${total.toFixed(2)}`;
+        if (subtotalElement) subtotalElement.textContent = `$${subtotalTotal.toFixed(2)}`;
+        if (taxElement) taxElement.textContent = `$${taxTotal.toFixed(2)}`;
+        if (discountElement) discountElement.textContent = `$${discountTotal.toFixed(2)}`;
+        if (totalElement) totalElement.textContent = `$${total.toFixed(2)}`;
+
+        // Desglose: subtotales e IVA de productos y de servicios
+        const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = `$${val.toFixed(2)}`; };
+        setTxt('subtotalProductsAmount', subtotalProductos);
+        setTxt('subtotalServicesAmount', subtotalServicios + subtotalOrdenes);
+        setTxt('taxProductsAmount', taxProductos);
+        setTxt('taxServicesAmount', taxServicios);
     }
 
     function updateDiscount(index, value) {
@@ -3311,7 +3340,7 @@
         <div class="modal-item" onclick="selectOrder(${order.id})">
             <div class="item-header">
                 <h6 class="item-title">O.T. #${escapeHtml(order.numero_orden)}</h6>
-                <span class="item-price">S/ ${order.precio_total.toFixed(2)}</span>
+                <span class="item-price">$${order.precio_total.toFixed(2)}</span>
             </div>
             <div class="item-meta">
                 <span>${escapeHtml(order.cliente_nombre)}</span>
@@ -3490,7 +3519,7 @@
         <div class="modal-item" onclick="selectServiceFromModal(${service.id})">
             <div class="item-header">
                 <h6 class="item-title">${escapeHtml(service.nombre)}</h6>
-                <span class="item-price">S/ ${service.precio_total.toFixed(2)}</span>
+                <span class="item-price">$${(service.incluye_iva ? service.precio_total * (1 + IVA_RATE) : service.precio_total).toFixed(2)}${service.incluye_iva ? ' <small class="text-muted">(IVA incl.)</small>' : ''}</span>
             </div>
             <div class="item-meta">
                 <span>Código: ${escapeHtml(service.codigo)}</span>
@@ -3662,7 +3691,7 @@
         <div class="modal-item" onclick="selectProductFromModal(${product.id})">
             <div class="item-header">
                 <h6 class="item-title">${escapeHtml(product.nombre)}</h6>
-                <span class="item-price">S/ ${product.precio.toFixed(2)}</span>
+                <span class="item-price">$${product.precio.toFixed(2)}</span>
             </div>
             <div class="item-meta">
                 <span>Código: ${escapeHtml(product.codigo)}</span>
@@ -3842,7 +3871,7 @@
         <div class="modal-item" onclick="viewSaleDetails(${venta.id})">
             <div class="item-header">
                 <h6 class="item-title">${escapeHtml(venta.numero_factura)}</h6>
-                <span class="item-price">S/ ${parseFloat(venta.total).toFixed(2)}</span>
+                <span class="item-price">$${parseFloat(venta.total).toFixed(2)}</span>
             </div>
             <div class="item-meta">
                 <span>${escapeHtml(venta.cliente_nombre)}</span>
@@ -3909,7 +3938,7 @@
         <div class="modal-item" onclick="facturarOrden(${orden.id})">
             <div class="item-header">
                 <h6 class="item-title">O.T. #${escapeHtml(orden.numero_orden)}</h6>
-                <span class="item-price">S/ ${parseFloat(orden.precio_total).toFixed(2)}</span>
+                <span class="item-price">$${parseFloat(orden.precio_total).toFixed(2)}</span>
             </div>
             <div class="item-meta">
                 <span>${escapeHtml(orden.cliente_nombre)}</span>
@@ -4021,7 +4050,7 @@
 
         const confirmationTotal = document.getElementById('confirmationTotal');
         if (confirmationTotal) {
-            confirmationTotal.textContent = `S/ ${total.toFixed(2)}`;
+            confirmationTotal.textContent = `$${total.toFixed(2)}`;
         }
 
         const confirmationCustomer = document.getElementById('confirmationCustomer');

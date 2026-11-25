@@ -801,6 +801,15 @@ class ServicioOrden(models.Model):
         return f"{self.orden.numero_orden} - {self.tipo_servicio.nombre}"
     
     @property
+    def precio_total(self):
+        """Nombre antiguo del precio (sin IVA). Varias pantallas aún lo leen: sin esto salían vacías."""
+        return self.precio_servicio
+
+    @property
+    def precio_con_iva(self):
+        return (self.precio_servicio or Decimal('0')) + self.iva_valor
+
+    @property
     def con_iva(self):
         return bool(self.aplica_iva)
 

@@ -276,10 +276,16 @@ class DetalleVenta(models.Model):
         
         # ⭐ NUEVO: Cálculo automático para servicios sin IVA y productos con/sin IVA
         if self.es_servicio:
-            # Los servicios no tienen IVA (o según configuración de servicio, por ahora asumo 0)
-            self.iva_porcentaje = Decimal('0.00')
-            self.iva = Decimal('0.00')
-            self.total = self.subtotal - self.descuento
+            # Servicio con IVA (si en el catálogo tiene "Aplicar IVA"): se respeta la tarifa indicada
+            # y el IVA se calcula sobre lo que realmente se cobra (subtotal - descuento).
+            # Si no se indicó tarifa, el servicio va sin IVA.
+            if self.iva_porcentaje and self.iva_porcentaje > 0:
+                base_iva = self.subtotal - (self.descuento or Decimal('0'))
+                self.iva = (base_iva * self.iva_porcentaje / Decimal('100')).quantize(Decimal('0.01'))
+            else:
+                self.iva_porcentaje = Decimal('0.00')
+                self.iva = Decimal('0.00')
+            self.total = self.subtotal + self.iva - self.descuento
         else:
             # Productos: Verificar si el producto lleva IVA
             if self.producto:

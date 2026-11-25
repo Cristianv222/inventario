@@ -994,7 +994,7 @@ def reporte_servicios(request):
             servicioorden__orden__fecha_ingreso__date__range=[fecha_desde, fecha_hasta]
         ).annotate(
             total_realizados=Count('servicioorden'),
-            total_generado=Sum('servicioorden__precio_total')
+            total_generado=Sum('servicioorden__precio_servicio')
         ).distinct()
         
         if servicios.exists():
@@ -1006,7 +1006,7 @@ def reporte_servicios(request):
         servicioorden__orden__fecha_ingreso__date__range=[fecha_desde, fecha_hasta]
     ).annotate(
         total_realizados=Count('servicioorden'),
-        total_generado=Sum('servicioorden__precio_total')
+        total_generado=Sum('servicioorden__precio_servicio')
     ).distinct()
     
     if servicios_sin_cat.exists():
@@ -1017,7 +1017,7 @@ def reporte_servicios(request):
         servicioorden__orden__fecha_ingreso__date__range=[fecha_desde, fecha_hasta]
     ).annotate(
         total_realizados=Count('servicioorden'),
-        total_generado=Sum('servicioorden__precio_total')
+        total_generado=Sum('servicioorden__precio_servicio')
     ).order_by('-total_realizados')[:10]
     
     # Distribución por categoría para gráfico

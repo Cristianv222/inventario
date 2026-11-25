@@ -587,11 +587,9 @@
                     
                     <!-- Precio Principal -->
                     <div class="price-display">
-                        <span class="price-main">${{ servicio.get_precio_total|floatformat:2 }}</span>
+                        <span class="price-main">${% if servicio.incluye_iva %}{{ servicio.get_precio_con_iva|floatformat:2 }}{% else %}{{ servicio.get_precio_total|floatformat:2 }}{% endif %}</span>
                         <div class="price-breakdown">
-                            Base: ${{ servicio.precio_base|floatformat:2 }} + 
-                            M.Obra: ${{ servicio.precio_mano_obra|floatformat:2 }}
-                            {% if servicio.incluye_iva %} (IVA incl.){% endif %}
+                            {% if servicio.incluye_iva %}Base ${{ servicio.precio|floatformat:2 }} + IVA 15% ${{ servicio.get_valor_iva|floatformat:2 }}{% else %}Sin IVA{% endif %}
                         </div>
                     </div>
                     
