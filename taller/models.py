@@ -502,6 +502,9 @@ class OrdenTrabajo(models.Model):
         verbose_name = _('Orden de Trabajo')
         verbose_name_plural = _('Órdenes de Trabajo')
         ordering = ['-fecha_ingreso']
+        permissions = [
+            ('reabrir_ordentrabajo', 'Permitir reabrir órdenes de trabajo'),
+        ]
         indexes = [
             models.Index(fields=['numero_orden']),
             models.Index(fields=['estado']),

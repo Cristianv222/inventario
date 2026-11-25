@@ -166,19 +166,27 @@
             </button>
             {% endif %}
             
-            {% if orden.puede_entregarse %}
+            {% if orden.puede_entregarse and user.is_staff or orden.puede_entregarse and user.is_superuser %}
             <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#cambiarEstadoModal" data-nuevo-estado="ENTREGADO">
                 <i class="fas fa-hand-holding me-1"></i>Entregar
             </button>
             {% endif %}
             
+            {% if orden.estado == 'COMPLETADO' and not orden.facturado %}
+            {% if perms.taller.reabrir_ordentrabajo %}
+            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#cambiarEstadoModal" data-nuevo-estado="EN_PROCESO">
+                <i class="fas fa-lock-open me-1"></i>Reabrir orden
+            </button>
+            {% endif %}
+            {% endif %}
+
             <a href="{% url 'taller:generar_cotizacion_pdf' orden.pk %}" class="btn btn-outline-primary" target="_blank">
                 <i class="fas fa-file-pdf me-1"></i>Cotización
             </a>
             
-            {% if orden.estado == 'COMPLETADO' %}
-            <a href="{% url 'taller:exportar_orden_a_pos' orden.pk %}" class="btn btn-outline-success">
-                <i class="fas fa-cash-register me-1"></i>Exportar a POS
+            {% if orden.estado == 'COMPLETADO' and not orden.facturado %}
+            <a href="{% url 'ventas:punto_venta' %}?orden_id={{ orden.pk }}" class="btn btn-success">
+                <i class="fas fa-cash-register me-1"></i>Cobrar en el POS
             </a>
             {% endif %}
         {% endif %}
@@ -566,12 +574,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Personalizar título según estado
             const titulos = {
+                'EN_PROCESO': 'Reabrir orden para corregirla',
                 'COMPLETADO': 'Marcar Orden como Completada',
                 'ENTREGADO': 'Marcar Orden como Entregada',
                 'CANCELADO': 'Cancelar Orden'
             };
             
             modalTitle.textContent = titulos[nuevoEstado] || 'Cambiar Estado de Orden';
+
+            // Al reabrir una orden Completada, el motivo es obligatorio (queda en el historial)
+            const obs = this.querySelector('#observaciones');
+            if (obs) {
+                obs.required = (nuevoEstado === 'EN_PROCESO');
+                obs.placeholder = (nuevoEstado === 'EN_PROCESO') ? 'Motivo de la reapertura' : 'Observaciones';
+            }
         });
     }
     

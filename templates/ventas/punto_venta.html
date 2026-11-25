@@ -1146,6 +1146,16 @@
                         Productos en el Carrito
                         <span class="badge bg-primary" id="itemCountBadge">0 items</span>
                     </div>
+                    <div id="orderBanner" style="display:none; padding: 0.75rem 1.5rem; background: #e7f1ff; border-bottom: 1px solid #b6d4fe; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                        <div>
+                            <i class="bi bi-file-earmark-text text-primary"></i>
+                            <strong>Estás cobrando la orden de trabajo <span id="orderBannerNum"></span></strong>
+                            <div id="orderBannerInfo" class="small text-muted"></div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelOrderCharge()">
+                            <i class="bi bi-x-circle"></i> Quitar orden
+                        </button>
+                    </div>
                     <div class="cart-items" id="cartItems">
                         <div class="empty-cart">
                             <i class="bi bi-cart3"></i>
@@ -2264,7 +2274,7 @@
     function addToCart(item) {
         if (item.type === 'product') {
             const existingItem = cart.find(cartItem =>
-                cartItem.id === item.id && cartItem.type === item.type
+                cartItem.id === item.id && cartItem.type === item.type && !cartItem.from_order
             );
 
             if (existingItem) {
@@ -2320,6 +2330,7 @@
     }
 
     function updateManualItem(index, field, value) {
+        if (cart[index] && cart[index].from_order) { showToast('Línea de la orden ya verificada: no se puede modificar.', 'warning'); updateCartDisplay(); return; }
         if (field === 'price') {
             cart[index].price = parseFloat(value) || 0;
         } else if (field === 'name') {
@@ -2374,6 +2385,22 @@
                 }
             }
 
+            if (item.from_order) {
+                // Línea verificada en Taller: solo lectura (sin editar, descuento ni quitar)
+                return `
+                <div class="cart-item" style="border-left: 4px solid #0d6efd; background: #f4f8ff;">
+                    <div class="item-info">
+                        <div class="item-name"><i class="bi bi-lock-fill text-primary"></i> ${escapeHtml(item.name)}</div>
+                        <div class="item-code">${escapeHtml(item.code || '')} <span class="badge bg-primary">Orden</span></div>
+                        <div class="item-price">$${item.price.toFixed(2)} c/u${(item.type === 'product' ? ' (IVA incluido)' : (item.incluye_iva ? ' + IVA 15%' : ''))}</div>
+                        ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
+                    </div>
+                    <div class="quantity-controls"><span class="qty-display">${item.quantity}</span></div>
+                    <div class="item-total">$${netItemTotal.toFixed(2)}</div>
+                </div>
+                `;
+            }
+
             if (item.type === 'orden_trabajo') {
                 return `
                 <div class="cart-item" style="border-left: 4px solid #0d6efd;">
@@ -2418,7 +2445,7 @@
                         <input type="text" class="form-control form-control-sm mb-1 fw-bold" value="${escapeHtml(item.name)}" 
                                onchange="updateManualItem(${index}, 'name', this.value)" placeholder="Nombre personalizado"
                                title="Puede editar el nombre de este item">
-                        <div class="item-code"><span class="badge ${badgeClass}">${badgeText}</span> ${escapeHtml(item.code || '')}</div>
+                        <div class="item-code"><span class="badge ${badgeClass}">${badgeText}</span> ${escapeHtml(item.code || '')}${item.from_order ? ' <span class="badge bg-primary">Orden</span>' : ''}</div>
                         <div class="input-group input-group-sm mt-1" style="max-width: 150px;">
                             <span class="input-group-text">S/</span>
                             <input type="number" class="form-control" value="${item.price}" step="0.01"
@@ -2451,7 +2478,7 @@
             <div class="cart-item">
                 <div class="item-info">
                     <div class="item-name">${escapeHtml(item.name)}</div>
-                    <div class="item-code">${escapeHtml(item.code)}</div>
+                    <div class="item-code">${escapeHtml(item.code)}${item.from_order ? ' <span class="badge bg-primary">Orden</span>' : ''}</div>
                     <div class="item-price">S/ ${item.price.toFixed(2)} c/u</div>
                     ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
                     <div class="input-group input-group-sm mt-1" style="max-width: 120px;">
@@ -2479,6 +2506,7 @@
     }
 
     function updateQuantity(index, newQuantity) {
+        if (cart[index] && cart[index].from_order) { showToast('Línea de la orden ya verificada: no se puede modificar. Usa "Quitar orden" o reabre la orden en Taller.', 'warning'); updateCartDisplay(); return; }
         const quantity = parseInt(newQuantity);
 
         if (quantity <= 0) {
@@ -2499,7 +2527,11 @@
     }
 
     function removeFromCart(index) {
+        if (cart[index] && cart[index].from_order) { showToast('Línea de la orden ya verificada: no se puede modificar. Usa "Quitar orden" o reabre la orden en Taller.', 'warning'); updateCartDisplay(); return; }
         cart.splice(index, 1);
+        if (currentOrderInfo && !cart.some(i => i.from_order)) {
+            clearOrderLink();   // ya no queda ninguna línea de la orden
+        }
         updateCartDisplay();
         updateCartCount();
         updateTotals();
@@ -2575,6 +2607,7 @@
     }
 
     function updateDiscount(index, value) {
+        if (cart[index] && cart[index].from_order) { showToast('Línea de la orden ya verificada: no se puede modificar.', 'warning'); updateCartDisplay(); return; }
         let p = parseFloat(value);
         if (isNaN(p) || p < 0) p = 0;
         if (p > 100) p = 100;
@@ -2807,7 +2840,8 @@
                     iva: itemIva,
                     discount: itemDiscount,
                     total: itemTotal,
-                    technician_id: item.technician_id || null
+                    technician_id: item.technician_id || null,
+                    from_order: !!item.from_order
                 };
             }).filter(item => item !== null),
             subtotal: subtotalTotal,
@@ -2817,7 +2851,7 @@
             order_id: selectedOrderIdElement ? selectedOrderIdElement.value || null : null,
             imprimir: selectedPrintType !== 'none',
             tipo_impresion: selectedPrintType === 'ticket' ? 'ticket' : 'factura',
-            observaciones: ''
+            observaciones: currentOrderInfo ? ('Orden de trabajo ' + currentOrderInfo.numero + (currentOrderInfo.vehiculo ? ' - ' + currentOrderInfo.vehiculo : '')) : ''
         };
 
         showLoading('Procesando venta...');
@@ -2933,6 +2967,7 @@
 
     function resetPOS() {
         cart = [];
+        clearOrderLink();
         selectedPrintType = 'none';
         lastSaleData = null;
         currentPaymentMethod = null;
@@ -3328,8 +3363,40 @@
             });
     }
 
+    // ---- Indicador "estás cobrando la orden de trabajo X" ----
+    let currentOrderInfo = null;
+
+    function showOrderBanner(info) {
+        currentOrderInfo = info;
+        const banner = document.getElementById('orderBanner');
+        if (!banner) return;
+        document.getElementById('orderBannerNum').textContent = info.numero;
+        document.getElementById('orderBannerInfo').textContent =
+            [info.cliente, info.vehiculo].filter(Boolean).join(' · ') + ' · Total con IVA: $' + Number(info.total).toFixed(2);
+        banner.style.display = 'flex';
+    }
+
+    function clearOrderLink() {
+        currentOrderInfo = null;
+        const banner = document.getElementById('orderBanner');
+        if (banner) banner.style.display = 'none';
+        const idEl = document.getElementById('selectedOrderId');
+        if (idEl) idEl.value = '';
+    }
+
+    function cancelOrderCharge() {
+        if (!confirm('¿Quitar la orden de trabajo del cobro? Se vaciará el carrito.')) return;
+        cart = [];
+        clearOrderLink();
+        updateCartDisplay();
+        updateCartCount();
+        updateTotals();
+        enableCheckoutIfReady();
+    }
+
     function processOrderData(orderData) {
         cart = [];
+        clearOrderLink();
 
         if (orderData.cliente) {
             selectCustomer(
@@ -3388,6 +3455,13 @@
         updateCartCount();
         updateTotals();
         enableCheckoutIfReady();
+
+        showOrderBanner({
+            numero: orderData.numero_orden,
+            cliente: orderData.cliente ? orderData.cliente.nombre_completo : '',
+            vehiculo: orderData.vehiculo,
+            total: orderData.precio_total
+        });
 
         showToast('Orden ' + orderData.numero_orden + ' cargada - Total: $' + orderData.precio_total.toFixed(2), 'success');
         if (sinStock.length) {

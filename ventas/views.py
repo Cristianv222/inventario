@@ -147,14 +147,14 @@ def lista_ventas(request):
     
     # ✅ CAMBIO: Órdenes pendientes (no completadas)
     ordenes_pendientes = OrdenTrabajo.objects.filter(
-        estado='PENDIENTE',
+        estado=ESTADO_ORDEN_FACTURABLE,
         facturado=False
     ).select_related('cliente')
     
     ordenes_pendientes_count = ordenes_pendientes.count()
     ordenes_ayer = OrdenTrabajo.objects.filter(
         fecha_ingreso__date=yesterday,
-        estado='PENDIENTE',
+        estado=ESTADO_ORDEN_FACTURABLE,
         facturado=False
     ).count()
     
@@ -481,8 +481,8 @@ def pos_con_orden(request, orden_id):
         orden = get_object_or_404(OrdenTrabajo, pk=orden_id)
         
         # ✅ CAMBIAR VALIDACIÓN A PENDIENTES
-        if orden.estado != 'PENDIENTE':
-            messages.error(request, f'Solo se pueden facturar órdenes PENDIENTES. Estado actual: {orden.get_estado_display()}')
+        if orden.estado != ESTADO_ORDEN_FACTURABLE:
+            messages.error(request, f'Solo se pueden cobrar órdenes Completadas. Estado actual: {orden.get_estado_display()}')
             return redirect('taller:detalle_orden', orden_id=orden_id)
         
         if orden.facturado:
@@ -795,20 +795,19 @@ def api_servicios(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
 
-ESTADOS_ORDEN_NO_FACTURABLES = ['CANCELADO', 'ENTREGADO']
+ESTADO_ORDEN_FACTURABLE = 'COMPLETADO'   # el taller la marca Completada; al cobrarla pasa a ENTREGADO
 
 
 @login_required
 def api_ordenes_completadas(request):
-    """API para obtener órdenes PENDIENTES listas para facturar"""
+    """API para obtener las órdenes COMPLETADAS listas para cobrar"""
     try:
         search = request.GET.get('q', '').strip()
         
         # Órdenes listas para cobrar: cualquiera que no esté cancelada, entregada ni facturada
         ordenes = OrdenTrabajo.objects.filter(
+            estado=ESTADO_ORDEN_FACTURABLE,
             facturado=False
-        ).exclude(
-            estado__in=ESTADOS_ORDEN_NO_FACTURABLES
         ).select_related('cliente', 'tecnico_principal')
         
         if search:
@@ -891,10 +890,11 @@ def api_orden_datos_pos(request, orden_id):
     try:
         orden = get_object_or_404(OrdenTrabajo, pk=orden_id)
 
-        if orden.estado in ESTADOS_ORDEN_NO_FACTURABLES:
+        if orden.estado != ESTADO_ORDEN_FACTURABLE:
             return JsonResponse({
                 'success': False,
-                'message': f'No se puede facturar una orden en estado: {orden.get_estado_display()}'
+                'message': f'Solo se pueden cobrar órdenes Completadas. Estado actual: {orden.get_estado_display()}. '
+                           f'Márcala como Completada desde Taller.'
             })
 
         if orden.facturado:
@@ -1142,6 +1142,22 @@ def api_procesar_venta_pos_mejorado(request):
         else:
             cliente = Cliente.get_consumidor_final()
         
+        # Orden de trabajo: solo se cobra si está COMPLETADA y no facturada. Sus servicios y
+        # repuestos se toman de la base de datos (no del navegador), así no se pueden alterar.
+        orden = None
+        if data.get('order_id'):
+            orden = OrdenTrabajo.objects.select_for_update().filter(id=data['order_id']).first()
+            if not orden:
+                return JsonResponse({'success': False, 'message': 'Orden de trabajo no encontrada'})
+            if orden.facturado:
+                return JsonResponse({'success': False, 'message': 'Esta orden ya fue facturada'})
+            if orden.estado != ESTADO_ORDEN_FACTURABLE:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Solo se pueden cobrar órdenes Completadas (estado actual: {orden.get_estado_display()}). '
+                               f'Márcala como Completada desde Taller.'
+                })
+
         # Crear la venta
         venta = Venta.objects.create(
             cliente=cliente,
@@ -1157,6 +1173,8 @@ def api_procesar_venta_pos_mejorado(request):
         
         # Procesar items de la venta
         for item in data['items']:
+            if orden and item.get('from_order'):
+                continue   # las líneas de la orden se generan abajo desde la base de datos
             discount_item = Decimal(str(item.get('discount', '0.00')))
             
             if item['type'] == 'product':
@@ -1242,20 +1260,80 @@ def api_procesar_venta_pos_mejorado(request):
                     es_servicio=True
                 )
         
-        # Manejar orden de trabajo si existe
-        if data.get('order_id'):
-            try:
-                orden = OrdenTrabajo.objects.get(id=data['order_id'])
-                orden.facturado = True
-                orden.venta = venta
-                if orden.estado != 'COMPLETADO':
-                    orden.estado = 'COMPLETADO'
-                    orden.fecha_completado = timezone.now()
-                orden.save()
-            except OrdenTrabajo.DoesNotExist:
-                pass
+        # Orden de trabajo: líneas verificadas (servicios y repuestos) desde la base de datos
+        if orden:
+            D2 = Decimal('0.01')
+            for so in orden.servicios.select_related('tipo_servicio', 'tecnico_asignado').all():
+                if so.tipo_servicio_id is None:
+                    continue
+                sub = (so.precio_servicio or Decimal('0')).quantize(D2)
+                iva = (sub * Decimal('0.15')).quantize(D2) if so.aplica_iva else Decimal('0.00')
+                tec = so.tecnico_asignado or orden.tecnico_principal
+                DetalleVenta.objects.create(
+                    venta=venta,
+                    tipo_servicio=so.tipo_servicio,
+                    nombre_personalizado=so.nombre_servicio_personalizado or so.tipo_servicio.nombre,
+                    tecnico=tec,
+                    cantidad=Decimal('1'),
+                    precio_unitario=sub,
+                    subtotal=sub,
+                    iva_porcentaje=Decimal('15.00') if iva > 0 else Decimal('0.00'),
+                    iva=iva,
+                    descuento=Decimal('0.00'),
+                    total=sub + iva,
+                    es_servicio=True
+                )
 
-        
+            for ro in orden.repuestos_utilizados.all():
+                producto = Producto.objects.select_for_update().get(pk=ro.producto_id)
+                cant = ro.cantidad
+                if producto.stock_actual < cant:
+                    raise Exception(
+                        f'Stock insuficiente para {producto.nombre}. Disponible: {producto.stock_actual}, '
+                        f'la orden necesita {cant}'
+                    )
+                sub = ((ro.precio_unitario or Decimal('0')) * cant).quantize(D2)
+                iva = (sub * Decimal('0.15')).quantize(D2)
+                DetalleVenta.objects.create(
+                    venta=venta,
+                    producto=producto,
+                    nombre_personalizado=(ro.nombre_personalizado if getattr(producto, 'es_editable', False) else None),
+                    cantidad=cant,
+                    precio_unitario=ro.precio_unitario,
+                    subtotal=sub,
+                    iva_porcentaje=Decimal('15.00'),
+                    iva=iva,
+                    descuento=Decimal('0.00'),
+                    total=sub + iva
+                )
+                producto.stock_actual -= cant
+                producto.save()
+
+            # Totales de la venta calculados en el servidor (no se confía en los del navegador)
+            agg = venta.detalleventa_set.aggregate(
+                sub=Sum('subtotal'), iva=Sum('iva'), desc=Sum('descuento'))
+            venta.subtotal = agg['sub'] or Decimal('0.00')
+            venta.iva = agg['iva'] or Decimal('0.00')
+            venta.descuento = agg['desc'] or Decimal('0.00')
+            venta.total = venta.subtotal + venta.iva - venta.descuento
+            venta.save(update_fields=['subtotal', 'iva', 'descuento', 'total'])
+
+            # La orden queda facturada y ENTREGADA (save() registra la fecha de entrega)
+            from taller.models import SeguimientoOrden
+            estado_anterior = orden.estado
+            orden.facturado = True
+            orden.venta = venta
+            orden.estado = 'ENTREGADO'
+            orden.save()
+            SeguimientoOrden.objects.create(
+                orden=orden,
+                usuario=request.user,
+                estado_anterior=estado_anterior,
+                estado_nuevo='ENTREGADO',
+                observaciones=f'Orden cobrada en el POS (venta {venta.numero_factura or venta.id}) y entregada'
+            )
+
+
         # ⭐ INTEGRACIÓN: Facturación Electrónica SRI — TODAS las ventas se facturan.
         try:
             from electronic_invoicing.models import SRIConfig
@@ -1485,10 +1563,10 @@ def importar_orden_trabajo(request, orden_id):
     try:
         orden = get_object_or_404(OrdenTrabajo, pk=orden_id)
         
-        if orden.estado != 'PENDIENTE':
+        if orden.estado != ESTADO_ORDEN_FACTURABLE:
             return JsonResponse({
                 'success': False, 
-                'mensaje': 'Solo se pueden facturar órdenes pendientes'
+                'mensaje': 'Solo se pueden cobrar órdenes Completadas'
             })
         
         if orden.facturado:
@@ -1755,7 +1833,7 @@ def api_dashboard_stats(request):
         
         # Órdenes pendientes
         ordenes_pendientes = OrdenTrabajo.objects.filter(
-            estado='PENDIENTE',
+            estado=ESTADO_ORDEN_FACTURABLE,
             facturado=False
         ).count()
         

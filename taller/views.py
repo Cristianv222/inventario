@@ -751,6 +751,30 @@ def cambiar_estado_orden(request, pk):
     orden = get_object_or_404(OrdenTrabajo, pk=pk)
     nuevo_estado = request.POST.get('estado')
     observaciones = request.POST.get('observaciones', '')
+    es_admin = request.user.is_staff or request.user.is_superuser
+
+    # Una orden ya cobrada (facturada) no cambia de estado
+    if orden.facturado:
+        messages.error(request, 'Esta orden ya fue cobrada en el POS; su estado no se puede cambiar.')
+        return redirect('taller:orden_detail', pk=pk)
+    # Reabrir una orden Completada/Entregada exige el permiso "Permitir reabrir órdenes de trabajo"
+    # (el superadministrador lo tiene siempre).
+    puede_reabrir = request.user.is_superuser or request.user.has_perm('taller.reabrir_ordentrabajo')
+    if orden.estado in ('COMPLETADO', 'ENTREGADO') and nuevo_estado != orden.estado and not puede_reabrir:
+        messages.error(request, 'No tienes el permiso "Permitir reabrir órdenes de trabajo". Pídeselo al administrador.')
+        return redirect('taller:orden_detail', pk=pk)
+    # Reabrir (volver atrás desde Completada/Entregada): con motivo, y solo si no hay comisión ya pagada
+    if orden.estado in ('COMPLETADO', 'ENTREGADO') and nuevo_estado != orden.estado:
+        if not (observaciones or '').strip():
+            messages.error(request, 'Indica el motivo para reabrir la orden.')
+            return redirect('taller:orden_detail', pk=pk)
+        if orden.comision_liquidada:
+            messages.error(request, 'La comisión de esta orden ya fue liquidada al técnico; no se puede reabrir.')
+            return redirect('taller:orden_detail', pk=pk)
+    # "Entregado" lo pone el POS al cobrar; manualmente solo un administrador
+    if nuevo_estado == 'ENTREGADO' and not es_admin:
+        messages.error(request, 'La orden pasa a Entregada automáticamente al cobrarla en el POS.')
+        return redirect('taller:orden_detail', pk=pk)
     
     if nuevo_estado in dict(OrdenTrabajo.ESTADO_CHOICES):
         estado_anterior = orden.estado
