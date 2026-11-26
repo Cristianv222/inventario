@@ -1487,6 +1487,10 @@ function getCsrfToken() {
 // ========================================
 let serviciosFormset = [];
 let repuestosFormset = [];
+// Filas que YA existían en la orden y el usuario quitó: hay que mandarlas marcadas con DELETE,
+// si no, el servidor no se entera y siguen en la orden.
+let serviciosEliminados = [];
+let repuestosEliminados = [];
 let technicians = [];
 let services = [];
 let products = [];
@@ -2147,6 +2151,10 @@ function updateServicioQuantity(index, newQuantity) {
 }
 
 function removeServicio(index) {
+    const quitado = serviciosFormset[index];
+    if (quitado && quitado.servicioOrdenId) {
+        serviciosEliminados.push(quitado);
+    }
     serviciosFormset.splice(index, 1);
     updateServiciosDisplay();
     updateServiciosCount();
@@ -2345,6 +2353,10 @@ function updateRepuestoQuantity(index, newQuantity) {
 }
 
 function removeRepuesto(index) {
+    const quitado = repuestosFormset[index];
+    if (quitado && quitado.repuestoOrdenId) {
+        repuestosEliminados.push(quitado);
+    }
     repuestosFormset.splice(index, 1);
     updateRepuestosDisplay();
     updateRepuestosCount();
@@ -2450,77 +2462,87 @@ document.getElementById('wizardForm').addEventListener('submit', function(e) {
 function syncServiciosFormset() {
     const totalForms = document.querySelector('[name="servicios-TOTAL_FORMS"]');
     if (!totalForms) return;
-    
-    totalForms.value = serviciosFormset.length;
-    
+
     const container = document.getElementById('servicios-formset-container');
     if (!container) return;
-    
+
+    // Django exige que las filas que ya existían (INITIAL_FORMS) vayan primero y lleven su id:
+    // primero las mantenidas, luego las quitadas (DELETE), al final las nuevas.
+    const existentes = serviciosFormset.filter(i => i.servicioOrdenId);
+    const nuevos = serviciosFormset.filter(i => !i.servicioOrdenId);
+    const filas = []
+        .concat(existentes.map(i => ({ item: i, borrar: false })))
+        .concat(serviciosEliminados.map(i => ({ item: i, borrar: true })))
+        .concat(nuevos.map(i => ({ item: i, borrar: false })));
+
+    totalForms.value = filas.length;
     container.innerHTML = '';
-    
-    serviciosFormset.forEach((item, index) => {
+
+    filas.forEach(({ item, borrar }, index) => {
         const div = document.createElement('div');
         div.className = 'servicio-formset-item';
-        
+
         let html = '';
-        
-        // ✅ Si tiene servicioOrdenId, incluirlo
         if (item.servicioOrdenId) {
             html += `<input type="hidden" name="servicios-${index}-id" value="${item.servicioOrdenId}">`;
         }
-        
+
         html += `
             <input type="hidden" name="servicios-${index}-tipo_servicio" value="${item.id}">
             <input type="hidden" name="servicios-${index}-tecnico_asignado" value="${item.technician_id || ''}">
             <input type="hidden" name="servicios-${index}-nombre_servicio_personalizado" value="${item.es_personalizable ? item.name : ''}">
             <input type="hidden" name="servicios-${index}-precio_servicio" value="${item.price}">
             <input type="hidden" name="servicios-${index}-observaciones" value="">
-            <input type="hidden" name="servicios-${index}-DELETE" value="">
+            <input type="hidden" name="servicios-${index}-DELETE" value="${borrar ? 'on' : ''}">
         `;
-        
+
         div.innerHTML = html;
         container.appendChild(div);
     });
-    
-    console.log(`✅ Servicios sincronizados: ${serviciosFormset.length}`);
+
+    console.log(`Servicios sincronizados: ${serviciosFormset.length} (quitados: ${serviciosEliminados.length})`);
 }
 
 function syncRepuestosFormset() {
     const totalForms = document.querySelector('[name="repuestos-TOTAL_FORMS"]');
     if (!totalForms) return;
-    
-    totalForms.value = repuestosFormset.length;
-    
+
     const container = document.getElementById('repuestos-formset-container');
     if (!container) return;
-    
+
+    const existentes = repuestosFormset.filter(i => i.repuestoOrdenId);
+    const nuevos = repuestosFormset.filter(i => !i.repuestoOrdenId);
+    const filas = []
+        .concat(existentes.map(i => ({ item: i, borrar: false })))
+        .concat(repuestosEliminados.map(i => ({ item: i, borrar: true })))
+        .concat(nuevos.map(i => ({ item: i, borrar: false })));
+
+    totalForms.value = filas.length;
     container.innerHTML = '';
-    
-    repuestosFormset.forEach((item, index) => {
+
+    filas.forEach(({ item, borrar }, index) => {
         const div = document.createElement('div');
         div.className = 'repuesto-formset-item';
-        
+
         let html = '';
-        
-        // ✅ Si tiene repuestoOrdenId, incluirlo
         if (item.repuestoOrdenId) {
             html += `<input type="hidden" name="repuestos-${index}-id" value="${item.repuestoOrdenId}">`;
         }
-        
+
         html += `
             <input type="hidden" name="repuestos-${index}-producto" value="${item.id}">
             <input type="hidden" name="repuestos-${index}-nombre_personalizado" value="${item.es_editable ? item.name : ''}">
             <input type="hidden" name="repuestos-${index}-cantidad" value="${item.quantity}">
             <input type="hidden" name="repuestos-${index}-precio_unitario" value="${item.price}">
             <input type="hidden" name="repuestos-${index}-observaciones" value="">
-            <input type="hidden" name="repuestos-${index}-DELETE" value="">
+            <input type="hidden" name="repuestos-${index}-DELETE" value="${borrar ? 'on' : ''}">
         `;
-        
+
         div.innerHTML = html;
         container.appendChild(div);
     });
-    
-    console.log(`✅ Repuestos sincronizados: ${repuestosFormset.length}`);
+
+    console.log(`Repuestos sincronizados: ${repuestosFormset.length} (quitados: ${repuestosEliminados.length})`);
 }
 
 // ========================================

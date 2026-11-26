@@ -844,6 +844,12 @@ class ServicioOrden(models.Model):
         # Actualizar precios de la orden
         self.orden.actualizar_precios()
     
+    def delete(self, *args, **kwargs):
+        orden = self.orden
+        resultado = super().delete(*args, **kwargs)
+        orden.actualizar_precios()   # el total de la orden debe bajar al quitar el servicio
+        return resultado
+
     def iniciar_servicio(self):
         """Marca el inicio del servicio"""
         if not self.fecha_inicio:
@@ -911,6 +917,12 @@ class RepuestoOrden(models.Model):
         # Actualizar precios de la orden
         self.orden.actualizar_precios()
     
+    def delete(self, *args, **kwargs):
+        orden = self.orden
+        resultado = super().delete(*args, **kwargs)
+        orden.actualizar_precios()   # el total de la orden debe bajar al quitar el repuesto
+        return resultado
+
     def get_subtotal_con_iva(self):
         """Calcula el subtotal con IVA"""
         return self.subtotal * Decimal('1.15')  # 15% IVA
