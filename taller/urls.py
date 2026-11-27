@@ -27,6 +27,7 @@ urlpatterns = [
     path('mi-panel/perfil/', views.panel_tecnico, {'seccion': 'perfil'}, name='panel_tecnico_perfil'),
     path('mi-panel/rendimiento/', views.panel_tecnico, {'seccion': 'rendimiento'}, name='panel_tecnico_rendimiento'),
     path('rendimiento/', views.rendimiento_tecnicos, name='rendimiento_tecnicos'),
+    path('ranking/datos/', views.ranking_datos, name='ranking_datos'),
     path('pantalla/<str:token>/', views.pantalla_publica, name='pantalla_publica'),
     path('pantalla/<str:token>/datos/', views.pantalla_publica_datos, name='pantalla_publica_datos'),
     path('mi-perfil/', views.perfil_tecnico, name='perfil_tecnico'),

@@ -69,6 +69,7 @@ class RoleMiddleware:
             '/favicon.ico',
             '/manifest.json',
             '/taller/pantalla/',      # monitor público del taller (protegido por token)
+            '/taller/ranking/datos/', # ranking del dashboard: lo ve cualquier usuario con sesión
             '/manifest-tecnico.json',
             '/sw.js',
             '/inventario/api/publica/',

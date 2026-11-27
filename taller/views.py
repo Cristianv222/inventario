@@ -2369,6 +2369,20 @@ def pantalla_publica(request, token):
     return resp
 
 
+@login_required
+def ranking_datos(request):
+    """Datos del ranking para el dashboard de cualquier usuario con sesión (respaldo del WebSocket)."""
+    from .ranking import payload_publico
+    per = request.GET.get('periodo')
+    try:
+        fecha = datetime.strptime(request.GET.get('fecha') or '', '%Y-%m-%d').date()
+    except ValueError:
+        fecha = None
+    resp = JsonResponse(payload_publico(periodo=per, fecha=fecha))
+    resp['Cache-Control'] = 'no-store'
+    return resp
+
+
 def pantalla_publica_datos(request, token):
     """Respaldo por HTTP del monitor (si el WebSocket no está disponible)."""
     from .ranking import token_valido, payload_publico

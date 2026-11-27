@@ -143,15 +143,18 @@ def dashboard(request):
             activo=True
         )
 
-    # Ranking de técnicos en vivo (solo administradores)
-    context['ranking_token'] = None
-    if (request.user.is_staff or request.user.is_superuser) and 'taller_tecnico' in existing_tables:
+    # Ranking de técnicos en vivo: lo ve CUALQUIER usuario con sesión iniciada.
+    # El enlace secreto del monitor (token) solo se entrega a los administradores.
+    context['ranking_token'] = ''
+    context['ranking_payload'] = None
+    if 'taller_tecnico' in existing_tables:
         try:
             from taller.ranking import token_pantalla, payload_publico
-            context['ranking_token'] = token_pantalla()
             context['ranking_payload'] = payload_publico(periodo='semana')
+            if request.user.is_staff or request.user.is_superuser:
+                context['ranking_token'] = token_pantalla()
         except Exception:
-            context['ranking_token'] = None
+            context['ranking_payload'] = None
 
     return render(request, 'core/dashboard.html', context)
 

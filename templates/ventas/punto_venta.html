@@ -2388,10 +2388,10 @@
             // Calculate item subtotal for UI display
             let netItemTotal = itemTotalPrice;
             if (item.type === 'product') {
-                let grossSub = itemTotalPrice / (1 + IVA_RATE);
+                let grossSub = (item.incluye_iva === false) ? itemTotalPrice : itemTotalPrice / (1 + IVA_RATE);
                 let itemDesc = grossSub * (itemDescPct / 100);
                 let netSub = grossSub - itemDesc;
-                let ivaVal = netSub * IVA_RATE;
+                let ivaVal = (item.incluye_iva === false) ? 0 : netSub * IVA_RATE;
                 netItemTotal = netSub + ivaVal;
             } else {
                 let itemDesc = itemTotalPrice * (itemDescPct / 100);
@@ -2408,7 +2408,7 @@
                     <div class="item-info">
                         <div class="item-name"><i class="bi bi-lock-fill text-primary"></i> ${escapeHtml(item.name)}</div>
                         <div class="item-code">${escapeHtml(item.code || '')} <span class="badge bg-primary">Orden</span></div>
-                        <div class="item-price">$${item.price.toFixed(2)} c/u${(item.type === 'product' ? ' (IVA incluido)' : (item.incluye_iva ? ' + IVA 15%' : ''))}</div>
+                        <div class="item-price">$${item.price.toFixed(2)} c/u${(item.type === 'product' ? (item.incluye_iva === false ? ' (sin IVA)' : ' (IVA incluido)') : (item.incluye_iva ? ' + IVA 15%' : ''))}</div>
                         ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
                     </div>
                     <div class="quantity-controls"><span class="qty-display">${item.quantity}</span></div>
@@ -2497,7 +2497,7 @@
                     <div class="item-code">${escapeHtml(item.code)}${item.from_order ? ' <span class="badge bg-primary">Orden</span>' : ''}</div>
                     <div class="item-price">${item.type === 'service' && item.incluye_iva
                         ? '$' + (item.price * (1 + IVA_RATE)).toFixed(2) + ' c/u <small class="text-muted">(base $' + item.price.toFixed(2) + ' + IVA 15%)</small>'
-                        : '$' + item.price.toFixed(2) + ' c/u' + (item.type === 'product' ? ' <small class="text-muted">(IVA incl.)</small>' : '')}</div>
+                        : '$' + item.price.toFixed(2) + ' c/u' + (item.type === 'product' ? (item.incluye_iva === false ? ' <small class="text-muted">(sin IVA)</small>' : ' <small class="text-muted">(IVA incl.)</small>') : '')}</div>
                     ${item.technician_name ? `<div class="item-technician">Técnico: ${escapeHtml(item.technician_name)}</div>` : ''}
                     <div class="input-group input-group-sm mt-1" style="max-width: 120px;">
                         <span class="input-group-text">Desc %</span>
@@ -2590,10 +2590,10 @@
             let itemDiscount = 0;
 
             if (item.type === 'product') {
-                itemSubtotalGross = itemTotalPrice / (1 + IVA_RATE);
+                itemSubtotalGross = (item.incluye_iva === false) ? itemTotalPrice : itemTotalPrice / (1 + IVA_RATE);  // producto sin IVA: el precio es final
                 itemDiscount = itemSubtotalGross * (itemDescPct / 100);
                 let netSubtotal = itemSubtotalGross - itemDiscount;
-                itemTax = netSubtotal * IVA_RATE;
+                itemTax = (item.incluye_iva === false) ? 0 : netSubtotal * IVA_RATE;
                 taxProductos += itemTax;
                 subtotalProductos += itemSubtotalGross;
             } else if (item.type === 'service') {
@@ -2800,10 +2800,10 @@
             let itemDiscount = 0;
 
             if (item.type === 'product') {
-                itemSubtotalGross = itemTotalPrice / (1 + IVA_RATE);
+                itemSubtotalGross = (item.incluye_iva === false) ? itemTotalPrice : itemTotalPrice / (1 + IVA_RATE);  // producto sin IVA: el precio es final
                 itemDiscount = itemSubtotalGross * (itemDescPct / 100);
                 let netSubtotal = itemSubtotalGross - itemDiscount;
-                itemTax = netSubtotal * IVA_RATE;
+                itemTax = (item.incluye_iva === false) ? 0 : netSubtotal * IVA_RATE;
                 subtotalProductos += itemSubtotalGross;
             } else if (item.type === 'service') {
                 itemSubtotalGross = itemTotalPrice;
@@ -2845,10 +2845,10 @@
                 let itemDiscount = 0;
 
                 if (item.type === 'product') {
-                    itemSubtotalGross = itemTotalPrice / (1 + IVA_RATE);
+                    itemSubtotalGross = (item.incluye_iva === false) ? itemTotalPrice : itemTotalPrice / (1 + IVA_RATE);  // producto sin IVA: el precio es final
                     itemDiscount = itemSubtotalGross * (itemDescPct / 100);
                     let netSubtotal = itemSubtotalGross - itemDiscount;
-                    itemIva = netSubtotal * IVA_RATE;
+                    itemIva = (item.incluye_iva === false) ? 0 : netSubtotal * IVA_RATE;
                 } else if (item.type === 'service') {
                     itemSubtotalGross = itemTotalPrice;
                     itemDiscount = itemSubtotalGross * (itemDescPct / 100);
@@ -2864,7 +2864,7 @@
                     id: item.id,
                     name: item.name,
                     quantity: item.quantity,
-                    unit_price: item.type === 'product' ? (item.price / (1 + IVA_RATE)) : item.price,
+                    unit_price: (item.type === 'product' && item.incluye_iva !== false) ? (item.price / (1 + IVA_RATE)) : item.price,
                     subtotal: itemSubtotalGross,
                     iva: itemIva,
                     discount: itemDiscount,
@@ -2900,8 +2900,8 @@
                 if (data.success) {
                     lastSaleData = {
                         ...saleData,
-                        numero_factura: data.numero_factura || data.venta_id,
-                        total_amount: total,
+                        numero_factura: data.numero_factura || data.invoice_number || data.venta_id,
+                        total_amount: (data.total !== undefined && data.total !== null) ? Number(data.total) : total,
                         venta_id: data.venta_id
                     };
 
@@ -2916,6 +2916,10 @@
                         resetPOS();
                     }
                 } else {
+                    if (data.code === 'TOTAL_MISMATCH') {
+                        // El sistema NO guardó la venta: no se debe cobrar el valor de la pantalla.
+                        alert('⚠️ VENTA NO REGISTRADA\n\n' + data.message);
+                    }
                     showToast(data.mensaje || data.message || 'Error al procesar la venta', 'error');
                 }
             })
@@ -3464,7 +3468,8 @@
                 code: rp.codigo,
                 name: rp.nombre,
                 type: 'product',
-                price: rp.precio_unitario * (1 + IVA_RATE),   // el POS maneja el precio con IVA incluido
+                price: (rp.incluye_iva === false) ? rp.precio_unitario : rp.precio_unitario * (1 + IVA_RATE),   // el POS maneja el precio con IVA incluido (salvo productos sin IVA)
+                incluye_iva: rp.incluye_iva !== false,
                 quantity: rp.cantidad,
                 stock: rp.stock,
                 descuento_porcentaje: 0,
@@ -4023,10 +4028,10 @@
             let itemDiscount = 0;
 
             if (item.type === 'product') {
-                itemSubtotalGross = itemTotalPrice / (1 + IVA_RATE);
+                itemSubtotalGross = (item.incluye_iva === false) ? itemTotalPrice : itemTotalPrice / (1 + IVA_RATE);  // producto sin IVA: el precio es final
                 itemDiscount = itemSubtotalGross * (itemDescPct / 100);
                 let netSubtotal = itemSubtotalGross - itemDiscount;
-                itemTax = netSubtotal * IVA_RATE;
+                itemTax = (item.incluye_iva === false) ? 0 : netSubtotal * IVA_RATE;
                 subtotalProductos += itemSubtotalGross;
             } else if (item.type === 'service') {
                 itemSubtotalGross = itemTotalPrice;

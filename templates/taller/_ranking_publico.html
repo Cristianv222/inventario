@@ -115,6 +115,9 @@
 (function () {
   const root = document.getElementById('rkp-root');
   const TOKEN = '{{ token }}';
+  // Con token (monitor / administrador) o, sin token, con la sesión del usuario
+  const WS_QS = TOKEN ? ('?t=' + encodeURIComponent(TOKEN)) : '';
+  const datosUrl = () => TOKEN ? ('/taller/pantalla/' + encodeURIComponent(TOKEN) + '/datos/') : '/taller/ranking/datos/';
   const MODO = '{{ modo }}';
   let data = JSON.parse(document.getElementById('rkp-data').textContent);
   const prev = {};
@@ -176,7 +179,7 @@
       ws.send(JSON.stringify({ action: 'set', periodo: estado.periodo, fecha: estado.fecha }));
     } else {
       const q = (MODO === 'widget') ? ('?periodo=' + estado.periodo + (estado.fecha ? '&fecha=' + estado.fecha : '')) : '';
-      fetch('/taller/pantalla/' + encodeURIComponent(TOKEN) + '/datos/' + q, { cache: 'no-store' })
+      fetch(datosUrl() + q, { cache: 'no-store' })
         .then(function (r) { return r.json(); }).then(function (d) { data = d; render(); }).catch(function () {});
     }
   }
@@ -203,7 +206,7 @@
   // ---- WebSocket con reconexión + respaldo por HTTP ----
   let ws = null, intento = 0, poll = null;
   function conectar() {
-    const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/taller/ranking/?t=' + encodeURIComponent(TOKEN);
+    const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/taller/ranking/' + WS_QS;
     try { ws = new WebSocket(url); } catch (e) { return programar(); }
     ws.onopen = function () { intento = 0; setLive(true); if (poll) { clearInterval(poll); poll = null; } if (MODO === 'widget') { pedir(); } };
     ws.onmessage = function (ev) {
@@ -217,7 +220,7 @@
     if (poll) return;
     poll = setInterval(function () {
       if (MODO === 'kiosko') {
-        fetch('/taller/pantalla/' + encodeURIComponent(TOKEN) + '/datos/', { cache: 'no-store' })
+        fetch(datosUrl(), { cache: 'no-store' })
           .then(function (r) { return r.json(); }).then(function (d) { data = d; render(); }).catch(function () {});
       } else { pedir(); }
     }, 30000);

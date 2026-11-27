@@ -21,7 +21,10 @@ class RankingConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         qs = parse_qs(self.scope.get('query_string', b'').decode())
         token = (qs.get('t') or [''])[0]
-        if not token_valido(token):
+        user = self.scope.get('user')
+        usuario_ok = bool(user and user.is_authenticated and getattr(user, 'activo', True))
+        # Entra quien trae el token del monitor o cualquier usuario con sesión iniciada
+        if not (token_valido(token) or usuario_ok):
             await self.close(code=4403)
             return
         self._pendiente = False

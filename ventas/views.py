@@ -913,13 +913,12 @@ def api_orden_datos_pos(request, orden_id):
 
         servicios = []
         for so in orden.servicios.select_related('tipo_servicio', 'tecnico_asignado').all():
-            if so.tipo_servicio_id is None:
-                continue
             tec = so.tecnico_asignado or orden.tecnico_principal
             servicios.append({
                 'id': so.tipo_servicio_id,
-                'codigo': so.tipo_servicio.codigo,
-                'nombre': so.nombre_servicio_personalizado or so.tipo_servicio.nombre,
+                'codigo': so.tipo_servicio.codigo if so.tipo_servicio_id else '',
+                'nombre': so.nombre_servicio_personalizado
+                          or (so.tipo_servicio.nombre if so.tipo_servicio_id else 'Servicio'),
                 'precio': float(so.precio_servicio),          # sin IVA
                 'incluye_iva': bool(so.aplica_iva),
                 'tecnico_id': tec.id if tec else None,
@@ -937,6 +936,7 @@ def api_orden_datos_pos(request, orden_id):
                 'precio_unitario': float(ro.precio_unitario),   # sin IVA
                 'stock': float(p.stock_actual),
                 'es_editable': bool(getattr(p, 'es_editable', False)),
+                'incluye_iva': bool(p.incluye_iva),
             })
 
         orden_data = {
@@ -1119,6 +1119,33 @@ def api_probar_impresora(request):
             'message': f'Error al procesar impresión: {str(e)}'
         })
 
+class TotalDiscrepancia(Exception):
+    """El total mostrado en el POS no coincide con el que calcula el servidor."""
+    def __init__(self, total_cliente, total_servidor):
+        self.total_cliente = total_cliente
+        self.total_servidor = total_servidor
+        super().__init__(f'cliente={total_cliente} servidor={total_servidor}')
+
+
+def _verificar_total_cliente(data, venta, n_lineas):
+    """Compara el total que vio (y cobró) el cajero con el que calculó el servidor.
+
+    Si difieren más que el redondeo posible (1 centavo por línea + 1), lanza
+    TotalDiscrepancia: la vista revierte la transacción y la venta NO se guarda.
+    """
+    raw = data.get('total_amount')
+    try:
+        total_cliente = Decimal(str(raw)).quantize(Decimal('0.01'))
+    except Exception:
+        total_cliente = None
+    total_servidor = venta.total.quantize(Decimal('0.01'))
+    if total_cliente is None:
+        raise TotalDiscrepancia(raw, total_servidor)
+    tolerancia = Decimal('0.01') * (max(n_lineas, 1) + 1)
+    if abs(total_cliente - total_servidor) > tolerancia:
+        raise TotalDiscrepancia(total_cliente, total_servidor)
+
+
 @login_required
 @transaction.atomic
 def api_procesar_venta_pos_mejorado(request):
@@ -1179,7 +1206,7 @@ def api_procesar_venta_pos_mejorado(request):
             
             if item['type'] == 'product':
                 try:
-                    producto = Producto.objects.get(id=item['id'])
+                    producto = Producto.objects.select_for_update().get(id=item['id'])
                     cantidad = Decimal(str(item['quantity']))
                     
                     if producto.stock_actual < cantidad:
@@ -1264,15 +1291,17 @@ def api_procesar_venta_pos_mejorado(request):
         if orden:
             D2 = Decimal('0.01')
             for so in orden.servicios.select_related('tipo_servicio', 'tecnico_asignado').all():
-                if so.tipo_servicio_id is None:
-                    continue
+                # Un servicio sin tipo de catálogo (personalizado) también se cobra: antes se omitía
+                # en silencio y su dinero no quedaba en la venta.
                 sub = (so.precio_servicio or Decimal('0')).quantize(D2)
                 iva = (sub * Decimal('0.15')).quantize(D2) if so.aplica_iva else Decimal('0.00')
                 tec = so.tecnico_asignado or orden.tecnico_principal
+                nombre_srv = (so.nombre_servicio_personalizado
+                              or (so.tipo_servicio.nombre if so.tipo_servicio_id else 'Servicio'))
                 DetalleVenta.objects.create(
                     venta=venta,
-                    tipo_servicio=so.tipo_servicio,
-                    nombre_personalizado=so.nombre_servicio_personalizado or so.tipo_servicio.nombre,
+                    tipo_servicio=so.tipo_servicio if so.tipo_servicio_id else None,
+                    nombre_personalizado=nombre_srv,
                     tecnico=tec,
                     cantidad=Decimal('1'),
                     precio_unitario=sub,
@@ -1293,7 +1322,7 @@ def api_procesar_venta_pos_mejorado(request):
                         f'la orden necesita {cant}'
                     )
                 sub = ((ro.precio_unitario or Decimal('0')) * cant).quantize(D2)
-                iva = (sub * Decimal('0.15')).quantize(D2)
+                iva = (sub * Decimal('0.15')).quantize(D2) if producto.incluye_iva else Decimal('0.00')
                 DetalleVenta.objects.create(
                     venta=venta,
                     producto=producto,
@@ -1301,7 +1330,7 @@ def api_procesar_venta_pos_mejorado(request):
                     cantidad=cant,
                     precio_unitario=ro.precio_unitario,
                     subtotal=sub,
-                    iva_porcentaje=Decimal('15.00'),
+                    iva_porcentaje=Decimal('15.00') if iva > 0 else Decimal('0.00'),
                     iva=iva,
                     descuento=Decimal('0.00'),
                     total=sub + iva
@@ -1334,6 +1363,10 @@ def api_procesar_venta_pos_mejorado(request):
         venta.descuento = agg['desc'] or Decimal('0.00')
         venta.total = venta.subtotal + venta.iva - venta.descuento
         venta.save(update_fields=['subtotal', 'iva', 'descuento', 'total'])
+
+        # Control de cuadre: el total que vio y cobró el cajero debe ser el que se guarda.
+        # Si no coincide, se revierte TODO (venta, líneas y stock) y no se imprime nada.
+        _verificar_total_cliente(data, venta, venta.detalleventa_set.count())
 
         # ⭐ INTEGRACIÓN: Facturación Electrónica SRI — TODAS las ventas se facturan.
         try:
@@ -1430,11 +1463,32 @@ def api_procesar_venta_pos_mejorado(request):
             'success': True,
             'venta_id': venta.id,
             'invoice_number': venta.numero_factura,
+            'numero_factura': venta.numero_factura,
+            'total': str(venta.total),
             'message': 'Venta procesada correctamente',
             'print_result': print_result,
             'email_sent': email_sent
         })
         
+    except TotalDiscrepancia as e:
+        transaction.set_rollback(True)
+        logger.warning(
+            "VENTA POS RECHAZADA por descuadre de total: usuario=%s cliente=%s pantalla=%s servidor=%s items=%s",
+            request.user, data.get('customer_id'), e.total_cliente, e.total_servidor,
+            json.dumps(data.get('items'), default=str)[:2000]
+        )
+        return JsonResponse({
+            'success': False,
+            'code': 'TOTAL_MISMATCH',
+            'client_total': str(e.total_cliente),
+            'server_total': str(e.total_servidor),
+            'message': (
+                f'El total de la pantalla (${e.total_cliente}) no coincide con el que calcula el sistema '
+                f'(${e.total_servidor}). La venta NO se guardó y NO debes cobrarla así. '
+                f'Recarga la página con Ctrl+Shift+R (también la PWA) y vuelve a armar la venta. '
+                f'Si se repite, avisa al administrador.'
+            ),
+        })
     except Exception as e:
         import traceback
         logger.error(f"Error procesando venta POS: {str(e)}")

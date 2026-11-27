@@ -293,7 +293,9 @@ class DetalleVenta(models.Model):
                     # Usar configuración global o default 15%
                     iva_rate = Decimal(str(settings.VPMOTOS_SETTINGS.get('IVA_PERCENTAGE', 15.0)))
                     self.iva_porcentaje = iva_rate
-                    self.iva = self.subtotal * (self.iva_porcentaje / 100)
+                    # IVA sobre lo que realmente se cobra (subtotal - descuento), igual que en la pantalla
+                    base_iva = self.subtotal - (self.descuento or Decimal('0'))
+                    self.iva = (base_iva * self.iva_porcentaje / Decimal('100')).quantize(Decimal('0.01'))
                 else:
                     self.iva_porcentaje = Decimal('0.00')
                     self.iva = Decimal('0.00')
@@ -301,7 +303,8 @@ class DetalleVenta(models.Model):
                 # Si no hay producto asociado (raro), usar default
                 iva_rate = Decimal(str(settings.VPMOTOS_SETTINGS.get('IVA_PERCENTAGE', 15.0)))
                 self.iva_porcentaje = iva_rate
-                self.iva = self.subtotal * (self.iva_porcentaje / 100)
+                base_iva = self.subtotal - (self.descuento or Decimal('0'))
+                self.iva = (base_iva * self.iva_porcentaje / Decimal('100')).quantize(Decimal('0.01'))
             
             self.total = self.subtotal + self.iva - self.descuento
         
